@@ -3,108 +3,474 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#111111" />
-  <title>IPCDJ | Próximas Canciones</title>
+  <meta name="theme-color" content="#0a1020" />
+  <meta name="description" content="IPCDJ Ministerio de Alabanza — acceso rápido a las próximas canciones del ministerio." />
+  <title>IPCDJ | Ministerio de Alabanza</title>
   <style>
-    :root {
-      --bg: #0f0f10;
-      --card: #18181b;
-      --text: #f7f7f7;
-      --muted: #b7b7bd;
-      --border: #2a2a2f;
-      --button: #ffffff;
-      --buttonText: #111111;
+    :root{
+      --bg-1:#06080d;
+      --bg-2:#0a0e17;
+      --bg-3:#0f1930;
+      --line:rgba(255,255,255,.09);
+      --text:#f7f8fb;
+      --muted:#aab3c5;
+      --soft:#d9dfeb;
+      --shadow:0 24px 80px rgba(0,0,0,.42);
+      --radius-lg:26px;
     }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      padding: 28px 18px 48px;
+
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      min-height:100vh;
+      color:var(--text);
+      font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      background:
+        radial-gradient(circle at 15% 15%, rgba(75,111,255,.20), transparent 26%),
+        radial-gradient(circle at 85% 20%, rgba(53,94,214,.16), transparent 24%),
+        radial-gradient(circle at 55% 90%, rgba(50,89,180,.14), transparent 28%),
+        linear-gradient(180deg,var(--bg-3) 0%,var(--bg-2) 35%,var(--bg-1) 100%);
+      overflow-x:hidden;
+      position:relative;
+      padding:28px 14px 56px;
     }
-    main { width: 100%; max-width: 620px; }
-    header { text-align: center; margin: 18px 0 28px; }
-    h1 { margin: 0; font-size: 2rem; letter-spacing: .02em; }
-    .subtitle { color: var(--muted); margin-top: 8px; font-size: 1rem; }
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 18px;
-      margin-bottom: 16px;
+
+    body::before,
+    body::after{
+      content:"";
+      position:fixed;
+      inset:-20%;
+      pointer-events:none;
+      z-index:0;
+      filter:blur(60px);
+      opacity:.5;
+      will-change:transform;
     }
-    .card h2 {
-      margin: 0 0 8px;
-      font-size: 1.15rem;
+
+    body::before{
+      background:
+        radial-gradient(circle,rgba(82,121,255,.20) 0%,rgba(82,121,255,0) 52%),
+        radial-gradient(circle,rgba(42,83,187,.18) 0%,rgba(42,83,187,0) 55%);
+      background-size:42% 42%,36% 36%;
+      background-position:8% 18%,82% 70%;
+      background-repeat:no-repeat;
+      animation:driftA 18s ease-in-out infinite alternate;
     }
-    .card p {
-      margin: 0 0 16px;
-      color: var(--muted);
-      line-height: 1.45;
+
+    body::after{
+      background:
+        radial-gradient(circle,rgba(101,145,255,.12) 0%,rgba(101,145,255,0) 48%),
+        radial-gradient(circle,rgba(24,52,120,.20) 0%,rgba(24,52,120,0) 56%);
+      background-size:34% 34%,40% 40%;
+      background-position:78% 8%,18% 86%;
+      background-repeat:no-repeat;
+      animation:driftB 24s ease-in-out infinite alternate;
     }
-    .links {
-      display: grid;
-      gap: 10px;
+
+    @keyframes driftA{
+      0%{transform:translate3d(0,0,0) scale(1)}
+      100%{transform:translate3d(-2.5%,2.5%,0) scale(1.08)}
     }
-    a.button {
-      display: block;
-      text-decoration: none;
-      background: var(--button);
-      color: var(--buttonText);
-      font-weight: 700;
-      text-align: center;
-      padding: 14px 16px;
-      border-radius: 12px;
+    @keyframes driftB{
+      0%{transform:translate3d(0,0,0) scale(1)}
+      100%{transform:translate3d(2.5%,-2.5%,0) scale(1.06)}
     }
-    .songs {
-      margin: 0;
-      padding-left: 20px;
-      line-height: 1.65;
+
+    .shell{
+      position:relative;
+      z-index:1;
+      width:100%;
+      max-width:780px;
+      margin:0 auto;
     }
-    .songs li { margin-bottom: 8px; }
-    .date { color: var(--muted); font-size: .94rem; }
-    footer {
-      text-align: center;
-      color: var(--muted);
-      font-size: .88rem;
-      margin-top: 24px;
+
+    .hero{
+      text-align:center;
+      padding:26px 16px 22px;
+    }
+
+    .eyebrow{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      background:rgba(255,255,255,.04);
+      color:var(--soft);
+      font-size:.78rem;
+      letter-spacing:.09em;
+      text-transform:uppercase;
+      padding:8px 12px;
+      margin-bottom:18px;
+      backdrop-filter:blur(10px);
+    }
+
+    .eyebrow .dot{
+      width:7px;
+      height:7px;
+      border-radius:50%;
+      background:#7ca0ff;
+      box-shadow:0 0 18px rgba(124,160,255,.9);
+    }
+
+    h1{
+      margin:0;
+      font-size:clamp(2.45rem,7vw,4.6rem);
+      letter-spacing:-.055em;
+      line-height:.93;
+      font-weight:800;
+    }
+
+    .subtitle{
+      max-width:590px;
+      margin:14px auto 0;
+      color:var(--muted);
+      font-size:1rem;
+      line-height:1.58;
+    }
+
+    .card{
+      background:linear-gradient(180deg,rgba(17,22,34,.82),rgba(11,15,24,.85));
+      border:1px solid var(--line);
+      border-radius:var(--radius-lg);
+      padding:20px;
+      margin-bottom:16px;
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(16px);
+      -webkit-backdrop-filter:blur(16px);
+    }
+
+    .section-title{
+      margin:0 0 6px;
+      font-size:1.06rem;
+      letter-spacing:-.015em;
+    }
+
+    .section-note{
+      margin:0 0 18px;
+      color:var(--muted);
+      font-size:.94rem;
+      line-height:1.46;
+    }
+
+    .platforms{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:10px;
+    }
+
+    .platform{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:11px;
+      min-height:58px;
+      text-decoration:none;
+      color:#fff;
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.1);
+      border-radius:16px;
+      padding:12px 14px;
+      font-weight:750;
+      transition:transform .15s ease,background .15s ease,border-color .15s ease;
+    }
+
+    .platform:hover{
+      transform:translateY(-1px);
+      background:rgba(255,255,255,.07);
+      border-color:rgba(255,255,255,.18);
+    }
+
+    .platform img{
+      width:24px;
+      height:24px;
+      object-fit:contain;
+      flex:0 0 auto;
+      display:block;
+    }
+
+    .current{
+      position:relative;
+      overflow:hidden;
+    }
+
+    .current::after{
+      content:"";
+      position:absolute;
+      width:280px;
+      height:280px;
+      border-radius:50%;
+      right:-100px;
+      top:-100px;
+      background:radial-gradient(circle,rgba(108,143,255,.16),rgba(108,143,255,0) 70%);
+      pointer-events:none;
+    }
+
+    .status{
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
+      padding:6px 10px;
+      border-radius:999px;
+      background:rgba(105,136,255,.12);
+      border:1px solid rgba(130,159,255,.22);
+      color:#eef3ff;
+      font-size:.78rem;
+      font-weight:700;
+      letter-spacing:.03em;
+      margin-bottom:14px;
+    }
+
+    .song-name{
+      margin:0;
+      font-size:clamp(1.9rem,5vw,2.7rem);
+      letter-spacing:-.04em;
+      line-height:1.02;
+      max-width:80%;
+    }
+
+    .artist{
+      margin:8px 0 0;
+      color:var(--muted);
+      font-size:1rem;
+    }
+
+    .timeline{
+      display:grid;
+      gap:10px;
+      margin-top:18px;
+    }
+
+    .timeline-item{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.035);
+      border-radius:14px;
+      padding:12px 14px;
+    }
+
+    .timeline-label{
+      margin:0 0 4px;
+      font-size:.86rem;
+      letter-spacing:.05em;
+      text-transform:uppercase;
+      color:#e9eefb;
+      font-weight:700;
+    }
+
+    .timeline-date{
+      color:var(--muted);
+      font-size:.93rem;
+      line-height:1.45;
+    }
+
+    .songs{
+      display:grid;
+      gap:12px;
+    }
+
+    .song-row{
+      border:1px solid var(--line);
+      border-radius:18px;
+      background:rgba(255,255,255,.03);
+      padding:15px 16px;
+    }
+
+    .song-top{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:12px;
+    }
+
+    .song-top h3{
+      margin:0;
+      font-size:1rem;
+      letter-spacing:-.01em;
+    }
+
+    .song-top p{
+      margin:4px 0 0;
+      color:var(--muted);
+      font-size:.9rem;
+    }
+
+    .song-date{
+      white-space:nowrap;
+      color:var(--soft);
+      font-size:.84rem;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      padding:7px 10px;
+      border-radius:10px;
+    }
+
+    .song-meta{
+      display:grid;
+      gap:5px;
+      margin-top:13px;
+      color:var(--muted);
+      font-size:.89rem;
+      line-height:1.45;
+    }
+
+    .recent{
+      color:var(--soft);
+      border-left:3px solid rgba(129,160,255,.42);
+      padding-left:14px;
+      line-height:1.55;
+    }
+
+    .recent .date{
+      color:var(--muted);
+      font-size:.92rem;
+      margin-top:4px;
+      display:block;
+    }
+
+    footer{
+      text-align:center;
+      color:#778096;
+      font-size:.82rem;
+      padding:18px 10px 0;
+    }
+
+    @media (max-width:640px){
+      body{padding-left:12px;padding-right:12px}
+      .platforms{grid-template-columns:1fr}
+      .platform{justify-content:flex-start;padding-left:16px}
+      .song-name{max-width:100%}
+      .song-top{flex-direction:column}
+      .song-date{width:fit-content}
+      .card{padding:18px}
+    }
+
+    @media (prefers-reduced-motion:reduce){
+      body::before,body::after{animation:none}
+      .platform{transition:none}
     }
   </style>
 </head>
 <body>
-  <main>
-    <header>
+  <main class="shell">
+
+    <header class="hero">
+      <div class="eyebrow"><span class="dot"></span> Ministerio de Alabanza</div>
       <h1>IPCDJ</h1>
-      <div class="subtitle">Ministerio de Alabanza · Próximas Canciones 2026</div>
+      <p class="subtitle">
+        Acceso rápido a las próximas canciones del ministerio.
+        Abre la playlist en la plataforma que ya utilizas y mantente al día con el proceso de aprendizaje.
+      </p>
     </header>
 
     <section class="card">
-      <h2>Escucha y guarda la playlist</h2>
-      <p>Abre la misma selección de próximas canciones en la plataforma que ya usas.</p>
-      <div class="links">
-        <a class="button" href="https://open.spotify.com/playlist/6j6ePmuQQOKZpbeG0SeG1y?si=idXk7HCHSBu6Hc7103HjXA" target="_blank" rel="noopener">Spotify</a>
-        <a class="button" href="https://music.apple.com/us/playlist/cdj-proximas-canciones-2026/pl.u-d2b0kxBTMvWBb9L" target="_blank" rel="noopener">Apple Music</a>
-        <a class="button" href="https://music.youtube.com/playlist?list=PLbgTCYVVyjGM&si=txigQZ5_6stN0zym" target="_blank" rel="noopener">YouTube Music</a>
+      <h2 class="section-title">Próximas canciones</h2>
+      <p class="section-note">Escucha y guarda la playlist completa en tu plataforma.</p>
+
+      <div class="platforms">
+        <a class="platform" href="https://open.spotify.com/playlist/6j6ePmuQQOKZpbeG0SeG1y?si=idXk7HCHSBu6Hc7103HjXA" target="_blank" rel="noopener">
+          <img src="spotify.svg" alt="Spotify" />
+          <span>Spotify</span>
+        </a>
+
+        <a class="platform" href="https://music.apple.com/us/playlist/cdj-proximas-canciones-2026/pl.u-d2b0kxBTMvWBb9L" target="_blank" rel="noopener">
+          <img src="apple-music.svg" alt="Apple Music" />
+          <span>Apple Music</span>
+        </a>
+
+        <a class="platform" href="https://music.youtube.com/playlist?list=PLbgTCYVVyjGM&si=txigQZ5_6stN0zym" target="_blank" rel="noopener">
+          <img src="youtube-music.svg" alt="YouTube Music" />
+          <span>YouTube Music</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="card current">
+      <div class="status">AHORA EN PREPARACIÓN</div>
+      <h2 class="song-name">Dios De Milagros</h2>
+      <p class="artist">Miel San Marcos &amp; Kim Richards</p>
+
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-label">Aprendizaje</div>
+          <div class="timeline-date">Lun. 14 Sep – Dom. 20 Sep</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-label">Preparación final</div>
+          <div class="timeline-date">Lun. 21 Sep – Sáb. 26 Sep</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-label">Estreno</div>
+          <div class="timeline-date">Dom. 27 Sep</div>
+        </div>
       </div>
     </section>
 
     <section class="card">
-      <h2>Próximas adiciones</h2>
-      <ol class="songs">
-        <li><strong>Dios De Milagros</strong> — Miel San Marcos &amp; Kim Richards<br><span class="date">Estreno: 27 de septiembre</span></li>
-        <li><strong>Glorioso Día</strong> — Passion Music<br><span class="date">Estreno: 25 de octubre</span></li>
-        <li><strong>No Fallarás</strong> — Saddleback Worship<br><span class="date">Estreno: 8 de noviembre</span></li>
-        <li><strong>Puedo Descansar</strong> — Jonathan Rivas ft. Job González<br><span class="date">Estreno: 22 de noviembre</span></li>
-      </ol>
+      <h2 class="section-title">Después</h2>
+      <p class="section-note">Canciones ya programadas para comenzar a prepararse más adelante.</p>
+
+      <div class="songs">
+
+        <div class="song-row">
+          <div class="song-top">
+            <div>
+              <h3>Glorioso Día</h3>
+              <p>Passion Music</p>
+            </div>
+            <div class="song-date">Estreno: 25 Oct</div>
+          </div>
+          <div class="song-meta">
+            <div>Aprendizaje: Lun. 12 Oct – Dom. 18 Oct</div>
+            <div>Preparación final: Lun. 19 Oct – Sáb. 24 Oct</div>
+          </div>
+        </div>
+
+        <div class="song-row">
+          <div class="song-top">
+            <div>
+              <h3>No Fallarás</h3>
+              <p>Saddleback Worship</p>
+            </div>
+            <div class="song-date">Estreno: 8 Nov</div>
+          </div>
+          <div class="song-meta">
+            <div>Aprendizaje: Lun. 26 Oct – Dom. 1 Nov</div>
+            <div>Preparación final: Lun. 2 Nov – Sáb. 7 Nov</div>
+          </div>
+        </div>
+
+        <div class="song-row">
+          <div class="song-top">
+            <div>
+              <h3>Puedo Descansar</h3>
+              <p>Jonathan Rivas ft. Job González</p>
+            </div>
+            <div class="song-date">Estreno: 22 Nov</div>
+          </div>
+          <div class="song-meta">
+            <div>Aprendizaje: Lun. 9 Nov – Dom. 15 Nov</div>
+            <div>Preparación final: Lun. 16 Nov – Sáb. 21 Nov</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="section-title">Adición reciente</h2>
+      <p class="section-note">Ya fue ensayada e introducida a la congregación.</p>
+      <div class="recent">
+        <strong>Clamo A Cristo</strong><br>
+        <span style="color:var(--muted)">Elevation Español</span>
+        <span class="date">Ya introducida</span>
+      </div>
     </section>
 
     <footer>
-      IPCDJ · Iglesia Pentecostal Ciudad de Jehová
+      Iglesia Pentecostal Ciudad de Jehová · IPCDJ
     </footer>
+
   </main>
 </body>
 </html>
