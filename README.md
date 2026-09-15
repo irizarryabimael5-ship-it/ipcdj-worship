@@ -1,19 +1,18 @@
-# IPCDJ Worship — GitHub Pages
+# IPCDJ Worship Hub
 
-## Publicar
+Sitio público del Ministerio de Alabanza de Iglesia Pentecostal Ciudad de Jehová.
 
-1. Crea un repositorio público en GitHub llamado `ipcdj-worship`.
-2. Sube `index.html` a la raíz del repositorio.
-3. Ve a **Settings → Pages**.
-4. En **Build and deployment**, selecciona **Deploy from a branch**.
-5. Selecciona la rama **main** y la carpeta **/(root)**.
-6. Guarda.
+## Sitio
+https://irizarryabimael5-ship-it.github.io/ipcdj-worship/
 
-La página quedará disponible en una dirección similar a:
+## Contenido actual
+- Acceso a las playlists de Spotify, Apple Music y YouTube Music.
+- Canción activa en preparación.
+- Fechas de aprendizaje, preparación final y estreno.
+- Próximas canciones programadas.
+- Adiciones recientes.
+- Diseño responsive con gradiente azul/negro animado.
+- Logos oficiales SVG proporcionados para cada plataforma.
 
-`https://TU-USUARIO.github.io/ipcdj-worship/`
-
-## Actualizar canciones
-
-Edita únicamente la sección "Próximas adiciones" dentro de `index.html`.
-Los tres botones de playlist ya incluyen los enlaces proporcionados.
+## Publicación
+GitHub Pages publica automáticamente desde la rama `main`.
