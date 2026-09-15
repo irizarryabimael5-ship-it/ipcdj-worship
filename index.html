@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#111111" />
+  <title>IPCDJ | Próximas Canciones</title>
+  <style>
+    :root {
+      --bg: #0f0f10;
+      --card: #18181b;
+      --text: #f7f7f7;
+      --muted: #b7b7bd;
+      --border: #2a2a2f;
+      --button: #ffffff;
+      --buttonText: #111111;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      padding: 28px 18px 48px;
+    }
+    main { width: 100%; max-width: 620px; }
+    header { text-align: center; margin: 18px 0 28px; }
+    h1 { margin: 0; font-size: 2rem; letter-spacing: .02em; }
+    .subtitle { color: var(--muted); margin-top: 8px; font-size: 1rem; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+    .card h2 {
+      margin: 0 0 8px;
+      font-size: 1.15rem;
+    }
+    .card p {
+      margin: 0 0 16px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .links {
+      display: grid;
+      gap: 10px;
+    }
+    a.button {
+      display: block;
+      text-decoration: none;
+      background: var(--button);
+      color: var(--buttonText);
+      font-weight: 700;
+      text-align: center;
+      padding: 14px 16px;
+      border-radius: 12px;
+    }
+    .songs {
+      margin: 0;
+      padding-left: 20px;
+      line-height: 1.65;
+    }
+    .songs li { margin-bottom: 8px; }
+    .date { color: var(--muted); font-size: .94rem; }
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: .88rem;
+      margin-top: 24px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>IPCDJ</h1>
+      <div class="subtitle">Ministerio de Alabanza · Próximas Canciones 2026</div>
+    </header>
+
+    <section class="card">
+      <h2>Escucha y guarda la playlist</h2>
+      <p>Abre la misma selección de próximas canciones en la plataforma que ya usas.</p>
+      <div class="links">
+        <a class="button" href="https://open.spotify.com/playlist/6j6ePmuQQOKZpbeG0SeG1y?si=idXk7HCHSBu6Hc7103HjXA" target="_blank" rel="noopener">Spotify</a>
+        <a class="button" href="https://music.apple.com/us/playlist/cdj-proximas-canciones-2026/pl.u-d2b0kxBTMvWBb9L" target="_blank" rel="noopener">Apple Music</a>
+        <a class="button" href="https://music.youtube.com/playlist?list=PLbgTCYVVyjGM&si=txigQZ5_6stN0zym" target="_blank" rel="noopener">YouTube Music</a>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Próximas adiciones</h2>
+      <ol class="songs">
+        <li><strong>Dios De Milagros</strong> — Miel San Marcos &amp; Kim Richards<br><span class="date">Estreno: 27 de septiembre</span></li>
+        <li><strong>Glorioso Día</strong> — Passion Music<br><span class="date">Estreno: 25 de octubre</span></li>
+        <li><strong>No Fallarás</strong> — Saddleback Worship<br><span class="date">Estreno: 8 de noviembre</span></li>
+        <li><strong>Puedo Descansar</strong> — Jonathan Rivas ft. Job González<br><span class="date">Estreno: 22 de noviembre</span></li>
+      </ol>
+    </section>
+
+    <footer>
+      IPCDJ · Iglesia Pentecostal Ciudad de Jehová
+    </footer>
+  </main>
+</body>
+</html>
