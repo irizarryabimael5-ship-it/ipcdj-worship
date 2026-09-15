@@ -4,17 +4,17 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#0a1020" />
-  <link rel="icon" type="image/svg+xml" href="./favicon.svg?v=3" />
-  <link rel="shortcut icon" type="image/svg+xml" href="./favicon.svg?v=3" />
-  <link rel="apple-touch-icon" href="./favicon.svg?v=3" />
-  <link rel="mask-icon" href="./favicon.svg?v=3" color="#000000" />
-  <link rel="manifest" href="./manifest-v3.webmanifest?v=3" />
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg?v=4" />
+  <link rel="shortcut icon" type="image/svg+xml" href="./favicon.svg?v=4" />
+  <link rel="apple-touch-icon" href="./favicon.svg?v=4" />
+  <link rel="mask-icon" href="./favicon.svg?v=4" color="#000000" />
+  <link rel="manifest" href="./manifest-v4.webmanifest?v=4" />
   <meta name="application-name" content="IPCDJ Worship" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="IPCDJ Worship" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="msapplication-TileImage" content="./favicon.svg?v=3" />
+  <meta name="msapplication-TileImage" content="./favicon.svg?v=4" />
   <meta name="description" content="IPCDJ Ministerio de Alabanza — acceso rápido a las próximas canciones del ministerio." />
   <title>IPCDJ | Ministerio de Alabanza</title>
   <style>
@@ -317,6 +317,35 @@
       padding:12px 14px;
     }
 
+    .timeline-item.estreno{
+      position:relative;
+      border-color:rgba(255,92,92,.28);
+      background:
+        linear-gradient(90deg, rgba(167,32,32,.11), rgba(255,255,255,.025));
+      box-shadow:inset 3px 0 0 rgba(255,79,79,.72);
+    }
+
+    .timeline-item.estreno .timeline-label{
+      color:#ff9a9a;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .timeline-item.estreno .timeline-label::before{
+      content:"";
+      width:7px;
+      height:7px;
+      border-radius:50%;
+      background:#ff5a5a;
+      box-shadow:0 0 12px rgba(255,90,90,.55);
+      flex:0 0 auto;
+    }
+
+    .timeline-item.estreno .timeline-date{
+      color:#d9b2b2;
+    }
+
     .timeline-label{
       margin:0 0 4px;
       font-size:.86rem;
@@ -478,7 +507,7 @@
           <div class="timeline-label">Preparación final</div>
           <div class="timeline-date">Lun. 21 Sep – Sáb. 26 Sep</div>
         </div>
-        <div class="timeline-item">
+        <div class="timeline-item estreno">
           <div class="timeline-label">Estreno</div>
           <div class="timeline-date">Dom. 27 Sep</div>
         </div>
