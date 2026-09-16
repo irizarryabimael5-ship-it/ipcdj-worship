@@ -135,8 +135,6 @@
       padding:26px 16px 22px;
     }
 
-    }
-
     .eyebrow{
       display:inline-flex;
       align-items:center;
@@ -885,12 +883,12 @@
     if ("IntersectionObserver" in window && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       const observer = new IntersectionObserver(entries => {
         entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("visible");
-            observer.unobserve(entry.target);
-          }
+          entry.target.classList.toggle("visible", entry.isIntersecting);
         });
-      }, { threshold:0.12, rootMargin:"0px 0px -6% 0px" });
+      }, {
+        threshold:0.14,
+        rootMargin:"-3% 0px -7% 0px"
+      });
 
       revealItems.forEach(item => observer.observe(item));
     } else {
