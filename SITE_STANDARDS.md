@@ -70,6 +70,19 @@ Rules:
 - Refresh UI remains centered, crisp and visible long enough to communicate activity.
 - Network failure must fall back safely rather than produce a blank/black page.
 
+## Countdown timing integrity
+
+The countdown is an absolute-time system, not a decrementing counter.
+
+Required rules:
+- Never implement the countdown by subtracting one second from a stored value.
+- Every displayed value must be recalculated from the absolute estreno timestamp minus calibrated current time.
+- Delayed JavaScript callbacks, background-tab throttling, device sleep, refreshes, or dropped frames must never accumulate countdown drift.
+- Preserve a short-lived calibrated time seed through same-tab refresh/navigation so the timer resumes immediately instead of visually restarting from an older value.
+- Recalibrate against the live server clock in the background without blocking countdown rendering.
+- Small sub-second backward corrections from low-precision HTTP Date headers must not make the countdown visibly pause or gain time.
+- Returning from the background/pageshow must immediately recalculate from absolute time.
+
 ## Song automation
 
 For each scheduled song, keep one pipeline record containing the title, artist, learning period, final-preparation period, estreno time and rollover time.
