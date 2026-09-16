@@ -95,6 +95,26 @@ Rules:
 - Refresh UI remains centered, crisp and visible long enough to communicate activity.
 - Network failure must fall back safely rather than produce a blank/black page.
 
+## Professional same-hue blob field
+
+The ambient background uses a fixed near-black base plus multiple soft concentrations of one current accent color.
+
+Required behavior:
+- Black never moves and remains the permanent base.
+- The active accent is represented by several small-to-medium soft radial concentrations ("orbs"/blobs) in different locations.
+- Every visible concentration in a phase uses the exact same hue family.
+- Blobs move independently and slowly, with different paths, scales, and intensity breathing.
+- No second accent hue is visible at the same time.
+- The current hue dwells long enough to feel ambient and alive.
+- After the dwell, the entire colored field softly fades fully to black.
+- Only while fully black may the field hue change to the next palette color.
+- Then the next color fades in and repeats.
+- Avoid a single giant whole-screen orb.
+- Avoid animating gradient stops or crossfading two hues.
+- Use compositor-friendly transform and opacity animation.
+- Preserve subtle dithering to minimize visible gradient banding.
+- Reduced-motion/data users receive a static deep-blue fallback.
+
 ## Ambient performance safety
 
 The ambient background must use only one active colored composited orb layer at a time.
