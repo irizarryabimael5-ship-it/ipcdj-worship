@@ -84,6 +84,18 @@ Rules:
 - Refresh UI remains centered, crisp and visible long enough to communicate activity.
 - Network failure must fall back safely rather than produce a blank/black page.
 
+## Ambient performance safety
+
+The ambient background must use only one active colored composited orb layer at a time.
+
+Rules:
+- Do not render five simultaneous oversized animated gradient layers.
+- Do not keep hidden off-screen/transparent color layers continuously animating.
+- Color sequencing is controlled by one reusable orb whose RGB value changes only while its opacity is zero.
+- The orb uses transform animation plus opacity only.
+- This avoids excessive GPU memory/compositing pressure on Safari, mobile browsers, and lower-power devices.
+- If a decorative background change causes flicker, page tearing, black flashes, scroll jank, or compositor instability, performance safety takes priority over visual complexity.
+
 ## Ambient orb dwell behavior
 
 Each color phase must feel like a deliberate ambient scene, not a quick flash.
