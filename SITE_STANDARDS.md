@@ -59,6 +59,20 @@ Do not use content-visibility, display:none, or other optimization techniques on
 - Mobile launcher icons must retain adequate safe-zone padding for platform masking.
 - Installed-app changes must use versioned assets/cache updates when needed.
 
+## Always-latest canonical-domain loading
+
+Opening https://worship.ipcdj.org/ must aggressively prefer the newest deployed website version.
+
+Required behavior:
+- Canonical-domain page loads run an immediate same-origin freshness probe with a unique cache-busting query.
+- The probe compares the deployed build marker with the currently loaded build.
+- If a newer deployed build exists, the page replaces itself with a cache-busted navigation automatically.
+- Service-worker navigations use network-first behavior with cache bypass semantics.
+- Browser/proxy caches must never be the sole authority for the canonical page.
+- Offline fallback remains available only when the network cannot provide a working page.
+- Do not destroy the last known-good offline copy before a successful newer response exists.
+- GitHub Pages deployment propagation time cannot be eliminated; once the new build is actually available at the host, the freshness check should adopt it automatically.
+
 ## Refresh and caching
 
 Pull-to-refresh must seek the newest deployed version quickly without destroying the last known-good page first.
