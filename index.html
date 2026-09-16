@@ -315,6 +315,79 @@
       font-size:1rem;
     }
 
+    .countdown-wrap{
+      margin-top:18px;
+      padding:15px;
+      border:1px solid rgba(255,92,92,.22);
+      background:linear-gradient(180deg, rgba(151,34,34,.11), rgba(68,20,24,.06));
+      border-radius:15px;
+    }
+
+    .countdown-heading{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:11px;
+    }
+
+    .countdown-kicker{
+      color:#f5e7e7;
+      font-size:.82rem;
+      font-weight:800;
+      letter-spacing:.055em;
+      text-transform:uppercase;
+    }
+
+    .countdown-target{
+      color:#d9a9a9;
+      font-size:.8rem;
+      font-weight:700;
+      white-space:nowrap;
+    }
+
+    .countdown-grid{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:8px;
+    }
+
+    .countdown-unit{
+      min-width:0;
+      text-align:center;
+      padding:10px 6px 9px;
+      border:1px solid rgba(255,255,255,.07);
+      background:rgba(255,255,255,.035);
+      border-radius:12px;
+    }
+
+    .countdown-number{
+      display:block;
+      color:#fff;
+      font-size:clamp(1.3rem,4vw,1.85rem);
+      line-height:1;
+      font-weight:800;
+      font-variant-numeric:tabular-nums;
+      letter-spacing:-.035em;
+    }
+
+    .countdown-label{
+      display:block;
+      margin-top:5px;
+      color:#aeb7c8;
+      font-size:.67rem;
+      font-weight:700;
+      letter-spacing:.055em;
+      text-transform:uppercase;
+    }
+
+    .countdown-note{
+      margin-top:9px;
+      color:#c79d9d;
+      font-size:.78rem;
+      line-height:1.4;
+    }
+
     .progress-wrap{
       margin-top:18px;
       padding:14px;
@@ -344,11 +417,35 @@
     }
 
     .progress-fill{
-      width:38%;
+      width:0%;
       height:100%;
       border-radius:999px;
       background:linear-gradient(90deg,#35b75c,#65dc83);
       box-shadow:0 0 18px rgba(78,214,112,.38);
+      transition:width .9s linear;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .progress-fill::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      width:38%;
+      transform:translateX(-140%);
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,.34),transparent);
+      animation:progress-sheen 2.8s ease-in-out infinite;
+    }
+
+    @keyframes progress-sheen{
+      0%{transform:translateX(-140%)}
+      55%,100%{transform:translateX(360%)}
+    }
+
+    .timeline-item.active-phase{
+      border-color:rgba(105,136,255,.30);
+      background:linear-gradient(90deg,rgba(76,109,218,.13),rgba(255,255,255,.025));
+      box-shadow:inset 3px 0 0 rgba(124,160,255,.72);
     }
 
     .progress-note{
@@ -639,6 +736,8 @@
         min-height:58px;
       }
       .song-name{max-width:100%}
+      .countdown-heading{align-items:flex-start;flex-direction:column;gap:4px}
+      .countdown-target{white-space:normal}
       .song-top{flex-direction:column}
       .song-date{width:fit-content}
       .recent{align-items:flex-start;flex-direction:column}
@@ -708,6 +807,8 @@
     @media (prefers-reduced-motion: reduce){
       body::before, body::after{animation:none}
       .platform{transition:none}
+      .progress-fill{transition:none}
+      .progress-fill::after{animation:none}
       .reveal{opacity:1;transform:none;transition:none}
       .pull-refresh{transition:none}
     }
@@ -754,45 +855,57 @@
       </div>
     </section>
 
-    <section class="card current reveal">
-      <div class="status">AHORA EN PREPARACIÓN</div>
-      <h2 class="song-name">Dios De Milagros</h2>
-      <p class="artist">Miel San Marcos &amp; Kim Richards</p>
+    <section class="card current reveal" id="current-song-card">
+      <div class="status" id="current-status">AHORA EN PREPARACIÓN</div>
+      <h2 class="song-name" id="current-song-name">Dios De Milagros</h2>
+      <p class="artist" id="current-artist">Miel San Marcos &amp; Kim Richards</p>
+
+      <div class="countdown-wrap" aria-live="polite">
+        <div class="countdown-heading">
+          <span class="countdown-kicker">Cuenta regresiva al estreno</span>
+          <span class="countdown-target" id="countdown-target">Dom. 27 Sep · 11:00 AM</span>
+        </div>
+        <div class="countdown-grid" aria-label="Tiempo restante para el estreno">
+          <div class="countdown-unit"><span class="countdown-number" id="countdown-days">00</span><span class="countdown-label">Días</span></div>
+          <div class="countdown-unit"><span class="countdown-number" id="countdown-hours">00</span><span class="countdown-label">Horas</span></div>
+          <div class="countdown-unit"><span class="countdown-number" id="countdown-minutes">00</span><span class="countdown-label">Min</span></div>
+          <div class="countdown-unit"><span class="countdown-number" id="countdown-seconds">00</span><span class="countdown-label">Seg</span></div>
+        </div>
+        <div class="countdown-note" id="countdown-note">El reloj se actualiza en vivo.</div>
+      </div>
 
       <div class="progress-wrap">
         <div class="progress-top">
-          <span>Progreso actual</span>
-          <span>Aprendizaje</span>
+          <span>Camino al estreno</span>
+          <span id="progress-phase">Aprendizaje</span>
         </div>
         <div class="progress-track" aria-label="Progreso actual de la canción">
-          <div class="progress-fill"></div>
+          <div class="progress-fill" id="progress-fill"></div>
         </div>
-        <div class="progress-note">Fase 1 de 3 · preparación en curso</div>
+        <div class="progress-note" id="progress-note">Fase 1 de 3 · preparación en curso</div>
       </div>
 
       <div class="timeline">
-        <div class="timeline-item">
+        <div class="timeline-item" id="timeline-learning">
           <div class="timeline-label">Aprendizaje</div>
-          <div class="timeline-date">Lun. 14 Sep – Dom. 20 Sep</div>
+          <div class="timeline-date" id="learning-date">Lun. 14 Sep – Dom. 20 Sep</div>
         </div>
-        <div class="timeline-item">
+        <div class="timeline-item" id="timeline-final">
           <div class="timeline-label">Preparación final</div>
-          <div class="timeline-date">Lun. 21 Sep – Sáb. 26 Sep</div>
+          <div class="timeline-date" id="final-date">Lun. 21 Sep – Sáb. 26 Sep</div>
         </div>
-        <div class="timeline-item estreno">
+        <div class="timeline-item estreno" id="timeline-release">
           <div class="timeline-label">Estreno</div>
-          <div class="timeline-date">Dom. 27 Sep</div>
+          <div class="timeline-date" id="release-date">Dom. 27 Sep</div>
         </div>
       </div>
-    </section>
-
-    <section class="card reveal">
+    </section>  <section class="card reveal">
       <h2 class="section-title">Después</h2>
       <p class="section-note">Canciones ya programadas para comenzar a prepararse más adelante.</p>
 
-      <div class="songs">
+      <div class="songs" id="upcoming-songs">
 
-        <div class="song-row">
+        <div class="song-row" data-song-id="glorioso-dia">
           <div class="song-top">
             <div>
               <h3>Glorioso Día</h3>
@@ -806,7 +919,7 @@
           </div>
         </div>
 
-        <div class="song-row">
+        <div class="song-row" data-song-id="no-fallaras">
           <div class="song-top">
             <div>
               <h3>No Fallarás</h3>
@@ -916,6 +1029,185 @@
       }
       resetPull();
     }, { passive:true });
+
+    // IPCDJ song pipeline: one source of truth for current song, countdown, phases and rollover.
+    const songPipeline = [
+      {
+        id:"dios-de-milagros",
+        title:"Dios De Milagros",
+        artist:"Miel San Marcos & Kim Richards",
+        activeFrom:"2026-09-14T00:00:00-04:00",
+        learningStart:"2026-09-14T00:00:00-04:00",
+        learningEnd:"2026-09-20T23:59:59-04:00",
+        finalStart:"2026-09-21T00:00:00-04:00",
+        finalEnd:"2026-09-26T23:59:59-04:00",
+        releaseAt:"2026-09-27T11:00:00-04:00",
+        rolloverAt:"2026-09-28T06:00:00-04:00",
+        learningLabel:"Lun. 14 Sep – Dom. 20 Sep",
+        finalLabel:"Lun. 21 Sep – Sáb. 26 Sep",
+        releaseLabel:"Dom. 27 Sep"
+      },
+      {
+        id:"glorioso-dia",
+        title:"Glorioso Día",
+        artist:"Passion Music",
+        activeFrom:"2026-09-28T06:00:00-04:00",
+        learningStart:"2026-10-12T00:00:00-04:00",
+        learningEnd:"2026-10-18T23:59:59-04:00",
+        finalStart:"2026-10-19T00:00:00-04:00",
+        finalEnd:"2026-10-24T23:59:59-04:00",
+        releaseAt:"2026-10-25T11:00:00-04:00",
+        rolloverAt:"2026-10-26T06:00:00-04:00",
+        learningLabel:"Lun. 12 Oct – Dom. 18 Oct",
+        finalLabel:"Lun. 19 Oct – Sáb. 24 Oct",
+        releaseLabel:"Dom. 25 Oct"
+      },
+      {
+        id:"no-fallaras",
+        title:"No Fallarás",
+        artist:"Saddleback Worship",
+        activeFrom:"2026-10-26T06:00:00-04:00",
+        learningStart:"2026-10-26T00:00:00-04:00",
+        learningEnd:"2026-11-01T23:59:59-05:00",
+        finalStart:"2026-11-02T00:00:00-05:00",
+        finalEnd:"2026-11-07T23:59:59-05:00",
+        releaseAt:"2026-11-08T11:00:00-05:00",
+        rolloverAt:"2026-11-09T06:00:00-05:00",
+        learningLabel:"Lun. 26 Oct – Dom. 1 Nov",
+        finalLabel:"Lun. 2 Nov – Sáb. 7 Nov",
+        releaseLabel:"Dom. 8 Nov"
+      }
+    ];
+
+    const $ = id => document.getElementById(id);
+    const format2 = value => String(Math.max(0, value)).padStart(2,"0");
+
+    function getCurrentSong(now){
+      for(let i=0;i<songPipeline.length;i++){
+        const song=songPipeline[i];
+        const start=new Date(song.activeFrom).getTime();
+        const end=new Date(song.rolloverAt).getTime();
+        if(now>=start && now<end) return {song,index:i};
+      }
+      const first=songPipeline[0];
+      if(now<new Date(first.activeFrom).getTime()) return {song:first,index:0};
+      return null;
+    }
+
+    function getPhase(song, now){
+      const learningStart=new Date(song.learningStart).getTime();
+      const learningEnd=new Date(song.learningEnd).getTime();
+      const finalStart=new Date(song.finalStart).getTime();
+      const finalEnd=new Date(song.finalEnd).getTime();
+      const release=new Date(song.releaseAt).getTime();
+      const rollover=new Date(song.rolloverAt).getTime();
+
+      if(now<learningStart) return {key:"upcoming",label:"Próximamente",note:"Próxima fase · aprendizaje"};
+      if(now<=learningEnd) return {key:"learning",label:"Aprendizaje",note:"Fase 1 de 3 · aprendizaje en curso"};
+      if(now>=finalStart && now<=finalEnd) return {key:"final",label:"Preparación final",note:"Fase 2 de 3 · preparación final"};
+      if(now<release) return {key:"final",label:"Preparación final",note:"Fase 2 de 3 · preparación final"};
+      if(now<rollover) return {key:"release",label:"Estreno",note:"Fase 3 de 3 · estreno"};
+      return {key:"complete",label:"Introducida",note:"Estreno completado"};
+    }
+
+    function renderCurrent(now=Date.now()){
+      const current=getCurrentSong(now);
+      const card=$("current-song-card");
+      if(!current){
+        if(card){
+          $("current-status").textContent="SIN PRÓXIMO ESTRENO PROGRAMADO";
+          $("current-song-name").textContent="Próxima canción por definir";
+          $("current-artist").textContent="El calendario se actualizará cuando se programe la siguiente canción.";
+          $("countdown-target").textContent="Sin fecha programada";
+          ["countdown-days","countdown-hours","countdown-minutes","countdown-seconds"].forEach(id=>$(id).textContent="00");
+          $("countdown-note").textContent="Añade la próxima canción al pipeline para reactivar la cuenta regresiva.";
+          $("progress-phase").textContent="En espera";
+          $("progress-fill").style.width="0%";
+          $("progress-note").textContent="Sin ciclo activo";
+        }
+        renderUpcoming(-1, now);
+        return;
+      }
+
+      const {song,index}=current;
+      const phase=getPhase(song,now);
+      const release=new Date(song.releaseAt).getTime();
+      const activeStart=new Date(song.activeFrom).getTime();
+      const rollover=new Date(song.rolloverAt).getTime();
+
+      $("current-status").textContent=phase.key==="release" ? "HOY · ESTRENO" : "AHORA EN PREPARACIÓN";
+      $("current-song-name").textContent=song.title;
+      $("current-artist").textContent=song.artist;
+      $("learning-date").textContent=song.learningLabel;
+      $("final-date").textContent=song.finalLabel;
+      $("release-date").textContent=song.releaseLabel;
+      $("countdown-target").textContent=song.releaseLabel + " · 11:00 AM";
+      $("progress-phase").textContent=phase.label;
+      $("progress-note").textContent=phase.note;
+
+      ["timeline-learning","timeline-final","timeline-release"].forEach(id=>$(id).classList.remove("active-phase"));
+      if(phase.key==="learning") $("timeline-learning").classList.add("active-phase");
+      if(phase.key==="final") $("timeline-final").classList.add("active-phase");
+      if(phase.key==="release") $("timeline-release").classList.add("active-phase");
+
+      const total=Math.max(1, release-activeStart);
+      const elapsed=Math.min(total, Math.max(0, now-activeStart));
+      const progress=Math.min(100, Math.max(1, (elapsed/total)*100));
+      $("progress-fill").style.width=progress.toFixed(3)+"%";
+
+      const remaining=Math.max(0,release-now);
+      if(remaining>0){
+        const totalSeconds=Math.floor(remaining/1000);
+        const days=Math.floor(totalSeconds/86400);
+        const hours=Math.floor((totalSeconds%86400)/3600);
+        const minutes=Math.floor((totalSeconds%3600)/60);
+        const seconds=totalSeconds%60;
+        $("countdown-days").textContent=format2(days);
+        $("countdown-hours").textContent=format2(hours);
+        $("countdown-minutes").textContent=format2(minutes);
+        $("countdown-seconds").textContent=format2(seconds);
+        $("countdown-note").textContent=phase.key==="upcoming"
+          ? "La canción ya es la próxima en fila. El aprendizaje formal comienza " + song.learningLabel.split(" – ")[0].replace("Lun. ","el ") + "."
+          : "El reloj se actualiza en vivo hasta el servicio de estreno.";
+      }else{
+        ["countdown-days","countdown-hours","countdown-minutes","countdown-seconds"].forEach(id=>$(id).textContent="00");
+        $("countdown-note").textContent="Estreno realizado · el sitio cambia automáticamente a la siguiente canción el lunes a las 6:00 AM.";
+      }
+
+      renderUpcoming(index,now);
+    }
+
+    function renderUpcoming(currentIndex,now){
+      const container=$("upcoming-songs");
+      if(!container) return;
+      const future=songPipeline.filter((song,i)=>i>currentIndex && now<new Date(song.rolloverAt).getTime());
+
+      container.innerHTML=future.map(song=>`
+        <div class="song-row" data-song-id="${song.id}">
+          <div class="song-top">
+            <div>
+              <h3>${song.title}</h3>
+              <p>${song.artist}</p>
+            </div>
+            <div class="song-date">Estreno: ${song.releaseLabel.replace("Dom. ","")}</div>
+          </div>
+          <div class="song-meta">
+            <div class="meta-line"><span class="meta-label">Aprendizaje:</span><span>${song.learningLabel}</span></div>
+            <div class="meta-line"><span class="meta-label">Preparación final:</span><span>${song.finalLabel}</span></div>
+          </div>
+        </div>
+      `).join("");
+
+      if(!future.length){
+        container.innerHTML='<div class="song-row"><div class="song-top"><div><h3>Próxima canción por definir</h3><p>Se añadirá aquí cuando quede programada.</p></div></div></div>';
+      }
+    }
+
+    renderCurrent();
+    const liveClock=setInterval(()=>renderCurrent(),1000);
+    document.addEventListener("visibilitychange",()=>{
+      if(!document.hidden) renderCurrent();
+    });
 
     const revealItems = document.querySelectorAll(".reveal");
     if ("IntersectionObserver" in window && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
