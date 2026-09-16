@@ -5,20 +5,33 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
   <meta name="color-scheme" content="dark" />
-  <link rel="icon" type="image/svg+xml" href="./favicon.svg?v=6" />
-  <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png?v=6" />
-  <link rel="shortcut icon" href="./favicon-32.png?v=6" />
-  <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png?v=6" />
-  <link rel="mask-icon" href="./favicon.svg?v=6" color="#000000" />
-  <link rel="manifest" href="./manifest-v6.webmanifest?v=6" />
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg?v=7" />
+  <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png?v=7" />
+  <link rel="shortcut icon" href="./favicon-32.png?v=7" />
+  <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png?v=7" />
+  <link rel="manifest" href="./manifest-v7.webmanifest?v=7" />
   <meta name="application-name" content="IPCDJ Worship" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="IPCDJ Worship" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="msapplication-TileImage" content="./icon-512.png?v=6" />
+  <meta name="msapplication-TileImage" content="./icon-512.png?v=7" />
   <meta name="description" content="IPCDJ Ministerio de Alabanza — acceso rápido a las próximas canciones del ministerio." />
-  <title>IPCDJ | Ministerio de Alabanza</title>
+  <meta name="robots" content="index,follow" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta name="format-detection" content="telephone=no" />
+  <link rel="canonical" href="https://irizarryabimael5-ship-it.github.io/ipcdj-worship/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="es_US" />
+  <meta property="og:title" content="IPCDJ Worship | Ministerio de Alabanza" />
+  <meta property="og:description" content="Próximas canciones, preparación y estrenos del Ministerio de Alabanza de IPCDJ." />
+  <meta property="og:url" content="https://irizarryabimael5-ship-it.github.io/ipcdj-worship/" />
+  <meta property="og:image" content="https://irizarryabimael5-ship-it.github.io/ipcdj-worship/icon-512.png?v=7" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="IPCDJ Worship | Ministerio de Alabanza" />
+  <meta name="twitter:description" content="Próximas canciones, preparación y estrenos del Ministerio de Alabanza de IPCDJ." />
+  <meta name="twitter:image" content="https://irizarryabimael5-ship-it.github.io/ipcdj-worship/icon-512.png?v=7" />
+  <title>IPCDJ Worship | Ministerio de Alabanza</title>
   <style>
     :root{
       --bg-1:#06080d;
@@ -49,6 +62,7 @@
       color-scheme:dark;
       -webkit-text-size-adjust:100%;
       text-size-adjust:100%;
+      scrollbar-gutter:stable;
       min-height:100%;
       min-height:100dvh;
     }
@@ -181,6 +195,7 @@
       color:var(--muted);
       font-size:1rem;
       line-height:1.58;
+      text-wrap:pretty;
     }
 
     .card{
@@ -190,6 +205,7 @@
       padding:20px;
       margin-bottom:16px;
       box-shadow:var(--shadow);
+      contain:paint;
       backdrop-filter:blur(16px);
       -webkit-backdrop-filter:blur(16px);
     }
@@ -661,6 +677,23 @@
       .hero{padding-top:12px;padding-bottom:16px}
     }
 
+    @media (prefers-reduced-transparency: reduce){
+      .card,.eyebrow,.pull-refresh{
+        backdrop-filter:none;
+        -webkit-backdrop-filter:none;
+      }
+      .card{background:rgba(11,15,24,.96)}
+      .eyebrow{background:rgba(20,27,44,.94)}
+      .pull-refresh{background:rgba(10,14,23,.98)}
+    }
+
+    @media (prefers-reduced-data: reduce){
+      body::before,body::after{
+        animation:none;
+        filter:blur(42px);
+      }
+    }
+
     @media (prefers-contrast:more){
       :root{--line:rgba(255,255,255,.18);--muted:#c4cada}
       .card,.song-row,.timeline-item,.platform{border-width:1px}
@@ -699,17 +732,17 @@
 
       <div class="platforms">
         <a class="platform" href="https://open.spotify.com/playlist/6j6ePmuQQOKZpbeG0SeG1y?si=idXk7HCHSBu6Hc7103HjXA" target="_blank" rel="noopener">
-          <img src="spotify.svg" alt="Spotify" />
+          <img src="spotify.svg" alt="Spotify" width="24" height="24" decoding="async" />
           <span>Spotify</span>
         </a>
 
         <a class="platform" href="https://music.apple.com/us/playlist/cdj-proximas-canciones-2026/pl.u-d2b0kxBTMvWBb9L" target="_blank" rel="noopener">
-          <img src="apple-music.svg" alt="Apple Music" />
+          <img src="apple-music.svg" alt="Apple Music" width="24" height="24" decoding="async" />
           <span>Apple Music</span>
         </a>
 
         <a class="platform" href="https://music.youtube.com/playlist?list=PLbgTCYVVyjGM&si=txigQZ5_6stN0zym" target="_blank" rel="noopener">
-          <img src="youtube-music.svg" alt="YouTube Music" />
+          <img src="youtube-music.svg" alt="YouTube Music" width="24" height="24" decoding="async" />
           <span>YouTube Music</span>
         </a>
       </div>
@@ -819,7 +852,9 @@
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./sw.js").catch(() => {});
+        navigator.serviceWorker.register("./sw.js", { updateViaCache:"none" })
+          .then(registration => registration.update())
+          .catch(() => {});
       });
     }
 
