@@ -135,52 +135,6 @@
       padding:26px 16px 22px;
     }
 
-    .refresh-button{
-      position:absolute;
-      top:4px;
-      right:4px;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      width:42px;
-      height:42px;
-      border-radius:13px;
-      border:1px solid rgba(255,255,255,.10);
-      background:rgba(255,255,255,.045);
-      color:#dfe6f5;
-      cursor:pointer;
-      backdrop-filter:blur(12px);
-      -webkit-backdrop-filter:blur(12px);
-      touch-action:manipulation;
-      -webkit-tap-highlight-color:transparent;
-      transition:background .15s ease,border-color .15s ease,transform .15s ease;
-    }
-
-    .refresh-button svg{
-      width:19px;
-      height:19px;
-      display:block;
-    }
-
-    @media (hover:hover) and (pointer:fine){
-      .refresh-button:hover{
-        background:rgba(255,255,255,.075);
-        border-color:rgba(255,255,255,.17);
-        transform:translateY(-1px);
-      }
-    }
-
-    .refresh-button:focus-visible{
-      outline:3px solid rgba(137,169,255,.72);
-      outline-offset:3px;
-    }
-
-    .refresh-button.refreshing svg{
-      animation:refresh-spin .65s linear infinite;
-    }
-
-    @keyframes refresh-spin{
-      to{transform:rotate(360deg)}
     }
 
     .eyebrow{
@@ -567,6 +521,80 @@
       background:rgba(94,125,214,.11);
     }
 
+    .pull-refresh{
+      position:fixed;
+      top:max(10px, env(safe-area-inset-top, 0px));
+      left:50%;
+      z-index:20;
+      transform:translate(-50%,-72px);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      width:42px;
+      height:42px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.11);
+      background:rgba(10,14,23,.88);
+      color:#e8eefc;
+      box-shadow:0 10px 28px rgba(0,0,0,.28);
+      backdrop-filter:blur(14px);
+      -webkit-backdrop-filter:blur(14px);
+      transition:transform .16s ease, opacity .16s ease;
+      opacity:0;
+      pointer-events:none;
+    }
+
+    .pull-refresh svg{
+      width:19px;
+      height:19px;
+      display:block;
+      transform:rotate(0deg);
+      transition:transform .12s linear;
+    }
+
+    .pull-refresh.ready{
+      opacity:1;
+    }
+
+    .pull-refresh.refreshing{
+      opacity:1;
+      transform:translate(-50%,0);
+    }
+
+    .pull-refresh.refreshing svg{
+      animation:refresh-spin .7s linear infinite;
+    }
+
+    @keyframes refresh-spin{
+      to{transform:rotate(360deg)}
+    }
+
+    .reveal{
+      opacity:0;
+      transform:translateY(18px);
+      transition:
+        opacity .58s cubic-bezier(.2,.65,.2,1),
+        transform .58s cubic-bezier(.2,.65,.2,1);
+      will-change:opacity,transform;
+    }
+
+    .reveal.visible{
+      opacity:1;
+      transform:translateY(0);
+    }
+
+    .recent{
+      border-color:rgba(88,220,120,.18);
+      background:linear-gradient(90deg, rgba(48,175,82,.10), rgba(255,255,255,.02));
+      border-left-color:rgba(88,220,120,.62);
+    }
+
+    .recent .date{
+      color:#dff7e5;
+      border-color:rgba(88,220,120,.24);
+      background:rgba(48,175,82,.11);
+    }
+
     footer{
       text-align:center;
       color:#778096;
@@ -635,10 +663,6 @@
       .hero{padding-top:12px;padding-bottom:16px}
     }
 
-    @media (display-mode:standalone){
-      body{overscroll-behavior-y:none}
-    }
-
     @media (prefers-contrast:more){
       :root{--line:rgba(255,255,255,.18);--muted:#c4cada}
       .card,.song-row,.timeline-item,.platform{border-width:1px}
@@ -647,19 +671,22 @@
     @media (prefers-reduced-motion: reduce){
       body::before, body::after{animation:none}
       .platform{transition:none}
+      .reveal{opacity:1;transform:none;transition:none}
+      .pull-refresh{transition:none}
     }
   </style>
 </head>
 <body>
+  <div class="pull-refresh" aria-hidden="true">
+    <svg viewBox="0 0 24 24">
+      <path d="M20 11a8 8 0 1 0 2 5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
+      <path d="M20 4v7h-7" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+
   <main class="shell">
 
     <header class="hero">
-      <button class="refresh-button" type="button" aria-label="Actualizar página" title="Actualizar página">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M20 11a8 8 0 1 0 2 5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
-          <path d="M20 4v7h-7" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
       <div class="eyebrow"><span class="dot"></span> Ministerio de Alabanza</div>
       <h1>IPCDJ <span class="brand-sub">Worship</span></h1>
       <p class="subtitle">
@@ -668,7 +695,7 @@
       </p>
     </header>
 
-    <section class="card">
+    <section class="card reveal">
       <h2 class="section-title">Próximas canciones</h2>
       <p class="section-note">Escucha y guarda la playlist completa en tu plataforma.</p>
 
@@ -690,7 +717,7 @@
       </div>
     </section>
 
-    <section class="card current">
+    <section class="card current reveal">
       <div class="status">AHORA EN PREPARACIÓN</div>
       <h2 class="song-name">Dios De Milagros</h2>
       <p class="artist">Miel San Marcos &amp; Kim Richards</p>
@@ -722,7 +749,7 @@
       </div>
     </section>
 
-    <section class="card">
+    <section class="card reveal">
       <h2 class="section-title">Después</h2>
       <p class="section-note">Canciones ya programadas para comenzar a prepararse más adelante.</p>
 
@@ -773,19 +800,19 @@
       </div>
     </section>
 
-    <section class="card">
-      <h2 class="section-title">Adición reciente</h2>
-      <p class="section-note">Ya fue ensayada e introducida a la congregación.</p>
+    <section class="card reveal">
+      <h2 class="section-title">Introducción reciente</h2>
+      <p class="section-note">Canción recientemente integrada al repertorio del ministerio.</p>
       <div class="recent">
         <div class="recent-main">
           <strong>Clamo A Cristo</strong>
           <span class="recent-artist">Elevation Español</span>
         </div>
-        <span class="date">Ya introducida</span>
+        <span class="date">Introducida</span>
       </div>
     </section>
 
-    <footer>
+    <footer class="reveal">
       Iglesia Pentecostal Ciudad de Jehová · IPCDJ
     </footer>
 
@@ -798,16 +825,76 @@
       });
     }
 
-    const refreshButton = document.querySelector(".refresh-button");
-    if (refreshButton) {
-      refreshButton.addEventListener("click", async () => {
-        refreshButton.classList.add("refreshing");
-        refreshButton.disabled = true;
+    const pullRefresh = document.querySelector(".pull-refresh");
+    let touchStartY = 0;
+    let pullDistance = 0;
+    let pulling = false;
+    const refreshThreshold = 82;
+    const maxPull = 118;
+
+    const resetPull = () => {
+      if (!pullRefresh || pullRefresh.classList.contains("refreshing")) return;
+      pullRefresh.classList.remove("ready");
+      pullRefresh.style.transform = "translate(-50%, -72px)";
+      pullRefresh.style.opacity = "0";
+      const icon = pullRefresh.querySelector("svg");
+      if (icon) icon.style.transform = "rotate(0deg)";
+      pullDistance = 0;
+      pulling = false;
+    };
+
+    window.addEventListener("touchstart", event => {
+      if (window.scrollY <= 0 && event.touches.length === 1) {
+        touchStartY = event.touches[0].clientY;
+        pulling = true;
+      }
+    }, { passive:true });
+
+    window.addEventListener("touchmove", event => {
+      if (!pulling || !pullRefresh || window.scrollY > 0 || event.touches.length !== 1) return;
+      const delta = event.touches[0].clientY - touchStartY;
+      if (delta <= 0) {
+        resetPull();
+        return;
+      }
+      pullDistance = Math.min(maxPull, delta * 0.58);
+      const progress = Math.min(1, pullDistance / refreshThreshold);
+      const y = -72 + (pullDistance * 0.72);
+      pullRefresh.classList.add("ready");
+      pullRefresh.style.opacity = String(0.3 + progress * 0.7);
+      pullRefresh.style.transform = `translate(-50%, ${Math.min(0, y)}px)`;
+      const icon = pullRefresh.querySelector("svg");
+      if (icon) icon.style.transform = `rotate(${progress * 210}deg)`;
+    }, { passive:true });
+
+    window.addEventListener("touchend", async () => {
+      if (!pulling || !pullRefresh) return;
+      if (pullDistance >= refreshThreshold) {
+        pullRefresh.classList.add("refreshing");
+        pullRefresh.style.transform = "translate(-50%, 0)";
         try {
-          await fetch("./", { cache: "no-store" });
+          await fetch("./", { cache:"no-store" });
         } catch (_) {}
         window.location.reload();
-      });
+        return;
+      }
+      resetPull();
+    }, { passive:true });
+
+    const revealItems = document.querySelectorAll(".reveal");
+    if ("IntersectionObserver" in window && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold:0.12, rootMargin:"0px 0px -6% 0px" });
+
+      revealItems.forEach(item => observer.observe(item));
+    } else {
+      revealItems.forEach(item => item.classList.add("visible"));
     }
   </script>
 </body>
