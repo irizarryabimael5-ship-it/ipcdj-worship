@@ -70,6 +70,30 @@ Rules:
 - Refresh UI remains centered, crisp and visible long enough to communicate activity.
 - Network failure must fall back safely rather than produce a blank/black page.
 
+## Sequential ambient color cycle
+
+The background color system must be sequential, not blended between accent families.
+
+Required sequence behavior:
+- Start with one active accent family.
+- Let that color visibly move while it is active.
+- Fade that color completely to the constant near-black base.
+- Hold a brief full-black interval.
+- Only then introduce the next accent family.
+- Repeat this sequence continuously through deep blue, accent blue, green, red, and soft white.
+- Never overlap two colored phases strongly enough that one visually mixes into the next.
+- Black is the constant base state between every color phase.
+
+Gradient quality rules:
+- Avoid visible gradient banding / contour lines as much as browsers and displays allow.
+- Do not animate gradient stops, gradient colors, filter brightness, or saturation between colors.
+- Each color layer keeps a fixed gradient and transitions only through opacity.
+- Use broad soft radial falloffs, blur, and a subtle dither/noise layer to reduce 8-bit banding.
+- Keep dither subtle enough that it reads as smoothness, not visible grain.
+- Maintain oversized transform layers so movement never exposes an edge.
+- Movement should be clearly noticeable while remaining smooth and premium.
+- Respect reduced-motion and reduced-data preferences.
+
 ## Expanded accent background palette
 
 The animated background may cycle through the website's established accent colors while remaining dark-first and visually cohesive.
