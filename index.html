@@ -940,7 +940,7 @@
       <h2 class="section-title">Introducciones recientes</h2>
       <p class="section-note">Canciones recientemente integradas al repertorio del ministerio.</p>
 
-      <div class="recent-list">
+      <div class="recent-list" id="introduced-songs">
         <div class="recent">
           <div class="recent-main">
             <strong>Puedo Descansar</strong>
@@ -1126,6 +1126,7 @@
           $("progress-note").textContent="Sin ciclo activo";
         }
         renderUpcoming(-1, now);
+        renderIntroduced(now);
         return;
       }
 
@@ -1135,7 +1136,7 @@
       const activeStart=new Date(song.activeFrom).getTime();
       const rollover=new Date(song.rolloverAt).getTime();
 
-      $("current-status").textContent=phase.key==="release" ? "HOY · ESTRENO" : "AHORA EN PREPARACIÓN";
+      $("current-status").textContent=phase.key==="release" ? "HOY · ESTRENO" : (phase.key==="upcoming" ? "PRÓXIMA CANCIÓN" : "AHORA EN PREPARACIÓN");
       $("current-song-name").textContent=song.title;
       $("current-artist").textContent=song.artist;
       $("learning-date").textContent=song.learningLabel;
@@ -1175,6 +1176,7 @@
       }
 
       renderUpcoming(index,now);
+      renderIntroduced(now);
     }
 
     function renderUpcoming(currentIndex,now){
@@ -1201,6 +1203,54 @@
       if(!future.length){
         container.innerHTML='<div class="song-row"><div class="song-top"><div><h3>Próxima canción por definir</h3><p>Se añadirá aquí cuando quede programada.</p></div></div></div>';
       }
+    }
+
+    const introducedBaseline = [
+      {
+        title:"Puedo Descansar",
+        artist:"Jonathan Rivas ft. Job González",
+        introducedAt:"2026-09-13T11:00:00-04:00",
+        label:"13 de septiembre"
+      },
+      {
+        title:"Clamo A Cristo",
+        artist:"Elevation Español",
+        introducedAt:"2026-09-06T11:00:00-04:00",
+        label:"6 de septiembre"
+      }
+    ];
+
+    function spanishReleaseLabel(song){
+      const months=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+      const d=new Date(song.releaseAt);
+      return d.getDate()+" de "+months[d.getMonth()];
+    }
+
+    function renderIntroduced(now){
+      const container=$("introduced-songs");
+      if(!container) return;
+
+      const autoIntroduced=songPipeline
+        .filter(song=>now>=new Date(song.rolloverAt).getTime())
+        .map(song=>({
+          title:song.title,
+          artist:song.artist,
+          introducedAt:song.releaseAt,
+          label:spanishReleaseLabel(song)
+        }));
+
+      const all=[...introducedBaseline,...autoIntroduced]
+        .sort((a,b)=>new Date(b.introducedAt)-new Date(a.introducedAt));
+
+      container.innerHTML=all.map(item=>`
+        <div class="recent">
+          <div class="recent-main">
+            <strong>${item.title}</strong>
+            <span class="recent-artist">${item.artist}</span>
+          </div>
+          <span class="date">Introducida · ${item.label}</span>
+        </div>
+      `).join("");
     }
 
     renderCurrent();
