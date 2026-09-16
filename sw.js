@@ -1,4 +1,4 @@
-const CACHE_NAME = "ipcdj-worship-v8";
+const CACHE_NAME = "ipcdj-worship-v9";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
@@ -6,6 +6,7 @@ const STATIC_ASSETS = [
   "./favicon-32.png",
   "./favicon.ico",
   "./apple-touch-icon.png",
+  "./app-icon-safe.svg",
   "./icon-192.png",
   "./icon-512.png",
   "./icon-maskable-512.png",
