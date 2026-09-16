@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
+  <meta name="ipcdj-build" content="refresh-v13" />
   <meta name="color-scheme" content="dark" />
   <link rel="icon" type="image/svg+xml" href="./favicon.svg?v=8" />
   <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png?v=8" />
@@ -644,51 +645,66 @@
       top:max(10px, env(safe-area-inset-top, 0px));
       left:50%;
       z-index:20;
-      transform:translate(-50%,-62px);
-      display:flex;
-      align-items:center;
-      justify-content:center;
       width:44px;
       height:44px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.13);
-      background:rgba(10,14,23,.92);
-      color:#e8eefc;
-      box-shadow:0 10px 30px rgba(0,0,0,.32);
-      backdrop-filter:blur(14px);
-      -webkit-backdrop-filter:blur(14px);
-      transition:transform .18s cubic-bezier(.2,.7,.2,1), opacity .16s ease, border-color .16s ease;
+      transform:translate(-50%,-62px);
+      display:grid;
+      place-items:center;
+      border-radius:50%;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(10,14,23,.96);
+      color:#eef3ff;
+      box-shadow:0 10px 28px rgba(0,0,0,.30);
+      backdrop-filter:blur(12px);
+      -webkit-backdrop-filter:blur(12px);
       opacity:0;
       pointer-events:none;
+      transition:transform .18s cubic-bezier(.2,.7,.2,1),opacity .14s ease,border-color .14s ease;
     }
 
-    .pull-refresh svg{
+    .refresh-glyph{
+      position:relative;
       width:22px;
       height:22px;
-      display:block;
-      overflow:visible;
-      transform-origin:50% 50%;
-      transform-box:fill-box;
       transform:rotate(var(--pull-rotation));
-      transition:transform .08s linear;
+      transform-origin:center center;
     }
 
-    .pull-refresh.pulling{
-      opacity:1;
+    .refresh-glyph::before{
+      content:"";
+      position:absolute;
+      inset:1px;
+      border:2px solid rgba(238,243,255,.23);
+      border-top-color:#eef3ff;
+      border-right-color:#eef3ff;
+      border-radius:50%;
     }
 
+    .refresh-glyph::after{
+      content:"";
+      position:absolute;
+      top:0;
+      right:-1px;
+      width:0;
+      height:0;
+      border-left:4px solid transparent;
+      border-right:4px solid transparent;
+      border-top:6px solid #eef3ff;
+      transform:rotate(-38deg);
+      transform-origin:center;
+    }
+
+    .pull-refresh.pulling{opacity:1}
     .pull-refresh.ready{
       opacity:1;
-      border-color:rgba(124,160,255,.48);
+      border-color:rgba(124,160,255,.52);
     }
-
     .pull-refresh.refreshing{
       opacity:1;
-      transform:translate(-50%,0) !important;
-      border-color:rgba(124,160,255,.48);
+      transform:translate(-50%,0)!important;
+      border-color:rgba(124,160,255,.52);
     }
-
-    .pull-refresh.refreshing svg{
+    .pull-refresh.refreshing .refresh-glyph{
       animation:refresh-spin .72s linear infinite;
     }
 
@@ -826,10 +842,7 @@
 </head>
 <body>
   <div class="pull-refresh" aria-hidden="true" aria-label="Actualizando">
-    <svg viewBox="0 0 24 24" role="img" focusable="false">
-      <path d="M19.5 8.5V4.5m0 0h-4m4 0-2.7 2.7A7.5 7.5 0 1 0 19.2 15"
-        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
+    <span class="refresh-glyph" aria-hidden="true"></span>
   </div>
 
   <main class="shell">
@@ -1001,126 +1014,118 @@
       });
     }
 
-    const pullRefresh = document.querySelector(".pull-refresh");
-    let touchStartY = 0;
-    let pullDistance = 0;
-    let pulling = false;
-    let refreshInFlight = false;
-    const refreshThreshold = 82;
-    const maxPull = 126;
+    const pullRefresh=document.querySelector(".pull-refresh");
+    const refreshGlyph=pullRefresh?.querySelector(".refresh-glyph");
+    let touchStartY=0;
+    let pullDistance=0;
+    let pulling=false;
+    let refreshInFlight=false;
+    const refreshThreshold=82;
+    const maxPull=126;
+    const minimumSpinnerMs=2200;
 
-    const setPullVisual = progress => {
-      if(!pullRefresh) return;
+    const setPullVisual=progress=>{
+      if(!pullRefresh||!refreshGlyph)return;
       const eased=Math.min(1,Math.max(0,progress));
       pullRefresh.classList.add("pulling");
       pullRefresh.classList.toggle("ready",eased>=1);
-      pullRefresh.style.opacity=String(.72 + eased*.28);
-      pullRefresh.style.transform=`translate(-50%, ${-48 + eased*48}px)`;
+      pullRefresh.style.opacity=String(.74+eased*.26);
+      pullRefresh.style.transform=`translate(-50%, ${-48+eased*48}px)`;
       pullRefresh.style.setProperty("--pull-rotation",`${Math.round(eased*300)}deg`);
     };
 
-    const resetPull = () => {
-      if (!pullRefresh || refreshInFlight) return;
+    const resetPull=()=>{
+      if(!pullRefresh||refreshInFlight)return;
       pullRefresh.classList.remove("pulling","ready","refreshing");
-      pullRefresh.style.transform = "translate(-50%, -62px)";
-      pullRefresh.style.opacity = "0";
+      pullRefresh.style.transform="translate(-50%,-62px)";
+      pullRefresh.style.opacity="0";
       pullRefresh.style.setProperty("--pull-rotation","0deg");
-      pullDistance = 0;
-      pulling = false;
+      pullDistance=0;
+      pulling=false;
     };
 
     async function forceLatestRefresh(){
-      if(refreshInFlight) return;
+      if(refreshInFlight||!pullRefresh)return;
       refreshInFlight=true;
       pulling=false;
-      const refreshStarted=performance.now();
-      const minimumRefreshVisibleMs=2600;
+      const started=performance.now();
+
       pullRefresh.classList.add("pulling","ready","refreshing");
       pullRefresh.style.opacity="1";
-      pullRefresh.style.transform="translate(-50%, 0)";
+      pullRefresh.style.transform="translate(-50%,0)";
 
       try{
-        // Ask the service worker for the newest code first.
-        if("serviceWorker" in navigator){
-          const registration=await navigator.serviceWorker.getRegistration();
-          if(registration){
-            await registration.update().catch(()=>{});
-            if(registration.waiting){
-              registration.waiting.postMessage({type:"SKIP_WAITING"});
-            }
+        const registration=("serviceWorker" in navigator)
+          ? await navigator.serviceWorker.getRegistration()
+          : null;
+
+        if(registration){
+          await registration.update().catch(()=>{});
+          if(registration.waiting){
+            registration.waiting.postMessage({type:"SKIP_WAITING"});
           }
         }
 
-        // Remove only this site's app-shell caches so an old page cannot win.
-        if("caches" in window){
-          const keys=await caches.keys();
-          await Promise.all(
-            keys
-              .filter(key=>key.startsWith("ipcdj-worship-"))
-              .map(key=>caches.delete(key))
-          );
-        }
-
-        const elapsed=performance.now()-refreshStarted;
-        if(elapsed<minimumRefreshVisibleMs){
-          await new Promise(resolve=>setTimeout(resolve,minimumRefreshVisibleMs-elapsed));
-        }
-
-        // Navigate to a unique URL so the browser/CDN path cannot reuse the last document response.
         const freshUrl=new URL(window.location.href);
-        freshUrl.searchParams.set("refresh",calibratedNow().toString());
+        freshUrl.searchParams.set("refresh",Date.now().toString());
+
+        // Fetch a fresh copy first using force-reload semantics.
+        const response=await fetch(freshUrl.toString(),{
+          method:"GET",
+          cache:"reload",
+          credentials:"same-origin"
+        });
+
+        if(!response.ok) throw new Error("Refresh request failed");
+        await response.text();
+
+        const elapsed=performance.now()-started;
+        if(elapsed<minimumSpinnerMs){
+          await new Promise(resolve=>setTimeout(resolve,minimumSpinnerMs-elapsed));
+        }
+
         window.location.replace(freshUrl.toString());
       }catch(_){
-        const elapsed=performance.now()-refreshStarted;
-        if(elapsed<minimumRefreshVisibleMs){
-          await new Promise(resolve=>setTimeout(resolve,minimumRefreshVisibleMs-elapsed));
+        const elapsed=performance.now()-started;
+        if(elapsed<minimumSpinnerMs){
+          await new Promise(resolve=>setTimeout(resolve,minimumSpinnerMs-elapsed));
         }
-        const freshUrl=new URL(window.location.href);
-        freshUrl.searchParams.set("refresh",calibratedNow().toString());
-        window.location.replace(freshUrl.toString());
+        // Keep the previous known-good app shell if the network request fails.
+        window.location.reload();
       }
     }
 
-    window.addEventListener("touchstart", event => {
-      if (refreshInFlight) return;
-      if (window.scrollY <= 0 && event.touches.length === 1) {
-        touchStartY = event.touches[0].clientY;
-        pullDistance = 0;
-        pulling = true;
+    window.addEventListener("touchstart",event=>{
+      if(refreshInFlight)return;
+      if(window.scrollY<=0&&event.touches.length===1){
+        touchStartY=event.touches[0].clientY;
+        pullDistance=0;
+        pulling=true;
       }
-    }, { passive:true });
+    },{passive:true});
 
-    window.addEventListener("touchmove", event => {
-      if (!pulling || !pullRefresh || refreshInFlight || event.touches.length !== 1) return;
-      if(window.scrollY>0){
-        resetPull();
-        return;
-      }
-      const delta = event.touches[0].clientY - touchStartY;
-      if (delta <= 2) {
-        resetPull();
-        return;
-      }
-      pullDistance = Math.min(maxPull, delta * 0.60);
-      setPullVisual(pullDistance / refreshThreshold);
-    }, { passive:true });
+    window.addEventListener("touchmove",event=>{
+      if(!pulling||!pullRefresh||refreshInFlight||event.touches.length!==1)return;
+      if(window.scrollY>0){resetPull();return}
+      const delta=event.touches[0].clientY-touchStartY;
+      if(delta<=2){resetPull();return}
+      pullDistance=Math.min(maxPull,delta*.60);
+      setPullVisual(pullDistance/refreshThreshold);
+    },{passive:true});
 
-    window.addEventListener("touchend", () => {
-      if (!pulling || !pullRefresh || refreshInFlight) return;
-      if (pullDistance >= refreshThreshold) {
-        forceLatestRefresh();
-        return;
-      }
+    window.addEventListener("touchend",()=>{
+      if(!pulling||!pullRefresh||refreshInFlight)return;
+      if(pullDistance>=refreshThreshold){forceLatestRefresh();return}
       resetPull();
-    }, { passive:true });
+    },{passive:true});
 
-    window.addEventListener("touchcancel", resetPull, { passive:true });
+    window.addEventListener("touchcancel",resetPull,{passive:true});
 
-    // External clock calibration.
-    // The browser clock remains the local oscillator, but we correct it against the
-    // live server/CDN HTTP Date header so countdown/rollover timing is not solely
-    // dependent on a phone or computer whose clock is set incorrectly.
-    let serverClockOffsetMs=0;
+    // External clock calibration using the live server Date header.
+    // Once synchronized, time advances from performance.now() so manual device-clock
+    // changes cannot make the countdown jump between syncs.
+    let serverEpochAtSync=Date.now();
+    let performanceAtSync=performance.now();
     let serverClockSynced=false;
 
     async function syncServerClock(){
@@ -1133,19 +1138,14 @@
         });
         const clientEnd=Date.now();
         const serverDate=response.headers.get("date");
-        if(!serverDate) return false;
+        if(!serverDate)return false;
 
         const serverMs=Date.parse(serverDate);
-        if(!Number.isFinite(serverMs)) return false;
+        if(!Number.isFinite(serverMs))return false;
 
-        // Midpoint compensates approximately for request/response latency.
-        const clientMidpoint=(clientStart+clientEnd)/2;
-        const measuredOffset=serverMs-clientMidpoint;
-
-        // Reject absurd values caused by a malformed/intercepted Date header.
-        if(Math.abs(measuredOffset)>24*60*60*1000) return false;
-
-        serverClockOffsetMs=measuredOffset;
+        const roundTrip=Math.max(0,clientEnd-clientStart);
+        serverEpochAtSync=serverMs+(roundTrip/2);
+        performanceAtSync=performance.now();
         serverClockSynced=true;
         return true;
       }catch(_){
@@ -1153,9 +1153,10 @@
       }
     }
 
-    const calibratedNow=()=>Date.now()+serverClockOffsetMs;
+    const calibratedNow=()=>serverClockSynced
+      ? serverEpochAtSync+(performance.now()-performanceAtSync)
+      : Date.now();
 
-    // Sync immediately, periodically, and after returning from a suspended mobile app.
     syncServerClock().then(()=>renderCurrent(calibratedNow()));
     setInterval(syncServerClock,5*60*1000);
 
