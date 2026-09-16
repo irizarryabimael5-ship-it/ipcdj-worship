@@ -70,6 +70,24 @@ Rules:
 - Refresh UI remains centered, crisp and visible long enough to communicate activity.
 - Network failure must fall back safely rather than produce a blank/black page.
 
+## Background color cycle
+
+The animated background should loop through the site's established visual language rather than remain a single static hue.
+
+Required color sequence:
+- deep IPCDJ blue
+- near-black / black transition
+- the site's existing accent blue (#89a9ff family)
+- return smoothly into deep blue
+
+Rules:
+- The accent color must emerge subtly through the existing radial-gradient motion rather than becoming a bright flat wash.
+- The black portion should remain dark enough to preserve contrast and the premium glass-card aesthetic.
+- Color cycling and positional drift should run independently enough to avoid an obvious repetitive loop.
+- Preserve smoothness, readability and performance on mobile and desktop.
+- Respect prefers-reduced-motion by disabling both drift and color cycling.
+- Future palette changes should derive this background accent from the website's established accent-color family rather than introducing unrelated colors.
+
 ## Animated background motion
 
 The dark blue background gradient is intentionally animated and should remain visibly alive without distracting from content.
