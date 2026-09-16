@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="ambient-fix-v25" />
+  <meta name="ipcdj-build" content="stability-v26" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -41,9 +41,22 @@
     // Opening the canonical domain always checks the deployed HTML before the app settles.
     // A stale cached document can therefore self-correct as soon as the newer deployment exists.
     (() => {
-      const CURRENT_BUILD="freshness-v22";
       const canonicalHost="worship.ipcdj.org";
-      if(location.hostname!==canonicalHost || location.search.includes("latest-check=")) return;
+      if(location.hostname!==canonicalHost)return;
+
+      const currentUrl=new URL(location.href);
+
+      // A cache-busted redirect has already fetched the newest document.
+      // Clean the temporary flag and do not trigger another redirect.
+      if(currentUrl.searchParams.has("fresh")){
+        currentUrl.searchParams.delete("fresh");
+        history.replaceState(null,"",currentUrl.pathname+(currentUrl.search||"")+currentUrl.hash);
+        return;
+      }
+
+      const buildMeta=document.querySelector('meta[name="ipcdj-build"]');
+      const CURRENT_BUILD=buildMeta ? buildMeta.content : "";
+      if(!CURRENT_BUILD)return;
 
       const probe=new URL(location.href);
       probe.searchParams.set("latest-check",Date.now().toString());
