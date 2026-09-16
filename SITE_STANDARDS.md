@@ -95,6 +95,19 @@ Rules:
 - Refresh UI remains centered, crisp and visible long enough to communicate activity.
 - Network failure must fall back safely rather than produce a blank/black page.
 
+## Ambient-through-glass integration
+
+The animated ambient background should remain visually present through the site's cards and nested panels.
+
+Required behavior:
+- Main cards are translucent glass, not opaque dark blocks.
+- The current ambient hue should subtly pass through cards, platform buttons, song rows, timeline rows, countdown panels, recent/introduction rows, and other nested surfaces.
+- Semantic tinting (red estreno, green introduced/progress, blue active states) remains, but at low enough opacity that the current ambient field is still visible behind it.
+- Backdrop blur should be moderate rather than so strong that it erases the moving color field.
+- Preserve sufficient contrast and legibility for all text.
+- Reduced-transparency and unsupported-backdrop-filter fallbacks may remain more opaque for accessibility and compatibility.
+- Future surface styling must not isolate cards visually from the animated background unless explicitly requested.
+
 ## Professional same-hue blob field
 
 The ambient background uses a fixed near-black base plus multiple soft concentrations of one current accent color.
