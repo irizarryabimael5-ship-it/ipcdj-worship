@@ -1,4 +1,4 @@
-const CACHE_NAME = "ipcdj-worship-v12";
+const CACHE_NAME = "ipcdj-worship-v13";
 const OFFLINE_PAGE = "./__offline_index__";
 const STATIC_ASSETS = [
   "./favicon.svg",
@@ -22,20 +22,24 @@ self.addEventListener("install", event => {
 });
 
 self.addEventListener("activate", event => {
-  event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys
-          .filter(key => key.startsWith("ipcdj-worship-") && key !== CACHE_NAME)
-          .map(key => caches.delete(key))
-      )
-    )
-  );
-  self.clients.claim();
+  event.waitUntil((async () => {
+    if (self.registration.navigationPreload) {
+      await self.registration.navigationPreload.enable().catch(() => {});
+    }
+    const keys = await caches.keys();
+    await Promise.all(
+      keys
+        .filter(key => key.startsWith("ipcdj-worship-") && key !== CACHE_NAME)
+        .map(key => caches.delete(key))
+    );
+    await self.clients.claim();
+  })());
 });
 
 self.addEventListener("message", event => {
-  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("fetch", event => {
@@ -46,35 +50,41 @@ self.addEventListener("fetch", event => {
   if (url.origin !== self.location.origin) return;
 
   if (request.mode === "navigate") {
-    event.respondWith(
-      fetch(request, { cache:"no-store" })
-        .then(async response => {
-          if(response && response.ok){
-            const cache=await caches.open(CACHE_NAME);
-            await cache.put(OFFLINE_PAGE,response.clone());
-          }
-          return response;
-        })
-        .catch(async () => {
-          const cached=await caches.match(OFFLINE_PAGE);
-          return cached || new Response(
-            "<!doctype html><html><body style='font-family:system-ui;background:#0a1020;color:white;padding:24px'>Sin conexión. Intenta actualizar cuando tengas internet.</body></html>",
-            {headers:{"Content-Type":"text/html; charset=utf-8"}}
-          );
-        })
-    );
+    event.respondWith((async () => {
+      try {
+        const preloaded = await event.preloadResponse;
+        const response = preloaded || await fetch(request, { cache:"no-cache" });
+
+        if (response && response.ok) {
+          const cache = await caches.open(CACHE_NAME);
+          await cache.put(OFFLINE_PAGE, response.clone());
+        }
+        return response;
+      } catch (_) {
+        const cached = await caches.match(OFFLINE_PAGE);
+        return cached || new Response(
+          "<!doctype html><html><body style='font-family:system-ui;background:#0a1020;color:white;padding:24px'>Sin conexión. Intenta actualizar cuando tengas internet.</body></html>",
+          { headers:{ "Content-Type":"text/html; charset=utf-8" } }
+        );
+      }
+    })());
     return;
   }
 
-  event.respondWith(
-    fetch(request, { cache:"no-cache" })
-      .then(async response => {
-        if(response && response.ok){
-          const cache=await caches.open(CACHE_NAME);
-          await cache.put(request,response.clone());
+  // Static assets: return cached copy immediately, while refreshing it in the background.
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    const cached = await cache.match(request);
+
+    const networkPromise = fetch(request, { cache:"no-cache" })
+      .then(response => {
+        if (response && response.ok) {
+          cache.put(request, response.clone());
         }
         return response;
       })
-      .catch(()=>caches.match(request))
-  );
+      .catch(() => null);
+
+    return cached || await networkPromise || new Response("", { status:504 });
+  })());
 });
