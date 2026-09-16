@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="white-fade-v23" />
+  <meta name="ipcdj-build" content="orb-dwell-v24" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -143,41 +143,43 @@
       --phase:0s;
       --tone-rgb:55,93,202;
       position:absolute;
-      inset:-18vmax;
+      width:128vmax;
+      height:128vmax;
+      left:50%;
+      top:50%;
+      margin-left:-64vmax;
+      margin-top:-64vmax;
+      border-radius:50%;
       opacity:0;
-      transform:translate3d(0,0,0) scale(1.06);
+      transform:translate3d(0,0,0) scale(1.00);
       transform-origin:center;
       will-change:transform,opacity;
       background:
-        radial-gradient(circle at 24% 28%, rgba(var(--tone-rgb),.44) 0%, rgba(var(--tone-rgb),.25) 30%, rgba(var(--tone-rgb),.10) 50%, rgba(var(--tone-rgb),0) 72%),
-        radial-gradient(circle at 76% 72%, rgba(var(--tone-rgb),.34) 0%, rgba(var(--tone-rgb),.18) 32%, rgba(var(--tone-rgb),.07) 52%, rgba(var(--tone-rgb),0) 74%),
-        linear-gradient(135deg, rgba(var(--tone-rgb),.15) 0%, rgba(var(--tone-rgb),.06) 42%, rgba(var(--tone-rgb),.12) 100%);
-      background-repeat:no-repeat;
+        radial-gradient(circle at 50% 50%,
+          rgba(var(--tone-rgb),.92) 0%,
+          rgba(var(--tone-rgb),.72) 24%,
+          rgba(var(--tone-rgb),.46) 48%,
+          rgba(var(--tone-rgb),.20) 68%,
+          rgba(var(--tone-rgb),.06) 82%,
+          rgba(var(--tone-rgb),0) 94%);
       animation:
-        ambientPresence 75s ease-in-out var(--phase) infinite both,
-        ambientDrift 12s cubic-bezier(.42,.02,.58,.98) 0s infinite alternate both;
+        ambientPresence 120s cubic-bezier(.45,.02,.55,.98) var(--phase) infinite both,
+        ambientOrbDrift 18s cubic-bezier(.42,.02,.58,.98) 0s infinite alternate both;
     }
 
     .ambient-blue{--phase:0s;--tone-rgb:55,93,202}
-    .ambient-accent{--phase:15s;--tone-rgb:137,169,255}
-    .ambient-green{--phase:30s;--tone-rgb:53,183,92}
-    .ambient-red{--phase:45s;--tone-rgb:255,90,90}
-    .ambient-white{
-      --phase:60s;
-      --tone-rgb:255,255,255;
-      background:
-        radial-gradient(circle at 24% 28%, rgba(255,255,255,.78) 0%, rgba(255,255,255,.50) 30%, rgba(255,255,255,.22) 52%, rgba(255,255,255,0) 74%),
-        radial-gradient(circle at 76% 72%, rgba(255,255,255,.62) 0%, rgba(255,255,255,.36) 32%, rgba(255,255,255,.16) 54%, rgba(255,255,255,0) 76%),
-        linear-gradient(135deg, rgba(255,255,255,.34) 0%, rgba(255,255,255,.20) 45%, rgba(255,255,255,.30) 100%);
-    }
+    .ambient-accent{--phase:24s;--tone-rgb:137,169,255}
+    .ambient-green{--phase:48s;--tone-rgb:53,183,92}
+    .ambient-red{--phase:72s;--tone-rgb:255,90,90}
+    .ambient-white{--phase:96s;--tone-rgb:255,255,255}
 
     .ambient-dither{
       position:absolute;
       inset:0;
       z-index:2;
       pointer-events:none;
-      opacity:.034;
-      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.26'/%3E%3C/svg%3E");
+      opacity:.030;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.24'/%3E%3C/svg%3E");
       background-repeat:repeat;
       background-size:160px 160px;
       mix-blend-mode:soft-light;
@@ -185,19 +187,24 @@
 
     @keyframes ambientPresence{
       0%,1.5%{opacity:0}
-      5.5%{opacity:.98}
-      10.5%{opacity:.98}
-      14.5%{opacity:0}
+      3.2%{opacity:.82}
+      5.2%{opacity:.98}
+      7.2%{opacity:.84}
+      9.2%{opacity:1}
+      11.2%{opacity:.88}
+      13.2%{opacity:.98}
+      15.1%{opacity:.80}
+      16.2%{opacity:0}
       100%{opacity:0}
     }
 
-    @keyframes ambientDrift{
-      0%{transform:translate3d(11%,-9%,0) scale(1.06)}
-      20%{transform:translate3d(2%,-1%,0) scale(1.11)}
-      40%{transform:translate3d(-8%,7%,0) scale(1.17)}
-      60%{transform:translate3d(-13%,2%,0) scale(1.13)}
-      80%{transform:translate3d(-3%,-6%,0) scale(1.19)}
-      100%{transform:translate3d(12%,10%,0) scale(1.22)}
+    @keyframes ambientOrbDrift{
+      0%{transform:translate3d(13%,-10%,0) scale(1.00)}
+      18%{transform:translate3d(5%,-4%,0) scale(1.06)}
+      38%{transform:translate3d(-5%,4%,0) scale(1.12)}
+      58%{transform:translate3d(-12%,9%,0) scale(1.07)}
+      78%{transform:translate3d(-2%,-2%,0) scale(1.14)}
+      100%{transform:translate3d(12%,10%,0) scale(1.04)}
     }
 
     .shell{
@@ -899,7 +906,7 @@
 
     @media (prefers-reduced-data: reduce){
       .ambient-layer{animation:none;opacity:0;transform:none}
-      .ambient-blue{opacity:.54}
+      .ambient-blue{opacity:.52}
       .ambient-dither{display:none}
     }
 
@@ -931,7 +938,7 @@
 
     @media (prefers-reduced-motion: reduce){
       .ambient-layer{animation:none;opacity:0;transform:none}
-      .ambient-blue{opacity:.58}
+      .ambient-blue{opacity:.56}
       .platform{transition:none}
       .progress-fill{transition:none}
       .progress-wrap{transition:none}
