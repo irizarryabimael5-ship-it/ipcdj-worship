@@ -95,6 +95,16 @@ Rules:
 - Refresh UI remains centered, crisp and visible long enough to communicate activity.
 - Network failure must fall back safely rather than produce a blank/black page.
 
+## Current-card ambient edge integrity
+
+The current-song card must not contain a fixed-color decorative glow that visually blocks or contradicts the live ambient background.
+
+Rules:
+- Any decorative glow inside the current-song card must be neutral/translucent.
+- The right edge of the current-song card must allow the active ambient hue to read through the glass.
+- Do not hard-code a blue, red, green, or other accent orb into the card surface itself.
+- Semantic accents may remain on status/timeline/progress elements, but not as a large fixed background glow.
+
 ## Ambient-through-glass integration
 
 The animated ambient background should remain visually present through the site's cards and nested panels.
