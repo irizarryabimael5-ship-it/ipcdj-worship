@@ -84,6 +84,22 @@ Rules:
 - Refresh UI remains centered, crisp and visible long enough to communicate activity.
 - Network failure must fall back safely rather than produce a blank/black page.
 
+## Ambient orb dwell behavior
+
+Each color phase must feel like a deliberate ambient scene, not a quick flash.
+
+Required behavior:
+- Each color gets a long dwell window before transitioning away.
+- While active, the color moves around the viewport as one large smooth orb.
+- The orb subtly breathes between several intensity levels while remaining the only visible accent hue.
+- Movement and intensity changes happen continuously during the dwell.
+- The active orb fades fully to the black base before the next color begins.
+- Preserve the five-color sequence: deep blue, accent blue, green, red, pure white.
+- Use one large radial orb per phase with broad feathered falloff rather than multiple differently colored blobs.
+- Keep the orb large enough to influence the whole viewport while still making its movement perceptible.
+- Preserve subtle dithering to reduce banding.
+- Reduced-motion and reduced-data users should receive a static dark-blue fallback.
+
 ## Pure-white phase and black fade quality
 
 The white ambient phase uses true neutral white (255,255,255), not blue-white or gray-white.
