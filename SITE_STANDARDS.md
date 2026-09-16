@@ -140,6 +140,16 @@ Required behavior:
 - Reduced-transparency and unsupported-backdrop-filter fallbacks may remain more opaque for accessibility and compatibility.
 - Future surface styling must not isolate cards visually from the animated background unless explicitly requested.
 
+## Faster initial ambient appearance
+
+On a fresh page open, the first ambient color should begin appearing almost immediately while preserving the established phase speed and motion.
+
+Rules:
+- Keep the same 28-second phase cadence and the same blob motion/breathing behavior.
+- Do not accelerate the ongoing color cycle.
+- Only shorten the initial dead-black delay before the first fade-in begins.
+- Preserve the same fade-in duration so the appearance still feels soft and premium.
+
 ## Professional same-hue blob field
 
 The ambient background uses a fixed near-black base plus multiple soft concentrations of one current accent color.
