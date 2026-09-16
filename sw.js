@@ -1,4 +1,4 @@
-const CACHE_NAME = "ipcdj-worship-v21";
+const CACHE_NAME = "ipcdj-worship-v22";
 const OFFLINE_PAGE = "./__offline_index__";
 const STATIC_ASSETS = [
   "./favicon.svg",
@@ -53,7 +53,7 @@ self.addEventListener("fetch", event => {
     event.respondWith((async () => {
       try {
         const preloaded = await event.preloadResponse;
-        const response = preloaded || await fetch(request, { cache:"no-cache" });
+        const response = preloaded || await fetch(request, { cache:"no-store" });
 
         if (response && response.ok) {
           const cache = await caches.open(CACHE_NAME);
@@ -76,7 +76,7 @@ self.addEventListener("fetch", event => {
     const cache = await caches.open(CACHE_NAME);
     const cached = await cache.match(request);
 
-    const networkPromise = fetch(request, { cache:"no-cache" })
+    const networkPromise = fetch(request, { cache:"no-store" })
       .then(response => {
         if (response && response.ok) {
           cache.put(request, response.clone());
