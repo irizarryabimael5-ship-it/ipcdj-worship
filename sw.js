@@ -1,7 +1,6 @@
-const CACHE_NAME = "ipcdj-worship-v10";
+const CACHE_NAME = "ipcdj-worship-v11";
+const OFFLINE_PAGE = "./__offline_index__";
 const STATIC_ASSETS = [
-  "./",
-  "./index.html",
   "./favicon.svg",
   "./favicon-32.png",
   "./favicon.ico",
@@ -35,6 +34,10 @@ self.addEventListener("activate", event => {
   self.clients.claim();
 });
 
+self.addEventListener("message", event => {
+  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
+});
+
 self.addEventListener("fetch", event => {
   const request = event.request;
   if (request.method !== "GET") return;
@@ -44,30 +47,34 @@ self.addEventListener("fetch", event => {
 
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request, { cache: "no-store" })
-        .then(response => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put("./index.html", copy));
+      fetch(request, { cache:"no-store" })
+        .then(async response => {
+          if(response && response.ok){
+            const cache=await caches.open(CACHE_NAME);
+            await cache.put(OFFLINE_PAGE,response.clone());
+          }
           return response;
         })
-        .catch(() => caches.match("./index.html"))
+        .catch(async () => {
+          const cached=await caches.match(OFFLINE_PAGE);
+          return cached || new Response(
+            "<!doctype html><html><body style='font-family:system-ui;background:#0a1020;color:white;padding:24px'>Sin conexión. Intenta actualizar cuando tengas internet.</body></html>",
+            {headers:{"Content-Type":"text/html; charset=utf-8"}}
+          );
+        })
     );
     return;
   }
 
   event.respondWith(
-    caches.match(request).then(cached => {
-      const network = fetch(request)
-        .then(response => {
-          if (response && response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
-          }
-          return response;
-        })
-        .catch(() => cached);
-
-      return cached || network;
-    })
+    fetch(request, { cache:"no-cache" })
+      .then(async response => {
+        if(response && response.ok){
+          const cache=await caches.open(CACHE_NAME);
+          await cache.put(request,response.clone());
+        }
+        return response;
+      })
+      .catch(()=>caches.match(request))
   );
 });
