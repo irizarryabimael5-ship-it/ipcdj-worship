@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="freshness-v22" />
+  <meta name="ipcdj-build" content="white-fade-v23" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -154,7 +154,7 @@
         linear-gradient(135deg, rgba(var(--tone-rgb),.15) 0%, rgba(var(--tone-rgb),.06) 42%, rgba(var(--tone-rgb),.12) 100%);
       background-repeat:no-repeat;
       animation:
-        ambientPresence 75s linear var(--phase) infinite both,
+        ambientPresence 75s ease-in-out var(--phase) infinite both,
         ambientDrift 12s cubic-bezier(.42,.02,.58,.98) 0s infinite alternate both;
     }
 
@@ -162,7 +162,14 @@
     .ambient-accent{--phase:15s;--tone-rgb:137,169,255}
     .ambient-green{--phase:30s;--tone-rgb:53,183,92}
     .ambient-red{--phase:45s;--tone-rgb:255,90,90}
-    .ambient-white{--phase:60s;--tone-rgb:218,226,242}
+    .ambient-white{
+      --phase:60s;
+      --tone-rgb:255,255,255;
+      background:
+        radial-gradient(circle at 24% 28%, rgba(255,255,255,.78) 0%, rgba(255,255,255,.50) 30%, rgba(255,255,255,.22) 52%, rgba(255,255,255,0) 74%),
+        radial-gradient(circle at 76% 72%, rgba(255,255,255,.62) 0%, rgba(255,255,255,.36) 32%, rgba(255,255,255,.16) 54%, rgba(255,255,255,0) 76%),
+        linear-gradient(135deg, rgba(255,255,255,.34) 0%, rgba(255,255,255,.20) 45%, rgba(255,255,255,.30) 100%);
+    }
 
     .ambient-dither{
       position:absolute;
@@ -177,10 +184,10 @@
     }
 
     @keyframes ambientPresence{
-      0%,1.8%{opacity:0}
-      4.5%{opacity:.98}
-      11.5%{opacity:.98}
-      14.2%{opacity:0}
+      0%,1.5%{opacity:0}
+      5.5%{opacity:.98}
+      10.5%{opacity:.98}
+      14.5%{opacity:0}
       100%{opacity:0}
     }
 
