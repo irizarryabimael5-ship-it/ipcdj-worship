@@ -84,6 +84,17 @@ Rules:
 - Refresh UI remains centered, crisp and visible long enough to communicate activity.
 - Network failure must fall back safely rather than produce a blank/black page.
 
+## Pure-white phase and black fade quality
+
+The white ambient phase uses true neutral white (255,255,255), not blue-white or gray-white.
+
+Fade rules:
+- Entry from black and exit back to black must use soft ease-in-out opacity transitions.
+- The fade should feel gradual and subtle rather than abrupt.
+- The active color still fully disappears before the next accent begins.
+- White may be visually stronger than the other accents, but must remain a gradient over the constant black base rather than a flat white screen.
+- Preserve dithering and large radial falloffs to avoid banding.
+
 ## Full-page single-color ambient phase
 
 At any moment, the animated background may display only one accent color family over the constant near-black base.
