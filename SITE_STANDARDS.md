@@ -70,6 +70,19 @@ Rules:
 - Refresh UI remains centered, crisp and visible long enough to communicate activity.
 - Network failure must fall back safely rather than produce a blank/black page.
 
+## Animated background motion
+
+The dark blue background gradient is intentionally animated and should remain visibly alive without distracting from content.
+
+Required behavior:
+- Motion must be smooth, slow-to-moderate, and continuous.
+- Movement should be noticeable on both desktop and mobile without looking like a looping gimmick.
+- Use transform-based animation for performance; avoid layout-triggering animation.
+- Preserve the existing blue/black palette and glass-card readability.
+- Keep landscape coverage oversized enough to avoid exposing edges during movement.
+- Respect prefers-reduced-motion by disabling the background animation.
+- Future visual changes must not accidentally remove or freeze the animated background.
+
 ## Phase-aware progress color system
 
 The progress bar is time-driven and phase-aware. It must continuously inherit its visual state from each song's own pipeline dates rather than hard-coded calendar dates.
