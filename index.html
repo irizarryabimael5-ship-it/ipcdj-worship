@@ -639,47 +639,54 @@
     }
 
     .pull-refresh{
+      --pull-rotation:0deg;
       position:fixed;
       top:max(10px, env(safe-area-inset-top, 0px));
       left:50%;
       z-index:20;
-      transform:translate(-50%,-72px);
+      transform:translate(-50%,-62px);
       display:flex;
       align-items:center;
       justify-content:center;
-      width:42px;
-      height:42px;
+      width:44px;
+      height:44px;
       border-radius:999px;
-      border:1px solid rgba(255,255,255,.11);
-      background:rgba(10,14,23,.88);
+      border:1px solid rgba(255,255,255,.13);
+      background:rgba(10,14,23,.92);
       color:#e8eefc;
-      box-shadow:0 10px 28px rgba(0,0,0,.28);
+      box-shadow:0 10px 30px rgba(0,0,0,.32);
       backdrop-filter:blur(14px);
       -webkit-backdrop-filter:blur(14px);
-      transition:transform .16s ease, opacity .16s ease;
+      transition:transform .18s cubic-bezier(.2,.7,.2,1), opacity .16s ease, border-color .16s ease;
       opacity:0;
       pointer-events:none;
     }
 
     .pull-refresh svg{
-      width:19px;
-      height:19px;
+      width:20px;
+      height:20px;
       display:block;
-      transform:rotate(0deg);
-      transition:transform .12s linear;
+      transform:rotate(var(--pull-rotation));
+      transition:transform .08s linear;
+    }
+
+    .pull-refresh.pulling{
+      opacity:1;
     }
 
     .pull-refresh.ready{
       opacity:1;
+      border-color:rgba(124,160,255,.48);
     }
 
     .pull-refresh.refreshing{
       opacity:1;
-      transform:translate(-50%,0);
+      transform:translate(-50%,0) !important;
+      border-color:rgba(124,160,255,.48);
     }
 
     .pull-refresh.refreshing svg{
-      animation:refresh-spin .7s linear infinite;
+      animation:refresh-spin .72s linear infinite;
     }
 
     @keyframes refresh-spin{
@@ -815,7 +822,7 @@
   </style>
 </head>
 <body>
-  <div class="pull-refresh" aria-hidden="true">
+  <div class="pull-refresh" aria-hidden="true" aria-label="Actualizando">
     <svg viewBox="0 0 24 24">
       <path d="M20 11a8 8 0 1 0 2 5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
       <path d="M20 4v7h-7" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
@@ -966,11 +973,29 @@
   </main>
 
   <script>
+    // Keep the displayed URL clean after a forced cache-busting refresh.
+    (() => {
+      const url=new URL(window.location.href);
+      if(url.searchParams.has("refresh")){
+        url.searchParams.delete("refresh");
+        history.replaceState(null,"",url.pathname + (url.search ? url.search : "") + url.hash);
+      }
+    })();
+
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
         navigator.serviceWorker.register("./sw.js", { updateViaCache:"none" })
-          .then(registration => registration.update())
+          .then(async registration => {
+            await registration.update();
+            if (registration.waiting) {
+              registration.waiting.postMessage({type:"SKIP_WAITING"});
+            }
+          })
           .catch(() => {});
+      });
+
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        // The new service worker controls the next navigation automatically.
       });
     }
 
@@ -978,57 +1003,105 @@
     let touchStartY = 0;
     let pullDistance = 0;
     let pulling = false;
+    let refreshInFlight = false;
     const refreshThreshold = 82;
-    const maxPull = 118;
+    const maxPull = 126;
+
+    const setPullVisual = progress => {
+      if(!pullRefresh) return;
+      const eased=Math.min(1,Math.max(0,progress));
+      pullRefresh.classList.add("pulling");
+      pullRefresh.classList.toggle("ready",eased>=1);
+      pullRefresh.style.opacity=String(.72 + eased*.28);
+      pullRefresh.style.transform=`translate(-50%, ${-48 + eased*48}px)`;
+      pullRefresh.style.setProperty("--pull-rotation",`${Math.round(eased*300)}deg`);
+    };
 
     const resetPull = () => {
-      if (!pullRefresh || pullRefresh.classList.contains("refreshing")) return;
-      pullRefresh.classList.remove("ready");
-      pullRefresh.style.transform = "translate(-50%, -72px)";
+      if (!pullRefresh || refreshInFlight) return;
+      pullRefresh.classList.remove("pulling","ready","refreshing");
+      pullRefresh.style.transform = "translate(-50%, -62px)";
       pullRefresh.style.opacity = "0";
-      const icon = pullRefresh.querySelector("svg");
-      if (icon) icon.style.transform = "rotate(0deg)";
+      pullRefresh.style.setProperty("--pull-rotation","0deg");
       pullDistance = 0;
       pulling = false;
     };
 
+    async function forceLatestRefresh(){
+      if(refreshInFlight) return;
+      refreshInFlight=true;
+      pulling=false;
+      pullRefresh.classList.add("pulling","ready","refreshing");
+      pullRefresh.style.opacity="1";
+      pullRefresh.style.transform="translate(-50%, 0)";
+
+      try{
+        // Ask the service worker for the newest code first.
+        if("serviceWorker" in navigator){
+          const registration=await navigator.serviceWorker.getRegistration();
+          if(registration){
+            await registration.update().catch(()=>{});
+            if(registration.waiting){
+              registration.waiting.postMessage({type:"SKIP_WAITING"});
+            }
+          }
+        }
+
+        // Remove only this site's app-shell caches so an old page cannot win.
+        if("caches" in window){
+          const keys=await caches.keys();
+          await Promise.all(
+            keys
+              .filter(key=>key.startsWith("ipcdj-worship-"))
+              .map(key=>caches.delete(key))
+          );
+        }
+
+        // Navigate to a unique URL so the browser/CDN path cannot reuse the last document response.
+        const freshUrl=new URL(window.location.href);
+        freshUrl.searchParams.set("refresh",Date.now().toString());
+        window.location.replace(freshUrl.toString());
+      }catch(_){
+        const freshUrl=new URL(window.location.href);
+        freshUrl.searchParams.set("refresh",Date.now().toString());
+        window.location.replace(freshUrl.toString());
+      }
+    }
+
     window.addEventListener("touchstart", event => {
+      if (refreshInFlight) return;
       if (window.scrollY <= 0 && event.touches.length === 1) {
         touchStartY = event.touches[0].clientY;
+        pullDistance = 0;
         pulling = true;
       }
     }, { passive:true });
 
     window.addEventListener("touchmove", event => {
-      if (!pulling || !pullRefresh || window.scrollY > 0 || event.touches.length !== 1) return;
-      const delta = event.touches[0].clientY - touchStartY;
-      if (delta <= 0) {
+      if (!pulling || !pullRefresh || refreshInFlight || event.touches.length !== 1) return;
+      if(window.scrollY>0){
         resetPull();
         return;
       }
-      pullDistance = Math.min(maxPull, delta * 0.58);
-      const progress = Math.min(1, pullDistance / refreshThreshold);
-      const y = -72 + (pullDistance * 0.72);
-      pullRefresh.classList.add("ready");
-      pullRefresh.style.opacity = String(0.3 + progress * 0.7);
-      pullRefresh.style.transform = `translate(-50%, ${Math.min(0, y)}px)`;
-      const icon = pullRefresh.querySelector("svg");
-      if (icon) icon.style.transform = `rotate(${progress * 210}deg)`;
+      const delta = event.touches[0].clientY - touchStartY;
+      if (delta <= 2) {
+        resetPull();
+        return;
+      }
+      pullDistance = Math.min(maxPull, delta * 0.60);
+      setPullVisual(pullDistance / refreshThreshold);
     }, { passive:true });
 
-    window.addEventListener("touchend", async () => {
-      if (!pulling || !pullRefresh) return;
+    window.addEventListener("touchend", () => {
+      if (!pulling || !pullRefresh || refreshInFlight) return;
       if (pullDistance >= refreshThreshold) {
-        pullRefresh.classList.add("refreshing");
-        pullRefresh.style.transform = "translate(-50%, 0)";
-        try {
-          await fetch("./", { cache:"no-store" });
-        } catch (_) {}
-        window.location.reload();
+        forceLatestRefresh();
         return;
       }
       resetPull();
     }, { passive:true });
+
+    window.addEventListener("touchcancel", resetPull, { passive:true });
 
     // IPCDJ song pipeline: one source of truth for current song, countdown, phases and rollover.
     const songPipeline = [
