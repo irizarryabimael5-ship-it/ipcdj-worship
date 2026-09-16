@@ -14,6 +14,28 @@ Primary public URL: https://worship.ipcdj.org/
 
 The GitHub Pages URL remains a technical hosting fallback. Canonical, Open Graph, and other public-facing metadata should use the worship.ipcdj.org hostname.
 
+## Maximum platform and size compatibility
+
+Compatibility target:
+- Current stable Safari, Chrome, Firefox, Edge, Samsung Internet, iOS/iPadOS webviews and Home Screen mode, Android browsers/PWAs, macOS, Windows, phones, tablets, laptops and desktops.
+- Graceful fallbacks should also cover somewhat older WebKit/Blink versions where practical without compromising the modern design.
+
+Required rules:
+- Preserve classic viewport fallbacks before svh/dvh values.
+- Provide explicit top/right/bottom/left fallbacks before CSS inset where fixed full-screen layers are used.
+- Keep -webkit-backdrop-filter alongside backdrop-filter on glass surfaces that rely on blur.
+- Avoid background-attachment:fixed on the main document because it can cause repaint/jank issues on iOS Safari.
+- Layout children in flex/grid containers must tolerate narrow widths with min-width:0.
+- At <=390px, the countdown becomes a 2x2 grid.
+- At <=340px, reduce card/hero spacing and typography enough to remain usable without horizontal overflow.
+- Landscape layouts with very short heights must preserve ambient coverage and safe-area padding.
+- Coarse-pointer devices retain comfortable touch targets.
+- Provide font-size fallbacks when clamp() is unavailable.
+- Unsupported backdrop-filter browsers receive more opaque readable surfaces rather than broken glass.
+- Experimental accessibility media queries such as prefers-reduced-transparency may enhance supported browsers, but core usability must not depend on them.
+- Decorative animation remains transform/opacity based for compositor-friendly performance.
+- Every compatibility pass must preserve native browser Find on Page, text selection, zoom, screen-reader semantics, countdown timing, song automation, refresh logic, and the live ambient background.
+
 ## Browser and device compatibility
 
 Target current stable versions of Safari, Chrome, Firefox, Edge, Samsung Internet, iOS/iPadOS web views and Home Screen web apps, Android browsers/PWAs, macOS, Windows, iPhone, iPad, Android phones/tablets, and normal desktop/laptop viewport sizes.
