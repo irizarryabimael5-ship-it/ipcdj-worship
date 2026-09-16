@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="ambient-v20" />
+  <meta name="ipcdj-build" content="ambient-v21" />
   <meta name="color-scheme" content="dark" />
   <link rel="icon" type="image/svg+xml" href="./favicon.svg?v=8" />
   <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png?v=8" />
@@ -101,91 +101,62 @@
       z-index:0;
       overflow:hidden;
       pointer-events:none;
-      background:#06080d;
+      background:#05070b;
       contain:strict;
     }
 
     .ambient-layer{
       --phase:0s;
+      --tone-rgb:55,93,202;
       position:absolute;
-      top:-34vmax;
-      right:-34vmax;
-      bottom:-34vmax;
-      left:-34vmax;
+      inset:-18vmax;
       opacity:0;
-      filter:blur(62px);
+      transform:translate3d(0,0,0) scale(1.06);
       transform-origin:center;
       will-change:transform,opacity;
+      background:
+        radial-gradient(circle at 24% 28%, rgba(var(--tone-rgb),.44) 0%, rgba(var(--tone-rgb),.25) 30%, rgba(var(--tone-rgb),.10) 50%, rgba(var(--tone-rgb),0) 72%),
+        radial-gradient(circle at 76% 72%, rgba(var(--tone-rgb),.34) 0%, rgba(var(--tone-rgb),.18) 32%, rgba(var(--tone-rgb),.07) 52%, rgba(var(--tone-rgb),0) 74%),
+        linear-gradient(135deg, rgba(var(--tone-rgb),.15) 0%, rgba(var(--tone-rgb),.06) 42%, rgba(var(--tone-rgb),.12) 100%);
       background-repeat:no-repeat;
-      animation-name:ambientPresence,ambientDrift;
-      animation-duration:75s,13s;
-      animation-timing-function:linear,cubic-bezier(.42,.02,.58,.98);
-      animation-iteration-count:infinite,infinite;
-      animation-direction:normal,alternate;
-      animation-delay:var(--phase),0s;
-      animation-fill-mode:both,both;
+      animation:
+        ambientPresence 75s linear var(--phase) infinite both,
+        ambientDrift 12s cubic-bezier(.42,.02,.58,.98) 0s infinite alternate both;
     }
 
-    .ambient-blue{
-      --phase:0s;
-      background:
-        radial-gradient(circle at 22% 28%, rgba(55,93,202,.40) 0%, rgba(55,93,202,.18) 28%, rgba(55,93,202,0) 62%),
-        radial-gradient(circle at 77% 74%, rgba(23,57,142,.30) 0%, rgba(23,57,142,.11) 32%, rgba(23,57,142,0) 66%);
-    }
-
-    .ambient-accent{
-      --phase:15s;
-      background:
-        radial-gradient(circle at 74% 24%, rgba(137,169,255,.34) 0%, rgba(137,169,255,.14) 30%, rgba(137,169,255,0) 64%),
-        radial-gradient(circle at 26% 76%, rgba(78,116,224,.26) 0%, rgba(78,116,224,.10) 32%, rgba(78,116,224,0) 68%);
-    }
-
-    .ambient-green{
-      --phase:30s;
-      background:
-        radial-gradient(circle at 28% 30%, rgba(53,183,92,.27) 0%, rgba(53,183,92,.10) 30%, rgba(53,183,92,0) 64%),
-        radial-gradient(circle at 78% 72%, rgba(101,220,131,.18) 0%, rgba(101,220,131,.07) 32%, rgba(101,220,131,0) 68%);
-    }
-
-    .ambient-red{
-      --phase:45s;
-      background:
-        radial-gradient(circle at 74% 30%, rgba(255,90,90,.24) 0%, rgba(255,90,90,.09) 30%, rgba(255,90,90,0) 64%),
-        radial-gradient(circle at 24% 74%, rgba(176,45,55,.18) 0%, rgba(176,45,55,.07) 32%, rgba(176,45,55,0) 68%);
-    }
-
-    .ambient-white{
-      --phase:60s;
-      background:
-        radial-gradient(circle at 30% 28%, rgba(255,255,255,.14) 0%, rgba(255,255,255,.055) 28%, rgba(255,255,255,0) 60%),
-        radial-gradient(circle at 76% 76%, rgba(190,207,255,.12) 0%, rgba(190,207,255,.045) 30%, rgba(190,207,255,0) 64%);
-    }
+    .ambient-blue{--phase:0s;--tone-rgb:55,93,202}
+    .ambient-accent{--phase:15s;--tone-rgb:137,169,255}
+    .ambient-green{--phase:30s;--tone-rgb:53,183,92}
+    .ambient-red{--phase:45s;--tone-rgb:255,90,90}
+    .ambient-white{--phase:60s;--tone-rgb:218,226,242}
 
     .ambient-dither{
       position:absolute;
       inset:0;
       z-index:2;
       pointer-events:none;
-      opacity:.045;
-      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.32'/%3E%3C/svg%3E");
+      opacity:.034;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.26'/%3E%3C/svg%3E");
       background-repeat:repeat;
       background-size:160px 160px;
+      mix-blend-mode:soft-light;
     }
 
     @keyframes ambientPresence{
-      0%,2%{opacity:0}
-      5%{opacity:.94}
-      13%{opacity:.94}
-      17%{opacity:0}
+      0%,1.8%{opacity:0}
+      4.5%{opacity:.98}
+      11.5%{opacity:.98}
+      14.2%{opacity:0}
       100%{opacity:0}
     }
 
     @keyframes ambientDrift{
-      0%{transform:translate3d(10%,-8%,0) scale(1.02)}
-      24%{transform:translate3d(-3%,3%,0) scale(1.10)}
-      52%{transform:translate3d(-12%,9%,0) scale(1.18)}
-      76%{transform:translate3d(4%,-3%,0) scale(1.11)}
-      100%{transform:translate3d(13%,10%,0) scale(1.20)}
+      0%{transform:translate3d(11%,-9%,0) scale(1.06)}
+      20%{transform:translate3d(2%,-1%,0) scale(1.11)}
+      40%{transform:translate3d(-8%,7%,0) scale(1.17)}
+      60%{transform:translate3d(-13%,2%,0) scale(1.13)}
+      80%{transform:translate3d(-3%,-6%,0) scale(1.19)}
+      100%{transform:translate3d(12%,10%,0) scale(1.22)}
     }
 
     .shell{
@@ -886,8 +857,8 @@
     }
 
     @media (prefers-reduced-data: reduce){
-      .ambient-layer{animation:none;opacity:0}
-      .ambient-blue{opacity:.58;transform:none}
+      .ambient-layer{animation:none;opacity:0;transform:none}
+      .ambient-blue{opacity:.54}
       .ambient-dither{display:none}
     }
 
@@ -918,8 +889,8 @@
     }
 
     @media (prefers-reduced-motion: reduce){
-      .ambient-layer{animation:none;opacity:0}
-      .ambient-blue{opacity:.62;transform:none}
+      .ambient-layer{animation:none;opacity:0;transform:none}
+      .ambient-blue{opacity:.58}
       .platform{transition:none}
       .progress-fill{transition:none}
       .progress-wrap{transition:none}
