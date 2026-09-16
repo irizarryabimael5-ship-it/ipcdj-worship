@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="compat-v14" />
+  <meta name="ipcdj-build" content="timer-v15" />
   <meta name="color-scheme" content="dark" />
   <link rel="icon" type="image/svg+xml" href="./favicon.svg?v=8" />
   <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png?v=8" />
@@ -1120,6 +1120,7 @@
           await new Promise(resolve=>setTimeout(resolve,minimumSpinnerMs-elapsed));
         }
 
+        persistClockSeed();
         window.location.replace(freshUrl.toString());
       }catch(_){
         const elapsed=performance.now()-started;
@@ -1127,6 +1128,7 @@
           await new Promise(resolve=>setTimeout(resolve,minimumSpinnerMs-elapsed));
         }
         // Keep the previous known-good app shell if the network request fails.
+        persistClockSeed();
         window.location.reload();
       }
     }
@@ -1157,15 +1159,53 @@
 
     window.addEventListener("touchcancel",resetPull,{passive:true});
 
-    // External clock calibration using the live server Date header.
-    // Once synchronized, time advances from performance.now() so manual device-clock
-    // changes cannot make the countdown jump between syncs.
+    // Absolute, refresh-safe clock.
+    // The countdown NEVER subtracts one second from a stored number. Every frame is
+    // recomputed from an absolute estreno timestamp and this calibrated current time,
+    // so a slow tab, suspended phone, refresh or dropped timer callback cannot add delay.
+    const CLOCK_SEED_KEY="ipcdj-clock-seed-v1";
     let serverEpochAtSync=Date.now();
     let performanceAtSync=performance.now();
     let serverClockSynced=false;
 
+    function restoreClockSeed(){
+      try{
+        const raw=sessionStorage.getItem(CLOCK_SEED_KEY);
+        if(!raw)return false;
+        const seed=JSON.parse(raw);
+        if(!Number.isFinite(seed.serverNow)||!Number.isFinite(seed.clientNow))return false;
+
+        // Carry time across the brief document reload immediately; a fresh server
+        // calibration follows in the background.
+        const elapsed=Math.max(0,Date.now()-seed.clientNow);
+        if(elapsed>10*60*1000)return false;
+        serverEpochAtSync=seed.serverNow+elapsed;
+        performanceAtSync=performance.now();
+        serverClockSynced=true;
+        return true;
+      }catch(_){
+        return false;
+      }
+    }
+
+    function persistClockSeed(){
+      try{
+        sessionStorage.setItem(CLOCK_SEED_KEY,JSON.stringify({
+          serverNow:calibratedNow(),
+          clientNow:Date.now()
+        }));
+      }catch(_){}
+    }
+
+    const calibratedNow=()=>serverClockSynced
+      ? serverEpochAtSync+(performance.now()-performanceAtSync)
+      : Date.now();
+
+    restoreClockSeed();
+
     async function syncServerClock(){
       const clientStart=Date.now();
+      const beforeSync=calibratedNow();
       try{
         const response=await fetch("./favicon.svg?clock-sync="+clientStart,{
           method:"HEAD",
@@ -1180,19 +1220,25 @@
         if(!Number.isFinite(serverMs))return false;
 
         const roundTrip=Math.max(0,clientEnd-clientStart);
-        serverEpochAtSync=serverMs+(roundTrip/2);
+        let candidate=serverMs+(roundTrip/2);
+
+        // HTTP Date is normally whole-second precision. Prevent tiny backward
+        // corrections from making the countdown appear to stall or gain time.
+        const delta=candidate-beforeSync;
+        if(delta<0&&delta>-1500)candidate=beforeSync;
+
+        serverEpochAtSync=candidate;
         performanceAtSync=performance.now();
         serverClockSynced=true;
+        persistClockSeed();
         return true;
       }catch(_){
         return false;
       }
     }
 
-    const calibratedNow=()=>serverClockSynced
-      ? serverEpochAtSync+(performance.now()-performanceAtSync)
-      : Date.now();
-
+    // Calibrate immediately and every five minutes. The current countdown starts
+    // immediately from the restored seed/device time; calibration never blocks it.
     syncServerClock().then(()=>renderCurrent(calibratedNow()));
     setInterval(syncServerClock,5*60*1000);
 
@@ -1424,12 +1470,32 @@
     }
 
     renderCurrent(calibratedNow());
-    const liveClock=setInterval(()=>renderCurrent(calibratedNow()),1000);
+
+    let liveClockTimer=null;
+    function scheduleLiveClock(){
+      clearTimeout(liveClockTimer);
+      const now=calibratedNow();
+      renderCurrent(now);
+
+      // Re-align every callback to an absolute quarter-second boundary rather than
+      // chaining from the previous callback. Timer throttling therefore cannot drift.
+      const nextDelay=Math.max(40,250-(Math.floor(now)%250));
+      liveClockTimer=setTimeout(scheduleLiveClock,nextDelay);
+    }
+    scheduleLiveClock();
+
     document.addEventListener("visibilitychange",async()=>{
       if(!document.hidden){
+        renderCurrent(calibratedNow());
         await syncServerClock();
         renderCurrent(calibratedNow());
+        scheduleLiveClock();
       }
+    });
+
+    window.addEventListener("pageshow",()=>{
+      renderCurrent(calibratedNow());
+      scheduleLiveClock();
     });
 
     const revealItems = document.querySelectorAll(".reveal");
