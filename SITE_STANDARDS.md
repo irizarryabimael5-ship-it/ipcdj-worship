@@ -70,6 +70,22 @@ Rules:
 - Refresh UI remains centered, crisp and visible long enough to communicate activity.
 - Network failure must fall back safely rather than produce a blank/black page.
 
+## Full-page single-color ambient phase
+
+At any moment, the animated background may display only one accent color family over the constant near-black base.
+
+Required behavior:
+- The active color must read across the whole viewport, not as a small isolated blob.
+- All gradient components within an active phase must use the same hue family at different opacities.
+- No second accent hue may visibly overlap the current one.
+- Every color phase must fade fully to black before the next hue begins.
+- Black remains the permanent base and the transition separator.
+- Use full-screen gradients plus same-hue radial depth, never cross-hue blending.
+- Keep visible motion obvious but smooth through transform-only movement.
+- Use opacity for phase entry/exit; do not animate gradient color stops.
+- Preserve subtle dithering to suppress visible gradient banding.
+- Prefer composited transform/opacity animation for performance and smooth frame pacing.
+
 ## Sequential ambient color cycle
 
 The background color system must be sequential, not blended between accent families.
