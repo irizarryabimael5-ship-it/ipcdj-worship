@@ -70,6 +70,27 @@ Rules:
 - Refresh UI remains centered, crisp and visible long enough to communicate activity.
 - Network failure must fall back safely rather than produce a blank/black page.
 
+## Expanded accent background palette
+
+The animated background may cycle through the website's established accent colors while remaining dark-first and visually cohesive.
+
+Allowed accent family:
+- IPCDJ accent blue (#89a9ff family)
+- progress green (#35b75c / #65dc83 family)
+- estreno red (#ff5a5a family)
+- soft white glow
+- deep blue and near-black remain the dominant base
+
+Rules:
+- Accent colors must appear as restrained radial glows, never as full-page flat washes.
+- Deep blue and black must remain visually dominant so cards, text and hierarchy stay readable.
+- White is a soft luminous accent only, not a bright background state.
+- Red and green remain subtle enough not to override their semantic meanings inside the UI.
+- Multiple accent layers may overlap organically, but the result must remain premium, smooth and non-distracting.
+- Movement should be clearly noticeable, with larger transform travel and independent timing between layers.
+- Preserve transform-driven motion and avoid layout-triggering animation.
+- Reduced-motion mode must disable all drift and color cycling.
+
 ## Background color cycle
 
 The animated background should loop through the site's established visual language rather than remain a single static hue.
