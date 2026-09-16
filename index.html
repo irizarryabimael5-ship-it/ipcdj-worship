@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="stability-v26" />
+  <meta name="ipcdj-build" content="blob-field-v27" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -152,30 +152,51 @@
       contain:strict;
     }
 
-    .ambient-orb{
-      --orb-rgb:55,93,202;
+    .ambient-field{
+      --field-rgb:55,93,202;
       position:absolute;
-      width:108vmax;
-      height:108vmax;
-      left:50%;
-      top:50%;
-      margin-left:-54vmax;
-      margin-top:-54vmax;
-      border-radius:50%;
+      inset:-14vmax;
       opacity:0;
-      transform:translate3d(0,0,0) scale(1.04);
-      transform-origin:center;
+      will-change:opacity;
+      transform:translateZ(0);
+    }
+
+    .ambient-blob{
+      position:absolute;
+      border-radius:50%;
+      background:radial-gradient(circle,
+        rgba(var(--field-rgb),.76) 0%,
+        rgba(var(--field-rgb),.46) 34%,
+        rgba(var(--field-rgb),.20) 58%,
+        rgba(var(--field-rgb),.055) 76%,
+        rgba(var(--field-rgb),0) 92%);
+      filter:blur(18px);
       will-change:transform,opacity;
-      background:
-        radial-gradient(circle at 50% 50%,
-          rgba(var(--orb-rgb),.92) 0%,
-          rgba(var(--orb-rgb),.74) 26%,
-          rgba(var(--orb-rgb),.46) 50%,
-          rgba(var(--orb-rgb),.20) 70%,
-          rgba(var(--orb-rgb),.06) 84%,
-          rgba(var(--orb-rgb),0) 96%);
-      animation:ambientOrbDrift 18s cubic-bezier(.42,.02,.58,.98) infinite alternate;
-      transition:opacity 220ms linear;
+      transform:translate3d(0,0,0) scale(1);
+      animation-timing-function:cubic-bezier(.45,.02,.55,.98);
+      animation-iteration-count:infinite;
+      animation-direction:alternate;
+    }
+
+    .ambient-blob.b1{
+      width:46vmax;height:46vmax;left:-4vmax;top:2vmax;
+      animation-name:blobDrift1,blobBreathe1;
+      animation-duration:18s,11s;
+    }
+    .ambient-blob.b2{
+      width:38vmax;height:38vmax;right:-1vmax;top:10vmax;
+      animation-name:blobDrift2,blobBreathe2;
+      animation-duration:21s,13s;
+    }
+    .ambient-blob.b3{
+      width:34vmax;height:34vmax;left:30%;bottom:-6vmax;
+      animation-name:blobDrift3,blobBreathe3;
+      animation-duration:24s,15s;
+    }
+    .ambient-blob.b4{
+      width:28vmax;height:28vmax;left:42%;top:30%;
+      animation-name:blobDrift4,blobBreathe4;
+      animation-duration:19s,12s;
     }
 
     .ambient-dither{
@@ -183,21 +204,38 @@
       inset:0;
       z-index:2;
       pointer-events:none;
-      opacity:.026;
-      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.22'/%3E%3C/svg%3E");
+      opacity:.024;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.20'/%3E%3C/svg%3E");
       background-repeat:repeat;
       background-size:160px 160px;
       mix-blend-mode:soft-light;
     }
 
-    @keyframes ambientOrbDrift{
-      0%{transform:translate3d(12%,-9%,0) scale(1.03)}
-      20%{transform:translate3d(5%,-3%,0) scale(1.08)}
-      40%{transform:translate3d(-4%,5%,0) scale(1.13)}
-      60%{transform:translate3d(-11%,8%,0) scale(1.09)}
-      80%{transform:translate3d(-2%,-2%,0) scale(1.15)}
-      100%{transform:translate3d(11%,9%,0) scale(1.05)}
+    @keyframes blobDrift1{
+      0%{transform:translate3d(0,0,0) scale(1)}
+      50%{transform:translate3d(18vw,10vh,0) scale(1.08)}
+      100%{transform:translate3d(7vw,28vh,0) scale(.96)}
     }
+    @keyframes blobDrift2{
+      0%{transform:translate3d(0,0,0) scale(1.02)}
+      50%{transform:translate3d(-16vw,14vh,0) scale(.94)}
+      100%{transform:translate3d(-5vw,26vh,0) scale(1.10)}
+    }
+    @keyframes blobDrift3{
+      0%{transform:translate3d(0,0,0) scale(.98)}
+      50%{transform:translate3d(-12vw,-18vh,0) scale(1.08)}
+      100%{transform:translate3d(16vw,-8vh,0) scale(1.01)}
+    }
+    @keyframes blobDrift4{
+      0%{transform:translate3d(0,0,0) scale(.92)}
+      50%{transform:translate3d(9vw,-10vh,0) scale(1.14)}
+      100%{transform:translate3d(-11vw,12vh,0) scale(1.00)}
+    }
+
+    @keyframes blobBreathe1{0%{opacity:.44}50%{opacity:.90}100%{opacity:.58}}
+    @keyframes blobBreathe2{0%{opacity:.36}50%{opacity:.78}100%{opacity:.50}}
+    @keyframes blobBreathe3{0%{opacity:.30}50%{opacity:.72}100%{opacity:.42}}
+    @keyframes blobBreathe4{0%{opacity:.26}50%{opacity:.66}100%{opacity:.34}}
 
     .shell{
       position:relative;
@@ -897,7 +935,7 @@
     }
 
     @media (prefers-reduced-data: reduce){
-      .ambient-orb{animation:none;opacity:.40!important;transform:none!important}
+      .ambient-field{opacity:.42!important}.ambient-blob{animation:none!important}
       .ambient-dither{display:none}
     }
 
@@ -928,7 +966,7 @@
     }
 
     @media (prefers-reduced-motion: reduce){
-      .ambient-orb{animation:none;opacity:.44!important;transform:none!important}
+      .ambient-field{opacity:.46!important}.ambient-blob{animation:none!important}
       .platform{transition:none}
       .progress-fill{transition:none}
       .progress-wrap{transition:none}
@@ -940,7 +978,12 @@
 </head>
 <body>
   <div class="ambient-bg" aria-hidden="true">
-    <div class="ambient-orb" id="ambient-orb"></div>
+    <div class="ambient-field" id="ambient-field">
+      <div class="ambient-blob b1"></div>
+      <div class="ambient-blob b2"></div>
+      <div class="ambient-blob b3"></div>
+      <div class="ambient-blob b4"></div>
+    </div>
     <div class="ambient-dither"></div>
   </div>
 
@@ -1226,75 +1269,75 @@
 
     window.addEventListener("touchcancel",resetPull,{passive:true});
 
-    // Lightweight single-orb ambient controller.
-    // Only one colored GPU layer exists at a time; color changes happen while the orb
-    // is fully black/transparent, eliminating multi-layer overlap and the v24 GPU glitch.
-    const ambientOrb=document.getElementById("ambient-orb");
+    // Professional ambient field controller:
+    // fixed black base + several same-color soft concentrations moving independently.
+    // The field fully dims to black before its color changes, so two hues never overlap.
+    const ambientField=document.getElementById("ambient-field");
     const ambientPalette=[
-      [55,93,202],      // deep blue
-      [137,169,255],    // accent blue
-      [53,183,92],      // green
-      [255,90,90],      // red
-      [255,255,255]     // pure white
+      [55,93,202],
+      [137,169,255],
+      [53,183,92],
+      [255,90,90],
+      [255,255,255]
     ];
-    const ambientSlotMs=24000;
-    const ambientFadeInStart=3000;
-    const ambientFadeInEnd=6500;
-    const ambientFadeOutStart=17500;
-    const ambientFadeOutEnd=21500;
-    const ambientCycleStarted=performance.now();
-    let ambientLastIndex=-1;
+    const ambientSlotMs=28000;
+    const fadeInStart=2500;
+    const fadeInEnd=7000;
+    const dwellEnd=20500;
+    const fadeOutEnd=25500;
+    const ambientEpoch=performance.now();
     let ambientFrame=0;
+    let ambientColorIndex=-1;
 
-    const ambientSmoothstep=t=>{
+    const smoothstep=t=>{
       const x=Math.min(1,Math.max(0,t));
       return x*x*(3-2*x);
     };
 
-    function renderAmbientFrame(nowPerf){
-      if(!ambientOrb)return;
-
-      const elapsed=Math.max(0,nowPerf-ambientCycleStarted);
-      const index=Math.floor(elapsed/ambientSlotMs)%ambientPalette.length;
-      const slot=elapsed%ambientSlotMs;
-
-      if(index!==ambientLastIndex){
-        const color=ambientPalette[index];
-        ambientOrb.style.setProperty("--orb-rgb",color.join(","));
-        ambientLastIndex=index;
-      }
-
-      let presence=0;
-      if(slot>=ambientFadeInStart && slot<ambientFadeInEnd){
-        presence=ambientSmoothstep((slot-ambientFadeInStart)/(ambientFadeInEnd-ambientFadeInStart));
-      }else if(slot>=ambientFadeInEnd && slot<ambientFadeOutStart){
-        presence=1;
-      }else if(slot>=ambientFadeOutStart && slot<ambientFadeOutEnd){
-        presence=1-ambientSmoothstep((slot-ambientFadeOutStart)/(ambientFadeOutEnd-ambientFadeOutStart));
-      }
-
-      // Gentle intensity breathing only while the phase is fully present.
-      if(presence>0){
-        const breathe=.90 + .10*Math.sin((slot/ambientSlotMs)*Math.PI*6);
-        presence*=breathe;
-      }
-
-      ambientOrb.style.opacity=String(Math.max(0,Math.min(1,presence)));
-      ambientFrame=requestAnimationFrame(renderAmbientFrame);
+    function ambientPresence(slot){
+      if(slot<fadeInStart)return 0;
+      if(slot<fadeInEnd)return smoothstep((slot-fadeInStart)/(fadeInEnd-fadeInStart));
+      if(slot<dwellEnd)return 1;
+      if(slot<fadeOutEnd)return 1-smoothstep((slot-dwellEnd)/(fadeOutEnd-dwellEnd));
+      return 0;
     }
 
-    if(ambientOrb && !window.matchMedia("(prefers-reduced-motion: reduce)").matches){
-      ambientFrame=requestAnimationFrame(renderAmbientFrame);
+    function renderAmbient(nowPerf){
+      if(!ambientField)return;
+
+      const elapsed=Math.max(0,nowPerf-ambientEpoch);
+      const slot=elapsed%ambientSlotMs;
+      const index=Math.floor(elapsed/ambientSlotMs)%ambientPalette.length;
+      const presence=ambientPresence(slot);
+
+      // Only change hue while the field is fully black.
+      if(index!==ambientColorIndex && presence===0){
+        ambientField.style.setProperty("--field-rgb",ambientPalette[index].join(","));
+        ambientColorIndex=index;
+      }
+
+      // Gentle whole-field breathing; individual blobs also breathe independently.
+      const fieldBreath=.90+.10*Math.sin((slot/ambientSlotMs)*Math.PI*4);
+      ambientField.style.opacity=String(Math.max(0,Math.min(1,presence*fieldBreath)));
+
+      ambientFrame=requestAnimationFrame(renderAmbient);
+    }
+
+    if(ambientField && !window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+      ambientField.style.setProperty("--field-rgb",ambientPalette[0].join(","));
+      ambientColorIndex=0;
+      ambientFrame=requestAnimationFrame(renderAmbient);
       document.addEventListener("visibilitychange",()=>{
         if(document.hidden){
           cancelAnimationFrame(ambientFrame);
         }else{
-          ambientFrame=requestAnimationFrame(renderAmbientFrame);
+          ambientFrame=requestAnimationFrame(renderAmbient);
         }
       });
-    }else if(ambientOrb){
-      ambientOrb.style.setProperty("--orb-rgb","55,93,202");
-      ambientOrb.style.opacity=".44";
+    }else if(ambientField){
+      ambientField.style.setProperty("--field-rgb","55,93,202");
+      ambientField.style.opacity=".46";
+      ambientField.querySelectorAll(".ambient-blob").forEach(blob=>blob.style.animation="none");
     }
 
     // Absolute, refresh-safe clock.
