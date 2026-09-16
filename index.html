@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="progress-v16" />
+  <meta name="ipcdj-build" content="background-v17" />
   <meta name="color-scheme" content="dark" />
   <link rel="icon" type="image/svg+xml" href="./favicon.svg?v=8" />
   <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png?v=8" />
@@ -105,8 +105,8 @@
       left:-35vmax;
       pointer-events:none;
       z-index:-1;
-      filter:blur(60px);
-      opacity:.58;
+      filter:blur(54px);
+      opacity:.66;
       will-change:transform;
       transform-origin:center;
     }
@@ -118,7 +118,7 @@
       background-size:42% 42%, 36% 36%;
       background-position:8% 18%, 82% 70%;
       background-repeat:no-repeat;
-      animation:driftA 26s ease-in-out infinite alternate;
+      animation:driftA 20s cubic-bezier(.45,.05,.55,.95) infinite alternate;
     }
 
     body::after{
@@ -128,18 +128,22 @@
       background-size:34% 34%, 40% 40%;
       background-position:78% 8%, 18% 86%;
       background-repeat:no-repeat;
-      animation:driftB 34s ease-in-out infinite alternate;
+      animation:driftB 26s cubic-bezier(.45,.05,.55,.95) infinite alternate;
     }
 
     @keyframes driftA{
-      0%{transform:translate3d(0,0,0) scale(1);opacity:.38}
-      50%{transform:translate3d(-2%,1.5%,0) scale(1.08);opacity:.68}
-      100%{transform:translate3d(-5%,3.8%,0) scale(1.13);opacity:.48}
+      0%{transform:translate3d(1.5%,-1%,0) scale(1.02);opacity:.46}
+      25%{transform:translate3d(-2.5%,1.8%,0) scale(1.08);opacity:.66}
+      55%{transform:translate3d(-5.5%,3.8%,0) scale(1.14);opacity:.76}
+      78%{transform:translate3d(-7.5%,1.8%,0) scale(1.10);opacity:.60}
+      100%{transform:translate3d(-9%,5.8%,0) scale(1.18);opacity:.54}
     }
     @keyframes driftB{
-      0%{transform:translate3d(0,0,0) scale(1);opacity:.34}
-      50%{transform:translate3d(2.2%,-1.8%,0) scale(1.07);opacity:.62}
-      100%{transform:translate3d(5%,-3.8%,0) scale(1.11);opacity:.44}
+      0%{transform:translate3d(-1%,1.2%,0) scale(1.01);opacity:.40}
+      28%{transform:translate3d(2.8%,-2.2%,0) scale(1.07);opacity:.58}
+      58%{transform:translate3d(5.6%,-4.2%,0) scale(1.13);opacity:.70}
+      82%{transform:translate3d(7.4%,-2.5%,0) scale(1.09);opacity:.56}
+      100%{transform:translate3d(9%,-6%,0) scale(1.17);opacity:.48}
     }
 
     .shell{
