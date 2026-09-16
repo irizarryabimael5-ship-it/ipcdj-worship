@@ -59,6 +59,17 @@ Do not use content-visibility, display:none, or other optimization techniques on
 - Mobile launcher icons must retain adequate safe-zone padding for platform masking.
 - Installed-app changes must use versioned assets/cache updates when needed.
 
+## Freshness-loop safety
+
+The canonical-domain freshness checker must never hard-code a historical build ID.
+
+Required rules:
+- Read the current build ID from the live page's `meta[name="ipcdj-build"]`.
+- Compare that value against the fetched deployed build.
+- A cache-busted `fresh` navigation is a one-shot recovery path; clean its query flag and do not immediately trigger another redirect.
+- Never create a self-reloading loop when the site's build marker changes.
+- Freshness logic must be tested whenever the build marker is bumped.
+
 ## Always-latest canonical-domain loading
 
 Opening https://worship.ipcdj.org/ must aggressively prefer the newest deployed website version.
