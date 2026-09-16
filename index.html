@@ -118,8 +118,57 @@
     }
 
     .hero{
+      position:relative;
       text-align:center;
       padding:26px 16px 22px;
+    }
+
+    .refresh-button{
+      position:absolute;
+      top:4px;
+      right:4px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:42px;
+      height:42px;
+      border-radius:13px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.045);
+      color:#dfe6f5;
+      cursor:pointer;
+      backdrop-filter:blur(12px);
+      -webkit-backdrop-filter:blur(12px);
+      touch-action:manipulation;
+      -webkit-tap-highlight-color:transparent;
+      transition:background .15s ease,border-color .15s ease,transform .15s ease;
+    }
+
+    .refresh-button svg{
+      width:19px;
+      height:19px;
+      display:block;
+    }
+
+    @media (hover:hover) and (pointer:fine){
+      .refresh-button:hover{
+        background:rgba(255,255,255,.075);
+        border-color:rgba(255,255,255,.17);
+        transform:translateY(-1px);
+      }
+    }
+
+    .refresh-button:focus-visible{
+      outline:3px solid rgba(137,169,255,.72);
+      outline-offset:3px;
+    }
+
+    .refresh-button.refreshing svg{
+      animation:refresh-spin .65s linear infinite;
+    }
+
+    @keyframes refresh-spin{
+      to{transform:rotate(360deg)}
     }
 
     .eyebrow{
@@ -571,6 +620,12 @@
   <main class="shell">
 
     <header class="hero">
+      <button class="refresh-button" type="button" aria-label="Actualizar página" title="Actualizar página">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M20 11a8 8 0 1 0 2 5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
+          <path d="M20 4v7h-7" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
       <div class="eyebrow"><span class="dot"></span> Ministerio de Alabanza</div>
       <h1>IPCDJ <span class="brand-sub">Worship</span></h1>
       <p class="subtitle">
@@ -706,6 +761,18 @@
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
         navigator.serviceWorker.register("./sw.js").catch(() => {});
+      });
+    }
+
+    const refreshButton = document.querySelector(".refresh-button");
+    if (refreshButton) {
+      refreshButton.addEventListener("click", async () => {
+        refreshButton.classList.add("refreshing");
+        refreshButton.disabled = true;
+        try {
+          await fetch("./", { cache: "no-store" });
+        } catch (_) {}
+        window.location.reload();
       });
     }
   </script>
