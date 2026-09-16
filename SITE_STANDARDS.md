@@ -70,6 +70,22 @@ Rules:
 - Refresh UI remains centered, crisp and visible long enough to communicate activity.
 - Network failure must fall back safely rather than produce a blank/black page.
 
+## Phase-aware progress color system
+
+The progress bar is time-driven and phase-aware. It must continuously inherit its visual state from each song's own pipeline dates rather than hard-coded calendar dates.
+
+Required color semantics:
+- Early/active learning uses the existing green progress language.
+- Learning matures toward a brighter green.
+- Transition into final preparation moves smoothly toward IPCDJ blue.
+- Final preparation remains in the blue family.
+- The last stretch before estreno transitions from blue toward the established estreno red.
+- Estreno resolves to the established red state.
+- Color changes must be gradual, repeatable for every future song, and derived from activeFrom, learningStart/end, finalStart/end and releaseAt.
+- Important phase meaning must still be conveyed by text/ARIA and not by color alone.
+- Reduced-motion users must not receive unnecessary animated transitions.
+- Future song additions must inherit this behavior automatically without per-song styling.
+
 ## Countdown timing integrity
 
 The countdown is an absolute-time system, not a decrementing counter.
