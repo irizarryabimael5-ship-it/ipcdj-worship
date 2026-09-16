@@ -40,10 +40,17 @@
     *{box-sizing:border-box}
     html{
       scroll-behavior:smooth;
-      background:var(--bg-1);
+      background:
+        radial-gradient(circle at 15% 15%, rgba(75,111,255,.20), transparent 26%),
+        radial-gradient(circle at 85% 20%, rgba(53,94,214,.16), transparent 24%),
+        radial-gradient(circle at 55% 90%, rgba(50,89,180,.14), transparent 28%),
+        linear-gradient(180deg,var(--bg-3) 0%, var(--bg-2) 35%, var(--bg-1) 100%);
+      background-attachment:fixed;
       color-scheme:dark;
       -webkit-text-size-adjust:100%;
       text-size-adjust:100%;
+      min-height:100%;
+      min-height:100dvh;
     }
     body{
       margin:0;
@@ -58,6 +65,7 @@
         linear-gradient(180deg,var(--bg-3) 0%, var(--bg-2) 35%, var(--bg-1) 100%);
       overflow-x:hidden;
       position:relative;
+      isolation:isolate;
       -webkit-font-smoothing:antialiased;
       text-rendering:optimizeLegibility;
       padding-top:calc(28px + env(safe-area-inset-top, 0px));
@@ -70,12 +78,16 @@
     body::after{
       content:"";
       position:fixed;
-      inset:-20%;
+      top:-35vmax;
+      right:-35vmax;
+      bottom:-35vmax;
+      left:-35vmax;
       pointer-events:none;
-      z-index:0;
+      z-index:-1;
       filter:blur(60px);
       opacity:.58;
       will-change:transform;
+      transform-origin:center;
     }
 
     body::before{
@@ -597,8 +609,30 @@
     }
 
     @media (max-height:520px) and (orientation:landscape){
+      html,body{
+        min-width:100%;
+        min-height:100%;
+        min-height:100dvh;
+      }
+
+      body{
+        padding-top:calc(12px + env(safe-area-inset-top, 0px));
+        background:
+          radial-gradient(circle at 12% 18%, rgba(75,111,255,.22), transparent 30%),
+          radial-gradient(circle at 88% 16%, rgba(53,94,214,.18), transparent 28%),
+          radial-gradient(circle at 58% 88%, rgba(50,89,180,.16), transparent 32%),
+          linear-gradient(180deg,var(--bg-3) 0%, var(--bg-2) 38%, var(--bg-1) 100%);
+      }
+
+      body::before,
+      body::after{
+        top:-45vmax;
+        right:-45vmax;
+        bottom:-45vmax;
+        left:-45vmax;
+      }
+
       .hero{padding-top:12px;padding-bottom:16px}
-      body{padding-top:calc(12px + env(safe-area-inset-top, 0px))}
     }
 
     @media (display-mode:standalone){
