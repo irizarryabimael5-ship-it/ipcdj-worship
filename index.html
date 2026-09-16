@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="edge-glass-v29" />
+  <meta name="ipcdj-build" content="compat-v30" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -108,7 +108,7 @@
         radial-gradient(circle at 85% 20%, rgba(53,94,214,.16), transparent 24%),
         radial-gradient(circle at 55% 90%, rgba(50,89,180,.14), transparent 28%),
         linear-gradient(180deg,var(--bg-3) 0%, var(--bg-2) 35%, var(--bg-1) 100%);
-      background-attachment:fixed;
+      background-attachment:scroll;
       color-scheme:dark;
       -webkit-text-size-adjust:100%;
       text-size-adjust:100%;
@@ -144,6 +144,10 @@
 
     .ambient-bg{
       position:fixed;
+      top:0;
+      right:0;
+      bottom:0;
+      left:0;
       inset:0;
       z-index:0;
       overflow:hidden;
@@ -155,6 +159,10 @@
     .ambient-field{
       --field-rgb:55,93,202;
       position:absolute;
+      top:-14vmax;
+      right:-14vmax;
+      bottom:-14vmax;
+      left:-14vmax;
       inset:-14vmax;
       opacity:0;
       will-change:opacity;
@@ -201,6 +209,10 @@
 
     .ambient-dither{
       position:absolute;
+      top:0;
+      right:0;
+      bottom:0;
+      left:0;
       inset:0;
       z-index:2;
       pointer-events:none;
@@ -239,6 +251,7 @@
 
     .shell{
       position:relative;
+      min-width:0;
       -webkit-user-select:text;
       user-select:text;
       z-index:1;
@@ -267,6 +280,7 @@
       padding:8px 12px;
       margin-bottom:18px;
       backdrop-filter:blur(10px);
+      -webkit-backdrop-filter:blur(10px);
     }
 
     .eyebrow .dot{
@@ -303,6 +317,7 @@
     }
 
     .card{
+      min-width:0;
       background:linear-gradient(180deg, rgba(13,18,28,.46), rgba(8,12,19,.54));
       border:1px solid var(--line);
       border-radius:var(--radius-lg);
@@ -338,6 +353,7 @@
 
     .platform{
       display:flex;
+      min-width:0;
       align-items:center;
       justify-content:center;
       gap:11px;
@@ -642,6 +658,7 @@
     }
 
     .song-row{
+      min-width:0;
       border:1px solid var(--line);
       border-radius:18px;
       background:rgba(255,255,255,.018);
@@ -916,15 +933,64 @@
           linear-gradient(180deg,var(--bg-3) 0%, var(--bg-2) 38%, var(--bg-1) 100%);
       }
 
-      body::before,
-      body::after{
-        top:-45vmax;
-        right:-45vmax;
-        bottom:-45vmax;
-        left:-45vmax;
+      .ambient-field{
+        top:-20vmax;
+        right:-20vmax;
+        bottom:-20vmax;
+        left:-20vmax;
+        inset:-20vmax;
       }
 
       .hero{padding-top:12px;padding-bottom:16px}
+    }
+
+    @media (max-width:390px){
+      .countdown-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .countdown-unit{min-height:64px}
+      .song-name{font-size:clamp(1.7rem,9vw,2.25rem)}
+      .platform,.song-row,.timeline-item,.recent{min-width:0}
+    }
+
+    @media (max-width:340px){
+      body{
+        padding-left:max(8px, env(safe-area-inset-left, 0px));
+        padding-right:max(8px, env(safe-area-inset-right, 0px));
+      }
+      .card{padding:14px;border-radius:20px}
+      .hero{padding-left:6px;padding-right:6px}
+      h1{font-size:2.15rem}
+      .brand-sub{margin-left:.12em}
+      .eyebrow{font-size:.72rem;padding:7px 10px}
+      .countdown-wrap,.progress-wrap{padding:12px}
+      .countdown-number{font-size:1.35rem}
+      .song-row{padding:12px}
+    }
+
+    @media (max-height:430px) and (orientation:landscape){
+      body{padding-top:calc(8px + env(safe-area-inset-top, 0px))}
+      .hero{padding-top:8px;padding-bottom:12px}
+      .ambient-field{
+        top:-24vmax;right:-24vmax;bottom:-24vmax;left:-24vmax;inset:-24vmax;
+      }
+    }
+
+    @media (pointer:coarse){
+      .platform{min-height:58px}
+      .status,.song-date,.recent .date{min-height:36px}
+    }
+
+    @supports not (font-size:clamp(1rem,2vw,2rem)){
+      h1{font-size:3.6rem}
+      .song-name{font-size:2.35rem}
+      .countdown-number{font-size:1.7rem}
+      @media (max-width:640px){
+        h1{font-size:2.7rem}
+        .song-name{font-size:2rem}
+      }
+      @media (max-width:390px){
+        h1{font-size:2.25rem}
+        .song-name{font-size:1.8rem}
+      }
     }
 
     @media (prefers-reduced-transparency: reduce){
@@ -949,6 +1015,7 @@
 
     @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
       .card{background:rgba(11,15,24,.97)}
+      .platform,.song-row,.timeline-item,.recent,.countdown-wrap,.progress-wrap{background-color:rgba(10,14,23,.88)}
       .eyebrow,.pull-refresh{background:rgba(10,14,23,.98)}
     }
 
