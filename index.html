@@ -663,9 +663,12 @@
     }
 
     .pull-refresh svg{
-      width:20px;
-      height:20px;
+      width:22px;
+      height:22px;
       display:block;
+      overflow:visible;
+      transform-origin:50% 50%;
+      transform-box:fill-box;
       transform:rotate(var(--pull-rotation));
       transition:transform .08s linear;
     }
@@ -823,9 +826,9 @@
 </head>
 <body>
   <div class="pull-refresh" aria-hidden="true" aria-label="Actualizando">
-    <svg viewBox="0 0 24 24">
-      <path d="M20 11a8 8 0 1 0 2 5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
-      <path d="M20 4v7h-7" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+    <svg viewBox="0 0 24 24" role="img" focusable="false">
+      <path d="M19.5 8.5V4.5m0 0h-4m4 0-2.7 2.7A7.5 7.5 0 1 0 19.2 15"
+        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
   </div>
 
@@ -965,9 +968,6 @@
         </div>
       </div>
     </section>
-
-    <div id="refresh-test-marker" style="text-align:center;color:var(--muted);font-size:.8rem;margin:8px 0 2px;">test</div>
-
     <footer class="reveal">
       Iglesia Pentecostal Ciudad de Jehová · IPCDJ
     </footer>
@@ -1033,6 +1033,8 @@
       if(refreshInFlight) return;
       refreshInFlight=true;
       pulling=false;
+      const refreshStarted=performance.now();
+      const minimumRefreshVisibleMs=2600;
       pullRefresh.classList.add("pulling","ready","refreshing");
       pullRefresh.style.opacity="1";
       pullRefresh.style.transform="translate(-50%, 0)";
@@ -1059,13 +1061,22 @@
           );
         }
 
+        const elapsed=performance.now()-refreshStarted;
+        if(elapsed<minimumRefreshVisibleMs){
+          await new Promise(resolve=>setTimeout(resolve,minimumRefreshVisibleMs-elapsed));
+        }
+
         // Navigate to a unique URL so the browser/CDN path cannot reuse the last document response.
         const freshUrl=new URL(window.location.href);
-        freshUrl.searchParams.set("refresh",Date.now().toString());
+        freshUrl.searchParams.set("refresh",calibratedNow().toString());
         window.location.replace(freshUrl.toString());
       }catch(_){
+        const elapsed=performance.now()-refreshStarted;
+        if(elapsed<minimumRefreshVisibleMs){
+          await new Promise(resolve=>setTimeout(resolve,minimumRefreshVisibleMs-elapsed));
+        }
         const freshUrl=new URL(window.location.href);
-        freshUrl.searchParams.set("refresh",Date.now().toString());
+        freshUrl.searchParams.set("refresh",calibratedNow().toString());
         window.location.replace(freshUrl.toString());
       }
     }
@@ -1104,6 +1115,49 @@
     }, { passive:true });
 
     window.addEventListener("touchcancel", resetPull, { passive:true });
+
+    // External clock calibration.
+    // The browser clock remains the local oscillator, but we correct it against the
+    // live server/CDN HTTP Date header so countdown/rollover timing is not solely
+    // dependent on a phone or computer whose clock is set incorrectly.
+    let serverClockOffsetMs=0;
+    let serverClockSynced=false;
+
+    async function syncServerClock(){
+      const clientStart=Date.now();
+      try{
+        const response=await fetch("./favicon.svg?clock-sync="+clientStart,{
+          method:"HEAD",
+          cache:"no-store",
+          credentials:"same-origin"
+        });
+        const clientEnd=Date.now();
+        const serverDate=response.headers.get("date");
+        if(!serverDate) return false;
+
+        const serverMs=Date.parse(serverDate);
+        if(!Number.isFinite(serverMs)) return false;
+
+        // Midpoint compensates approximately for request/response latency.
+        const clientMidpoint=(clientStart+clientEnd)/2;
+        const measuredOffset=serverMs-clientMidpoint;
+
+        // Reject absurd values caused by a malformed/intercepted Date header.
+        if(Math.abs(measuredOffset)>24*60*60*1000) return false;
+
+        serverClockOffsetMs=measuredOffset;
+        serverClockSynced=true;
+        return true;
+      }catch(_){
+        return false;
+      }
+    }
+
+    const calibratedNow=()=>Date.now()+serverClockOffsetMs;
+
+    // Sync immediately, periodically, and after returning from a suspended mobile app.
+    syncServerClock().then(()=>renderCurrent(calibratedNow()));
+    setInterval(syncServerClock,5*60*1000);
 
     // IPCDJ song pipeline: one source of truth for current song, countdown, phases and rollover.
     const songPipeline = [
@@ -1185,7 +1239,7 @@
       return {key:"complete",label:"Introducida",note:"Estreno completado"};
     }
 
-    function renderCurrent(now=Date.now()){
+    function renderCurrent(now=calibratedNow()){
       const current=getCurrentSong(now);
       const card=$("current-song-card");
       if(!current){
@@ -1328,10 +1382,13 @@
       `).join("");
     }
 
-    renderCurrent();
-    const liveClock=setInterval(()=>renderCurrent(),1000);
-    document.addEventListener("visibilitychange",()=>{
-      if(!document.hidden) renderCurrent();
+    renderCurrent(calibratedNow());
+    const liveClock=setInterval(()=>renderCurrent(calibratedNow()),1000);
+    document.addEventListener("visibilitychange",async()=>{
+      if(!document.hidden){
+        await syncServerClock();
+        renderCurrent(calibratedNow());
+      }
     });
 
     const revealItems = document.querySelectorAll(".reveal");
