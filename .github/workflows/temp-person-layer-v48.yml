@@ -1,0 +1,62 @@
+name: One-time person layer v48
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-person-layer-v48.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Place isolated person above album background layers
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p=Path('index.html')
+          s=p.read_text()
+          if 'content="person-seam-v47"' not in s:
+              raise SystemExit('expected v47 build marker not found')
+          s=s.replace('content="person-seam-v47"','content="person-layer-v48"',1)
+
+          old='''    .current > *{\n      position:relative;\n      z-index:1;\n    }'''
+          new='''    .current > *{\n      position:relative;\n      z-index:1;\n    }\n\n    /* Album-art stack: blurred/detail/perimeter art stays underneath the isolated person.\n       The actual card content is then lifted above the person so readability is unchanged. */\n    .current .cover-subject-detail{\n      z-index:1;\n    }\n\n    .current > :not(.cover-detail):not(.cover-edge-detail):not(.cover-subject-detail){\n      z-index:2;\n    }'''
+          if old not in s:
+              raise SystemExit('current child stacking block not found')
+          s=s.replace(old,new,1)
+
+          # The subject rule later in the stylesheet still contains z-index:0; make it explicit z-index:1.
+          subject='''    .current .cover-subject-detail{\n      position:absolute;\n      top:0;\n      right:0;\n      width:var(--subject-width);\n      height:var(--subject-height);\n      z-index:0;'''
+          subject_new='''    .current .cover-subject-detail{\n      position:absolute;\n      top:0;\n      right:0;\n      width:var(--subject-width);\n      height:var(--subject-height);\n      z-index:1;'''
+          if subject not in s:
+              raise SystemExit('v47 subject rule not found')
+          s=s.replace(subject,subject_new,1)
+          p.write_text(s)
+
+          sw=Path('sw.js')
+          t=sw.read_text()
+          if 'const CACHE_NAME = "ipcdj-worship-v47";' not in t:
+              raise SystemExit('expected v47 cache marker not found')
+          sw.write_text(t.replace('const CACHE_NAME = "ipcdj-worship-v47";','const CACHE_NAME = "ipcdj-worship-v48";',1))
+
+          st=Path('SITE_STANDARDS.md')
+          u=st.read_text()
+          block='''\n\n## Person layer stacking v48\n\nWhen a person emphasis layer is active, that isolated person must visually sit on top of the current song's centered blurred/detail/perimeter album-art layers while remaining underneath all readable UI content. The subject must therefore read as a foreground extension of the same album cover rather than as imagery buried behind the base treatment. Preserve the approved v47 placement, visibility, and seam feathering; only the stacking relationship changes. Text, status, countdown, progress, and timeline content must remain above the person layer.\n'''
+          if '## Person layer stacking v48' not in u:
+              u += block
+          st.write_text(u)
+          PY
+
+          git config user.name "IPCDJ Worship Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html sw.js SITE_STANDARDS.md
+          git commit -m "Place person emphasis above album background layers"
+          git push origin main
