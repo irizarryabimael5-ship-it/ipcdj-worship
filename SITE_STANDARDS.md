@@ -408,3 +408,18 @@ Required behavior:
 - Cached palette data must never prevent the actual artwork layer from loading.
 - Catalog/artwork/CORS failures fall back gracefully to the curated palette and must never affect countdown, rollover, preparation phases, or card readability.
 - When the active song changes, the card automatically resolves and applies that new song's official cover.
+
+
+## Selective official-art detail fade
+
+The current-song card may allow small portions of the official album artwork to become softly recognizable in low-content regions while the main card remains a blurred atmospheric treatment.
+
+Required behavior:
+- Keep the full-card artwork layer heavily blurred as the primary atmosphere.
+- Add only a low-opacity, lightly blurred detail layer from the same official cover.
+- Reveal that detail through feathered masks concentrated near card edges/corners where it is least likely to compete with text.
+- On narrow/mobile layouts, reduce the detail opacity and tighten the masks because text occupies more of the card width.
+- Never place crisp artwork directly behind primary title, artist, countdown, progress, or timeline text.
+- Semantic stage colors remain independent of artwork.
+- The page-wide moving ambient background remains untouched.
+- If reduced-transparency is requested, substantially reduce the detail layer.
