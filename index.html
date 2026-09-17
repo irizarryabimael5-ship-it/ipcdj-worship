@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="centered-cover-v39" />
+  <meta name="ipcdj-build" content="perimeter-cover-v40" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -471,6 +471,33 @@
       transition:opacity .9s ease;
     }
 
+    .current .cover-edge-detail{
+      position:absolute;
+      inset:-3px;
+      z-index:0;
+      pointer-events:none;
+      background-image:var(--cover-image);
+      background-size:cover;
+      background-position:var(--cover-pos-x) var(--cover-pos-y);
+      background-repeat:no-repeat;
+      filter:blur(1.6px) saturate(1.12) contrast(1.05);
+      -webkit-filter:blur(1.6px) saturate(1.12) contrast(1.05);
+      opacity:.50;
+      transform:scale(1.018);
+      -webkit-mask-image:radial-gradient(ellipse 74% 70% at 50% 50%, transparent 0%, transparent 54%, rgba(0,0,0,.18) 63%, rgba(0,0,0,.58) 76%, #000 100%);
+      mask-image:radial-gradient(ellipse 74% 70% at 50% 50%, transparent 0%, transparent 54%, rgba(0,0,0,.18) 63%, rgba(0,0,0,.58) 76%, #000 100%);
+      transition:opacity .9s ease;
+    }
+
+    .current .cover-edge-detail::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        linear-gradient(180deg, rgba(4,7,12,.08) 0%, rgba(4,7,12,0) 18%, rgba(4,7,12,0) 82%, rgba(4,7,12,.10) 100%),
+        linear-gradient(90deg, rgba(4,7,12,.07) 0%, rgba(4,7,12,0) 13%, rgba(4,7,12,0) 87%, rgba(4,7,12,.07) 100%);
+    }
+
     .current .countdown-wrap,
     .current .progress-wrap,
     .current .timeline-item{
@@ -488,6 +515,13 @@
     }
 
     @media (max-width:640px){
+      .current .cover-edge-detail{
+        opacity:.40;
+        background-position:var(--cover-pos-x) var(--cover-pos-y);
+        -webkit-mask-image:radial-gradient(ellipse 80% 74% at 50% 50%, transparent 0%, transparent 58%, rgba(0,0,0,.18) 67%, rgba(0,0,0,.50) 79%, #000 100%);
+        mask-image:radial-gradient(ellipse 80% 74% at 50% 50%, transparent 0%, transparent 58%, rgba(0,0,0,.18) 67%, rgba(0,0,0,.50) 79%, #000 100%);
+      }
+
       .current .cover-detail{
         opacity:.31;
         background-position:var(--cover-pos-x) var(--cover-pos-y);
@@ -510,6 +544,7 @@
 
     @media (prefers-reduced-transparency: reduce){
       .current .cover-detail{opacity:.14}
+      .current .cover-edge-detail{opacity:.18}
       .current .countdown-wrap,
       .current .progress-wrap,
       .current .timeline-item{backdrop-filter:none;-webkit-backdrop-filter:none}
@@ -1214,6 +1249,7 @@
 
     <section class="card current reveal" id="current-song-card">
       <div class="cover-detail" aria-hidden="true"></div>
+      <div class="cover-edge-detail" aria-hidden="true"></div>
       <div class="status" id="current-status">AHORA EN PREPARACIÓN</div>
       <h2 class="song-name" id="current-song-name">Dios De Milagros</h2>
       <p class="artist" id="current-artist">Miel San Marcos &amp; Kim Richards</p>

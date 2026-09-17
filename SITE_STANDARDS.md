@@ -451,3 +451,17 @@ Required behavior:
 - Future songs automatically inherit centered cover framing.
 - Shared CSS variables control cover positioning so a deliberate per-song focal-point override can be added later without changing the default.
 - The page-wide moving ambient background, semantic stage palette, countdown, progress system, and song automation remain unchanged.
+
+
+## Unmistakable centered album-cover presence
+
+The active-song card must visibly read as being built from the official centered album artwork, not merely as a generic color tint.
+
+Required behavior:
+- The official cover remains centered at 50% / 50% and is the single source image for all card-art layers.
+- Preserve the heavily blurred full-card atmosphere layer.
+- Preserve strategic lightly blurred detail reveals in low-content regions.
+- Add a dedicated perimeter-detail layer that reveals noticeably more recognizable artwork toward all four edges and corners while fading inward before it competes with primary content.
+- The outer perimeter should make the cover unmistakable at a glance, while the central content region stays calmer and darker.
+- Mobile keeps the same centered crop and a slightly softer perimeter reveal.
+- Text, countdown, progress, timeline, semantic stage colors, and the page-wide animated ambient background remain independent and readable.
