@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="cover-detail-v38" />
+  <meta name="ipcdj-build" content="centered-cover-v39" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -408,6 +408,8 @@
       --cover-c2:166,108,61;
       --cover-c3:56,76,93;
       --cover-image:none;
+      --cover-pos-x:50%;
+      --cover-pos-y:50%;
       position:relative;
       overflow:hidden;
       isolation:isolate;
@@ -421,7 +423,7 @@
       pointer-events:none;
       background-image:var(--cover-image);
       background-size:cover;
-      background-position:center;
+      background-position:var(--cover-pos-x) var(--cover-pos-y);
       background-repeat:no-repeat;
       filter:blur(30px) saturate(1.18) contrast(1.04);
       -webkit-filter:blur(30px) saturate(1.18) contrast(1.04);
@@ -442,7 +444,7 @@
       pointer-events:none;
       background-image:var(--cover-image);
       background-size:cover;
-      background-position:center;
+      background-position:var(--cover-pos-x) var(--cover-pos-y);
       background-repeat:no-repeat;
       filter:blur(2.6px) saturate(1.10) contrast(1.04);
       -webkit-filter:blur(2.6px) saturate(1.10) contrast(1.04);
@@ -488,7 +490,7 @@
     @media (max-width:640px){
       .current .cover-detail{
         opacity:.31;
-        background-position:58% center;
+        background-position:var(--cover-pos-x) var(--cover-pos-y);
         -webkit-mask-image:
           radial-gradient(ellipse 31% 17% at 91% 9%, #000 0%, rgba(0,0,0,.78) 34%, transparent 100%),
           radial-gradient(ellipse 25% 15% at 8% 12%, #000 0%, rgba(0,0,0,.58) 36%, transparent 100%),

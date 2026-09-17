@@ -438,3 +438,16 @@ Required behavior:
 - Desktop can show more recognizable cover detail than mobile; narrow layouts must use lower opacity and tighter reveal zones.
 - The result should be clearly noticeable at a glance but never become a crisp full-cover background.
 - Semantic stage colors and the page-wide animated ambient background remain independent and unchanged.
+
+
+## Centered active-song cover framing
+
+The official artwork used by the current-song card must remain centered within that card on every viewport size.
+
+Required behavior:
+- Both the heavily blurred atmosphere layer and the lightly blurred detail layer use the same centered 50% / 50% crop by default.
+- Mobile and narrow-screen rules must not shift the artwork horizontally or vertically.
+- All strategic reveal masks operate over that centered source image; masks may change by viewport, but the artwork itself remains centered.
+- Future songs automatically inherit centered cover framing.
+- Shared CSS variables control cover positioning so a deliberate per-song focal-point override can be added later without changing the default.
+- The page-wide moving ambient background, semantic stage palette, countdown, progress system, and song automation remain unchanged.
