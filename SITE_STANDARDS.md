@@ -482,3 +482,15 @@ Required behavior:
 - Detection results may be cached locally per song to avoid repeated work.
 - A future song may optionally define subjectFocus:{x,y,confidence} as a manual override if native detection is unavailable or a cover needs art-direction correction.
 - Semantic stage colors, countdown/progress logic, the centered base cover, perimeter reveal, and page-wide animated ambient background remain independent and unchanged.
+
+
+## Current-cover person art-direction trial
+
+Before enabling automatic person detection globally, test and visually approve the treatment on the currently active song.
+
+Current trial behavior:
+- Preserve the centered official-cover atmosphere, selective empty-space reveals, and strong perimeter artwork exactly as the established base treatment.
+- Add one separate near-crisp subject-detail copy only for the current Dios De Milagros cover.
+- Shift that extra copy slightly toward the right edge and reveal it through a broad feathered right-edge mask so a person from the cover can read almost fully without covering primary text.
+- Keep the central/title/countdown/progress/timeline content treatment unchanged.
+- Do not enable generic automatic face/person detection until the visual result is approved.
