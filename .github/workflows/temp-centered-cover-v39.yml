@@ -1,0 +1,68 @@
+name: One-time centered cover v39
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-centered-cover-v39.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Center current-song cover layers
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p=Path('index.html')
+          s=p.read_text()
+          s=s.replace('content="cover-detail-v38"','content="centered-cover-v39"',1)
+
+          anchor='''      --cover-c3:56,76,93;\n      --cover-image:none;'''
+          repl='''      --cover-c3:56,76,93;\n      --cover-image:none;\n      --cover-pos-x:50%;\n      --cover-pos-y:50%;'''
+          if anchor not in s: raise SystemExit('cover variable anchor not found')
+          s=s.replace(anchor,repl,1)
+
+          # Center the heavily blurred atmosphere layer using shared variables.
+          before='''      background-size:cover;\n      background-position:center;\n      background-repeat:no-repeat;\n      filter:blur(30px) saturate(1.18) contrast(1.04);'''
+          after='''      background-size:cover;\n      background-position:var(--cover-pos-x) var(--cover-pos-y);\n      background-repeat:no-repeat;\n      filter:blur(30px) saturate(1.18) contrast(1.04);'''
+          if before not in s: raise SystemExit('blurred cover position anchor not found')
+          s=s.replace(before,after,1)
+
+          # Center the selective detail layer on the exact same artwork crop.
+          before='''      background-size:cover;\n      background-position:center;\n      background-repeat:no-repeat;\n      filter:blur(2.6px) saturate(1.10) contrast(1.04);'''
+          after='''      background-size:cover;\n      background-position:var(--cover-pos-x) var(--cover-pos-y);\n      background-repeat:no-repeat;\n      filter:blur(2.6px) saturate(1.10) contrast(1.04);'''
+          if before not in s: raise SystemExit('detail cover position anchor not found')
+          s=s.replace(before,after,1)
+
+          # Remove the old mobile-only 58% shift. Mobile must preserve the same centered crop.
+          if '        background-position:58% center;\n' not in s:
+              raise SystemExit('mobile off-center override not found')
+          s=s.replace('        background-position:58% center;\n','        background-position:var(--cover-pos-x) var(--cover-pos-y);\n',1)
+
+          p.write_text(s)
+
+          sw=Path('sw.js')
+          t=sw.read_text().replace('const CACHE_NAME = "ipcdj-worship-v38";','const CACHE_NAME = "ipcdj-worship-v39";',1)
+          sw.write_text(t)
+
+          st=Path('SITE_STANDARDS.md')
+          u=st.read_text()
+          block='''\n\n## Centered active-song cover framing\n\nThe official artwork used by the current-song card must remain centered within that card on every viewport size.\n\nRequired behavior:\n- Both the heavily blurred atmosphere layer and the lightly blurred detail layer use the same centered 50% / 50% crop by default.\n- Mobile and narrow-screen rules must not shift the artwork horizontally or vertically.\n- All strategic reveal masks operate over that centered source image; masks may change by viewport, but the artwork itself remains centered.\n- Future songs automatically inherit centered cover framing.\n- Shared CSS variables control cover positioning so a deliberate per-song focal-point override can be added later without changing the default.\n- The page-wide moving ambient background, semantic stage palette, countdown, progress system, and song automation remain unchanged.\n'''
+          if '## Centered active-song cover framing' not in u:
+              u += block
+          st.write_text(u)
+          PY
+
+          git config user.name "IPCDJ Worship Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html sw.js SITE_STANDARDS.md
+          git commit -m "Keep active-song album artwork centered on all screens"
+          git push origin main
