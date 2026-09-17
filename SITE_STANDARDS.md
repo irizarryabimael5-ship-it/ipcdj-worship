@@ -546,3 +546,8 @@ The isolated person overlay must use the same visual principle as a professional
 ## Eraser-style subject seam v52
 
 The isolated person overlay uses a deliberately low-opacity feather across most of its blend boundary, mimicking a soft eraser pass. The duplicate artwork must not become fully opaque until the far-right side of the subject region. Explicit alpha mask mode is used for cross-browser consistency. The goal is to erase the visible vertical cut line while preserving the person as a clear foreground subject.
+
+
+## Person visibility balance v53
+
+After the eraser-style seam treatment, the isolated person should remain clearly readable. Preserve the long transparent-to-opaque blend that removes the cut line, but let opacity recover somewhat earlier through the middle and right side of the subject region. Slightly harmonize brightness, saturation, and contrast so the person has presence without looking pasted on. Mobile may recover a little earlier than desktop while retaining the same seamless edge principle.
