@@ -504,3 +504,8 @@ For visual approval on the current Dios De Milagros cover, preserve the establis
 ## Current-cover isolated top-band person trial v44
 
 For the current Dios De Milagros approval trial, the established centered official-cover atmosphere, strategic empty-space reveals, and perimeter-detail treatment remain the base and must not be altered. The extra duplicate artwork layer is confined to the empty top band and masked tightly around the intended person so no obvious second album strip or duplicated non-person artwork should read as a separate layer. The person treatment is near-crisp and nearly fully opaque at the top-right edge. This remains a current-song-only approval trial; do not generalize it to future songs until visually approved.
+
+
+## Current-cover isolated-person trial v45
+
+For the current Dios De Milagros approval trial, preserve the centered official-cover atmosphere, strategic empty-space reveals, and perimeter-detail system as the permanent base. The additional subject layer is a tightly cropped top-right window intended to show only the selected person from the same cover, with near-crisp detail and strong opacity, while suppressing surrounding duplicate artwork. This is still a current-song-only art-direction trial and must not be generalized to future songs until visually approved.

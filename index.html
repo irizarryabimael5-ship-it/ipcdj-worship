@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="top-band-person-v44" />
+  <meta name="ipcdj-build" content="isolated-person-v45" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -410,8 +410,11 @@
       --cover-image:none;
       --cover-pos-x:50%;
       --cover-pos-y:50%;
-      --subject-bg-x:74%;
-      --subject-bg-y:78%;
+      --subject-width:32%;
+      --subject-height:36%;
+      --subject-bg-x:88%;
+      --subject-bg-y:64%;
+      --subject-bg-size:320%;
       --subject-opacity:0;
       position:relative;
       overflow:hidden;
@@ -505,29 +508,33 @@
       position:absolute;
       top:0;
       right:0;
-      left:0;
-      height:34%;
+      width:var(--subject-width);
+      height:var(--subject-height);
       z-index:0;
       pointer-events:none;
       background-image:var(--cover-image);
-      background-size:142% auto;
+      background-size:var(--subject-bg-size) auto;
       background-position:var(--subject-bg-x) var(--subject-bg-y);
       background-repeat:no-repeat;
-      filter:blur(.12px) saturate(1.14) contrast(1.08);
-      -webkit-filter:blur(.12px) saturate(1.14) contrast(1.08);
+      filter:blur(.10px) saturate(1.16) contrast(1.08);
+      -webkit-filter:blur(.10px) saturate(1.16) contrast(1.08);
       opacity:var(--subject-opacity);
       transform:none;
-      transform-origin:center;
-      clip-path:inset(0 0 0 0 round 26px 26px 0 0);
-      -webkit-clip-path:inset(0 0 0 0 round 26px 26px 0 0);
+      transform-origin:top right;
+      overflow:hidden;
+      border-top-right-radius:28px;
+      clip-path:inset(0 0 0 0 round 0 28px 0 0);
+      -webkit-clip-path:inset(0 0 0 0 round 0 28px 0 0);
       -webkit-mask-image:
-        radial-gradient(ellipse 7% 11% at 90% 15%, #000 0%, #000 56%, rgba(0,0,0,.72) 74%, transparent 100%),
-        radial-gradient(ellipse 11% 24% at 90% 30%, #000 0%, #000 48%, rgba(0,0,0,.82) 68%, rgba(0,0,0,.30) 86%, transparent 100%),
-        linear-gradient(270deg, #000 0%, rgba(0,0,0,.90) 9%, rgba(0,0,0,.34) 18%, transparent 28%);
+        radial-gradient(ellipse 34% 18% at 78% 18%, #000 0%, #000 54%, rgba(0,0,0,.82) 70%, rgba(0,0,0,.22) 88%, transparent 100%),
+        radial-gradient(ellipse 30% 34% at 76% 58%, #000 0%, #000 52%, rgba(0,0,0,.84) 70%, rgba(0,0,0,.24) 88%, transparent 100%),
+        linear-gradient(270deg, #000 0%, rgba(0,0,0,.96) 18%, rgba(0,0,0,.52) 34%, transparent 52%),
+        linear-gradient(180deg, #000 0%, rgba(0,0,0,.92) 18%, rgba(0,0,0,.48) 36%, transparent 56%);
       mask-image:
-        radial-gradient(ellipse 7% 11% at 90% 15%, #000 0%, #000 56%, rgba(0,0,0,.72) 74%, transparent 100%),
-        radial-gradient(ellipse 11% 24% at 90% 30%, #000 0%, #000 48%, rgba(0,0,0,.82) 68%, rgba(0,0,0,.30) 86%, transparent 100%),
-        linear-gradient(270deg, #000 0%, rgba(0,0,0,.90) 9%, rgba(0,0,0,.34) 18%, transparent 28%);
+        radial-gradient(ellipse 34% 18% at 78% 18%, #000 0%, #000 54%, rgba(0,0,0,.82) 70%, rgba(0,0,0,.22) 88%, transparent 100%),
+        radial-gradient(ellipse 30% 34% at 76% 58%, #000 0%, #000 52%, rgba(0,0,0,.84) 70%, rgba(0,0,0,.24) 88%, transparent 100%),
+        linear-gradient(270deg, #000 0%, rgba(0,0,0,.96) 18%, rgba(0,0,0,.52) 34%, transparent 52%),
+        linear-gradient(180deg, #000 0%, rgba(0,0,0,.92) 18%, rgba(0,0,0,.48) 36%, transparent 56%);
       -webkit-mask-composite:source-over;
       mask-composite:add;
       transition:opacity .8s ease;
@@ -552,18 +559,22 @@
 
     @media (max-width:640px){
       .current .cover-subject-detail{
-        height:29%;
-        background-size:156% auto;
-        filter:blur(.24px) saturate(1.12) contrast(1.06);
-        -webkit-filter:blur(.24px) saturate(1.12) contrast(1.06);
+        width:38%;
+        height:31%;
+        background-size:380% auto;
+        background-position:89% 64%;
+        filter:blur(.18px) saturate(1.14) contrast(1.06);
+        -webkit-filter:blur(.18px) saturate(1.14) contrast(1.06);
         -webkit-mask-image:
-          radial-gradient(ellipse 8% 12% at 90% 16%, #000 0%, #000 56%, rgba(0,0,0,.72) 74%, transparent 100%),
-          radial-gradient(ellipse 12% 26% at 90% 31%, #000 0%, #000 48%, rgba(0,0,0,.82) 68%, rgba(0,0,0,.28) 86%, transparent 100%),
-          linear-gradient(270deg, #000 0%, rgba(0,0,0,.88) 11%, rgba(0,0,0,.28) 20%, transparent 31%);
+          radial-gradient(ellipse 36% 19% at 79% 18%, #000 0%, #000 54%, rgba(0,0,0,.82) 70%, rgba(0,0,0,.22) 88%, transparent 100%),
+          radial-gradient(ellipse 31% 36% at 77% 59%, #000 0%, #000 52%, rgba(0,0,0,.84) 70%, rgba(0,0,0,.24) 88%, transparent 100%),
+          linear-gradient(270deg, #000 0%, rgba(0,0,0,.95) 18%, rgba(0,0,0,.48) 34%, transparent 54%),
+          linear-gradient(180deg, #000 0%, rgba(0,0,0,.90) 18%, rgba(0,0,0,.42) 36%, transparent 58%);
         mask-image:
-          radial-gradient(ellipse 8% 12% at 90% 16%, #000 0%, #000 56%, rgba(0,0,0,.72) 74%, transparent 100%),
-          radial-gradient(ellipse 12% 26% at 90% 31%, #000 0%, #000 48%, rgba(0,0,0,.82) 68%, rgba(0,0,0,.28) 86%, transparent 100%),
-          linear-gradient(270deg, #000 0%, rgba(0,0,0,.88) 11%, rgba(0,0,0,.28) 20%, transparent 31%);
+          radial-gradient(ellipse 36% 19% at 79% 18%, #000 0%, #000 54%, rgba(0,0,0,.82) 70%, rgba(0,0,0,.22) 88%, transparent 100%),
+          radial-gradient(ellipse 31% 36% at 77% 59%, #000 0%, #000 52%, rgba(0,0,0,.84) 70%, rgba(0,0,0,.24) 88%, transparent 100%),
+          linear-gradient(270deg, #000 0%, rgba(0,0,0,.95) 18%, rgba(0,0,0,.48) 34%, transparent 54%),
+          linear-gradient(180deg, #000 0%, rgba(0,0,0,.90) 18%, rgba(0,0,0,.42) 36%, transparent 58%);
       }
 
       .current .cover-edge-detail{
@@ -1859,9 +1870,12 @@
 
     function resetCoverSubject(card){
       if(!card)return;
+      card.style.setProperty("--subject-width","32%");
+      card.style.setProperty("--subject-height","36%");
+      card.style.setProperty("--subject-bg-x","88%");
+      card.style.setProperty("--subject-bg-y","64%");
+      card.style.setProperty("--subject-bg-size","320%");
       card.style.setProperty("--subject-opacity","0");
-      card.style.setProperty("--subject-bg-x","74%");
-      card.style.setProperty("--subject-bg-y","78%");
       delete card.dataset.coverSubject;
     }
 
@@ -1879,14 +1893,17 @@
       if(!card)return;
       resetCoverSubject(card);
 
-      // Approval trial only for the current Dios De Milagros cover.
-      // Keep the established centered/perimeter base exactly intact; the extra layer is
-      // confined to the empty top band and tuned to reveal only the person area.
+      // Current approval trial for Dios De Milagros: preserve the centered full-cover
+      // atmosphere/reveals, then add only a tightly cropped right-side singer in the empty
+      // top-right corner. This is intentionally not generalized until visually approved.
       if(song.id!=="dios-de-milagros")return;
-      card.style.setProperty("--subject-bg-x","74%");
-      card.style.setProperty("--subject-bg-y","78%");
-      card.style.setProperty("--subject-opacity",".96");
-      card.dataset.coverSubject="trial-dios-de-milagros-top-right-person-only-v44";
+      card.style.setProperty("--subject-width","31%");
+      card.style.setProperty("--subject-height","37%");
+      card.style.setProperty("--subject-bg-x","88%");
+      card.style.setProperty("--subject-bg-y","64%");
+      card.style.setProperty("--subject-bg-size","325%");
+      card.style.setProperty("--subject-opacity",".95");
+      card.dataset.coverSubject="trial-dios-de-milagros-top-right-isolated-person-v45";
     }
 
     function loadPaletteFromArtwork(url){
