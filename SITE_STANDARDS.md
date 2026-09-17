@@ -541,3 +541,8 @@ When a cover person is emphasized, the centered album artwork remains the perman
 ## Seamless person composite v51
 
 The isolated person overlay must use the same visual principle as a professional feathered layer mask: the foreground subject remains readable, but the edge of its source rectangle must never be visible. The left transition into the centered base artwork uses one continuous, wide alpha-gradient mask rather than several additive masks. This prevents a hard vertical seam and avoids browser differences in multi-mask compositing. Desktop and mobile both keep a long feather zone, with mobile slightly wider. The base centered album-cover atmosphere remains unchanged underneath.
+
+
+## Eraser-style subject seam v52
+
+The isolated person overlay uses a deliberately low-opacity feather across most of its blend boundary, mimicking a soft eraser pass. The duplicate artwork must not become fully opaque until the far-right side of the subject region. Explicit alpha mask mode is used for cross-browser consistency. The goal is to erase the visible vertical cut line while preserving the person as a clear foreground subject.
