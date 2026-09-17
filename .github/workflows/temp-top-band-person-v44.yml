@@ -1,0 +1,70 @@
+name: One-time top-band person v44
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-top-band-person-v44.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Tighten current person into isolated top-edge layer
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p=Path('index.html')
+          s=p.read_text()
+          s=s.replace('content="top-edge-person-v43"','content="top-band-person-v44"',1)
+
+          old_vars='''      --subject-mask-x:88%;\n      --subject-mask-y:24%;\n      --subject-shift-x:0%;\n      --subject-shift-y:0%;\n      --subject-opacity:0;'''
+          new_vars='''      --subject-bg-x:74%;\n      --subject-bg-y:78%;\n      --subject-opacity:0;'''
+          if old_vars not in s: raise SystemExit('v43 subject vars not found')
+          s=s.replace(old_vars,new_vars,1)
+
+          old_css='''    .current .cover-subject-detail{\n      position:absolute;\n      inset:-4%;\n      z-index:0;\n      pointer-events:none;\n      background-image:var(--cover-image);\n      background-size:cover;\n      background-position:var(--cover-pos-x) var(--cover-pos-y);\n      background-repeat:no-repeat;\n      filter:blur(.18px) saturate(1.13) contrast(1.07);\n      -webkit-filter:blur(.18px) saturate(1.13) contrast(1.07);\n      opacity:var(--subject-opacity);\n      transform:translate3d(var(--subject-shift-x),var(--subject-shift-y),0) scale(1.04);\n      transform-origin:center;\n      clip-path:polygon(80% 0%,100% 0%,100% 48%,96% 50%,93% 45%,90% 39%,87% 31%,85% 23%,82% 14%);\n      -webkit-clip-path:polygon(80% 0%,100% 0%,100% 48%,96% 50%,93% 45%,90% 39%,87% 31%,85% 23%,82% 14%);\n      -webkit-mask-image:\n        radial-gradient(ellipse 8% 10% at 92% 10%, #000 0%, #000 52%, rgba(0,0,0,.72) 72%, transparent 100%),\n        radial-gradient(ellipse 11% 22% at 92% 28%, #000 0%, #000 46%, rgba(0,0,0,.80) 66%, rgba(0,0,0,.34) 84%, transparent 100%);\n      mask-image:\n        radial-gradient(ellipse 8% 10% at 92% 10%, #000 0%, #000 52%, rgba(0,0,0,.72) 72%, transparent 100%),\n        radial-gradient(ellipse 11% 22% at 92% 28%, #000 0%, #000 46%, rgba(0,0,0,.80) 66%, rgba(0,0,0,.34) 84%, transparent 100%);\n      -webkit-mask-composite:source-over;\n      mask-composite:add;\n      transition:opacity .8s ease,transform .8s ease;\n      will-change:opacity,transform;\n    }'''
+          new_css='''    .current .cover-subject-detail{\n      position:absolute;\n      top:0;\n      right:0;\n      left:0;\n      height:34%;\n      z-index:0;\n      pointer-events:none;\n      background-image:var(--cover-image);\n      background-size:142% auto;\n      background-position:var(--subject-bg-x) var(--subject-bg-y);\n      background-repeat:no-repeat;\n      filter:blur(.12px) saturate(1.14) contrast(1.08);\n      -webkit-filter:blur(.12px) saturate(1.14) contrast(1.08);\n      opacity:var(--subject-opacity);\n      transform:none;\n      transform-origin:center;\n      clip-path:inset(0 0 0 0 round 26px 26px 0 0);\n      -webkit-clip-path:inset(0 0 0 0 round 26px 26px 0 0);\n      -webkit-mask-image:\n        radial-gradient(ellipse 7% 11% at 90% 15%, #000 0%, #000 56%, rgba(0,0,0,.72) 74%, transparent 100%),\n        radial-gradient(ellipse 11% 24% at 90% 30%, #000 0%, #000 48%, rgba(0,0,0,.82) 68%, rgba(0,0,0,.30) 86%, transparent 100%),\n        linear-gradient(270deg, #000 0%, rgba(0,0,0,.90) 9%, rgba(0,0,0,.34) 18%, transparent 28%);\n      mask-image:\n        radial-gradient(ellipse 7% 11% at 90% 15%, #000 0%, #000 56%, rgba(0,0,0,.72) 74%, transparent 100%),\n        radial-gradient(ellipse 11% 24% at 90% 30%, #000 0%, #000 48%, rgba(0,0,0,.82) 68%, rgba(0,0,0,.30) 86%, transparent 100%),\n        linear-gradient(270deg, #000 0%, rgba(0,0,0,.90) 9%, rgba(0,0,0,.34) 18%, transparent 28%);\n      -webkit-mask-composite:source-over;\n      mask-composite:add;\n      transition:opacity .8s ease;\n      will-change:opacity;\n    }'''
+          if old_css not in s: raise SystemExit('v43 subject css not found')
+          s=s.replace(old_css,new_css,1)
+
+          old_mobile='''      .current .cover-subject-detail{\n        filter:blur(.35px) saturate(1.11) contrast(1.06);\n        -webkit-filter:blur(.35px) saturate(1.11) contrast(1.06);\n      }'''
+          new_mobile='''      .current .cover-subject-detail{\n        height:29%;\n        background-size:156% auto;\n        filter:blur(.24px) saturate(1.12) contrast(1.06);\n        -webkit-filter:blur(.24px) saturate(1.12) contrast(1.06);\n        -webkit-mask-image:\n          radial-gradient(ellipse 8% 12% at 90% 16%, #000 0%, #000 56%, rgba(0,0,0,.72) 74%, transparent 100%),\n          radial-gradient(ellipse 12% 26% at 90% 31%, #000 0%, #000 48%, rgba(0,0,0,.82) 68%, rgba(0,0,0,.28) 86%, transparent 100%),\n          linear-gradient(270deg, #000 0%, rgba(0,0,0,.88) 11%, rgba(0,0,0,.28) 20%, transparent 31%);\n        mask-image:\n          radial-gradient(ellipse 8% 12% at 90% 16%, #000 0%, #000 56%, rgba(0,0,0,.72) 74%, transparent 100%),\n          radial-gradient(ellipse 12% 26% at 90% 31%, #000 0%, #000 48%, rgba(0,0,0,.82) 68%, rgba(0,0,0,.28) 86%, transparent 100%),\n          linear-gradient(270deg, #000 0%, rgba(0,0,0,.88) 11%, rgba(0,0,0,.28) 20%, transparent 31%);\n      }'''
+          if old_mobile not in s: raise SystemExit('v43 mobile subject css not found')
+          s=s.replace(old_mobile,new_mobile,1)
+
+          old_reset='''    function resetCoverSubject(card){\n      if(!card)return;\n      card.style.setProperty("--subject-opacity","0");\n      card.style.setProperty("--subject-shift-x","0%");\n      card.style.setProperty("--subject-shift-y","0%");\n      card.style.setProperty("--subject-mask-x","88%");\n      card.style.setProperty("--subject-mask-y","24%");\n      delete card.dataset.coverSubject;\n    }'''
+          new_reset='''    function resetCoverSubject(card){\n      if(!card)return;\n      card.style.setProperty("--subject-opacity","0");\n      card.style.setProperty("--subject-bg-x","74%");\n      card.style.setProperty("--subject-bg-y","78%");\n      delete card.dataset.coverSubject;\n    }'''
+          if old_reset not in s: raise SystemExit('v43 reset function not found')
+          s=s.replace(old_reset,new_reset,1)
+
+          old_fn='''    function applyCurrentSongSubjectArt(song){\n      const card=$("current-song-card");\n      if(!card)return;\n      resetCoverSubject(card);\n\n      // Current-cover approval trial: preserve the centered/perimeter album treatment\n      // and isolate only the person-shaped portion of the duplicate near the empty top-right edge.\n      if(song.id!=="dios-de-milagros")return;\n      card.style.setProperty("--subject-shift-x","10.5%");\n      card.style.setProperty("--subject-shift-y","-18.0%");\n      card.style.setProperty("--subject-mask-x","92%");\n      card.style.setProperty("--subject-mask-y","18%");\n      card.style.setProperty("--subject-opacity",".94");\n      card.dataset.coverSubject="trial-dios-de-milagros-top-right-person-only";\n    }'''
+          new_fn='''    function applyCurrentSongSubjectArt(song){\n      const card=$("current-song-card");\n      if(!card)return;\n      resetCoverSubject(card);\n\n      // Approval trial only for the current Dios De Milagros cover.\n      // Keep the established centered/perimeter base exactly intact; the extra layer is\n      // confined to the empty top band and tuned to reveal only the person area.\n      if(song.id!=="dios-de-milagros")return;\n      card.style.setProperty("--subject-bg-x","74%");\n      card.style.setProperty("--subject-bg-y","78%");\n      card.style.setProperty("--subject-opacity",".96");\n      card.dataset.coverSubject="trial-dios-de-milagros-top-right-person-only-v44";\n    }'''
+          if old_fn not in s: raise SystemExit('v43 current subject function not found')
+          s=s.replace(old_fn,new_fn,1)
+          p.write_text(s)
+
+          sw=Path('sw.js')
+          t=sw.read_text().replace('const CACHE_NAME = "ipcdj-worship-v43";','const CACHE_NAME = "ipcdj-worship-v44";',1)
+          sw.write_text(t)
+
+          st=Path('SITE_STANDARDS.md')
+          u=st.read_text()
+          block='''\n\n## Current-cover isolated top-band person trial v44\n\nFor the current Dios De Milagros approval trial, the established centered official-cover atmosphere, strategic empty-space reveals, and perimeter-detail treatment remain the base and must not be altered. The extra duplicate artwork layer is confined to the empty top band and masked tightly around the intended person so no obvious second album strip or duplicated non-person artwork should read as a separate layer. The person treatment is near-crisp and nearly fully opaque at the top-right edge. This remains a current-song-only approval trial; do not generalize it to future songs until visually approved.\n'''
+          if '## Current-cover isolated top-band person trial v44' not in u:
+              u += block
+          st.write_text(u)
+          PY
+
+          git config user.name "IPCDJ Worship Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html sw.js SITE_STANDARDS.md
+          git commit -m "Refine current person into isolated top-band reveal"
+          git push origin main
