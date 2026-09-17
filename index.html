@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="blurred-cover-v35" />
+  <meta name="ipcdj-build" content="blurred-cover-v36" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -1780,6 +1780,85 @@
         // Keep the curated fallback palette. Artwork/catalog/CORS failures never affect
         // countdown, preparation stages, song rollover, or card readability.
       }
+    }
+
+    function timelineFraction(now,start,end){
+      if(end<=start)return now>=end ? 1 : 0;
+      return clamp01((now-start)/(end-start));
+    }
+
+    function getProgressPalette(song,now){
+      const active=new Date(song.activeFrom).getTime();
+      const learningStart=new Date(song.learningStart).getTime();
+      const learningEnd=new Date(song.learningEnd).getTime();
+      const finalStart=new Date(song.finalStart).getTime();
+      const finalEnd=new Date(song.finalEnd).getTime();
+      const release=new Date(song.releaseAt).getTime();
+
+      let base;
+      let phaseText;
+
+      if(now<learningStart){
+        const t=timelineFraction(now,active,learningStart);
+        base=mixRgb(PROGRESS_COLORS.learningStart,PROGRESS_COLORS.learningEnd,t*.35);
+        phaseText="Próxima · entrando a aprendizaje";
+      }else if(now<=learningEnd){
+        const t=timelineFraction(now,learningStart,learningEnd);
+        base=mixRgb(PROGRESS_COLORS.learningStart,PROGRESS_COLORS.learningEnd,t);
+        phaseText="Aprendizaje";
+      }else if(now<finalStart){
+        const t=timelineFraction(now,learningEnd,finalStart);
+        base=mixRgb(PROGRESS_COLORS.learningEnd,PROGRESS_COLORS.finalStart,t);
+        phaseText="Transición a preparación final";
+      }else if(now<=finalEnd){
+        const t=timelineFraction(now,finalStart,finalEnd);
+        base=mixRgb(PROGRESS_COLORS.finalStart,PROGRESS_COLORS.finalEnd,t);
+        phaseText="Preparación final";
+      }else if(now<release){
+        const t=timelineFraction(now,finalEnd,release);
+        base=mixRgb(PROGRESS_COLORS.finalEnd,PROGRESS_COLORS.release,t);
+        phaseText="Acercándose al estreno";
+      }else{
+        base=PROGRESS_COLORS.release;
+        phaseText="Estreno";
+      }
+
+      const lighter=mixRgb(base,[255,255,255],.16);
+      const darker=mixRgb(base,[0,0,0],.06);
+
+      return {
+        start:rgb(darker),
+        end:rgb(lighter),
+        glow:rgba(base,.40),
+        soft:rgba(base,.075),
+        border:rgba(base,.28),
+        accent:rgb(base),
+        stageText:rgb(mixRgb(base,[255,255,255],.70)),
+        phaseText
+      };
+    }
+
+    function applyProgressPalette(song,now){
+      const wrap=document.querySelector(".progress-wrap");
+      if(!wrap)return;
+      const palette=getProgressPalette(song,now);
+      wrap.style.setProperty("--progress-c1",palette.start);
+      wrap.style.setProperty("--progress-c2",palette.end);
+      wrap.style.setProperty("--progress-glow",palette.glow);
+      wrap.style.setProperty("--progress-soft",palette.soft);
+      wrap.style.setProperty("--progress-border",palette.border);
+      wrap.dataset.progressPhase=palette.phaseText;
+
+      const card=$("current-song-card");
+      if(card){
+        card.style.setProperty("--stage-accent",palette.accent);
+        card.style.setProperty("--stage-soft",palette.soft);
+        card.style.setProperty("--stage-border",palette.border);
+        card.style.setProperty("--stage-text",palette.stageText);
+      }
+
+      const track=$("progress-track");
+      if(track)track.setAttribute("aria-valuetext",palette.phaseText);
     }
 
     function getCurrentSong(now){

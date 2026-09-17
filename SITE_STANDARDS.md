@@ -390,7 +390,7 @@ Required behavior:
 - Every known pipeline song has a curated fallback palette so network, catalog or CORS failure never breaks the card.
 - Future songs inherit the automatic artwork lookup without needing custom CSS; an optional artworkQuery/itunesCollectionId can improve ambiguous matching.
 - Never let album colors reduce text legibility or replace semantic color meaning.
-- Do not display album artwork itself unless separately requested; this feature uses the palette as atmospheric theming only.
+- The current-song card may display the official artwork only in the separately requested heavily blurred atmospheric treatment; never show a crisp distracting cover behind text.
 
 
 ## Blurred official-cover active-song background
