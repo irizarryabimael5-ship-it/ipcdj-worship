@@ -526,3 +526,8 @@ The approved person treatment must keep the person as visible and prominent as t
 ## Person layer stacking v48
 
 When a person emphasis layer is active, that isolated person must visually sit on top of the current song's centered blurred/detail/perimeter album-art layers while remaining underneath all readable UI content. The subject must therefore read as a foreground extension of the same album cover rather than as imagery buried behind the base treatment. Preserve the approved v47 placement, visibility, and seam feathering; only the stacking relationship changes. Text, status, countdown, progress, and timeline content must remain above the person layer.
+
+
+## Foreground-person isolation v49
+
+Keep the isolated person above the centered album-art background stack, but do not let the foreground subject layer reintroduce a bright or obvious duplicate of the right side of the cover. Preserve the approved person placement and visibility while tightening the alpha mask around the head, torso, and any necessary limb extension. The duplicate source image outside the person must fall away into transparency so the universal centered-cover treatment remains visually dominant. The person should read as a foreground extension of the same image, not as a brighter rectangular or right-side duplicate.
