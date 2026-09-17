@@ -423,3 +423,18 @@ Required behavior:
 - Semantic stage colors remain independent of artwork.
 - The page-wide moving ambient background remains untouched.
 - If reduced-transparency is requested, substantially reduce the detail layer.
+
+
+## Dense but non-distracting album-art presence
+
+The active-song card should make meaningful use of nearly every area that is not occupied by text, without allowing album art to compete with content.
+
+Required behavior:
+- Preserve the heavily blurred full-card artwork layer as the base atmosphere.
+- Use a second lightly blurred detail layer with multiple feathered reveal zones around corners, side gutters and low-content bands.
+- Favor empty margins, outer edges, gaps between content groups and unused portions of nested panels.
+- Do not deliberately reveal high-detail imagery directly beneath the song title, artist, countdown labels/numbers, progress labels or timeline text.
+- Nested panels inside the current-song card should remain translucent enough for the artwork atmosphere to pass through, with only mild local blur for readability.
+- Desktop can show more recognizable cover detail than mobile; narrow layouts must use lower opacity and tighter reveal zones.
+- The result should be clearly noticeable at a glance but never become a crisp full-cover background.
+- Semantic stage colors and the page-wide animated ambient background remain independent and unchanged.
