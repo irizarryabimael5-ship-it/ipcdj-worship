@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="stage-palette-v33" />
+  <meta name="ipcdj-build" content="album-palette-v34" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -404,13 +404,37 @@
       --stage-soft:rgba(226,82,82,.10);
       --stage-border:rgba(226,82,82,.30);
       --stage-text:#f8dddd;
+      --cover-c1:96,62,44;
+      --cover-c2:166,108,61;
+      --cover-c3:56,76,93;
       position:relative;
       overflow:hidden;
+      isolation:isolate;
+    }
+
+    .current::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      z-index:0;
+      pointer-events:none;
+      background:
+        radial-gradient(circle at 10% 18%, rgba(var(--cover-c1),.24) 0%, rgba(var(--cover-c1),.10) 28%, rgba(var(--cover-c1),0) 52%),
+        radial-gradient(circle at 88% 22%, rgba(var(--cover-c2),.20) 0%, rgba(var(--cover-c2),.08) 30%, rgba(var(--cover-c2),0) 54%),
+        radial-gradient(circle at 55% 92%, rgba(var(--cover-c3),.16) 0%, rgba(var(--cover-c3),.06) 34%, rgba(var(--cover-c3),0) 58%);
+      opacity:.88;
+      transition:background .8s ease,opacity .8s ease;
+    }
+
+    .current > *{
+      position:relative;
+      z-index:1;
     }
 
     .current::after{
       content:"";
       position:absolute;
+      z-index:0;
       width:280px;
       height:280px;
       border-radius:50%;
@@ -606,6 +630,11 @@
       background:rgba(255,255,255,.022);
       border-radius:14px;
       padding:12px 14px;
+    }
+
+    .current .timeline-item:not(.active-phase):not(.estreno){
+      background:linear-gradient(90deg,rgba(var(--cover-c1),.045),rgba(var(--cover-c2),.022),rgba(255,255,255,.012));
+      border-color:rgba(255,255,255,.085);
     }
 
     .timeline-item.estreno{
@@ -1504,6 +1533,8 @@
         id:"dios-de-milagros",
         title:"Dios De Milagros",
         artist:"Miel San Marcos & Kim Richards",
+        artworkQuery:"Dios De Milagros En Vivo Desde México Miel San Marcos Kim Richards",
+        itunesCollectionId:"6799307691",
         activeFrom:"2026-09-14T00:00:00-04:00",
         learningStart:"2026-09-14T00:00:00-04:00",
         learningEnd:"2026-09-20T23:59:59-04:00",
@@ -1519,6 +1550,7 @@
         id:"glorioso-dia",
         title:"Glorioso Día",
         artist:"Passion Music",
+        artworkQuery:"Glorioso Día Passion Kristian Stanfill 2017",
         activeFrom:"2026-09-28T06:00:00-04:00",
         learningStart:"2026-10-12T00:00:00-04:00",
         learningEnd:"2026-10-18T23:59:59-04:00",
@@ -1534,6 +1566,8 @@
         id:"no-fallaras",
         title:"No Fallarás",
         artist:"Saddleback Worship",
+        artworkQuery:"No Fallarás En Vivo Saddleback Worship 2024",
+        itunesCollectionId:"1760002960",
         activeFrom:"2026-10-26T06:00:00-04:00",
         learningStart:"2026-10-26T00:00:00-04:00",
         learningEnd:"2026-11-01T23:59:59-05:00",
@@ -1567,6 +1601,156 @@
     };
     const rgb=values=>"rgb("+values.join(",")+")";
     const rgba=(values,alpha)=>"rgba("+values.join(",")+","+alpha+")";
+
+    // Album-art adaptive current-card theming. The semantic stage palette remains
+    // independent; album artwork only supplies the card atmosphere.
+    const COVER_THEME_CACHE_PREFIX="ipcdj-cover-theme-v1:";
+    const COVER_THEME_FALLBACKS={
+      "dios-de-milagros":[[96,62,44],[166,108,61],[56,76,93]],
+      "glorioso-dia":[[38,78,139],[215,142,78],[205,177,78]],
+      "no-fallaras":[[53,72,76],[178,111,65],[88,70,48]]
+    };
+    let coverThemeRequestToken=0;
+
+    const normalizeCatalogText=value=>String(value||"")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g,"")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g," ")
+      .trim();
+
+    const colorDistance=(a,b)=>Math.sqrt(
+      Math.pow(a[0]-b[0],2)+Math.pow(a[1]-b[1],2)+Math.pow(a[2]-b[2],2)
+    );
+
+    function tuneCoverColor(color){
+      let [r,g,b]=color;
+      const lum=.2126*r+.7152*g+.0722*b;
+      if(lum<62){ r+=(255-r)*.18; g+=(255-g)*.18; b+=(255-b)*.18; }
+      if(lum>205){ r*=.78; g*=.78; b*=.78; }
+      return [Math.round(r),Math.round(g),Math.round(b)];
+    }
+
+    function extractCoverPalette(image){
+      const canvas=document.createElement("canvas");
+      canvas.width=48; canvas.height=48;
+      const ctx=canvas.getContext("2d",{willReadFrequently:true});
+      if(!ctx)throw new Error("Canvas unavailable");
+      ctx.drawImage(image,0,0,48,48);
+      const data=ctx.getImageData(0,0,48,48).data;
+      const buckets=new Map();
+
+      for(let i=0;i<data.length;i+=4){
+        if(data[i+3]<220)continue;
+        const r=data[i],g=data[i+1],b=data[i+2];
+        const max=Math.max(r,g,b),min=Math.min(r,g,b);
+        const lum=.2126*r+.7152*g+.0722*b;
+        const sat=max===0?0:(max-min)/max;
+        if(lum<20||lum>242)continue;
+        const qr=Math.round(r/24)*24, qg=Math.round(g/24)*24, qb=Math.round(b/24)*24;
+        const key=qr+","+qg+","+qb;
+        const prior=buckets.get(key)||{rgb:[qr,qg,qb],count:0,score:0};
+        prior.count++;
+        prior.score+=.55+(sat*1.55)+(lum>55&&lum<210?.35:0);
+        buckets.set(key,prior);
+      }
+
+      const ranked=[...buckets.values()].sort((a,b)=>b.score-a.score);
+      const chosen=[];
+      for(const item of ranked){
+        if(chosen.every(c=>colorDistance(c,item.rgb)>68)){
+          chosen.push(tuneCoverColor(item.rgb));
+          if(chosen.length===3)break;
+        }
+      }
+      while(chosen.length<3)chosen.push(chosen[chosen.length-1]||[90,90,90]);
+      return chosen;
+    }
+
+    function applyCoverTheme(song,palette){
+      const card=$("current-song-card");
+      if(!card||!palette||palette.length<3)return;
+      card.style.setProperty("--cover-c1",palette[0].join(","));
+      card.style.setProperty("--cover-c2",palette[1].join(","));
+      card.style.setProperty("--cover-c3",palette[2].join(","));
+      card.dataset.coverTheme=song.id;
+    }
+
+    function loadPaletteFromArtwork(url){
+      return new Promise((resolve,reject)=>{
+        const image=new Image();
+        image.crossOrigin="anonymous";
+        image.decoding="async";
+        image.onload=()=>{
+          try{resolve(extractCoverPalette(image))}catch(error){reject(error)}
+        };
+        image.onerror=reject;
+        image.src=url;
+      });
+    }
+
+    function scoreCatalogResult(song,result){
+      const targetTitle=normalizeCatalogText(song.title);
+      const targetArtist=normalizeCatalogText(song.artist);
+      const title=normalizeCatalogText(result.trackName||result.collectionName);
+      const artist=normalizeCatalogText(result.artistName);
+      let score=0;
+      if(title===targetTitle)score+=12;
+      else if(title.includes(targetTitle)||targetTitle.includes(title))score+=8;
+      const artistTokens=targetArtist.split(" ").filter(t=>t.length>3);
+      score+=artistTokens.filter(t=>artist.includes(t)).length*2;
+      if(result.artworkUrl100)score+=2;
+      return score;
+    }
+
+    async function resolveArtworkUrl(song){
+      if(song.itunesCollectionId){
+        try{
+          const response=await fetch("https://itunes.apple.com/lookup?id="+encodeURIComponent(song.itunesCollectionId)+"&entity=song&limit=10",{cache:"force-cache"});
+          if(response.ok){
+            const data=await response.json();
+            const candidate=(data.results||[]).filter(r=>r.artworkUrl100).sort((a,b)=>scoreCatalogResult(song,b)-scoreCatalogResult(song,a))[0];
+            if(candidate&&candidate.artworkUrl100)return candidate.artworkUrl100;
+          }
+        }catch(_){}
+      }
+
+      const query=encodeURIComponent((song.artworkQuery||song.title+" "+song.artist));
+      const response=await fetch("https://itunes.apple.com/search?term="+query+"&country=US&media=music&entity=song&limit=12",{cache:"force-cache"});
+      if(!response.ok)throw new Error("Catalog lookup failed");
+      const data=await response.json();
+      const candidate=(data.results||[]).filter(r=>r.artworkUrl100).sort((a,b)=>scoreCatalogResult(song,b)-scoreCatalogResult(song,a))[0];
+      if(!candidate||scoreCatalogResult(song,candidate)<4)throw new Error("No reliable artwork match");
+      return candidate.artworkUrl100;
+    }
+
+    async function ensureCoverTheme(song){
+      const token=++coverThemeRequestToken;
+      const fallback=COVER_THEME_FALLBACKS[song.id]||[[82,74,68],[116,92,70],[58,68,78]];
+      applyCoverTheme(song,fallback);
+
+      try{
+        const cached=localStorage.getItem(COVER_THEME_CACHE_PREFIX+song.id);
+        if(cached){
+          const parsed=JSON.parse(cached);
+          if(Array.isArray(parsed)&&parsed.length>=3){
+            if(token===coverThemeRequestToken)applyCoverTheme(song,parsed);
+            return;
+          }
+        }
+      }catch(_){}
+
+      try{
+        const artworkUrl=await resolveArtworkUrl(song);
+        const palette=await loadPaletteFromArtwork(artworkUrl);
+        if(token!==coverThemeRequestToken)return;
+        applyCoverTheme(song,palette);
+        try{localStorage.setItem(COVER_THEME_CACHE_PREFIX+song.id,JSON.stringify(palette))}catch(_){}
+      }catch(_){
+        // Keep the curated fallback palette. Network/CORS/catalog failures must never
+        // affect the song pipeline or card readability.
+      }
+    }
 
     function timelineFraction(now,start,end){
       if(end<=start)return now>=end ? 1 : 0;
@@ -1721,6 +1905,7 @@
       $("current-status").textContent=phase.key==="release" ? "HOY · ESTRENO" : (phase.key==="upcoming" ? "PRÓXIMA CANCIÓN" : "AHORA EN PREPARACIÓN");
       $("current-song-name").textContent=song.title;
       $("current-artist").textContent=song.artist;
+      if(card.dataset.coverTheme!==song.id)ensureCoverTheme(song);
       $("learning-date").textContent=song.learningLabel;
       $("final-date").textContent=song.finalLabel;
       $("release-date").textContent=song.releaseLabel;

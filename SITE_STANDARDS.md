@@ -374,3 +374,20 @@ Required progression:
 - Status meaning must never rely on color alone: phase names, labels, timeline position, and text remain present.
 - Maintain strong text/background contrast and subdued translucent fills suitable for the site's dark glass interface.
 - The animated ambient gradient background is independent and must remain untouched by stage-palette changes.
+
+
+## Album-art adaptive active-song card
+
+The current-song preparation card may derive a restrained atmospheric palette from the active song's official album/single artwork while keeping semantic stage colors independent.
+
+Required behavior:
+- The animated page-wide ambient gradient is untouched and remains independent.
+- Album-art color only affects the current-song card atmosphere and subtle inactive timeline surfaces.
+- Red → orange → amber → green preparation semantics remain authoritative for status, active phase and progress. Estreno remains gold.
+- When a song becomes current, resolve its artwork from the music catalog, extract a small palette client-side, cache it locally, and apply it automatically.
+- Prefer ID-based catalog lookup when a known collection ID is available; otherwise use a narrow title + artist search and score matches.
+- Downsample artwork before pixel analysis for performance. Ignore extreme near-black/near-white pixels and select visually distinct swatches.
+- Every known pipeline song has a curated fallback palette so network, catalog or CORS failure never breaks the card.
+- Future songs inherit the automatic artwork lookup without needing custom CSS; an optional artworkQuery/itunesCollectionId can improve ambiguous matching.
+- Never let album colors reduce text legibility or replace semantic color meaning.
+- Do not display album artwork itself unless separately requested; this feature uses the palette as atmospheric theming only.
