@@ -1,0 +1,58 @@
+name: One-time top-edge person v43
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-top-edge-person-v43.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Refine current-song person isolation trial
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          p=Path('index.html')
+          s=p.read_text()
+          s=s.replace('content="current-person-art-v42"','content="top-edge-person-v43"',1)
+
+          old='''    .current .cover-subject-detail{\n      position:absolute;\n      inset:-5%;\n      z-index:0;\n      pointer-events:none;\n      background-image:var(--cover-image);\n      background-size:cover;\n      background-position:var(--cover-pos-x) var(--cover-pos-y);\n      background-repeat:no-repeat;\n      filter:blur(.35px) saturate(1.12) contrast(1.06);\n      -webkit-filter:blur(.35px) saturate(1.12) contrast(1.06);\n      opacity:var(--subject-opacity);\n      transform:translate3d(var(--subject-shift-x),var(--subject-shift-y),0) scale(1.035);\n      transform-origin:center;\n      -webkit-mask-image:\n        radial-gradient(ellipse 27% 34% at var(--subject-mask-x) var(--subject-mask-y), #000 0%, #000 34%, rgba(0,0,0,.90) 54%, rgba(0,0,0,.56) 74%, rgba(0,0,0,.16) 90%, transparent 100%),\n        linear-gradient(270deg,#000 0%,rgba(0,0,0,.96) 9%,rgba(0,0,0,.56) 20%,transparent 35%);\n      mask-image:\n        radial-gradient(ellipse 27% 34% at var(--subject-mask-x) var(--subject-mask-y), #000 0%, #000 34%, rgba(0,0,0,.90) 54%, rgba(0,0,0,.56) 74%, rgba(0,0,0,.16) 90%, transparent 100%),\n        linear-gradient(270deg,#000 0%,rgba(0,0,0,.96) 9%,rgba(0,0,0,.56) 20%,transparent 35%);\n      -webkit-mask-composite:source-over;\n      mask-composite:add;\n      transition:opacity .8s ease,transform .8s ease;\n      will-change:opacity,transform;\n    }'''
+          new='''    .current .cover-subject-detail{\n      position:absolute;\n      inset:-4%;\n      z-index:0;\n      pointer-events:none;\n      background-image:var(--cover-image);\n      background-size:cover;\n      background-position:var(--cover-pos-x) var(--cover-pos-y);\n      background-repeat:no-repeat;\n      filter:blur(.18px) saturate(1.13) contrast(1.07);\n      -webkit-filter:blur(.18px) saturate(1.13) contrast(1.07);\n      opacity:var(--subject-opacity);\n      transform:translate3d(var(--subject-shift-x),var(--subject-shift-y),0) scale(1.04);\n      transform-origin:center;\n      clip-path:polygon(80% 0%,100% 0%,100% 48%,96% 50%,93% 45%,90% 39%,87% 31%,85% 23%,82% 14%);\n      -webkit-clip-path:polygon(80% 0%,100% 0%,100% 48%,96% 50%,93% 45%,90% 39%,87% 31%,85% 23%,82% 14%);\n      -webkit-mask-image:\n        radial-gradient(ellipse 8% 10% at 92% 10%, #000 0%, #000 52%, rgba(0,0,0,.72) 72%, transparent 100%),\n        radial-gradient(ellipse 11% 22% at 92% 28%, #000 0%, #000 46%, rgba(0,0,0,.80) 66%, rgba(0,0,0,.34) 84%, transparent 100%);\n      mask-image:\n        radial-gradient(ellipse 8% 10% at 92% 10%, #000 0%, #000 52%, rgba(0,0,0,.72) 72%, transparent 100%),\n        radial-gradient(ellipse 11% 22% at 92% 28%, #000 0%, #000 46%, rgba(0,0,0,.80) 66%, rgba(0,0,0,.34) 84%, transparent 100%);\n      -webkit-mask-composite:source-over;\n      mask-composite:add;\n      transition:opacity .8s ease,transform .8s ease;\n      will-change:opacity,transform;\n    }'''
+          if old not in s: raise SystemExit('v42 subject css block not found')
+          s=s.replace(old,new,1)
+
+          s=s.replace('''      .current .cover-subject-detail{\n        filter:blur(.65px) saturate(1.10) contrast(1.05);\n        -webkit-filter:blur(.65px) saturate(1.10) contrast(1.05);\n      }''','''      .current .cover-subject-detail{\n        filter:blur(.35px) saturate(1.11) contrast(1.06);\n        -webkit-filter:blur(.35px) saturate(1.11) contrast(1.06);\n      }''',1)
+
+          old_fn='''    function applyCurrentSongSubjectArt(song){\n      const card=$("current-song-card");\n      if(!card)return;\n      resetCoverSubject(card);\n\n      // Trial art direction for the CURRENT cover only.\n      // The base cover remains centered; this second copy is gently shifted so a person\n      // from the artwork can live almost fully at the right edge where there is less text.\n      if(song.id!=="dios-de-milagros")return;\n      card.style.setProperty("--subject-shift-x","9.0%");\n      card.style.setProperty("--subject-shift-y","1.5%");\n      card.style.setProperty("--subject-mask-x","91%");\n      card.style.setProperty("--subject-mask-y","68%");\n      card.style.setProperty("--subject-opacity",".82");\n      card.dataset.coverSubject="trial-dios-de-milagros-right-edge";\n    }'''
+          new_fn='''    function applyCurrentSongSubjectArt(song){\n      const card=$("current-song-card");\n      if(!card)return;\n      resetCoverSubject(card);\n\n      // Current-cover approval trial: preserve the centered/perimeter album treatment\n      // and isolate only the person-shaped portion of the duplicate near the empty top-right edge.\n      if(song.id!=="dios-de-milagros")return;\n      card.style.setProperty("--subject-shift-x","10.5%");\n      card.style.setProperty("--subject-shift-y","-18.0%");\n      card.style.setProperty("--subject-mask-x","92%");\n      card.style.setProperty("--subject-mask-y","18%");\n      card.style.setProperty("--subject-opacity",".94");\n      card.dataset.coverSubject="trial-dios-de-milagros-top-right-person-only";\n    }'''
+          if old_fn not in s: raise SystemExit('v42 trial function not found')
+          s=s.replace(old_fn,new_fn,1)
+          p.write_text(s)
+
+          sw=Path('sw.js')
+          t=sw.read_text().replace('const CACHE_NAME = "ipcdj-worship-v42";','const CACHE_NAME = "ipcdj-worship-v43";',1)
+          sw.write_text(t)
+
+          st=Path('SITE_STANDARDS.md')
+          u=st.read_text()
+          block='''\n\n## Current-cover top-edge person isolation trial\n\nFor visual approval on the current Dios De Milagros cover, preserve the established centered-cover, empty-space reveal, and perimeter artwork treatment exactly as the base. The temporary subject layer should isolate only a person-shaped region of the duplicate artwork and place that person near the empty top-right edge of the current-song card. No broad second-cover strip or obvious duplicated album background should be visible from the subject layer. The person may be near-crisp and nearly fully opaque, with feathered head/torso masks, while all normal content zones remain untouched. Do not generalize this behavior to future songs until the result is visually approved.\n'''
+          if '## Current-cover top-edge person isolation trial' not in u:
+              u += block
+          st.write_text(u)
+          PY
+
+          git config user.name "IPCDJ Worship Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html sw.js SITE_STANDARDS.md
+          git commit -m "Isolate current-cover person at empty top edge for approval"
+          git push origin main
