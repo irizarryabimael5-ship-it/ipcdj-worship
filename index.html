@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="perimeter-cover-v40" />
+  <meta name="ipcdj-build" content="person-aware-cover-v41" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -410,6 +410,11 @@
       --cover-image:none;
       --cover-pos-x:50%;
       --cover-pos-y:50%;
+      --subject-mask-x:88%;
+      --subject-mask-y:24%;
+      --subject-shift-x:0%;
+      --subject-shift-y:0%;
+      --subject-opacity:0;
       position:relative;
       overflow:hidden;
       isolation:isolate;
@@ -498,6 +503,26 @@
         linear-gradient(90deg, rgba(4,7,12,.07) 0%, rgba(4,7,12,0) 13%, rgba(4,7,12,0) 87%, rgba(4,7,12,.07) 100%);
     }
 
+    .current .cover-subject-detail{
+      position:absolute;
+      inset:-6%;
+      z-index:0;
+      pointer-events:none;
+      background-image:var(--cover-image);
+      background-size:cover;
+      background-position:var(--cover-pos-x) var(--cover-pos-y);
+      background-repeat:no-repeat;
+      filter:blur(.9px) saturate(1.10) contrast(1.05);
+      -webkit-filter:blur(.9px) saturate(1.10) contrast(1.05);
+      opacity:var(--subject-opacity);
+      transform:translate3d(var(--subject-shift-x),var(--subject-shift-y),0) scale(1.045);
+      transform-origin:center;
+      -webkit-mask-image:radial-gradient(ellipse 20% 26% at var(--subject-mask-x) var(--subject-mask-y), #000 0%, rgba(0,0,0,.95) 28%, rgba(0,0,0,.72) 52%, rgba(0,0,0,.30) 72%, transparent 100%);
+      mask-image:radial-gradient(ellipse 20% 26% at var(--subject-mask-x) var(--subject-mask-y), #000 0%, rgba(0,0,0,.95) 28%, rgba(0,0,0,.72) 52%, rgba(0,0,0,.30) 72%, transparent 100%);
+      transition:opacity .8s ease,transform .8s ease;
+      will-change:opacity,transform;
+    }
+
     .current .countdown-wrap,
     .current .progress-wrap,
     .current .timeline-item{
@@ -515,6 +540,11 @@
     }
 
     @media (max-width:640px){
+      .current .cover-subject-detail{
+        filter:blur(1.25px) saturate(1.08) contrast(1.04);
+        -webkit-filter:blur(1.25px) saturate(1.08) contrast(1.04);
+      }
+
       .current .cover-edge-detail{
         opacity:.40;
         background-position:var(--cover-pos-x) var(--cover-pos-y);
@@ -545,6 +575,7 @@
     @media (prefers-reduced-transparency: reduce){
       .current .cover-detail{opacity:.14}
       .current .cover-edge-detail{opacity:.18}
+      .current .cover-subject-detail{--subject-opacity:.12}
       .current .countdown-wrap,
       .current .progress-wrap,
       .current .timeline-item{backdrop-filter:none;-webkit-backdrop-filter:none}
@@ -1250,6 +1281,7 @@
     <section class="card current reveal" id="current-song-card">
       <div class="cover-detail" aria-hidden="true"></div>
       <div class="cover-edge-detail" aria-hidden="true"></div>
+      <div class="cover-subject-detail" aria-hidden="true"></div>
       <div class="status" id="current-status">AHORA EN PREPARACIÓN</div>
       <h2 class="song-name" id="current-song-name">Dios De Milagros</h2>
       <p class="artist" id="current-artist">Miel San Marcos &amp; Kim Richards</p>
@@ -1726,6 +1758,7 @@
     // Album-art adaptive current-card theming. The semantic stage palette remains
     // independent; album artwork only supplies the card atmosphere.
     const COVER_THEME_CACHE_PREFIX="ipcdj-cover-theme-v1:";
+    const COVER_SUBJECT_CACHE_PREFIX="ipcdj-cover-subject-v1:";
     const COVER_THEME_FALLBACKS={
       "dios-de-milagros":[[96,62,44],[166,108,61],[56,76,93]],
       "glorioso-dia":[[38,78,139],[215,142,78],[205,177,78]],
@@ -1804,12 +1837,119 @@
         .replace(/100x100bb/gi,"1200x1200bb");
     }
 
+    function resetCoverSubject(card){
+      if(!card)return;
+      card.style.setProperty("--subject-opacity","0");
+      card.style.setProperty("--subject-shift-x","0%");
+      card.style.setProperty("--subject-shift-y","0%");
+      card.style.setProperty("--subject-mask-x","88%");
+      card.style.setProperty("--subject-mask-y","24%");
+      delete card.dataset.coverSubject;
+    }
+
     function applyCoverArtwork(song,url){
       const card=$("current-song-card");
       if(!card||!url)return;
       const safe=highResolutionArtworkUrl(url).replace(/[\"'\\()]/g, m=>"\\"+m);
+      resetCoverSubject(card);
       card.style.setProperty("--cover-image",'url("'+safe+'")');
       card.dataset.coverArtwork=song.id;
+    }
+
+    function normalizeSubjectFocus(value){
+      if(!value||!Number.isFinite(value.x)||!Number.isFinite(value.y))return null;
+      return {
+        x:clamp01(value.x),
+        y:clamp01(value.y),
+        confidence:Number.isFinite(value.confidence)?clamp01(value.confidence):1,
+        source:value.source||"manual"
+      };
+    }
+
+    function applyCoverSubject(song,focus){
+      const card=$("current-song-card");
+      const normalized=normalizeSubjectFocus(focus);
+      if(!card||!normalized)return false;
+
+      // Keep the official cover itself centered. Only the extra detail layer is biased.
+      const nearestRight=normalized.x>=.5;
+      const targetX=nearestRight?.90:.10;
+      const targetY=Math.min(.82,Math.max(.18,normalized.y));
+      const rawShift=(targetX-normalized.x)*100;
+      const shiftX=Math.max(-12,Math.min(12,rawShift));
+      const shiftedX=Math.min(.93,Math.max(.07,normalized.x+(shiftX/100)));
+      const shiftY=Math.max(-4,Math.min(4,(targetY-normalized.y)*100));
+      const shiftedY=Math.min(.88,Math.max(.12,normalized.y+(shiftY/100)));
+      const strength=.32+(.18*normalized.confidence);
+
+      card.style.setProperty("--subject-shift-x",shiftX.toFixed(2)+"%");
+      card.style.setProperty("--subject-shift-y",shiftY.toFixed(2)+"%");
+      card.style.setProperty("--subject-mask-x",(shiftedX*100).toFixed(1)+"%");
+      card.style.setProperty("--subject-mask-y",(shiftedY*100).toFixed(1)+"%");
+      card.style.setProperty("--subject-opacity",Math.min(.50,strength).toFixed(2));
+      card.dataset.coverSubject=song.id;
+      return true;
+    }
+
+    async function detectCoverSubject(song,url){
+      const manual=normalizeSubjectFocus(song.subjectFocus);
+      if(manual)return manual;
+
+      try{
+        const cached=localStorage.getItem(COVER_SUBJECT_CACHE_PREFIX+song.id);
+        if(cached){
+          const parsed=JSON.parse(cached);
+          if(parsed===null)return null;
+          const normalized=normalizeSubjectFocus(parsed);
+          if(normalized)return normalized;
+        }
+      }catch(_){}
+
+      // Native FaceDetector is deliberately progressive enhancement: no third-party
+      // biometric service, no upload, and no effect on the base artwork when unsupported.
+      if(typeof window.FaceDetector!=="function")return null;
+
+      let bitmap=null;
+      try{
+        const response=await fetch(url,{cache:"force-cache",mode:"cors"});
+        if(!response.ok)throw new Error("Artwork unavailable for subject detection");
+        const blob=await response.blob();
+        bitmap=await createImageBitmap(blob);
+        const detector=new FaceDetector({fastMode:true,maxDetectedFaces:6});
+        const faces=await detector.detect(bitmap);
+        if(!faces||!faces.length){
+          try{localStorage.setItem(COVER_SUBJECT_CACHE_PREFIX+song.id,"null")}catch(_){}
+          return null;
+        }
+
+        const ranked=faces
+          .map(face=>{
+            const box=face.boundingBox;
+            const area=Math.max(1,box.width*box.height);
+            return {face,box,area};
+          })
+          .sort((a,b)=>b.area-a.area);
+        const best=ranked[0];
+        const focus={
+          x:(best.box.x+(best.box.width/2))/bitmap.width,
+          y:(best.box.y+(best.box.height/2))/bitmap.height,
+          confidence:Math.min(1,Math.max(.55,best.area/(bitmap.width*bitmap.height)*14)),
+          source:"native-face-detector"
+        };
+        const normalized=normalizeSubjectFocus(focus);
+        try{localStorage.setItem(COVER_SUBJECT_CACHE_PREFIX+song.id,JSON.stringify(normalized))}catch(_){}
+        return normalized;
+      }catch(_){
+        return null;
+      }finally{
+        try{if(bitmap&&bitmap.close)bitmap.close()}catch(_){}
+      }
+    }
+
+    async function ensureCoverSubject(song,url,token){
+      const focus=await detectCoverSubject(song,url);
+      if(token!==coverThemeRequestToken||!focus)return;
+      applyCoverSubject(song,focus);
     }
 
     function loadPaletteFromArtwork(url){
@@ -1886,6 +2026,7 @@
         // The official cover itself becomes the card atmosphere. It is heavily blurred
         // and darkened by CSS, so text remains readable and the artwork becomes a palette.
         applyCoverArtwork(song,artworkUrl);
+        ensureCoverSubject(song,artworkUrl,token);
 
         if(cachedPalette)return;
 

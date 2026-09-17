@@ -465,3 +465,20 @@ Required behavior:
 - The outer perimeter should make the cover unmistakable at a glance, while the central content region stays calmer and darker.
 - Mobile keeps the same centered crop and a slightly softer perimeter reveal.
 - Text, countdown, progress, timeline, semantic stage colors, and the page-wide animated ambient background remain independent and readable.
+
+
+## Person-aware album-art emphasis
+
+The active-song card keeps the established centered official-cover treatment as its permanent base. When a human face can be detected in the artwork, the system may add a separate detail-only emphasis layer that gently biases that person toward the nearest low-conflict outer edge.
+
+Required behavior:
+- Never replace, crop-shift, or disturb the centered 50% / 50% base artwork layers.
+- Person emphasis is an additional progressive-enhancement layer only.
+- Detection runs locally in the browser through the native FaceDetector API when available; artwork is not uploaded to a third-party recognition service.
+- If detection is unavailable, fails, or finds no face, the established v40 centered/perimeter artwork treatment remains exactly intact.
+- The largest detected face is treated as the primary visual subject; the extra detail layer may shift by a tightly capped amount toward the nearest outer edge.
+- The detail mask follows the shifted subject and stays feathered, lightly blurred, and subordinate to text.
+- Subject opacity is capped so the enhancement remains noticeable but non-distracting.
+- Detection results may be cached locally per song to avoid repeated work.
+- A future song may optionally define subjectFocus:{x,y,confidence} as a manual override if native detection is unavailable or a cover needs art-direction correction.
+- Semantic stage colors, countdown/progress logic, the centered base cover, perimeter reveal, and page-wide animated ambient background remain independent and unchanged.
