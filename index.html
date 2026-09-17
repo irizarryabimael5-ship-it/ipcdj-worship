@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="person-foreground-v50" />
+  <meta name="ipcdj-build" content="seamless-person-v51" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -526,23 +526,39 @@
       background-size:var(--subject-bg-size) auto;
       background-position:var(--subject-bg-x) var(--subject-bg-y);
       background-repeat:no-repeat;
-      filter:blur(.04px) saturate(1.16) contrast(1.08);
-      -webkit-filter:blur(.04px) saturate(1.16) contrast(1.08);
+      filter:brightness(.97) saturate(1.10) contrast(1.04);
+      -webkit-filter:brightness(.97) saturate(1.10) contrast(1.04);
       opacity:var(--subject-opacity);
       transform:none;
       transform-origin:top right;
-      -webkit-mask-image:
-        linear-gradient(90deg, transparent 0%, rgba(0,0,0,.08) 6%, rgba(0,0,0,.34) 12%, rgba(0,0,0,.78) 20%, #000 30%, #000 100%),
-        linear-gradient(180deg, rgba(0,0,0,.18) 0%, rgba(0,0,0,.72) 8%, #000 16%, #000 87%, rgba(0,0,0,.64) 94%, rgba(0,0,0,.12) 100%),
-        radial-gradient(ellipse 42% 29% at 77% 22%, #000 0%, #000 49%, rgba(0,0,0,.94) 60%, rgba(0,0,0,.68) 72%, rgba(0,0,0,.30) 84%, rgba(0,0,0,.08) 94%, transparent 100%),
-        radial-gradient(ellipse 39% 49% at 75% 61%, #000 0%, #000 44%, rgba(0,0,0,.92) 56%, rgba(0,0,0,.64) 70%, rgba(0,0,0,.28) 84%, rgba(0,0,0,.08) 94%, transparent 100%);
-      mask-image:
-        linear-gradient(90deg, transparent 0%, rgba(0,0,0,.08) 6%, rgba(0,0,0,.34) 12%, rgba(0,0,0,.78) 20%, #000 30%, #000 100%),
-        linear-gradient(180deg, rgba(0,0,0,.18) 0%, rgba(0,0,0,.72) 8%, #000 16%, #000 87%, rgba(0,0,0,.64) 94%, rgba(0,0,0,.12) 100%),
-        radial-gradient(ellipse 42% 29% at 77% 22%, #000 0%, #000 49%, rgba(0,0,0,.94) 60%, rgba(0,0,0,.68) 72%, rgba(0,0,0,.30) 84%, rgba(0,0,0,.08) 94%, transparent 100%),
-        radial-gradient(ellipse 39% 49% at 75% 61%, #000 0%, #000 44%, rgba(0,0,0,.92) 56%, rgba(0,0,0,.64) 70%, rgba(0,0,0,.28) 84%, rgba(0,0,0,.08) 94%, transparent 100%);
-      -webkit-mask-composite:source-over;
-      mask-composite:add;
+      /* Professional-composite style feather: one continuous alpha mask instead of
+         additive masks, so there is no rectangular seam where the subject layer begins. */
+      -webkit-mask-image:linear-gradient(90deg,
+        transparent 0%,
+        rgba(0,0,0,.025) 7%,
+        rgba(0,0,0,.08) 14%,
+        rgba(0,0,0,.18) 22%,
+        rgba(0,0,0,.34) 31%,
+        rgba(0,0,0,.54) 40%,
+        rgba(0,0,0,.72) 49%,
+        rgba(0,0,0,.86) 57%,
+        rgba(0,0,0,.95) 64%,
+        #000 72%,
+        #000 100%);
+      mask-image:linear-gradient(90deg,
+        transparent 0%,
+        rgba(0,0,0,.025) 7%,
+        rgba(0,0,0,.08) 14%,
+        rgba(0,0,0,.18) 22%,
+        rgba(0,0,0,.34) 31%,
+        rgba(0,0,0,.54) 40%,
+        rgba(0,0,0,.72) 49%,
+        rgba(0,0,0,.86) 57%,
+        rgba(0,0,0,.95) 64%,
+        #000 72%,
+        #000 100%);
+      -webkit-mask-repeat:no-repeat;
+      mask-repeat:no-repeat;
       transition:opacity .8s ease;
       will-change:opacity;
     }
@@ -572,18 +588,34 @@
         z-index:2;
         background-size:380% auto;
         background-position:89% 64%;
-        filter:blur(.08px) saturate(1.14) contrast(1.06);
-        -webkit-filter:blur(.08px) saturate(1.14) contrast(1.06);
-        -webkit-mask-image:
-          linear-gradient(90deg, transparent 0%, rgba(0,0,0,.08) 6%, rgba(0,0,0,.30) 12%, rgba(0,0,0,.74) 20%, #000 31%, #000 100%),
-          linear-gradient(180deg, rgba(0,0,0,.16) 0%, rgba(0,0,0,.68) 8%, #000 16%, #000 87%, rgba(0,0,0,.58) 94%, rgba(0,0,0,.10) 100%),
-          radial-gradient(ellipse 44% 30% at 78% 22%, #000 0%, #000 47%, rgba(0,0,0,.92) 59%, rgba(0,0,0,.64) 72%, rgba(0,0,0,.28) 85%, rgba(0,0,0,.07) 94%, transparent 100%),
-          radial-gradient(ellipse 41% 51% at 76% 62%, #000 0%, #000 42%, rgba(0,0,0,.90) 55%, rgba(0,0,0,.60) 70%, rgba(0,0,0,.24) 84%, rgba(0,0,0,.06) 94%, transparent 100%);
-        mask-image:
-          linear-gradient(90deg, transparent 0%, rgba(0,0,0,.08) 6%, rgba(0,0,0,.30) 12%, rgba(0,0,0,.74) 20%, #000 31%, #000 100%),
-          linear-gradient(180deg, rgba(0,0,0,.16) 0%, rgba(0,0,0,.68) 8%, #000 16%, #000 87%, rgba(0,0,0,.58) 94%, rgba(0,0,0,.10) 100%),
-          radial-gradient(ellipse 44% 30% at 78% 22%, #000 0%, #000 47%, rgba(0,0,0,.92) 59%, rgba(0,0,0,.64) 72%, rgba(0,0,0,.28) 85%, rgba(0,0,0,.07) 94%, transparent 100%),
-          radial-gradient(ellipse 41% 51% at 76% 62%, #000 0%, #000 42%, rgba(0,0,0,.90) 55%, rgba(0,0,0,.60) 70%, rgba(0,0,0,.24) 84%, rgba(0,0,0,.06) 94%, transparent 100%);
+        filter:brightness(.97) saturate(1.08) contrast(1.03);
+        -webkit-filter:brightness(.97) saturate(1.08) contrast(1.03);
+        -webkit-mask-image:linear-gradient(90deg,
+          transparent 0%,
+          rgba(0,0,0,.02) 8%,
+          rgba(0,0,0,.07) 16%,
+          rgba(0,0,0,.17) 25%,
+          rgba(0,0,0,.32) 34%,
+          rgba(0,0,0,.52) 44%,
+          rgba(0,0,0,.71) 53%,
+          rgba(0,0,0,.86) 61%,
+          rgba(0,0,0,.95) 68%,
+          #000 76%,
+          #000 100%);
+        mask-image:linear-gradient(90deg,
+          transparent 0%,
+          rgba(0,0,0,.02) 8%,
+          rgba(0,0,0,.07) 16%,
+          rgba(0,0,0,.17) 25%,
+          rgba(0,0,0,.32) 34%,
+          rgba(0,0,0,.52) 44%,
+          rgba(0,0,0,.71) 53%,
+          rgba(0,0,0,.86) 61%,
+          rgba(0,0,0,.95) 68%,
+          #000 76%,
+          #000 100%);
+        -webkit-mask-repeat:no-repeat;
+        mask-repeat:no-repeat;
       }
 
       .current .cover-edge-detail{

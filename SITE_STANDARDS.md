@@ -536,3 +536,8 @@ Keep the isolated person above the centered album-art background stack, but do n
 ## Foreground person treatment v50
 
 When a cover person is emphasized, the centered album artwork remains the permanent base. The isolated person must render above every album-art background layer (blurred atmosphere, selective detail reveal, perimeter detail, and palette scrim) while all readable UI remains above the person. Preserve the approved person placement and strong visibility; use broad alpha feathering around the subject layer itself so it merges smoothly into the base cover without a rectangular seam or an over-bright duplicated right-side patch. Desktop and mobile must maintain the same foreground relationship.
+
+
+## Seamless person composite v51
+
+The isolated person overlay must use the same visual principle as a professional feathered layer mask: the foreground subject remains readable, but the edge of its source rectangle must never be visible. The left transition into the centered base artwork uses one continuous, wide alpha-gradient mask rather than several additive masks. This prevents a hard vertical seam and avoids browser differences in multi-mask compositing. Desktop and mobile both keep a long feather zone, with mobile slightly wider. The base centered album-cover atmosphere remains unchanged underneath.
