@@ -391,3 +391,20 @@ Required behavior:
 - Future songs inherit the automatic artwork lookup without needing custom CSS; an optional artworkQuery/itunesCollectionId can improve ambiguous matching.
 - Never let album colors reduce text legibility or replace semantic color meaning.
 - Do not display album artwork itself unless separately requested; this feature uses the palette as atmospheric theming only.
+
+
+## Blurred official-cover active-song background
+
+The current-song card uses the active song's official album/single artwork as a heavily blurred atmospheric background.
+
+Required behavior:
+- Only the current-song card receives the artwork; the page-wide moving ambient gradient is untouched.
+- Resolve official artwork through a stable catalog ID whenever one is known; otherwise use title/artist matching.
+- Request a high-resolution artwork variant when the catalog supports it.
+- The artwork layer is cover-sized, strongly blurred, slightly scaled, and saturated enough to preserve the cover's identity without exposing distracting text/details.
+- A dark scrim sits above the artwork so all card text remains readable.
+- A restrained extracted-palette overlay may reinforce the cover colors.
+- Semantic preparation colors remain independent: red → orange → amber → green, with gold for Estreno.
+- Cached palette data must never prevent the actual artwork layer from loading.
+- Catalog/artwork/CORS failures fall back gracefully to the curated palette and must never affect countdown, rollover, preparation phases, or card readability.
+- When the active song changes, the card automatically resolves and applies that new song's official cover.

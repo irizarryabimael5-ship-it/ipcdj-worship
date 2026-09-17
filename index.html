@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="album-palette-v34" />
+  <meta name="ipcdj-build" content="blurred-cover-v35" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -407,6 +407,7 @@
       --cover-c1:96,62,44;
       --cover-c2:166,108,61;
       --cover-c3:56,76,93;
+      --cover-image:none;
       position:relative;
       overflow:hidden;
       isolation:isolate;
@@ -415,15 +416,18 @@
     .current::before{
       content:"";
       position:absolute;
-      inset:0;
+      inset:-34px;
       z-index:0;
       pointer-events:none;
-      background:
-        radial-gradient(circle at 10% 18%, rgba(var(--cover-c1),.24) 0%, rgba(var(--cover-c1),.10) 28%, rgba(var(--cover-c1),0) 52%),
-        radial-gradient(circle at 88% 22%, rgba(var(--cover-c2),.20) 0%, rgba(var(--cover-c2),.08) 30%, rgba(var(--cover-c2),0) 54%),
-        radial-gradient(circle at 55% 92%, rgba(var(--cover-c3),.16) 0%, rgba(var(--cover-c3),.06) 34%, rgba(var(--cover-c3),0) 58%);
-      opacity:.88;
-      transition:background .8s ease,opacity .8s ease;
+      background-image:var(--cover-image);
+      background-size:cover;
+      background-position:center;
+      background-repeat:no-repeat;
+      filter:blur(30px) saturate(1.18) contrast(1.04);
+      -webkit-filter:blur(30px) saturate(1.18) contrast(1.04);
+      transform:scale(1.10);
+      opacity:.76;
+      transition:opacity .8s ease,filter .8s ease;
     }
 
     .current > *{
@@ -434,14 +438,14 @@
     .current::after{
       content:"";
       position:absolute;
+      inset:0;
       z-index:0;
-      width:280px;
-      height:280px;
-      border-radius:50%;
-      right:-100px;
-      top:-100px;
-      background:radial-gradient(circle, rgba(255,255,255,.025), rgba(255,255,255,0) 72%);
       pointer-events:none;
+      background:
+        radial-gradient(circle at 12% 14%, rgba(var(--cover-c1),.22) 0%, rgba(var(--cover-c1),.08) 27%, rgba(var(--cover-c1),0) 50%),
+        radial-gradient(circle at 88% 24%, rgba(var(--cover-c2),.18) 0%, rgba(var(--cover-c2),.06) 30%, rgba(var(--cover-c2),0) 54%),
+        linear-gradient(180deg, rgba(4,7,12,.26) 0%, rgba(5,8,14,.46) 44%, rgba(4,7,12,.76) 100%);
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.025);
     }
 
     .status{
@@ -1676,6 +1680,21 @@
       card.dataset.coverTheme=song.id;
     }
 
+    function highResolutionArtworkUrl(url){
+      if(!url)return "";
+      return String(url)
+        .replace(/\/100x100bb(?:-[0-9]+)?\.(jpg|jpeg|png)(?:\?.*)?$/i,"/1200x1200bb.$1")
+        .replace(/100x100bb/gi,"1200x1200bb");
+    }
+
+    function applyCoverArtwork(song,url){
+      const card=$("current-song-card");
+      if(!card||!url)return;
+      const safe=highResolutionArtworkUrl(url).replace(/[\"'\\()]/g, m=>"\\"+m);
+      card.style.setProperty("--cover-image",'url("'+safe+'")');
+      card.dataset.coverArtwork=song.id;
+    }
+
     function loadPaletteFromArtwork(url){
       return new Promise((resolve,reject)=>{
         const image=new Image();
@@ -1710,7 +1729,7 @@
           if(response.ok){
             const data=await response.json();
             const candidate=(data.results||[]).filter(r=>r.artworkUrl100).sort((a,b)=>scoreCatalogResult(song,b)-scoreCatalogResult(song,a))[0];
-            if(candidate&&candidate.artworkUrl100)return candidate.artworkUrl100;
+            if(candidate&&candidate.artworkUrl100)return highResolutionArtworkUrl(candidate.artworkUrl100);
           }
         }catch(_){}
       }
@@ -1721,7 +1740,7 @@
       const data=await response.json();
       const candidate=(data.results||[]).filter(r=>r.artworkUrl100).sort((a,b)=>scoreCatalogResult(song,b)-scoreCatalogResult(song,a))[0];
       if(!candidate||scoreCatalogResult(song,candidate)<4)throw new Error("No reliable artwork match");
-      return candidate.artworkUrl100;
+      return highResolutionArtworkUrl(candidate.artworkUrl100);
     }
 
     async function ensureCoverTheme(song){
@@ -1729,107 +1748,38 @@
       const fallback=COVER_THEME_FALLBACKS[song.id]||[[82,74,68],[116,92,70],[58,68,78]];
       applyCoverTheme(song,fallback);
 
+      let cachedPalette=null;
       try{
         const cached=localStorage.getItem(COVER_THEME_CACHE_PREFIX+song.id);
         if(cached){
           const parsed=JSON.parse(cached);
           if(Array.isArray(parsed)&&parsed.length>=3){
+            cachedPalette=parsed;
             if(token===coverThemeRequestToken)applyCoverTheme(song,parsed);
-            return;
           }
         }
       }catch(_){}
 
       try{
-        const artworkUrl=await resolveArtworkUrl(song);
+        const artworkUrl=song.artworkUrl
+          ? highResolutionArtworkUrl(song.artworkUrl)
+          : await resolveArtworkUrl(song);
+        if(token!==coverThemeRequestToken)return;
+
+        // The official cover itself becomes the card atmosphere. It is heavily blurred
+        // and darkened by CSS, so text remains readable and the artwork becomes a palette.
+        applyCoverArtwork(song,artworkUrl);
+
+        if(cachedPalette)return;
+
         const palette=await loadPaletteFromArtwork(artworkUrl);
         if(token!==coverThemeRequestToken)return;
         applyCoverTheme(song,palette);
         try{localStorage.setItem(COVER_THEME_CACHE_PREFIX+song.id,JSON.stringify(palette))}catch(_){}
       }catch(_){
-        // Keep the curated fallback palette. Network/CORS/catalog failures must never
-        // affect the song pipeline or card readability.
+        // Keep the curated fallback palette. Artwork/catalog/CORS failures never affect
+        // countdown, preparation stages, song rollover, or card readability.
       }
-    }
-
-    function timelineFraction(now,start,end){
-      if(end<=start)return now>=end ? 1 : 0;
-      return clamp01((now-start)/(end-start));
-    }
-
-    function getProgressPalette(song,now){
-      const active=new Date(song.activeFrom).getTime();
-      const learningStart=new Date(song.learningStart).getTime();
-      const learningEnd=new Date(song.learningEnd).getTime();
-      const finalStart=new Date(song.finalStart).getTime();
-      const finalEnd=new Date(song.finalEnd).getTime();
-      const release=new Date(song.releaseAt).getTime();
-
-      let base;
-      let phaseText;
-
-      if(now<learningStart){
-        const t=timelineFraction(now,active,learningStart);
-        base=mixRgb(PROGRESS_COLORS.learningStart,PROGRESS_COLORS.learningEnd,t*.35);
-        phaseText="Próxima · entrando a aprendizaje";
-      }else if(now<=learningEnd){
-        const t=timelineFraction(now,learningStart,learningEnd);
-        base=mixRgb(PROGRESS_COLORS.learningStart,PROGRESS_COLORS.learningEnd,t);
-        phaseText="Aprendizaje";
-      }else if(now<finalStart){
-        const t=timelineFraction(now,learningEnd,finalStart);
-        base=mixRgb(PROGRESS_COLORS.learningEnd,PROGRESS_COLORS.finalStart,t);
-        phaseText="Transición a preparación final";
-      }else if(now<=finalEnd){
-        const t=timelineFraction(now,finalStart,finalEnd);
-        base=mixRgb(PROGRESS_COLORS.finalStart,PROGRESS_COLORS.finalEnd,t);
-        phaseText="Preparación final";
-      }else if(now<release){
-        const t=timelineFraction(now,finalEnd,release);
-        base=mixRgb(PROGRESS_COLORS.finalEnd,PROGRESS_COLORS.release,t);
-        phaseText="Acercándose al estreno";
-      }else{
-        base=PROGRESS_COLORS.release;
-        phaseText="Estreno";
-      }
-
-      // Two close tones preserve the existing polished gradient instead of a flat fill.
-      const lighter=mixRgb(base,[255,255,255],.16);
-      const darker=mixRgb(base,[0,0,0],.06);
-
-      return {
-        start:rgb(darker),
-        end:rgb(lighter),
-        glow:rgba(base,.40),
-        soft:rgba(base,.075),
-        border:rgba(base,.28),
-        accent:rgb(base),
-        stageText:rgb(mixRgb(base,[255,255,255],.70)),
-        phaseText
-      };
-    }
-
-    function applyProgressPalette(song,now){
-      const wrap=document.querySelector(".progress-wrap");
-      if(!wrap)return;
-      const palette=getProgressPalette(song,now);
-      wrap.style.setProperty("--progress-c1",palette.start);
-      wrap.style.setProperty("--progress-c2",palette.end);
-      wrap.style.setProperty("--progress-glow",palette.glow);
-      wrap.style.setProperty("--progress-soft",palette.soft);
-      wrap.style.setProperty("--progress-border",palette.border);
-      wrap.dataset.progressPhase=palette.phaseText;
-
-      const card=$("current-song-card");
-      if(card){
-        card.style.setProperty("--stage-accent",palette.accent);
-        card.style.setProperty("--stage-soft",palette.soft);
-        card.style.setProperty("--stage-border",palette.border);
-        card.style.setProperty("--stage-text",palette.stageText);
-      }
-
-      const track=$("progress-track");
-      if(track)track.setAttribute("aria-valuetext",palette.phaseText);
     }
 
     function getCurrentSong(now){
@@ -1886,6 +1836,9 @@
             card.style.removeProperty("--stage-soft");
             card.style.removeProperty("--stage-border");
             card.style.removeProperty("--stage-text");
+            card.style.removeProperty("--cover-image");
+            delete card.dataset.coverArtwork;
+            delete card.dataset.coverTheme;
           }
           const progressTrack=$("progress-track");
           if(progressTrack) progressTrack.setAttribute("aria-valuenow","0");
@@ -1905,7 +1858,7 @@
       $("current-status").textContent=phase.key==="release" ? "HOY · ESTRENO" : (phase.key==="upcoming" ? "PRÓXIMA CANCIÓN" : "AHORA EN PREPARACIÓN");
       $("current-song-name").textContent=song.title;
       $("current-artist").textContent=song.artist;
-      if(card.dataset.coverTheme!==song.id)ensureCoverTheme(song);
+      if(card.dataset.coverTheme!==song.id || card.dataset.coverArtwork!==song.id)ensureCoverTheme(song);
       $("learning-date").textContent=song.learningLabel;
       $("final-date").textContent=song.finalLabel;
       $("release-date").textContent=song.releaseLabel;
