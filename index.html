@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="person-seam-v47" />
+  <meta name="ipcdj-build" content="person-layer-v48" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -443,6 +443,16 @@
       z-index:1;
     }
 
+    /* Album-art stack: blurred/detail/perimeter art stays underneath the isolated person.
+       The actual card content is then lifted above the person so readability is unchanged. */
+    .current .cover-subject-detail{
+      z-index:1;
+    }
+
+    .current > :not(.cover-detail):not(.cover-edge-detail):not(.cover-subject-detail){
+      z-index:2;
+    }
+
     .current .cover-detail{
       position:absolute;
       inset:-4px;
@@ -510,7 +520,7 @@
       right:0;
       width:var(--subject-width);
       height:var(--subject-height);
-      z-index:0;
+      z-index:1;
       pointer-events:none;
       background-image:var(--cover-image);
       background-size:var(--subject-bg-size) auto;

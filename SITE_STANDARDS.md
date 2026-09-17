@@ -521,3 +521,8 @@ When a cover contains a detectable person, add the approved top-right person tre
 ## Person visibility and seamless blending v47
 
 The approved person treatment must keep the person as visible and prominent as the approved v45 framing. Do not solve seams by enlarging, relocating, or washing out the subject layer. Preserve the approved subject crop/placement and remove visible separation only through soft alpha feathering around the isolated person. No hard clip-path, rectangular crop edge, or abrupt layer boundary may be visible on desktop, mobile, tablet, PWA, or narrow layouts. Mobile may use its approved crop dimensions, but the person must remain clearly visible and dissolve smoothly into the centered album-cover atmosphere.
+
+
+## Person layer stacking v48
+
+When a person emphasis layer is active, that isolated person must visually sit on top of the current song's centered blurred/detail/perimeter album-art layers while remaining underneath all readable UI content. The subject must therefore read as a foreground extension of the same album cover rather than as imagery buried behind the base treatment. Preserve the approved v47 placement, visibility, and seam feathering; only the stacking relationship changes. Text, status, countdown, progress, and timeline content must remain above the person layer.
