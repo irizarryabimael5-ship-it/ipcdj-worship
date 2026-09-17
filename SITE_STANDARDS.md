@@ -531,3 +531,8 @@ When a person emphasis layer is active, that isolated person must visually sit o
 ## Foreground-person isolation v49
 
 Keep the isolated person above the centered album-art background stack, but do not let the foreground subject layer reintroduce a bright or obvious duplicate of the right side of the cover. Preserve the approved person placement and visibility while tightening the alpha mask around the head, torso, and any necessary limb extension. The duplicate source image outside the person must fall away into transparency so the universal centered-cover treatment remains visually dominant. The person should read as a foreground extension of the same image, not as a brighter rectangular or right-side duplicate.
+
+
+## Foreground person treatment v50
+
+When a cover person is emphasized, the centered album artwork remains the permanent base. The isolated person must render above every album-art background layer (blurred atmosphere, selective detail reveal, perimeter detail, and palette scrim) while all readable UI remains above the person. Preserve the approved person placement and strong visibility; use broad alpha feathering around the subject layer itself so it merges smoothly into the base cover without a rectangular seam or an over-bright duplicated right-side patch. Desktop and mobile must maintain the same foreground relationship.
