@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="isolated-person-v45" />
+  <meta name="ipcdj-build" content="auto-person-v46" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -506,35 +506,27 @@
 
     .current .cover-subject-detail{
       position:absolute;
-      top:0;
-      right:0;
-      width:var(--subject-width);
-      height:var(--subject-height);
+      top:-3%;
+      right:-2%;
+      width:calc(var(--subject-width) + 8%);
+      height:calc(var(--subject-height) + 8%);
       z-index:0;
       pointer-events:none;
       background-image:var(--cover-image);
       background-size:var(--subject-bg-size) auto;
       background-position:var(--subject-bg-x) var(--subject-bg-y);
       background-repeat:no-repeat;
-      filter:blur(.10px) saturate(1.16) contrast(1.08);
-      -webkit-filter:blur(.10px) saturate(1.16) contrast(1.08);
+      filter:blur(.18px) saturate(1.14) contrast(1.06);
+      -webkit-filter:blur(.18px) saturate(1.14) contrast(1.06);
       opacity:var(--subject-opacity);
-      transform:none;
+      transform:translateZ(0);
       transform-origin:top right;
-      overflow:hidden;
-      border-top-right-radius:28px;
-      clip-path:inset(0 0 0 0 round 0 28px 0 0);
-      -webkit-clip-path:inset(0 0 0 0 round 0 28px 0 0);
       -webkit-mask-image:
-        radial-gradient(ellipse 34% 18% at 78% 18%, #000 0%, #000 54%, rgba(0,0,0,.82) 70%, rgba(0,0,0,.22) 88%, transparent 100%),
-        radial-gradient(ellipse 30% 34% at 76% 58%, #000 0%, #000 52%, rgba(0,0,0,.84) 70%, rgba(0,0,0,.24) 88%, transparent 100%),
-        linear-gradient(270deg, #000 0%, rgba(0,0,0,.96) 18%, rgba(0,0,0,.52) 34%, transparent 52%),
-        linear-gradient(180deg, #000 0%, rgba(0,0,0,.92) 18%, rgba(0,0,0,.48) 36%, transparent 56%);
+        radial-gradient(ellipse 43% 30% at 74% 27%, #000 0%, #000 38%, rgba(0,0,0,.92) 54%, rgba(0,0,0,.62) 69%, rgba(0,0,0,.28) 82%, transparent 96%),
+        radial-gradient(ellipse 38% 49% at 74% 60%, #000 0%, #000 34%, rgba(0,0,0,.90) 50%, rgba(0,0,0,.58) 66%, rgba(0,0,0,.24) 80%, transparent 96%);
       mask-image:
-        radial-gradient(ellipse 34% 18% at 78% 18%, #000 0%, #000 54%, rgba(0,0,0,.82) 70%, rgba(0,0,0,.22) 88%, transparent 100%),
-        radial-gradient(ellipse 30% 34% at 76% 58%, #000 0%, #000 52%, rgba(0,0,0,.84) 70%, rgba(0,0,0,.24) 88%, transparent 100%),
-        linear-gradient(270deg, #000 0%, rgba(0,0,0,.96) 18%, rgba(0,0,0,.52) 34%, transparent 52%),
-        linear-gradient(180deg, #000 0%, rgba(0,0,0,.92) 18%, rgba(0,0,0,.48) 36%, transparent 56%);
+        radial-gradient(ellipse 43% 30% at 74% 27%, #000 0%, #000 38%, rgba(0,0,0,.92) 54%, rgba(0,0,0,.62) 69%, rgba(0,0,0,.28) 82%, transparent 96%),
+        radial-gradient(ellipse 38% 49% at 74% 60%, #000 0%, #000 34%, rgba(0,0,0,.90) 50%, rgba(0,0,0,.58) 66%, rgba(0,0,0,.24) 80%, transparent 96%);
       -webkit-mask-composite:source-over;
       mask-composite:add;
       transition:opacity .8s ease;
@@ -559,22 +551,20 @@
 
     @media (max-width:640px){
       .current .cover-subject-detail{
-        width:38%;
-        height:31%;
-        background-size:380% auto;
-        background-position:89% 64%;
-        filter:blur(.18px) saturate(1.14) contrast(1.06);
-        -webkit-filter:blur(.18px) saturate(1.14) contrast(1.06);
+        top:-4%;
+        right:-4%;
+        width:calc(var(--subject-width) + 16%);
+        height:calc(var(--subject-height) + 11%);
+        background-size:var(--subject-bg-size) auto;
+        background-position:var(--subject-bg-x) var(--subject-bg-y);
+        filter:blur(.28px) saturate(1.12) contrast(1.05);
+        -webkit-filter:blur(.28px) saturate(1.12) contrast(1.05);
         -webkit-mask-image:
-          radial-gradient(ellipse 36% 19% at 79% 18%, #000 0%, #000 54%, rgba(0,0,0,.82) 70%, rgba(0,0,0,.22) 88%, transparent 100%),
-          radial-gradient(ellipse 31% 36% at 77% 59%, #000 0%, #000 52%, rgba(0,0,0,.84) 70%, rgba(0,0,0,.24) 88%, transparent 100%),
-          linear-gradient(270deg, #000 0%, rgba(0,0,0,.95) 18%, rgba(0,0,0,.48) 34%, transparent 54%),
-          linear-gradient(180deg, #000 0%, rgba(0,0,0,.90) 18%, rgba(0,0,0,.42) 36%, transparent 58%);
+          radial-gradient(ellipse 45% 31% at 74% 27%, #000 0%, #000 34%, rgba(0,0,0,.88) 51%, rgba(0,0,0,.54) 67%, rgba(0,0,0,.22) 82%, transparent 97%),
+          radial-gradient(ellipse 40% 52% at 74% 61%, #000 0%, #000 30%, rgba(0,0,0,.86) 47%, rgba(0,0,0,.50) 64%, rgba(0,0,0,.20) 80%, transparent 97%);
         mask-image:
-          radial-gradient(ellipse 36% 19% at 79% 18%, #000 0%, #000 54%, rgba(0,0,0,.82) 70%, rgba(0,0,0,.22) 88%, transparent 100%),
-          radial-gradient(ellipse 31% 36% at 77% 59%, #000 0%, #000 52%, rgba(0,0,0,.84) 70%, rgba(0,0,0,.24) 88%, transparent 100%),
-          linear-gradient(270deg, #000 0%, rgba(0,0,0,.95) 18%, rgba(0,0,0,.48) 34%, transparent 54%),
-          linear-gradient(180deg, #000 0%, rgba(0,0,0,.90) 18%, rgba(0,0,0,.42) 36%, transparent 58%);
+          radial-gradient(ellipse 45% 31% at 74% 27%, #000 0%, #000 34%, rgba(0,0,0,.88) 51%, rgba(0,0,0,.54) 67%, rgba(0,0,0,.22) 82%, transparent 97%),
+          radial-gradient(ellipse 40% 52% at 74% 61%, #000 0%, #000 30%, rgba(0,0,0,.86) 47%, rgba(0,0,0,.50) 64%, rgba(0,0,0,.20) 80%, transparent 97%);
       }
 
       .current .cover-edge-detail{
@@ -1888,22 +1878,114 @@
       card.dataset.coverArtwork=song.id;
     }
 
-    function applyCurrentSongSubjectArt(song){
+    const COVER_SUBJECT_CACHE_PREFIX="ipcdj-cover-subject-v1:";
+    const coverSubjectFocusCache=new Map();
+
+    function clampCoverSubject(value,min,max){
+      return Math.max(min,Math.min(max,value));
+    }
+
+    function loadCoverImageForSubjectDetection(url){
+      return new Promise((resolve,reject)=>{
+        const image=new Image();
+        image.crossOrigin="anonymous";
+        image.decoding="async";
+        image.onload=()=>resolve(image);
+        image.onerror=reject;
+        image.src=url;
+      });
+    }
+
+    function applyResolvedCoverSubject(card,focus,label){
+      if(!card||!focus)return false;
+      card.style.setProperty("--subject-width",focus.width||"31%");
+      card.style.setProperty("--subject-height",focus.height||"37%");
+      card.style.setProperty("--subject-bg-x",focus.bgX||"88%");
+      card.style.setProperty("--subject-bg-y",focus.bgY||"64%");
+      card.style.setProperty("--subject-bg-size",focus.bgSize||"325%");
+      card.style.setProperty("--subject-opacity",focus.opacity||".93");
+      card.dataset.coverSubject=label||focus.source||"cover-person";
+      return true;
+    }
+
+    function manualCoverSubjectFocus(song){
+      if(song.id==="dios-de-milagros"){
+        return {width:"31%",height:"37%",bgX:"88%",bgY:"64%",bgSize:"325%",opacity:".95",source:"approved-dios-de-milagros"};
+      }
+      return song.coverSubjectFocus||song.subjectFocus||null;
+    }
+
+    function detectedFaceToCoverFocus(face,image){
+      const box=face&&face.boundingBox;
+      if(!box||!image.naturalWidth||!image.naturalHeight)return null;
+      const cx=((box.x+(box.width/2))/image.naturalWidth)*100;
+      const cy=((box.y+(box.height*.58))/image.naturalHeight)*100;
+      const faceRatio=Math.max(box.width/image.naturalWidth,box.height/image.naturalHeight);
+      const bgSize=Math.round(clampCoverSubject(390-(faceRatio*420),285,380));
+      return {
+        width:"32%",
+        height:"39%",
+        bgX:`${Math.round(clampCoverSubject(cx,8,94)*10)/10}%`,
+        bgY:`${Math.round(clampCoverSubject(cy,12,88)*10)/10}%`,
+        bgSize:`${bgSize}%`,
+        opacity:".93",
+        source:"native-face-detection"
+      };
+    }
+
+    async function detectCoverSubjectFocus(song,artworkUrl){
+      if(!artworkUrl||typeof window.FaceDetector!=="function"||!window.isSecureContext)return null;
+      const key=song.id+"|"+artworkUrl;
+      if(coverSubjectFocusCache.has(key))return coverSubjectFocusCache.get(key);
+      try{
+        const stored=localStorage.getItem(COVER_SUBJECT_CACHE_PREFIX+song.id);
+        if(stored){
+          const parsed=JSON.parse(stored);
+          if(parsed&&parsed.artworkUrl===artworkUrl&&parsed.focus){
+            coverSubjectFocusCache.set(key,parsed.focus);
+            return parsed.focus;
+          }
+        }
+      }catch(_){}
+
+      let focus=null;
+      try{
+        const image=await loadCoverImageForSubjectDetection(artworkUrl);
+        const detector=new FaceDetector({fastMode:true,maxDetectedFaces:6});
+        const faces=await detector.detect(image);
+        if(Array.isArray(faces)&&faces.length){
+          const best=faces.slice().sort((a,b)=>{
+            const aa=(a.boundingBox?.width||0)*(a.boundingBox?.height||0);
+            const ba=(b.boundingBox?.width||0)*(b.boundingBox?.height||0);
+            return ba-aa;
+          })[0];
+          focus=detectedFaceToCoverFocus(best,image);
+        }
+      }catch(_){}
+
+      coverSubjectFocusCache.set(key,focus);
+      try{localStorage.setItem(COVER_SUBJECT_CACHE_PREFIX+song.id,JSON.stringify({artworkUrl,focus}))}catch(_){}
+      return focus;
+    }
+
+    function applyCurrentSongSubjectArt(song,artworkUrl){
       const card=$("current-song-card");
       if(!card)return;
       resetCoverSubject(card);
+      const songKey=song.id;
+      card.dataset.coverSongId=songKey;
 
-      // Current approval trial for Dios De Milagros: preserve the centered full-cover
-      // atmosphere/reveals, then add only a tightly cropped right-side singer in the empty
-      // top-right corner. This is intentionally not generalized until visually approved.
-      if(song.id!=="dios-de-milagros")return;
-      card.style.setProperty("--subject-width","31%");
-      card.style.setProperty("--subject-height","37%");
-      card.style.setProperty("--subject-bg-x","88%");
-      card.style.setProperty("--subject-bg-y","64%");
-      card.style.setProperty("--subject-bg-size","325%");
-      card.style.setProperty("--subject-opacity",".95");
-      card.dataset.coverSubject="trial-dios-de-milagros-top-right-isolated-person-v45";
+      const manual=manualCoverSubjectFocus(song);
+      if(manual){
+        applyResolvedCoverSubject(card,manual,manual.source||"manual-cover-person");
+        return;
+      }
+
+      detectCoverSubjectFocus(song,artworkUrl).then(focus=>{
+        if(!focus)return;
+        if(card.dataset.coverSongId!==songKey)return;
+        applyResolvedCoverSubject(card,focus,focus.source||"auto-cover-person");
+      }).catch(()=>{});
     }
 
     function loadPaletteFromArtwork(url){
@@ -1980,7 +2062,7 @@
         // The official cover itself becomes the card atmosphere. It is heavily blurred
         // and darkened by CSS, so text remains readable and the artwork becomes a palette.
         applyCoverArtwork(song,artworkUrl);
-        applyCurrentSongSubjectArt(song);
+        applyCurrentSongSubjectArt(song,artworkUrl);
 
         if(cachedPalette)return;
 

@@ -509,3 +509,10 @@ For the current Dios De Milagros approval trial, the established centered offici
 ## Current-cover isolated-person trial v45
 
 For the current Dios De Milagros approval trial, preserve the centered official-cover atmosphere, strategic empty-space reveals, and perimeter-detail system as the permanent base. The additional subject layer is a tightly cropped top-right window intended to show only the selected person from the same cover, with near-crisp detail and strong opacity, while suppressing surrounding duplicate artwork. This is still a current-song-only art-direction trial and must not be generalized to future songs until visually approved.
+
+
+## Automatic person-aware album-cover treatment v46
+
+The base treatment is permanent for every current song, whether people are present or not: use the official album cover centered at 50% / 50%, preserve the heavily blurred full-card atmosphere, and noticeably reveal the centered cover through low-content areas and the perimeter without compromising text readability.
+
+When a cover contains a detectable person, add the approved top-right person treatment on top of that base. The person layer must be isolated from the same cover, near-crisp, strongly visible, and smoothly feathered into the existing cover atmosphere with no rectangular crop line, hard seam, or visible layer boundary on desktop, mobile, tablet, PWA, or other supported layouts. Native FaceDetector detection is used only when available in a secure context; detection failure or unsupported browsers must simply fall back to the universal centered-cover base without changing layout or functionality. Detection results may be cached locally. Manual coverSubjectFocus / subjectFocus overrides remain supported for art-direction correction, and the approved Dios De Milagros framing remains the reference implementation.
