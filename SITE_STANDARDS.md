@@ -354,7 +354,7 @@ Before substantial changes:
 5. Verify countdown/pipeline/refresh/PWA/mobile behavior still exists after the change.
 6. Bump service-worker/app-shell cache only when deployment freshness requires it.
 
-The visual aesthetic is a protected system: dark blue/black animated background, blue identity accents, green progress/completed states, red estreno states, white estreno text, glass cards, responsive typography and existing spacing/radius hierarchy.
+The visual aesthetic is a protected system: dark blue/black animated background, blue identity accents, the documented red → orange → amber → green preparation progression, gold estreno states, glass cards, responsive typography and existing spacing/radius hierarchy.
 
 
 ## Song preparation status palette
