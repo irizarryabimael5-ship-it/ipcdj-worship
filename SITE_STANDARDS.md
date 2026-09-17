@@ -355,3 +355,22 @@ Before substantial changes:
 6. Bump service-worker/app-shell cache only when deployment freshness requires it.
 
 The visual aesthetic is a protected system: dark blue/black animated background, blue identity accents, green progress/completed states, red estreno states, white estreno text, glass cards, responsive typography and existing spacing/radius hierarchy.
+
+
+## Song preparation status palette
+
+The preparation-stage color system communicates movement from early preparation toward readiness while preserving text labels and other non-color cues.
+
+Required progression:
+- Earliest/upcoming and early learning begin in a restrained warm red.
+- Learning matures through orange.
+- Transition toward final preparation uses amber/gold.
+- Final preparation resolves into green to communicate readiness.
+- Estreno is a separate celebratory milestone and uses gold rather than red.
+- The current-phase timeline tab and current-song status pill inherit the live stage color; they must not default to a distracting fixed blue.
+- Countdown surfaces stay mostly neutral so they do not compete with the stage signal.
+- Future release-date badges use the estreno gold family, not red.
+- Brand blue remains available for IPCDJ branding, links/focus, and non-stage identity, but not as the default current preparation-stage indicator.
+- Status meaning must never rely on color alone: phase names, labels, timeline position, and text remain present.
+- Maintain strong text/background contrast and subdued translucent fills suitable for the site's dark glass interface.
+- The animated ambient gradient background is independent and must remain untouched by stage-palette changes.
