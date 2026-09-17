@@ -494,3 +494,8 @@ Current trial behavior:
 - Shift that extra copy slightly toward the right edge and reveal it through a broad feathered right-edge mask so a person from the cover can read almost fully without covering primary text.
 - Keep the central/title/countdown/progress/timeline content treatment unchanged.
 - Do not enable generic automatic face/person detection until the visual result is approved.
+
+
+## Current-cover top-edge person isolation trial
+
+For visual approval on the current Dios De Milagros cover, preserve the established centered-cover, empty-space reveal, and perimeter artwork treatment exactly as the base. The temporary subject layer should isolate only a person-shaped region of the duplicate artwork and place that person near the empty top-right edge of the current-song card. No broad second-cover strip or obvious duplicated album background should be visible from the subject layer. The person may be near-crisp and nearly fully opaque, with feathered head/torso masks, while all normal content zones remain untouched. Do not generalize this behavior to future songs until the result is visually approved.

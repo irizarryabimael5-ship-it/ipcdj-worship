@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="current-person-art-v42" />
+  <meta name="ipcdj-build" content="top-edge-person-v43" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -505,24 +505,26 @@
 
     .current .cover-subject-detail{
       position:absolute;
-      inset:-5%;
+      inset:-4%;
       z-index:0;
       pointer-events:none;
       background-image:var(--cover-image);
       background-size:cover;
       background-position:var(--cover-pos-x) var(--cover-pos-y);
       background-repeat:no-repeat;
-      filter:blur(.35px) saturate(1.12) contrast(1.06);
-      -webkit-filter:blur(.35px) saturate(1.12) contrast(1.06);
+      filter:blur(.18px) saturate(1.13) contrast(1.07);
+      -webkit-filter:blur(.18px) saturate(1.13) contrast(1.07);
       opacity:var(--subject-opacity);
-      transform:translate3d(var(--subject-shift-x),var(--subject-shift-y),0) scale(1.035);
+      transform:translate3d(var(--subject-shift-x),var(--subject-shift-y),0) scale(1.04);
       transform-origin:center;
+      clip-path:polygon(80% 0%,100% 0%,100% 48%,96% 50%,93% 45%,90% 39%,87% 31%,85% 23%,82% 14%);
+      -webkit-clip-path:polygon(80% 0%,100% 0%,100% 48%,96% 50%,93% 45%,90% 39%,87% 31%,85% 23%,82% 14%);
       -webkit-mask-image:
-        radial-gradient(ellipse 27% 34% at var(--subject-mask-x) var(--subject-mask-y), #000 0%, #000 34%, rgba(0,0,0,.90) 54%, rgba(0,0,0,.56) 74%, rgba(0,0,0,.16) 90%, transparent 100%),
-        linear-gradient(270deg,#000 0%,rgba(0,0,0,.96) 9%,rgba(0,0,0,.56) 20%,transparent 35%);
+        radial-gradient(ellipse 8% 10% at 92% 10%, #000 0%, #000 52%, rgba(0,0,0,.72) 72%, transparent 100%),
+        radial-gradient(ellipse 11% 22% at 92% 28%, #000 0%, #000 46%, rgba(0,0,0,.80) 66%, rgba(0,0,0,.34) 84%, transparent 100%);
       mask-image:
-        radial-gradient(ellipse 27% 34% at var(--subject-mask-x) var(--subject-mask-y), #000 0%, #000 34%, rgba(0,0,0,.90) 54%, rgba(0,0,0,.56) 74%, rgba(0,0,0,.16) 90%, transparent 100%),
-        linear-gradient(270deg,#000 0%,rgba(0,0,0,.96) 9%,rgba(0,0,0,.56) 20%,transparent 35%);
+        radial-gradient(ellipse 8% 10% at 92% 10%, #000 0%, #000 52%, rgba(0,0,0,.72) 72%, transparent 100%),
+        radial-gradient(ellipse 11% 22% at 92% 28%, #000 0%, #000 46%, rgba(0,0,0,.80) 66%, rgba(0,0,0,.34) 84%, transparent 100%);
       -webkit-mask-composite:source-over;
       mask-composite:add;
       transition:opacity .8s ease,transform .8s ease;
@@ -547,8 +549,8 @@
 
     @media (max-width:640px){
       .current .cover-subject-detail{
-        filter:blur(.65px) saturate(1.10) contrast(1.05);
-        -webkit-filter:blur(.65px) saturate(1.10) contrast(1.05);
+        filter:blur(.35px) saturate(1.11) contrast(1.06);
+        -webkit-filter:blur(.35px) saturate(1.11) contrast(1.06);
       }
 
       .current .cover-edge-detail{
@@ -1866,16 +1868,15 @@
       if(!card)return;
       resetCoverSubject(card);
 
-      // Trial art direction for the CURRENT cover only.
-      // The base cover remains centered; this second copy is gently shifted so a person
-      // from the artwork can live almost fully at the right edge where there is less text.
+      // Current-cover approval trial: preserve the centered/perimeter album treatment
+      // and isolate only the person-shaped portion of the duplicate near the empty top-right edge.
       if(song.id!=="dios-de-milagros")return;
-      card.style.setProperty("--subject-shift-x","9.0%");
-      card.style.setProperty("--subject-shift-y","1.5%");
-      card.style.setProperty("--subject-mask-x","91%");
-      card.style.setProperty("--subject-mask-y","68%");
-      card.style.setProperty("--subject-opacity",".82");
-      card.dataset.coverSubject="trial-dios-de-milagros-right-edge";
+      card.style.setProperty("--subject-shift-x","10.5%");
+      card.style.setProperty("--subject-shift-y","-18.0%");
+      card.style.setProperty("--subject-mask-x","92%");
+      card.style.setProperty("--subject-mask-y","18%");
+      card.style.setProperty("--subject-opacity",".94");
+      card.dataset.coverSubject="trial-dios-de-milagros-top-right-person-only";
     }
 
     function loadPaletteFromArtwork(url){
