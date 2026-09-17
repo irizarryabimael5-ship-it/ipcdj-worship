@@ -1,0 +1,48 @@
+name: One-time v35 progress repair
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-v35-progress-repair.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore progress helpers and reconcile standards
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p=Path('index.html')
+          s=p.read_text()
+          s=s.replace('content="blurred-cover-v35"','content="blurred-cover-v36"',1)
+
+          if 'function timelineFraction(now,start,end)' not in s:
+              anchor='''    function getCurrentSong(now){'''
+              block='''    function timelineFraction(now,start,end){\n      if(end<=start)return now>=end ? 1 : 0;\n      return clamp01((now-start)/(end-start));\n    }\n\n    function getProgressPalette(song,now){\n      const active=new Date(song.activeFrom).getTime();\n      const learningStart=new Date(song.learningStart).getTime();\n      const learningEnd=new Date(song.learningEnd).getTime();\n      const finalStart=new Date(song.finalStart).getTime();\n      const finalEnd=new Date(song.finalEnd).getTime();\n      const release=new Date(song.releaseAt).getTime();\n\n      let base;\n      let phaseText;\n\n      if(now<learningStart){\n        const t=timelineFraction(now,active,learningStart);\n        base=mixRgb(PROGRESS_COLORS.learningStart,PROGRESS_COLORS.learningEnd,t*.35);\n        phaseText="Próxima · entrando a aprendizaje";\n      }else if(now<=learningEnd){\n        const t=timelineFraction(now,learningStart,learningEnd);\n        base=mixRgb(PROGRESS_COLORS.learningStart,PROGRESS_COLORS.learningEnd,t);\n        phaseText="Aprendizaje";\n      }else if(now<finalStart){\n        const t=timelineFraction(now,learningEnd,finalStart);\n        base=mixRgb(PROGRESS_COLORS.learningEnd,PROGRESS_COLORS.finalStart,t);\n        phaseText="Transición a preparación final";\n      }else if(now<=finalEnd){\n        const t=timelineFraction(now,finalStart,finalEnd);\n        base=mixRgb(PROGRESS_COLORS.finalStart,PROGRESS_COLORS.finalEnd,t);\n        phaseText="Preparación final";\n      }else if(now<release){\n        const t=timelineFraction(now,finalEnd,release);\n        base=mixRgb(PROGRESS_COLORS.finalEnd,PROGRESS_COLORS.release,t);\n        phaseText="Acercándose al estreno";\n      }else{\n        base=PROGRESS_COLORS.release;\n        phaseText="Estreno";\n      }\n\n      const lighter=mixRgb(base,[255,255,255],.16);\n      const darker=mixRgb(base,[0,0,0],.06);\n\n      return {\n        start:rgb(darker),\n        end:rgb(lighter),\n        glow:rgba(base,.40),\n        soft:rgba(base,.075),\n        border:rgba(base,.28),\n        accent:rgb(base),\n        stageText:rgb(mixRgb(base,[255,255,255],.70)),\n        phaseText\n      };\n    }\n\n    function applyProgressPalette(song,now){\n      const wrap=document.querySelector(".progress-wrap");\n      if(!wrap)return;\n      const palette=getProgressPalette(song,now);\n      wrap.style.setProperty("--progress-c1",palette.start);\n      wrap.style.setProperty("--progress-c2",palette.end);\n      wrap.style.setProperty("--progress-glow",palette.glow);\n      wrap.style.setProperty("--progress-soft",palette.soft);\n      wrap.style.setProperty("--progress-border",palette.border);\n      wrap.dataset.progressPhase=palette.phaseText;\n\n      const card=$("current-song-card");\n      if(card){\n        card.style.setProperty("--stage-accent",palette.accent);\n        card.style.setProperty("--stage-soft",palette.soft);\n        card.style.setProperty("--stage-border",palette.border);\n        card.style.setProperty("--stage-text",palette.stageText);\n      }\n\n      const track=$("progress-track");\n      if(track)track.setAttribute("aria-valuetext",palette.phaseText);\n    }\n\n'''
+              if anchor not in s: raise SystemExit('getCurrentSong anchor not found')
+              s=s.replace(anchor,block+anchor,1)
+
+          p.write_text(s)
+
+          sw=Path('sw.js')
+          t=sw.read_text().replace('const CACHE_NAME = "ipcdj-worship-v35";','const CACHE_NAME = "ipcdj-worship-v36";',1)
+          sw.write_text(t)
+
+          st=Path('SITE_STANDARDS.md')
+          u=st.read_text()
+          u=u.replace('- Do not display album artwork itself unless separately requested; this feature uses the palette as atmospheric theming only.', '- The current-song card may display the official artwork only in the separately requested heavily blurred atmospheric treatment; never show a crisp distracting cover behind text.')
+          st.write_text(u)
+          PY
+
+          git config user.name "IPCDJ Worship Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html sw.js SITE_STANDARDS.md
+          git commit -m "Restore progress system after blurred-cover integration"
+          git push origin main
