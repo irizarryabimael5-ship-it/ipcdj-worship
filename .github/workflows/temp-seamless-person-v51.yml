@@ -1,0 +1,63 @@
+name: One-time seamless person v51
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-seamless-person-v51.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Replace hard subject seam with wide feathered layer mask
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          p=Path('index.html')
+          s=p.read_text()
+          if 'content="person-foreground-v50"' not in s:
+              raise SystemExit('expected v50 build marker not found')
+          s=s.replace('content="person-foreground-v50"','content="seamless-person-v51"',1)
+
+          desktop_pattern=r'''    \.current \.cover-subject-detail\{\n      position:absolute;\n      top:0;\n      right:0;\n      width:var\(--subject-width\);\n      height:var\(--subject-height\);\n      z-index:2;\n      pointer-events:none;\n      background-image:var\(--cover-image\);\n      background-size:var\(--subject-bg-size\) auto;\n      background-position:var\(--subject-bg-x\) var\(--subject-bg-y\);\n      background-repeat:no-repeat;\n      filter:blur\(\.04px\) saturate\(1\.16\) contrast\(1\.08\);\n      -webkit-filter:blur\(\.04px\) saturate\(1\.16\) contrast\(1\.08\);\n      opacity:var\(--subject-opacity\);\n      transform:none;\n      transform-origin:top right;\n      -webkit-mask-image:\n        linear-gradient\(90deg, transparent 0%, rgba\(0,0,0,\.08\) 6%, rgba\(0,0,0,\.34\) 12%, rgba\(0,0,0,\.78\) 20%, #000 30%, #000 100%\),\n        linear-gradient\(180deg, rgba\(0,0,0,\.18\) 0%, rgba\(0,0,0,\.72\) 8%, #000 16%, #000 87%, rgba\(0,0,0,\.64\) 94%, rgba\(0,0,0,\.12\) 100%\),\n        radial-gradient\(ellipse 42% 29% at 77% 22%, #000 0%, #000 49%, rgba\(0,0,0,\.94\) 60%, rgba\(0,0,0,\.68\) 72%, rgba\(0,0,0,\.30\) 84%, rgba\(0,0,0,\.08\) 94%, transparent 100%\),\n        radial-gradient\(ellipse 39% 49% at 75% 61%, #000 0%, #000 44%, rgba\(0,0,0,\.92\) 56%, rgba\(0,0,0,\.64\) 70%, rgba\(0,0,0,\.28\) 84%, rgba\(0,0,0,\.08\) 94%, transparent 100%\);\n      mask-image:\n        linear-gradient\(90deg, transparent 0%, rgba\(0,0,0,\.08\) 6%, rgba\(0,0,0,\.34\) 12%, rgba\(0,0,0,\.78\) 20%, #000 30%, #000 100%\),\n        linear-gradient\(180deg, rgba\(0,0,0,\.18\) 0%, rgba\(0,0,0,\.72\) 8%, #000 16%, #000 87%, rgba\(0,0,0,\.64\) 94%, rgba\(0,0,0,\.12\) 100%\),\n        radial-gradient\(ellipse 42% 29% at 77% 22%, #000 0%, #000 49%, rgba\(0,0,0,\.94\) 60%, rgba\(0,0,0,\.68\) 72%, rgba\(0,0,0,\.30\) 84%, rgba\(0,0,0,\.08\) 94%, transparent 100%\),\n        radial-gradient\(ellipse 39% 49% at 75% 61%, #000 0%, #000 44%, rgba\(0,0,0,\.92\) 56%, rgba\(0,0,0,\.64\) 70%, rgba\(0,0,0,\.28\) 84%, rgba\(0,0,0,\.08\) 94%, transparent 100%\);\n      -webkit-mask-composite:source-over;\n      mask-composite:add;\n      transition:opacity \.8s ease;\n      will-change:opacity;\n    \}'''
+
+          desktop_new='''    .current .cover-subject-detail{\n      position:absolute;\n      top:0;\n      right:0;\n      width:var(--subject-width);\n      height:var(--subject-height);\n      z-index:2;\n      pointer-events:none;\n      background-image:var(--cover-image);\n      background-size:var(--subject-bg-size) auto;\n      background-position:var(--subject-bg-x) var(--subject-bg-y);\n      background-repeat:no-repeat;\n      filter:brightness(.97) saturate(1.10) contrast(1.04);\n      -webkit-filter:brightness(.97) saturate(1.10) contrast(1.04);\n      opacity:var(--subject-opacity);\n      transform:none;\n      transform-origin:top right;\n      /* Professional-composite style feather: one continuous alpha mask instead of\n         additive masks, so there is no rectangular seam where the subject layer begins. */\n      -webkit-mask-image:linear-gradient(90deg,\n        transparent 0%,\n        rgba(0,0,0,.025) 7%,\n        rgba(0,0,0,.08) 14%,\n        rgba(0,0,0,.18) 22%,\n        rgba(0,0,0,.34) 31%,\n        rgba(0,0,0,.54) 40%,\n        rgba(0,0,0,.72) 49%,\n        rgba(0,0,0,.86) 57%,\n        rgba(0,0,0,.95) 64%,\n        #000 72%,\n        #000 100%);\n      mask-image:linear-gradient(90deg,\n        transparent 0%,\n        rgba(0,0,0,.025) 7%,\n        rgba(0,0,0,.08) 14%,\n        rgba(0,0,0,.18) 22%,\n        rgba(0,0,0,.34) 31%,\n        rgba(0,0,0,.54) 40%,\n        rgba(0,0,0,.72) 49%,\n        rgba(0,0,0,.86) 57%,\n        rgba(0,0,0,.95) 64%,\n        #000 72%,\n        #000 100%);\n      -webkit-mask-repeat:no-repeat;\n      mask-repeat:no-repeat;\n      transition:opacity .8s ease;\n      will-change:opacity;\n    }'''
+
+          s,n=re.subn(desktop_pattern,desktop_new,s,count=1)
+          if n!=1:
+              raise SystemExit('desktop subject block not found')
+
+          mobile_pattern=r'''      \.current \.cover-subject-detail\{\n        top:0;\n        right:0;\n        width:38%;\n        height:31%;\n        z-index:2;\n        background-size:380% auto;\n        background-position:89% 64%;\n        filter:blur\(\.08px\) saturate\(1\.14\) contrast\(1\.06\);\n        -webkit-filter:blur\(\.08px\) saturate\(1\.14\) contrast\(1\.06\);\n        -webkit-mask-image:\n          linear-gradient\(90deg, transparent 0%, rgba\(0,0,0,\.08\) 6%, rgba\(0,0,0,\.30\) 12%, rgba\(0,0,0,\.74\) 20%, #000 31%, #000 100%\),\n          linear-gradient\(180deg, rgba\(0,0,0,\.16\) 0%, rgba\(0,0,0,\.68\) 8%, #000 16%, #000 87%, rgba\(0,0,0,\.58\) 94%, rgba\(0,0,0,\.10\) 100%\),\n          radial-gradient\(ellipse 44% 30% at 78% 22%, #000 0%, #000 47%, rgba\(0,0,0,\.92\) 59%, rgba\(0,0,0,\.64\) 72%, rgba\(0,0,0,\.28\) 85%, rgba\(0,0,0,\.07\) 94%, transparent 100%\),\n          radial-gradient\(ellipse 41% 51% at 76% 62%, #000 0%, #000 42%, rgba\(0,0,0,\.90\) 55%, rgba\(0,0,0,\.60\) 70%, rgba\(0,0,0,\.24\) 84%, rgba\(0,0,0,\.06\) 94%, transparent 100%\);\n        mask-image:\n          linear-gradient\(90deg, transparent 0%, rgba\(0,0,0,\.08\) 6%, rgba\(0,0,0,\.30\) 12%, rgba\(0,0,0,\.74\) 20%, #000 31%, #000 100%\),\n          linear-gradient\(180deg, rgba\(0,0,0,\.16\) 0%, rgba\(0,0,0,\.68\) 8%, #000 16%, #000 87%, rgba\(0,0,0,\.58\) 94%, rgba\(0,0,0,\.10\) 100%\),\n          radial-gradient\(ellipse 44% 30% at 78% 22%, #000 0%, #000 47%, rgba\(0,0,0,\.92\) 59%, rgba\(0,0,0,\.64\) 72%, rgba\(0,0,0,\.28\) 85%, rgba\(0,0,0,\.07\) 94%, transparent 100%\),\n          radial-gradient\(ellipse 41% 51% at 76% 62%, #000 0%, #000 42%, rgba\(0,0,0,\.90\) 55%, rgba\(0,0,0,\.60\) 70%, rgba\(0,0,0,\.24\) 84%, rgba\(0,0,0,\.06\) 94%, transparent 100%\);\n      \}'''
+
+          mobile_new='''      .current .cover-subject-detail{\n        top:0;\n        right:0;\n        width:38%;\n        height:31%;\n        z-index:2;\n        background-size:380% auto;\n        background-position:89% 64%;\n        filter:brightness(.97) saturate(1.08) contrast(1.03);\n        -webkit-filter:brightness(.97) saturate(1.08) contrast(1.03);\n        -webkit-mask-image:linear-gradient(90deg,\n          transparent 0%,\n          rgba(0,0,0,.02) 8%,\n          rgba(0,0,0,.07) 16%,\n          rgba(0,0,0,.17) 25%,\n          rgba(0,0,0,.32) 34%,\n          rgba(0,0,0,.52) 44%,\n          rgba(0,0,0,.71) 53%,\n          rgba(0,0,0,.86) 61%,\n          rgba(0,0,0,.95) 68%,\n          #000 76%,\n          #000 100%);\n        mask-image:linear-gradient(90deg,\n          transparent 0%,\n          rgba(0,0,0,.02) 8%,\n          rgba(0,0,0,.07) 16%,\n          rgba(0,0,0,.17) 25%,\n          rgba(0,0,0,.32) 34%,\n          rgba(0,0,0,.52) 44%,\n          rgba(0,0,0,.71) 53%,\n          rgba(0,0,0,.86) 61%,\n          rgba(0,0,0,.95) 68%,\n          #000 76%,\n          #000 100%);\n        -webkit-mask-repeat:no-repeat;\n        mask-repeat:no-repeat;\n      }'''
+
+          s,n=re.subn(mobile_pattern,mobile_new,s,count=1)
+          if n!=1:
+              raise SystemExit('mobile subject block not found')
+          p.write_text(s)
+
+          sw=Path('sw.js')
+          t=sw.read_text()
+          if 'const CACHE_NAME = "ipcdj-worship-v50";' not in t:
+              raise SystemExit('expected v50 sw marker not found')
+          sw.write_text(t.replace('const CACHE_NAME = "ipcdj-worship-v50";','const CACHE_NAME = "ipcdj-worship-v51";',1))
+
+          st=Path('SITE_STANDARDS.md')
+          u=st.read_text()
+          note='''\n\n## Seamless person composite v51\n\nThe isolated person overlay must use the same visual principle as a professional feathered layer mask: the foreground subject remains readable, but the edge of its source rectangle must never be visible. The left transition into the centered base artwork uses one continuous, wide alpha-gradient mask rather than several additive masks. This prevents a hard vertical seam and avoids browser differences in multi-mask compositing. Desktop and mobile both keep a long feather zone, with mobile slightly wider. The base centered album-cover atmosphere remains unchanged underneath.\n'''
+          if '## Seamless person composite v51' not in u:
+              st.write_text(u+note)
+          PY
+
+          git config user.name "IPCDJ Worship Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html sw.js SITE_STANDARDS.md
+          git commit -m "Blend person overlay seamlessly into album background"
+          git push origin main
