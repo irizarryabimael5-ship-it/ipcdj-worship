@@ -566,3 +566,8 @@ When an isolated person crop sits above the official album-art background, feath
 ## Mobile subject focal placement v56
 
 Preserve the approved desktop/tablet landscape person composition. On narrow mobile layouts, tune only the subject crop and horizontal focal position so the person remains close to the top-right corner without being cut off or drifting too far left. Keep the v55 all-edge feathering unchanged. Prefer small breakpoint-specific adjustments to `right`, `width`, `background-size`, and `background-position` rather than changing the shared desktop composition.
+
+
+## Mobile subject direction correction v57
+
+For oversized subject background crops, remember that increasing percentage-based `background-position-x` can move visible artwork left because the image is larger than its positioning area. On mobile, when the person appears too far left, reduce the horizontal background-position percentage and, if necessary, nudge the overlay box slightly right. Preserve the v55 feather masks and approved desktop/tablet composition.
