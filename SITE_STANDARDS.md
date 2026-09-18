@@ -561,3 +561,8 @@ The isolated person overlay must never expose a rectangular source edge. Use one
 ## Soft edge-intersection subject blend v55
 
 When an isolated person crop sits above the official album-art background, feather the crop like a professional layer mask rather than fading the whole subject. Preserve a fully visible interior and soften only the crop boundaries. Implement this with separate horizontal and vertical alpha gradients intersected together so the left/right and top/bottom edges each receive independent feathering. The bottom and left edges may use a broader transition; top/right edges may use a shorter transition when they sit near the card boundary. Keep both the standard `mask-composite: intersect` path and the WebKit `-webkit-mask-composite: source-in` path for Safari/iOS compatibility. Mobile may use its own crop/position values so the person stays visible without changing the approved desktop composition.
+
+
+## Mobile subject focal placement v56
+
+Preserve the approved desktop/tablet landscape person composition. On narrow mobile layouts, tune only the subject crop and horizontal focal position so the person remains close to the top-right corner without being cut off or drifting too far left. Keep the v55 all-edge feathering unchanged. Prefer small breakpoint-specific adjustments to `right`, `width`, `background-size`, and `background-position` rather than changing the shared desktop composition.
