@@ -556,3 +556,8 @@ After the eraser-style seam treatment, the isolated person should remain clearly
 ## All-edge person feather and responsive placement v54
 
 The isolated person overlay must never expose a rectangular source edge. Use one continuous top-right radial alpha feather so every exposed boundary of the snippet, especially the left and bottom edges, dissolves smoothly into the centered album-cover background. Preserve strong subject visibility near the top-right while fading progressively toward the lower-left. On narrow/mobile layouts, tune the subject crop independently so the person remains clearly visible rather than drifting too far left or disappearing into the background; keep the layer slightly wider, slightly farther right, and less tightly zoomed as needed. The rest of the current-song artwork treatment remains unchanged.
+
+
+## Soft edge-intersection subject blend v55
+
+When an isolated person crop sits above the official album-art background, feather the crop like a professional layer mask rather than fading the whole subject. Preserve a fully visible interior and soften only the crop boundaries. Implement this with separate horizontal and vertical alpha gradients intersected together so the left/right and top/bottom edges each receive independent feathering. The bottom and left edges may use a broader transition; top/right edges may use a shorter transition when they sit near the card boundary. Keep both the standard `mask-composite: intersect` path and the WebKit `-webkit-mask-composite: source-in` path for Safari/iOS compatibility. Mobile may use its own crop/position values so the person stays visible without changing the approved desktop composition.
