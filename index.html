@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="all-edge-person-feather-v54" />
+  <meta name="ipcdj-build" content="soft-edge-person-v55" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -531,32 +531,67 @@
       opacity:var(--subject-opacity);
       transform:none;
       transform-origin:top right;
-      /* One continuous top-right feather. This behaves like a soft eraser around the
-         exposed snippet edges, so both the left and bottom boundaries dissolve naturally. */
-      -webkit-mask-image:radial-gradient(ellipse 115% 115% at 100% 0%,
-        #000 0%,
-        #000 48%,
-        rgba(0,0,0,.94) 58%,
-        rgba(0,0,0,.78) 68%,
-        rgba(0,0,0,.56) 77%,
-        rgba(0,0,0,.34) 85%,
-        rgba(0,0,0,.15) 92%,
-        rgba(0,0,0,.04) 97%,
-        transparent 100%);
-      mask-image:radial-gradient(ellipse 115% 115% at 100% 0%,
-        #000 0%,
-        #000 48%,
-        rgba(0,0,0,.94) 58%,
-        rgba(0,0,0,.78) 68%,
-        rgba(0,0,0,.56) 77%,
-        rgba(0,0,0,.34) 85%,
-        rgba(0,0,0,.15) 92%,
-        rgba(0,0,0,.04) 97%,
-        transparent 100%);
-      -webkit-mask-mode:alpha;
-      mask-mode:alpha;
-      -webkit-mask-repeat:no-repeat;
-      mask-repeat:no-repeat;
+      /* Photoshop-style edge feather:
+         horizontal mask softens left/right edges; vertical mask softens top/bottom.
+         Intersecting the two masks keeps the person intact while erasing only the boundaries. */
+      -webkit-mask-image:
+        linear-gradient(90deg,
+          transparent 0%,
+          rgba(0,0,0,.05) 6%,
+          rgba(0,0,0,.15) 12%,
+          rgba(0,0,0,.35) 18%,
+          rgba(0,0,0,.60) 24%,
+          rgba(0,0,0,.82) 30%,
+          rgba(0,0,0,.95) 36%,
+          #000 42%,
+          #000 98%,
+          rgba(0,0,0,.45) 99%,
+          transparent 100%),
+        linear-gradient(180deg,
+          transparent 0%,
+          rgba(0,0,0,.35) 2%,
+          rgba(0,0,0,.75) 5%,
+          rgba(0,0,0,.95) 8%,
+          #000 11%,
+          #000 72%,
+          rgba(0,0,0,.95) 77%,
+          rgba(0,0,0,.82) 83%,
+          rgba(0,0,0,.58) 89%,
+          rgba(0,0,0,.32) 94%,
+          rgba(0,0,0,.12) 97%,
+          transparent 100%);
+      mask-image:
+        linear-gradient(90deg,
+          transparent 0%,
+          rgba(0,0,0,.05) 6%,
+          rgba(0,0,0,.15) 12%,
+          rgba(0,0,0,.35) 18%,
+          rgba(0,0,0,.60) 24%,
+          rgba(0,0,0,.82) 30%,
+          rgba(0,0,0,.95) 36%,
+          #000 42%,
+          #000 98%,
+          rgba(0,0,0,.45) 99%,
+          transparent 100%),
+        linear-gradient(180deg,
+          transparent 0%,
+          rgba(0,0,0,.35) 2%,
+          rgba(0,0,0,.75) 5%,
+          rgba(0,0,0,.95) 8%,
+          #000 11%,
+          #000 72%,
+          rgba(0,0,0,.95) 77%,
+          rgba(0,0,0,.82) 83%,
+          rgba(0,0,0,.58) 89%,
+          rgba(0,0,0,.32) 94%,
+          rgba(0,0,0,.12) 97%,
+          transparent 100%);
+      -webkit-mask-composite:source-in;
+      mask-composite:intersect;
+      -webkit-mask-mode:alpha,alpha;
+      mask-mode:alpha,alpha;
+      -webkit-mask-repeat:no-repeat,no-repeat;
+      mask-repeat:no-repeat,no-repeat;
       transition:opacity .8s ease;
       will-change:opacity;
     }
@@ -580,38 +615,68 @@
     @media (max-width:640px){
       .current .cover-subject-detail{
         top:0;
-        right:-2%;
-        width:42%;
-        height:34%;
+        right:-1%;
+        width:40%;
+        height:32%;
         z-index:2;
-        background-size:350% auto;
-        background-position:94% 63%;
+        background-size:370% auto;
+        background-position:92% 64%;
         filter:brightness(1.03) saturate(1.13) contrast(1.05);
         -webkit-filter:brightness(1.03) saturate(1.13) contrast(1.05);
-        -webkit-mask-image:radial-gradient(ellipse 124% 120% at 100% 0%,
-          #000 0%,
-          #000 50%,
-          rgba(0,0,0,.95) 59%,
-          rgba(0,0,0,.82) 68%,
-          rgba(0,0,0,.62) 77%,
-          rgba(0,0,0,.40) 85%,
-          rgba(0,0,0,.19) 92%,
-          rgba(0,0,0,.05) 97%,
-          transparent 100%);
-        mask-image:radial-gradient(ellipse 124% 120% at 100% 0%,
-          #000 0%,
-          #000 50%,
-          rgba(0,0,0,.95) 59%,
-          rgba(0,0,0,.82) 68%,
-          rgba(0,0,0,.62) 77%,
-          rgba(0,0,0,.40) 85%,
-          rgba(0,0,0,.19) 92%,
-          rgba(0,0,0,.05) 97%,
-          transparent 100%);
-        -webkit-mask-mode:alpha;
-        mask-mode:alpha;
-        -webkit-mask-repeat:no-repeat;
-        mask-repeat:no-repeat;
+        -webkit-mask-image:
+          linear-gradient(90deg,
+            transparent 0%,
+            rgba(0,0,0,.07) 5%,
+            rgba(0,0,0,.20) 11%,
+            rgba(0,0,0,.42) 17%,
+            rgba(0,0,0,.68) 23%,
+            rgba(0,0,0,.88) 29%,
+            #000 36%,
+            #000 98%,
+            rgba(0,0,0,.50) 99%,
+            transparent 100%),
+          linear-gradient(180deg,
+            transparent 0%,
+            rgba(0,0,0,.42) 2%,
+            rgba(0,0,0,.80) 5%,
+            #000 9%,
+            #000 74%,
+            rgba(0,0,0,.96) 79%,
+            rgba(0,0,0,.84) 84%,
+            rgba(0,0,0,.62) 90%,
+            rgba(0,0,0,.34) 95%,
+            rgba(0,0,0,.12) 98%,
+            transparent 100%);
+        mask-image:
+          linear-gradient(90deg,
+            transparent 0%,
+            rgba(0,0,0,.07) 5%,
+            rgba(0,0,0,.20) 11%,
+            rgba(0,0,0,.42) 17%,
+            rgba(0,0,0,.68) 23%,
+            rgba(0,0,0,.88) 29%,
+            #000 36%,
+            #000 98%,
+            rgba(0,0,0,.50) 99%,
+            transparent 100%),
+          linear-gradient(180deg,
+            transparent 0%,
+            rgba(0,0,0,.42) 2%,
+            rgba(0,0,0,.80) 5%,
+            #000 9%,
+            #000 74%,
+            rgba(0,0,0,.96) 79%,
+            rgba(0,0,0,.84) 84%,
+            rgba(0,0,0,.62) 90%,
+            rgba(0,0,0,.34) 95%,
+            rgba(0,0,0,.12) 98%,
+            transparent 100%);
+        -webkit-mask-composite:source-in;
+        mask-composite:intersect;
+        -webkit-mask-mode:alpha,alpha;
+        mask-mode:alpha,alpha;
+        -webkit-mask-repeat:no-repeat,no-repeat;
+        mask-repeat:no-repeat,no-repeat;
       }
 
       .current .cover-edge-detail{
