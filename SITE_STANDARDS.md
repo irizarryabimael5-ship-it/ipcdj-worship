@@ -551,3 +551,8 @@ The isolated person overlay uses a deliberately low-opacity feather across most 
 ## Person visibility balance v53
 
 After the eraser-style seam treatment, the isolated person should remain clearly readable. Preserve the long transparent-to-opaque blend that removes the cut line, but let opacity recover somewhat earlier through the middle and right side of the subject region. Slightly harmonize brightness, saturation, and contrast so the person has presence without looking pasted on. Mobile may recover a little earlier than desktop while retaining the same seamless edge principle.
+
+
+## All-edge person feather and responsive placement v54
+
+The isolated person overlay must never expose a rectangular source edge. Use one continuous top-right radial alpha feather so every exposed boundary of the snippet, especially the left and bottom edges, dissolves smoothly into the centered album-cover background. Preserve strong subject visibility near the top-right while fading progressively toward the lower-left. On narrow/mobile layouts, tune the subject crop independently so the person remains clearly visible rather than drifting too far left or disappearing into the background; keep the layer slightly wider, slightly farther right, and less tightly zoomed as needed. The rest of the current-song artwork treatment remains unchanged.
