@@ -70,11 +70,9 @@
           link.crossOrigin="anonymous";
           document.head.appendChild(link);
 
-          const safeId=String(record.songId).replace(/["\\]/g,"\\  <script>
-    // Opening the canonical domain always checks the deployed HTML before the app settles.");
-          const safeUrl=String(record.url).replace(/["\\()]/g,"\\  <script>
-    // Opening the canonical domain always checks the deployed HTML before the app settles.");
-          css.push('#current-song-cards [data-song-id="'+safeId+'"]{--cover-image:url("'+safeUrl+'")}');
+          const safeId=CSS.escape(String(record.songId));
+          const cssUrl=String(record.url).replace(/\\/g,"\\\\").replace(/"/g,'\\"');
+          css.push('#current-song-cards [data-song-id="'+safeId+'"]{--cover-image:url("'+cssUrl+'")}');
         });
 
         if(css.length){
