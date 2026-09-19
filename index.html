@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="current-song-preview-v75" />
+  <meta name="ipcdj-build" content="inline-chorus-preview-v76" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -1095,39 +1095,27 @@
       line-height:1.45;
     }
 
-    .preview-card{
-      --preview-accent:137,169,255;
+    .inline-preview{
+      margin-top:14px;
+      padding-top:13px;
+      border-top:1px solid rgba(255,255,255,.075);
       opacity:0;
-      transform:translateY(10px);
-      transition:opacity .48s cubic-bezier(.2,.65,.2,1),transform .48s cubic-bezier(.2,.65,.2,1);
+      transform:translateY(7px);
+      transition:opacity .42s cubic-bezier(.2,.65,.2,1),transform .42s cubic-bezier(.2,.65,.2,1);
     }
 
-    .preview-card.preview-ready{
+    .inline-preview.preview-ready{
       opacity:1;
       transform:translateY(0);
     }
 
-    .preview-heading{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:14px;
-      margin-bottom:14px;
-    }
-
-    .preview-heading .section-note{margin-bottom:0}
-
-    .preview-badge{
-      flex:0 0 auto;
-      border:1px solid rgba(255,255,255,.10);
-      background:rgba(255,255,255,.035);
-      color:#dce5f8;
-      border-radius:999px;
-      padding:6px 9px;
-      font-size:.72rem;
+    .inline-preview-label{
+      margin:0 0 9px;
+      color:#dfe5f1;
+      font-size:.75rem;
       font-weight:800;
-      letter-spacing:.04em;
-      white-space:nowrap;
+      letter-spacing:.055em;
+      text-transform:uppercase;
     }
 
     .preview-queue{
@@ -1138,7 +1126,7 @@
     .preview-row{
       --preview-progress:0%;
       display:grid;
-      grid-template-columns:54px minmax(0,1fr) 46px;
+      grid-template-columns:minmax(0,1fr) 46px;
       align-items:center;
       gap:12px;
       min-width:0;
@@ -1163,23 +1151,6 @@
       box-shadow:0 0 10px var(--stage-accent,#89a9ff);
       transition:width .08s linear;
     }
-
-    .preview-art{
-      width:54px;
-      height:54px;
-      border-radius:12px;
-      overflow:hidden;
-      background:
-        linear-gradient(135deg,rgba(var(--cover-c1,96,62,44),.55),rgba(var(--cover-c2,166,108,61),.20)),
-        rgba(255,255,255,.035);
-      background-size:cover;
-      background-position:center;
-      box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),0 8px 24px rgba(0,0,0,.18);
-      opacity:.82;
-      transition:opacity .55s ease;
-    }
-
-    .preview-row.is-playing .preview-art{opacity:1}
 
     .preview-copy{
       min-width:0;
@@ -1238,19 +1209,17 @@
     @media (max-width:520px){
       .preview-heading{align-items:center}
       .preview-row{
-        grid-template-columns:48px minmax(0,1fr) 44px;
+        grid-template-columns:minmax(0,1fr) 44px;
         gap:10px;
         padding:10px;
       }
-      .preview-art{width:48px;height:48px;border-radius:11px}
       .preview-button{width:44px;height:44px}
       .preview-song{font-size:.91rem}
     }
 
     @media (max-width:300px){
       .preview-heading{flex-direction:column;gap:8px}
-      .preview-row{grid-template-columns:42px minmax(0,1fr) 40px}
-      .preview-art{width:42px;height:42px}
+      .preview-row{grid-template-columns:minmax(0,1fr) 40px}
       .preview-button{width:40px;height:40px}
     }
 
@@ -1712,7 +1681,7 @@
       .current .cover-edge-detail,
       .current .cover-subject-detail{transition:none!important}
       .ambient-field{opacity:.46!important}.ambient-blob{animation:none!important}
-      .preview-card,.preview-art,.preview-button{transition:none!important}
+      .inline-preview,.preview-button{transition:none!important}
       .platform{transition:none}
       .progress-fill{transition:none}
       .progress-wrap{transition:none}
@@ -1771,17 +1740,6 @@
     </section>
 
     <div id="current-song-cards" class="current-song-cards" aria-live="polite"></div>
-
-    <section class="card preview-card" id="preview-section" hidden aria-labelledby="preview-title">
-      <div class="preview-heading">
-        <div>
-          <h2 class="section-title" id="preview-title">Adelanto</h2>
-          <p class="section-note">Escucha un fragmento clave de la canción en preparación.</p>
-        </div>
-        <span class="preview-badge">10–15 s</span>
-      </div>
-      <div class="preview-queue" id="preview-queue"></div>
-    </section>
 
     <section class="card reveal">
       <h2 class="section-title">Después</h2>
@@ -2182,7 +2140,9 @@
         artist:"Miel San Marcos & Kim Richards",
         artworkQuery:"Dios De Milagros En Vivo Desde México Miel San Marcos Kim Richards",
         itunesCollectionId:"6799307691",
-        previewClipDuration:12,
+        previewClipDuration:15,
+        previewClipStart:0,
+        previewClipSection:"chorus",
         activeFrom:"2026-09-14T00:00:00-04:00",
         learningStart:"2026-09-14T00:00:00-04:00",
         learningEnd:"2026-09-20T23:59:59-04:00",
@@ -2199,6 +2159,7 @@
         title:"Glorioso Día",
         artist:"Passion Music",
         artworkQuery:"Glorioso Día Passion Kristian Stanfill 2017",
+        previewClipDuration:15,
         activeFrom:"2026-09-28T06:00:00-04:00",
         learningStart:"2026-10-12T00:00:00-04:00",
         learningEnd:"2026-10-18T23:59:59-04:00",
@@ -2216,6 +2177,7 @@
         artist:"Saddleback Worship",
         artworkQuery:"No Fallarás En Vivo Saddleback Worship 2024",
         itunesCollectionId:"1760002960",
+        previewClipDuration:15,
         activeFrom:"2026-10-26T06:00:00-04:00",
         learningStart:"2026-10-26T00:00:00-04:00",
         learningEnd:"2026-11-01T23:59:59-05:00",
@@ -2459,7 +2421,6 @@
       card.style.setProperty("--cover-image",'url("'+safe+'")');
       card.dataset.coverArtwork=song.id;
       card.dataset.coverArtworkUrl=resolvedUrl;
-      syncPreviewArtwork(song,resolvedUrl);
       revealCoverWhenLoaded(card,resolvedUrl);
     }
 
@@ -2740,7 +2701,6 @@
 
     const PREVIEW_CACHE_PREFIX="ipcdj-song-preview-v1:";
     const previewClipPromises=new Map();
-    let previewQueueSignature="";
     let previewAudio=null;
     let activePreviewSongId="";
     let previewFrame=0;
@@ -2766,14 +2726,6 @@
       button.setAttribute("aria-label",state==="pause"?"Pausar adelanto":state==="loading"?"Preparando adelanto":"Reproducir adelanto");
       row.classList.toggle("is-playing",state==="pause");
       row.classList.toggle("is-loading",state==="loading");
-    }
-
-    function syncPreviewArtwork(song,url){
-      const row=document.querySelector('[data-preview-song-id="'+CSS.escape(song.id)+'"]');
-      const art=row&&row.querySelector(".preview-art");
-      if(!art||!url)return;
-      const safe=highResolutionArtworkUrl(url).replace(/["'\\()]/g,m=>"\\"+m);
-      art.style.backgroundImage='url("'+safe+'")';
     }
 
     async function resolveItunesPreviewData(song){
@@ -2848,7 +2800,7 @@
 
     function strongestPreviewWindow(audioBuffer,durationSeconds){
       const total=audioBuffer.duration||30;
-      const clipDuration=Math.min(Math.max(10,durationSeconds||12),15,Math.max(10,total-1));
+      const clipDuration=Math.min(15,Math.max(1,total-1));
       if(total<=clipDuration+1)return {start:0,duration:Math.max(1,total)};
 
       const {frames,frameSeconds}=energyFrames(audioBuffer,.20);
@@ -2881,9 +2833,19 @@
     }
 
     async function analyzePreviewClip(song,previewUrl){
-      if(Number.isFinite(song.previewClipStart)){
-        return {start:Math.max(0,song.previewClipStart),duration:Math.min(15,Math.max(10,song.previewClipDuration||12)),source:"manual"};
+      if(song.previewClipSection==="chorus"&&Number.isFinite(song.previewClipStart)){
+        return {
+          start:Math.max(0,song.previewClipStart),
+          duration:15,
+          source:"manual-chorus",
+          section:"chorus"
+        };
       }
+
+      // Never claim a chorus based only on loudness. If chorus metadata has not
+      // been explicitly configured for the song, analysis is allowed only as a
+      // temporary fallback and the UI labels it as unconfirmed.
+
 
       try{
         const response=await fetch(previewUrl,{cache:"force-cache"});
@@ -2894,13 +2856,13 @@
         const context=new AudioCtx();
         try{
           const buffer=await context.decodeAudioData(bytes.slice(0));
-          const clip=strongestPreviewWindow(buffer,song.previewClipDuration||12);
+          const clip=strongestPreviewWindow(buffer,15);
           return {...clip,source:"energy"};
         }finally{
           context.close().catch(()=>{});
         }
       }catch(_){
-        return {start:8,duration:Math.min(15,Math.max(10,song.previewClipDuration||12)),source:"fallback"};
+        return {start:8,duration:15,source:"fallback"};
       }
     }
 
@@ -2914,7 +2876,7 @@
 
     function previewFallbackClip(song,audio){
       const duration=Number.isFinite(audio.duration)&&audio.duration>0?audio.duration:30;
-      const clipDuration=Math.min(15,Math.max(10,song.previewClipDuration||12),Math.max(10,duration-1));
+      const clipDuration=Math.min(15,Math.max(10,15),Math.max(10,duration-1));
       return {
         start:Math.max(0,Math.min(duration-clipDuration,Math.max(2,(duration-clipDuration)/2))),
         duration:clipDuration,
@@ -3066,13 +3028,10 @@
     function previewRowMarkup(song){
       return `
         <div class="preview-row" data-preview-song-id="${escapeHtml(song.id)}" data-preview-state="loading">
-          <div class="preview-art" aria-hidden="true"></div>
           <div class="preview-copy">
-            <p class="preview-song">${escapeHtml(song.title)}</p>
-            <p class="preview-artist">${escapeHtml(song.artist)}</p>
-            <div class="preview-meta" data-preview-meta>Preparando adelanto…</div>
+            <div class="preview-meta" data-preview-meta>Preparando coro…</div>
           </div>
-          <button class="preview-button" type="button" disabled aria-label="Preparando adelanto">
+          <button class="preview-button" type="button" disabled aria-label="Preparando coro">
             ${previewIcon("loading")}
           </button>
         </div>
@@ -3086,21 +3045,22 @@
         const data=await resolveItunesPreviewData(song);
         if(!row.isConnected)return;
         row._previewData=data;
-        if(data.artworkUrl)syncPreviewArtwork(song,data.artworkUrl);
-
-        const card=document.querySelector('[data-current-song-card][data-song-id="'+CSS.escape(song.id)+'"]');
-        if(card&&card.dataset.coverArtworkUrl)syncPreviewArtwork(song,card.dataset.coverArtworkUrl);
-
         const meta=row.querySelector("[data-preview-meta]");
-        if(meta)meta.textContent="Fragmento destacado · "+Math.min(15,Math.max(10,song.previewClipDuration||12))+" s";
+        if(meta){
+          meta.textContent=song.previewClipSection==="chorus"
+            ? "Coro · 15 s"
+            : "Coro pendiente de confirmar";
+        }
 
         const button=row.querySelector(".preview-button");
-        if(button){
+        if(button&&!button.dataset.bound){
           button.disabled=false;
           button.innerHTML=previewIcon("play");
-          button.setAttribute("aria-label","Reproducir adelanto de "+song.title);
+          button.setAttribute("aria-label","Reproducir coro de "+song.title);
+          button.dataset.bound="true";
           button.addEventListener("click",()=>playPreviewSong(song,data));
         }
+        row._previewData=data;
 
         // Analyze quietly after the official preview is known so a later tap can
         // jump directly to the song's strongest available section.
@@ -3109,32 +3069,12 @@
         else setTimeout(prepare,900);
       }catch(_){
         const meta=row.querySelector("[data-preview-meta]");
-        if(meta)meta.textContent="Adelanto no disponible";
+        if(meta)meta.textContent="Coro no disponible";
         const button=row.querySelector(".preview-button");
         if(button){button.disabled=true;button.innerHTML=previewIcon("play")}
       }
     }
 
-    function syncPreviewQueue(songs){
-      const section=$("preview-section");
-      const queue=$("preview-queue");
-      if(!section||!queue)return;
-
-      const signature=songs.map(song=>song.id).join("|");
-      if(!signature){
-        previewQueueSignature="";
-        section.classList.remove("preview-ready");
-        section.hidden=true;
-        return;
-      }
-      if(signature===previewQueueSignature)return;
-      previewQueueSignature=signature;
-
-      queue.innerHTML=songs.map(previewRowMarkup).join("");
-      section.hidden=false;
-      requestAnimationFrame(()=>requestAnimationFrame(()=>section.classList.add("preview-ready")));
-      songs.forEach(hydratePreviewRow);
-    }
 
     function covQuerySignature(song){
       return [
@@ -3444,6 +3384,13 @@
           <h2 class="song-name" data-role="song-name">${escapeHtml(song.title)}</h2>
           <p class="artist" data-role="artist">${escapeHtml(song.artist)}</p>
 
+          <div class="inline-preview" data-role="inline-preview">
+            <div class="inline-preview-label">Escuchar coro</div>
+            <div class="preview-queue">
+              ${previewRowMarkup(song)}
+            </div>
+          </div>
+
           <div class="countdown-wrap" data-role="countdown-wrap">
             <div class="countdown-heading">
               <span class="countdown-kicker">Cuenta regresiva al estreno</span>
@@ -3579,14 +3526,23 @@
 
       if(!current.length){
         renderEmptyCurrent();
-        syncPreviewQueue([]);
         renderUpcoming(new Set(),now);
         renderIntroduced(now);
         return;
       }
 
       syncCurrentCards(current);
-      syncPreviewQueue(current.map(({song})=>song));
+      current.forEach(({song})=>{
+        const row=document.querySelector('[data-preview-song-id="'+CSS.escape(song.id)+'"]');
+        const inline=row&&row.closest(".inline-preview");
+        if(row&&!row.dataset.hydrating&&!row._previewData){
+          row.dataset.hydrating="true";
+          hydratePreviewRow(song).finally(()=>{
+            if(row.isConnected)delete row.dataset.hydrating;
+          });
+        }
+        if(inline)requestAnimationFrame(()=>inline.classList.add("preview-ready"));
+      });
       const activeIds=new Set(current.map(({song})=>song.id));
       current.forEach(({song})=>{
         const card=document.querySelector('[data-current-song-card][data-song-id="'+CSS.escape(song.id)+'"]');
