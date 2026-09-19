@@ -581,3 +581,8 @@ Keep the approved v57 mobile subject position and crop. On narrow mobile layouts
 ## Mobile lower-body continuity v59
 
 On narrow mobile layouts, avoid making an isolated worship-subject crop read like a torso cut off at the bottom. Preserve the approved horizontal placement and side feathering, reveal slightly more lower body by extending the subject region vertically, and move the bottom feather lower so the visible body transitions naturally into the album-art background. The fade should remain gradual and edge-focused rather than reducing the subject's overall presence.
+
+
+## Mobile bottom-edge feather v60
+
+When the lower-body crop is already positioned correctly, do not move or resize the subject. Refine only the bottom mask boundary so the exact line where the body ends dissolves more gradually into the album-art background. Preserve side feathering, subject visibility, and all desktop/tablet placement.
