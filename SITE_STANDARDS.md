@@ -571,3 +571,8 @@ Preserve the approved desktop/tablet landscape person composition. On narrow mob
 ## Mobile subject direction correction v57
 
 For oversized subject background crops, remember that increasing percentage-based `background-position-x` can move visible artwork left because the image is larger than its positioning area. On mobile, when the person appears too far left, reduce the horizontal background-position percentage and, if necessary, nudge the overlay box slightly right. Preserve the v55 feather masks and approved desktop/tablet composition.
+
+
+## Mobile subject blend refinement v58
+
+Keep the approved v57 mobile subject position and crop. On narrow mobile layouts only, use a slightly broader left and bottom feather so the subject integrates more naturally with the album-art background without losing the person. Do not change desktop or tablet-landscape positioning, and preserve the intersected horizontal/vertical mask method from v55.
