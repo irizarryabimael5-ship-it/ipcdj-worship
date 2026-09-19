@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="refresh-speed-hardening-v72" />
+  <meta name="ipcdj-build" content="instant-cover-boot-v73" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -43,6 +43,49 @@
   <meta name="twitter:description" content="Próximas canciones, preparación y estrenos del Ministerio de Alabanza de IPCDJ." />
   <meta name="twitter:image" content="https://worship.ipcdj.org/icon-512.png?v=8" />
   <title>IPCDJ Worship | Ministerio de Alabanza</title>
+  <script>
+    // Start downloading already-resolved active album covers during head parsing,
+    // before the current-song renderer or provider lookup code runs.
+    (() => {
+      const BOOT_KEY="ipcdj-cover-boot-v1";
+      try{
+        const records=JSON.parse(localStorage.getItem(BOOT_KEY)||"[]");
+        if(!Array.isArray(records)||!records.length)return;
+        const now=Date.now();
+        const active=records.filter(record=>{
+          if(!record||!record.songId||!record.url)return false;
+          const start=Date.parse(record.activeFrom||"");
+          const end=Date.parse(record.rolloverAt||"");
+          return Number.isFinite(start)&&Number.isFinite(end)&&now>=start&&now<end;
+        });
+        if(!active.length)return;
+
+        const css=[];
+        active.forEach((record,index)=>{
+          const link=document.createElement("link");
+          link.rel="preload";
+          link.as="image";
+          link.href=record.url;
+          link.fetchPriority=index===0?"high":"auto";
+          link.crossOrigin="anonymous";
+          document.head.appendChild(link);
+
+          const safeId=String(record.songId).replace(/["\\]/g,"\\  <script>
+    // Opening the canonical domain always checks the deployed HTML before the app settles.");
+          const safeUrl=String(record.url).replace(/["\\()]/g,"\\  <script>
+    // Opening the canonical domain always checks the deployed HTML before the app settles.");
+          css.push('#current-song-cards [data-song-id="'+safeId+'"]{--cover-image:url("'+safeUrl+'")}');
+        });
+
+        if(css.length){
+          const style=document.createElement("style");
+          style.id="ipcdj-boot-cover-style";
+          style.textContent=css.join("\n");
+          document.head.appendChild(style);
+        }
+      }catch(_){}
+    })();
+  </script>
   <script>
     // Opening the canonical domain always checks the deployed HTML before the app settles.
     // A stale cached document can therefore self-correct as soon as the newer deployment exists.
@@ -2044,6 +2087,8 @@
     const COVER_THEME_CACHE_PREFIX="ipcdj-cover-theme-v1:";
     const COVER_SUBJECT_CACHE_PREFIX="ipcdj-cover-subject-v2:";
     const COVER_ARTWORK_CACHE_PREFIX="ipcdj-cover-artwork-v2:";
+    const COVER_BOOT_CACHE_KEY="ipcdj-cover-boot-v1";
+    const COVER_BOOT_MAX_RECORDS=12;
     const COV_ENDPOINT="https://covers.musichoarders.xyz/api/search";
     const COV_SOURCES=["tidal","spotify","applemusic"];
     const COVER_ARTWORK_CACHE_MAX_AGE=30*24*60*60*1000;
@@ -2144,6 +2189,34 @@
       card.style.setProperty("--subject-mobile-bg-size","360%");
       card.style.setProperty("--subject-opacity","0");
       delete card.dataset.coverSubject;
+    }
+
+    function rememberBootCover(song,url){
+      if(!song||!url)return;
+      try{
+        const existing=JSON.parse(localStorage.getItem(COVER_BOOT_CACHE_KEY)||"[]");
+        const list=Array.isArray(existing)?existing.filter(item=>item&&item.songId!==song.id):[];
+        list.push({
+          songId:song.id,
+          url:highResolutionArtworkUrl(url),
+          activeFrom:song.activeFrom,
+          rolloverAt:song.rolloverAt,
+          savedAt:Date.now()
+        });
+        list.sort((a,b)=>(b.savedAt||0)-(a.savedAt||0));
+        localStorage.setItem(COVER_BOOT_CACHE_KEY,JSON.stringify(list.slice(0,COVER_BOOT_MAX_RECORDS)));
+      }catch(_){}
+    }
+
+    function warmCoverImage(url,priority="low"){
+      if(!url)return;
+      try{
+        const image=new Image();
+        image.crossOrigin="anonymous";
+        image.decoding="async";
+        if("fetchPriority" in image)image.fetchPriority=priority;
+        image.src=url;
+      }catch(_){}
     }
 
     function applyCoverArtwork(song,url,card){
@@ -2596,6 +2669,8 @@
         if(coverThemeRequestTokens.get(song.id)!==token)return;
         if(!artworkUrl)return;
 
+        rememberBootCover(song,artworkUrl);
+        warmCoverImage(artworkUrl,"high");
         applyCoverArtwork(song,artworkUrl,card);
         applyCurrentSongSubjectArt(song,artworkUrl,card);
 
@@ -3031,6 +3106,34 @@
     window.addEventListener("orientationchange",scheduleResponsiveSubjectRefresh,{passive:true});
     if(window.visualViewport){
       window.visualViewport.addEventListener("resize",scheduleResponsiveSubjectRefresh,{passive:true});
+    }
+
+    let futureCoverWarmStarted=false;
+    function warmFutureSongCovers(){
+      if(futureCoverWarmStarted)return;
+      futureCoverWarmStarted=true;
+      const now=calibratedNow();
+      const future=songPipeline
+        .filter(song=>now<new Date(song.rolloverAt).getTime())
+        .slice(0,4);
+
+      let offset=0;
+      future.forEach(song=>{
+        setTimeout(()=>{
+          resolveArtworkUrl(song).then(url=>{
+            if(!url)return;
+            rememberBootCover(song,url);
+            warmCoverImage(url,"low");
+          }).catch(()=>{});
+        },offset);
+        offset+=700;
+      });
+    }
+
+    if("requestIdleCallback" in window){
+      requestIdleCallback(warmFutureSongCovers,{timeout:2600});
+    }else{
+      setTimeout(warmFutureSongCovers,1400);
     }
 
     const revealItems=[...document.querySelectorAll(".reveal")];
