@@ -591,3 +591,8 @@ When the lower-body crop is already positioned correctly, do not move or resize 
 ## Refresh reliability v61
 
 The installed web app's pull-to-refresh must never remain indefinitely in a loading state or keep serving a stale document after a deployment. Explicit refresh requests and deployed-build probes bypass the service-worker static cache and go network-only. The pull-refresh fetch uses no-store semantics plus a finite timeout, then navigates to the cache-busted URL. Keep a short minimum spinner only for visual continuity; do not let the animation delay a successful update unnecessarily. Normal offline fallback remains intact for ordinary navigation.
+
+
+## Global lower-body feather continuity v62
+
+Across desktop, tablet, and mobile, an isolated worship-subject crop must never read as a torso abruptly cut off at the lower edge. Preserve approved subject placement and side feathering, but extend the lower vertical alpha transition farther upward and make the final edge more gradual so the body dissolves naturally into the album-art background. This refinement applies to all responsive breakpoints, with slightly stronger lower-edge feathering on narrow mobile layouts.
