@@ -810,3 +810,20 @@ Required behavior:
 - Explicit user pause remains immediate and does not wait for an outro fade.
 - Preload the YouTube IFrame API during idle time so preparing the player does not unnecessarily delay a user tap.
 - Do not change the minimal "Adelanto + play/pause button" visual design established in v77.
+
+
+## Instant preview interaction and load efficiency v79
+
+The Adelanto player must not compete with first-page rendering and must feel immediate even when its media dependency has not loaded yet.
+
+Required behavior:
+- Do not preload the YouTube IFrame API during page startup or generic idle time. Load it only after explicit preview intent, beginning on pointerdown/touch intent for the Adelanto button.
+- Dynamically add YouTube network preconnect hints only when preview intent occurs.
+- The play button must never swap to a spinner or change geometry. On first tap, immediately switch to the stable pause visual and a non-layout-changing starting state; when actual playback begins, transition internally from starting to playing without icon flicker.
+- A second tap during either starting or playing must cancel the pending start/playback immediately and return to Play.
+- Fade-in timing must use real elapsed time beginning when the YouTube Player actually reaches PLAYING state. Do not infer fade-in progress from the sought media timestamp.
+- After unmuting, explicitly set volume back to zero before audible playback begins. This prevents Safari/mobile players from restoring a previous non-zero volume.
+- Fade-out remains based on actual media time remaining until the exact chorus endpoint.
+- Remove nonessential MediaPipe CDN preconnects from the initial document head. Face-detection libraries are loaded only if automatic subject detection is actually required.
+- Current-song artwork remains eager/high priority; future-song artwork warming is delayed further into idle time and staggered so it cannot compete with the current card, refresh, or first interaction.
+- Preserve v72 bounded refresh, v73 instant current-cover boot, v74 staged cover/person fade, and all responsive compatibility rules.
