@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="chorus-window-retime-v82" />
+  <meta name="ipcdj-build" content="immediate-preview-retime-v83" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -2087,10 +2087,10 @@
         artist:"Miel San Marcos & Kim Richards",
         artworkQuery:"Dios De Milagros En Vivo Desde México Miel San Marcos Kim Richards",
         itunesCollectionId:"6799307691",
-        previewClipDuration:21,
+        previewClipDuration:18,
         previewClipStart:80,
-        previewFadeIn:1.35,
-        previewFadeOut:2.0,
+        previewFadeIn:.35,
+        previewFadeOut:1.5,
         previewClipSection:"chorus",
         previewSource:"youtube",
         previewYouTubeId:"0_Wgv6_Dj8U",
@@ -2855,6 +2855,7 @@
     let youtubePreviewPlaying=false;
     let youtubePreviewFadeStartedAt=0;
     let youtubePreviewRequestToken=0;
+    let youtubePreviewPreparedSongId="";
 
     function warmYouTubePreviewNetwork(){
       if(document.querySelector('link[data-ipcdj-youtube-preconnect]'))return;
@@ -2924,6 +2925,7 @@
       }
       youtubePreviewPlayer=null;
       youtubePreviewPlayerSongId="";
+      youtubePreviewPreparedSongId="";
       const host=document.getElementById("youtube-preview-host");
       if(host)host.replaceChildren();
     }
@@ -2982,6 +2984,11 @@
       try{
         youtubePreviewPlayer.setVolume(0);
         youtubePreviewPlayer.mute();
+        youtubePreviewPlayer.cueVideoById({
+          videoId:song.previewYouTubeId,
+          startSeconds:Math.max(0,Number(song.previewClipStart)||0)
+        });
+        youtubePreviewPreparedSongId=song.id;
       }catch(_){}
       return youtubePreviewPlayer;
     }
@@ -3040,7 +3047,11 @@
           try{
             youtubePreviewPlayer.setVolume(0);
             youtubePreviewPlayer.pauseVideo();
-            youtubePreviewPlayer.seekTo(youtubePreviewStart,true);
+            youtubePreviewPlayer.cueVideoById({
+              videoId:song.previewYouTubeId,
+              startSeconds:youtubePreviewStart
+            });
+            youtubePreviewPreparedSongId=song.id;
           }catch(_){}
           youtubePreviewPlaying=false;
           setPreviewButtonState(song.id,"play");
@@ -3068,11 +3079,13 @@
       activePreviewSongId=song.id;
 
       try{
-        // Unmute first, then explicitly force volume back to zero. This avoids
-        // mobile browsers restoring an old non-zero volume when unmuting.
+        // The current song is prepared after page load, so the tap normally only
+        // needs to unmute and start the already-cued player.
         player.unMute();
         player.setVolume(0);
-        player.seekTo(youtubePreviewStart,true);
+        if(youtubePreviewPreparedSongId!==song.id){
+          player.seekTo(youtubePreviewStart,true);
+        }
         player.playVideo();
       }catch(_){
         if(token===youtubePreviewRequestToken)setPreviewButtonState(song.id,"play");
@@ -3314,6 +3327,19 @@
             loadYouTubeIframeApi().catch(()=>{});
           },{passive:true});
           button.addEventListener("click",()=>playPreviewSong(song,row._previewData));
+        }
+
+        if(!row.dataset.previewPrepareScheduled){
+          row.dataset.previewPrepareScheduled="true";
+          const prepare=()=>{
+            warmYouTubePreviewNetwork();
+            ensureYouTubePreviewPlayer(song).catch(()=>{});
+          };
+          if("requestIdleCallback" in window){
+            requestIdleCallback(prepare,{timeout:3500});
+          }else{
+            setTimeout(prepare,1800);
+          }
         }
         return;
       }
