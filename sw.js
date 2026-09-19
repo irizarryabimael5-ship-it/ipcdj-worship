@@ -1,4 +1,4 @@
-const CACHE_NAME = "ipcdj-worship-v71";
+const CACHE_NAME = "ipcdj-worship-v72";
 const OFFLINE_PAGE = "./__offline_index__";
 const STATIC_ASSETS = [
   "./favicon.svg",
@@ -14,10 +14,21 @@ const STATIC_ASSETS = [
   "./youtube-music.svg"
 ];
 
-self.addEventListener("install", event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(STATIC_ASSETS))
-  );
+self.addEventListener("install",event=>{
+  event.waitUntil((async()=>{
+    const cache=await caches.open(CACHE_NAME);
+    await cache.addAll(STATIC_ASSETS);
+    try{
+      const controller=new AbortController();
+      const timeout=setTimeout(()=>controller.abort(),4500);
+      try{
+        const shell=await fetch("./",{cache:"no-store",signal:controller.signal});
+        if(shell&&shell.ok)await cache.put(OFFLINE_PAGE,shell.clone());
+      }finally{
+        clearTimeout(timeout);
+      }
+    }catch(_){}
+  })());
   self.skipWaiting();
 });
 
@@ -65,22 +76,53 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  if (request.mode === "navigate") {
-    event.respondWith((async () => {
-      try {
-        const preloaded = await event.preloadResponse;
-        const response = preloaded || await fetch(request, { cache:"no-store" });
+  if(request.mode==="navigate"){
+    event.respondWith((async()=>{
+      const cache=await caches.open(CACHE_NAME);
+      const cached=await cache.match(OFFLINE_PAGE);
+      const isExplicitFreshNavigation=isFreshnessRequest;
 
-        if (response && response.ok) {
-          const cache = await caches.open(CACHE_NAME);
-          await cache.put(OFFLINE_PAGE, response.clone());
+      const networkFetch=async()=>{
+        try{
+          const preloaded=await event.preloadResponse;
+          if(preloaded&&preloaded.ok)return preloaded;
+        }catch(_){}
+
+        const controller=new AbortController();
+        const timeout=setTimeout(()=>controller.abort(),4500);
+        try{
+          return await fetch(request,{cache:"no-store",signal:controller.signal});
+        }finally{
+          clearTimeout(timeout);
         }
+      };
+
+      // Normal opens prioritize instant startup from the last verified shell.
+      // Refresh/freshness navigations prioritize network, but are still bounded.
+      if(!isExplicitFreshNavigation&&cached){
+        event.waitUntil(
+          networkFetch().then(async response=>{
+            if(response&&response.ok){
+              await cache.put(OFFLINE_PAGE,response.clone());
+            }
+          }).catch(()=>{})
+        );
+        return cached;
+      }
+
+      try{
+        const response=await networkFetch();
+        if(response&&response.ok){
+          await cache.put(OFFLINE_PAGE,response.clone());
+          return response;
+        }
+        if(cached)return cached;
         return response;
-      } catch (_) {
-        const cached = await caches.match(OFFLINE_PAGE);
-        return cached || new Response(
+      }catch(_){
+        if(cached)return cached;
+        return new Response(
           "<!doctype html><html><body style='font-family:system-ui;background:#0a1020;color:white;padding:24px'>Sin conexión. Intenta actualizar cuando tengas internet.</body></html>",
-          { headers:{ "Content-Type":"text/html; charset=utf-8" } }
+          {headers:{"Content-Type":"text/html; charset=utf-8"}}
         );
       }
     })());
