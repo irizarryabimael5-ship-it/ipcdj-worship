@@ -851,3 +851,15 @@ Required behavior:
 - Dios De Milagros uses 17 seconds.
 - Preserve the existing fade-in and fade-out durations and all interaction/load-speed behavior.
 - Other songs remain free to use their own configured duration; do not globally change every preview to 17 seconds.
+
+
+## Dios De Milagros chorus retime v82
+
+For Dios De Milagros, the preview window is treated as a musical edit rather than a fixed-duration trim.
+
+Required behavior:
+- Start the preview 2 seconds earlier than v81 so the fade-in can happen before the chorus vocal phrase is already underway.
+- End the preview 2 seconds later than v81 so the final chorus phrase has additional room before the fade reaches silence.
+- Current settings: previewClipStart 80 seconds, previewClipDuration 21 seconds, previewFadeIn 1.35 seconds, previewFadeOut 2.0 seconds.
+- Do not globally apply these values to other songs; they are song-specific.
+- Preserve the actual-player-time envelope and immediate user pause behavior.
