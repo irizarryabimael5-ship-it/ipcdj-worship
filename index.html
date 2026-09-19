@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="speed-reveal-stability-v70" />
+  <meta name="ipcdj-build" content="responsive-compatibility-v71" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -106,6 +106,10 @@
     }
 
     *{box-sizing:border-box}
+    html,body{width:100%;max-width:100%}
+    img,svg,video,canvas{max-width:100%}
+    button,a{max-width:100%}
+    h1,h2,h3,p,span,div{overflow-wrap:anywhere}
     html{
       scroll-behavior:smooth;
       min-height:100%;
@@ -258,11 +262,11 @@
     .shell{
       position:relative;
       min-width:0;
+      max-inline-size:min(860px,100%);
       -webkit-user-select:text;
       user-select:text;
       z-index:1;
       width:100%;
-      max-width:860px;
       margin:0 auto;
     }
 
@@ -274,6 +278,8 @@
 
     .eyebrow{
       display:inline-flex;
+      max-width:100%;
+      white-space:normal;
       align-items:center;
       gap:8px;
       border:1px solid var(--line);
@@ -435,7 +441,10 @@
 
     .current-song-cards{
       display:grid;
+      grid-template-columns:minmax(0,1fr);
       gap:0;
+      min-width:0;
+      width:100%;
     }
 
     .current-song-cards .current{
@@ -787,6 +796,8 @@
 
     .status{
       display:inline-flex;
+      max-width:100%;
+      white-space:normal;
       align-items:center;
       gap:7px;
       padding:6px 10px;
@@ -825,6 +836,7 @@
 
     .countdown-heading{
       display:flex;
+      min-width:0;
       align-items:center;
       justify-content:space-between;
       gap:12px;
@@ -904,6 +916,7 @@
 
     .progress-top{
       display:flex;
+      min-width:0;
       justify-content:space-between;
       align-items:center;
       gap:10px;
@@ -1050,6 +1063,7 @@
 
     .song-top{
       display:flex;
+      min-width:0;
       justify-content:space-between;
       align-items:flex-start;
       gap:12px;
@@ -1103,8 +1117,14 @@
 
     .song-meta .meta-line{
       display:flex;
+      min-width:0;
       gap:7px;
       align-items:baseline;
+      flex-wrap:wrap;
+    }
+
+    .song-meta .meta-line > *{
+      min-width:0;
     }
 
     .song-meta .meta-label{
@@ -1119,6 +1139,7 @@
 
     .recent{
       display:flex;
+      min-width:0;
       align-items:center;
       justify-content:space-between;
       gap:16px;
@@ -1264,6 +1285,61 @@
       padding:18px 10px 0;
     }
 
+    /* Cross-device responsive preservation:
+       keep the approved visual system intact while preventing overflow or stale geometry. */
+    @media (min-width:641px) and (max-width:899px){
+      body{
+        padding-left:max(18px,env(safe-area-inset-left,0px));
+        padding-right:max(18px,env(safe-area-inset-right,0px));
+      }
+      .card{padding:20px}
+      .hero{padding-left:14px;padding-right:14px}
+      .song-name{max-width:82%}
+      .platforms{grid-template-columns:repeat(3,minmax(0,1fr))}
+    }
+
+    @media (max-width:520px){
+      .countdown-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .countdown-unit{min-height:64px}
+      .progress-top{
+        align-items:flex-start;
+        flex-direction:column;
+        gap:4px;
+      }
+      .progress-top > span{max-width:100%}
+      .status{font-size:.74rem}
+    }
+
+    @media (max-width:280px){
+      body{
+        padding-left:max(6px,env(safe-area-inset-left,0px));
+        padding-right:max(6px,env(safe-area-inset-right,0px));
+      }
+      .card{padding:11px;border-radius:18px}
+      .hero{padding-left:2px;padding-right:2px}
+      h1{font-size:1.85rem}
+      .brand-sub{display:block;margin:.12em 0 0}
+      .eyebrow{font-size:.66rem;padding:6px 8px}
+      .platform{padding:10px 11px;gap:9px}
+      .countdown-wrap,.progress-wrap{padding:10px}
+      .timeline-item{padding:10px 11px}
+      .song-row{padding:10px}
+      .status{font-size:.69rem;padding:5px 8px}
+    }
+
+    @media (max-height:520px) and (orientation:landscape){
+      .shell{max-inline-size:min(860px,100%)}
+      .countdown-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+      .countdown-unit{min-height:0}
+      .progress-top{flex-direction:row;align-items:center}
+    }
+
+    /* A rectangular duplicate cover is worse than no subject enhancement.
+       Browsers without CSS masking retain the centered album-art treatment. */
+    @supports not ((mask-image:linear-gradient(#000,#000)) or (-webkit-mask-image:linear-gradient(#000,#000))){
+      .current .cover-subject-detail{display:none!important}
+    }
+
     @media (min-width:900px){
       body{
         padding-top:calc(40px + env(safe-area-inset-top, 0px));
@@ -1328,8 +1404,6 @@
     }
 
     @media (max-width:390px){
-      .countdown-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-      .countdown-unit{min-height:64px}
       .song-name{font-size:clamp(1.7rem,9vw,2.25rem)}
       .platform,.song-row,.timeline-item,.recent{min-width:0}
     }
@@ -2231,7 +2305,8 @@
 
     async function detectCoverSubjectFocus(song,artworkUrl,card){
       if(!artworkUrl||!card||!window.isSecureContext)return null;
-      const key=song.id+"|"+artworkUrl+"|"+Math.round(card.getBoundingClientRect().width);
+      const cardRect=card.getBoundingClientRect();
+      const key=song.id+"|"+artworkUrl+"|"+Math.round(cardRect.width)+"x"+Math.round(cardRect.height);
       if(coverSubjectFocusCache.has(key))return coverSubjectFocusCache.get(key);
 
       let cachedRaw=null;
@@ -2895,6 +2970,38 @@
       renderCurrent(calibratedNow());
       scheduleLiveClock();
     });
+
+    let responsiveSubjectTimer=null;
+    function refreshResponsiveSubjectFocus(){
+      document.querySelectorAll("[data-current-song-card][data-song-id]").forEach(card=>{
+        const song=songPipeline.find(item=>item.id===card.dataset.songId);
+        if(!song||!card.dataset.coverArtworkUrl)return;
+
+        const manual=manualCoverSubjectFocus(song);
+        if(manual){
+          applyResolvedCoverSubject(card,manual,manual.source||"manual-cover-person");
+          return;
+        }
+
+        // Recalculate the detected face against the card's new dimensions after
+        // rotation, split-screen changes, desktop resizing, or browser zoom changes.
+        detectCoverSubjectFocus(song,card.dataset.coverArtworkUrl,card).then(focus=>{
+          if(!focus||card.dataset.songId!==song.id)return;
+          applyResolvedCoverSubject(card,focus,focus.source||"responsive-auto-cover-person");
+        }).catch(()=>{});
+      });
+    }
+
+    function scheduleResponsiveSubjectRefresh(){
+      clearTimeout(responsiveSubjectTimer);
+      responsiveSubjectTimer=setTimeout(refreshResponsiveSubjectFocus,140);
+    }
+
+    window.addEventListener("resize",scheduleResponsiveSubjectRefresh,{passive:true});
+    window.addEventListener("orientationchange",scheduleResponsiveSubjectRefresh,{passive:true});
+    if(window.visualViewport){
+      window.visualViewport.addEventListener("resize",scheduleResponsiveSubjectRefresh,{passive:true});
+    }
 
     const revealItems=[...document.querySelectorAll(".reveal")];
     const showRevealItem=item=>{
