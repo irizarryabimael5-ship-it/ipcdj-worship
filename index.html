@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="portable-auto-subject-system-v69" />
+  <meta name="ipcdj-build" content="speed-reveal-stability-v70" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -26,6 +26,12 @@
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <meta name="format-detection" content="telephone=no" />
   <link rel="canonical" href="https://worship.ipcdj.org/" />
+  <link rel="preconnect" href="https://covers.musichoarders.xyz" crossorigin />
+  <link rel="preconnect" href="https://itunes.apple.com" crossorigin />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="preconnect" href="https://storage.googleapis.com" crossorigin />
+  <link rel="dns-prefetch" href="//covers.musichoarders.xyz" />
+  <link rel="dns-prefetch" href="//itunes.apple.com" />
   <meta property="og:type" content="website" />
   <meta property="og:locale" content="es_US" />
   <meta property="og:title" content="IPCDJ Worship | Ministerio de Alabanza" />
@@ -1026,6 +1032,14 @@
       gap:12px;
     }
 
+    @supports (content-visibility:auto){
+      #upcoming-songs,
+      #introduced-songs{
+        content-visibility:auto;
+        contain-intrinsic-size:auto 420px;
+      }
+    }
+
     .song-row{
       min-width:0;
       border:1px solid var(--line);
@@ -1219,16 +1233,16 @@
 
     .reveal{
       opacity:0;
-      transform:translateY(18px);
+      transform:translateY(14px);
       transition:
-        opacity .58s cubic-bezier(.2,.65,.2,1),
-        transform .58s cubic-bezier(.2,.65,.2,1);
-      will-change:opacity,transform;
+        opacity .42s cubic-bezier(.2,.65,.2,1),
+        transform .42s cubic-bezier(.2,.65,.2,1);
     }
 
     .reveal.visible{
       opacity:1;
       transform:translateY(0);
+      will-change:auto;
     }
 
     .recent{
@@ -2432,9 +2446,23 @@
 
     async function resolveArtworkUrl(song){
       if(song.artworkUrl)return highResolutionArtworkUrl(song.artworkUrl);
-      const cov=await resolveCovArtworkUrl(song);
-      if(cov)return cov;
-      return await resolveItunesArtworkUrl(song);
+
+      // Start both providers immediately. COV remains preferred, but it must not
+      // hold up first paint on a slow network. If COV has not resolved quickly,
+      // use Apple/iTunes for this load while the COV promise continues and caches
+      // its higher-quality result for subsequent loads.
+      const covPromise=resolveCovArtworkUrl(song).catch(()=>"");
+      const itunesPromise=resolveItunesArtworkUrl(song).catch(()=>"");
+      const fastCov=await Promise.race([
+        covPromise,
+        new Promise(resolve=>setTimeout(()=>resolve(""),1100))
+      ]);
+      if(fastCov)return fastCov;
+
+      const itunes=await itunesPromise;
+      if(itunes)return itunes;
+
+      return await covPromise;
     }
 
     async function ensureCoverTheme(song,card){
@@ -2752,6 +2780,7 @@
       renderIntroduced(now);
     }
 
+    let upcomingRenderSignature="";
     function renderUpcoming(activeIds,now){
       const container=$("upcoming-songs");
       if(!container)return;
@@ -2760,6 +2789,9 @@
         !activeSet.has(song.id)&&
         now<new Date(song.activeFrom).getTime()
       );
+      const signature=future.map(song=>song.id).join("|")||"__none__";
+      if(signature===upcomingRenderSignature)return;
+      upcomingRenderSignature=signature;
 
       container.innerHTML=future.map(song=>`
         <div class="song-row" data-song-id="${escapeHtml(song.id)}">
@@ -2803,6 +2835,7 @@
       return d.getDate()+" de "+months[d.getMonth()];
     }
 
+    let introducedRenderSignature="";
     function renderIntroduced(now){
       const container=$("introduced-songs");
       if(!container) return;
@@ -2818,6 +2851,9 @@
 
       const all=[...introducedBaseline,...autoIntroduced]
         .sort((a,b)=>new Date(b.introducedAt)-new Date(a.introducedAt));
+      const signature=all.map(item=>item.title+"|"+item.introducedAt).join("||");
+      if(signature===introducedRenderSignature)return;
+      introducedRenderSignature=signature;
 
       container.innerHTML=all.map(item=>`
         <div class="recent">
@@ -2838,9 +2874,10 @@
       const now=calibratedNow();
       renderCurrent(now);
 
-      // Re-align every callback to an absolute quarter-second boundary rather than
-      // chaining from the previous callback. Timer throttling therefore cannot drift.
-      const nextDelay=Math.max(40,250-(Math.floor(now)%250));
+      // Re-align to the next absolute second. The displayed countdown only changes
+      // once per second, so faster callbacks waste CPU/layout work on mobile.
+      // Absolute alignment preserves the existing drift-free behavior.
+      const nextDelay=Math.max(40,1000-(Math.floor(now)%1000));
       liveClockTimer=setTimeout(scheduleLiveClock,nextDelay);
     }
     scheduleLiveClock();
@@ -2859,20 +2896,43 @@
       scheduleLiveClock();
     });
 
-    const revealItems = document.querySelectorAll(".reveal");
-    if ("IntersectionObserver" in window && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      const observer = new IntersectionObserver(entries => {
-        entries.forEach(entry => {
-          entry.target.classList.toggle("visible", entry.isIntersecting);
+    const revealItems=[...document.querySelectorAll(".reveal")];
+    const showRevealItem=item=>{
+      if(!item||item.classList.contains("visible"))return;
+      item.classList.add("visible");
+    };
+
+    if("IntersectionObserver" in window&&!window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+      const observer=new IntersectionObserver(entries=>{
+        entries.forEach(entry=>{
+          if(!entry.isIntersecting)return;
+          showRevealItem(entry.target);
+          observer.unobserve(entry.target);
         });
-      }, {
-        threshold:0.14,
-        rootMargin:"-3% 0px -7% 0px"
+      },{
+        threshold:.06,
+        rootMargin:"0px 0px 8% 0px"
       });
 
-      revealItems.forEach(item => observer.observe(item));
-    } else {
-      revealItems.forEach(item => item.classList.add("visible"));
+      revealItems.forEach(item=>{
+        // Anything already in/near the initial viewport is shown immediately,
+        // avoiding a blank or half-faded first frame on slower mobile devices.
+        const rect=item.getBoundingClientRect();
+        if(rect.top<window.innerHeight*1.08&&rect.bottom>-40){
+          showRevealItem(item);
+        }else{
+          observer.observe(item);
+        }
+      });
+
+      // Defensive fallback: no content is ever allowed to remain invisible because
+      // of an IntersectionObserver/browser scrolling quirk.
+      setTimeout(()=>{
+        revealItems.forEach(showRevealItem);
+        observer.disconnect();
+      },1800);
+    }else{
+      revealItems.forEach(showRevealItem);
     }
   </script>
 </body>
