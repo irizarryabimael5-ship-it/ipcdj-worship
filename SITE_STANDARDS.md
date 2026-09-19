@@ -621,3 +621,26 @@ On narrow mobile layouts, preserve the approved subject box and focal placement 
 ## Global approved soft-erased subject composite v67
 
 The soft-erased lower-body treatment approved on mobile in v66 is now the permanent visual standard for isolated subject overlays on every viewport. Desktop, tablet, mobile, and future songs must preserve their approved responsive subject positioning while using the same compositing principle: a clear upper subject, professionally feathered side boundaries, and a long lower-body alpha decay beginning around the upper-middle portion of the crop. The body must lose any distinguishable crop-ending contour well before the lower boundary and dissolve into the centered album-art atmosphere like repeated passes of a large soft Photoshop eraser. The lower quarter should read primarily as atmosphere, never as a rectangular or torso-ending cutout. Preserve the intersected horizontal/vertical mask architecture, Safari/WebKit compatibility, centered base cover, semantic stage colors, text readability, countdown/progress logic, and refresh/PWA system. Responsive focal placement remains independently tunable and must not be changed merely to achieve the fade.
+
+
+## Automatic high-resolution cover and subject system v68
+
+The approved v67 subject-compositing aesthetic is now a permanent automatic system for every song that is actively in the preparation pipeline, including overlapping preparation cycles where more than one song is active at the same time.
+
+Required behavior:
+- The current-preparation area is a multi-card system. Every song whose activeFrom <= current time < rolloverAt receives its own complete current card, countdown, progress state, timeline, official-cover atmosphere, subject overlay, and responsive treatment.
+- Overlapping preparation windows are supported intentionally; do not collapse multiple active songs into one card.
+- Explicit per-song artworkUrl remains the highest-authority source when an exact cover has been curated.
+- Otherwise, artwork resolution first queries COV / covers.musichoarders.xyz using the Tidal, Spotify, and Apple Music source filters and prefers the highest-resolution candidate available.
+- Apple/iTunes lookup remains a non-breaking fallback when COV is unavailable, blocked by CORS, rate-limited, or has no reliable result.
+- Cache resolved cover URLs locally to avoid unnecessary repeated provider lookups.
+- The centered official cover remains the base atmosphere and source for palette extraction.
+- Person detection runs independently for every active song cover. When native FaceDetector is supported, select the strongest primary face using size plus a small edge/upper-frame preference, then mathematically translate that source focal point into the established top-right subject box.
+- Automatic focus must be responsive. Desktop/tablet and mobile receive independently calculated background-position values while preserving the approved subject box family and the v67 soft-erased lower-body aesthetic.
+- The mobile subject box remains near the approved top-right safe area; responsive focus variables may move the image inside the box but must not reintroduce crop seams.
+- The approved intersected horizontal/vertical alpha masks and long lower-body dissolve remain unchanged as the global visual standard.
+- Manual coverSubjectFocus / subjectFocus overrides remain supported and take precedence over automatic detection for art-direction corrections.
+- Dios De Milagros remains the approved reference implementation and retains its locked desktop/mobile focus values.
+- If browser-native person detection is unavailable, the centered cover system still renders normally; curated per-song subject metadata remains the deterministic fallback for covers requiring a person treatment on unsupported browsers.
+- Cover lookup, subject detection, or palette failures must never break countdowns, timeline logic, song rollover, semantic stage colors, offline/PWA behavior, or readability.
+- Future pipeline additions should provide coverSearchArtist / coverSearchAlbum when the release metadata differs from the displayed song title/artist, and may provide coverMinResolution when a higher COV threshold is appropriate.
