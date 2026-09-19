@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="staged-cover-fade-v74" />
+  <meta name="ipcdj-build" content="current-song-preview-v75" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -1095,6 +1095,165 @@
       line-height:1.45;
     }
 
+    .preview-card{
+      --preview-accent:137,169,255;
+      opacity:0;
+      transform:translateY(10px);
+      transition:opacity .48s cubic-bezier(.2,.65,.2,1),transform .48s cubic-bezier(.2,.65,.2,1);
+    }
+
+    .preview-card.preview-ready{
+      opacity:1;
+      transform:translateY(0);
+    }
+
+    .preview-heading{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:14px;
+      margin-bottom:14px;
+    }
+
+    .preview-heading .section-note{margin-bottom:0}
+
+    .preview-badge{
+      flex:0 0 auto;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.035);
+      color:#dce5f8;
+      border-radius:999px;
+      padding:6px 9px;
+      font-size:.72rem;
+      font-weight:800;
+      letter-spacing:.04em;
+      white-space:nowrap;
+    }
+
+    .preview-queue{
+      display:grid;
+      gap:10px;
+    }
+
+    .preview-row{
+      --preview-progress:0%;
+      display:grid;
+      grid-template-columns:54px minmax(0,1fr) 46px;
+      align-items:center;
+      gap:12px;
+      min-width:0;
+      padding:11px;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:16px;
+      background:
+        linear-gradient(90deg,rgba(var(--cover-c1,96,62,44),.07),rgba(8,12,19,.36),rgba(var(--cover-c2,166,108,61),.035));
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.025);
+      overflow:hidden;
+      position:relative;
+    }
+
+    .preview-row::after{
+      content:"";
+      position:absolute;
+      left:0;
+      bottom:0;
+      width:var(--preview-progress);
+      height:2px;
+      background:linear-gradient(90deg,var(--stage-accent,#89a9ff),rgba(255,255,255,.92));
+      box-shadow:0 0 10px var(--stage-accent,#89a9ff);
+      transition:width .08s linear;
+    }
+
+    .preview-art{
+      width:54px;
+      height:54px;
+      border-radius:12px;
+      overflow:hidden;
+      background:
+        linear-gradient(135deg,rgba(var(--cover-c1,96,62,44),.55),rgba(var(--cover-c2,166,108,61),.20)),
+        rgba(255,255,255,.035);
+      background-size:cover;
+      background-position:center;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),0 8px 24px rgba(0,0,0,.18);
+      opacity:.82;
+      transition:opacity .55s ease;
+    }
+
+    .preview-row.is-playing .preview-art{opacity:1}
+
+    .preview-copy{
+      min-width:0;
+    }
+
+    .preview-song{
+      margin:0;
+      color:#fff;
+      font-size:.96rem;
+      font-weight:800;
+      letter-spacing:-.015em;
+      line-height:1.2;
+    }
+
+    .preview-artist{
+      margin:3px 0 0;
+      color:var(--muted);
+      font-size:.82rem;
+      line-height:1.3;
+    }
+
+    .preview-meta{
+      margin-top:6px;
+      color:#c8d0df;
+      font-size:.72rem;
+      font-weight:700;
+      letter-spacing:.025em;
+    }
+
+    .preview-button{
+      width:46px;
+      height:46px;
+      display:grid;
+      place-items:center;
+      border-radius:50%;
+      border:1px solid rgba(255,255,255,.15);
+      background:rgba(255,255,255,.055);
+      color:#fff;
+      cursor:pointer;
+      -webkit-tap-highlight-color:transparent;
+      touch-action:manipulation;
+      box-shadow:0 8px 22px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.06);
+      transition:transform .16s ease,background .16s ease,border-color .16s ease;
+      padding:0;
+    }
+
+    .preview-button:active{transform:scale(.95)}
+    .preview-button[disabled]{opacity:.48;cursor:default}
+    .preview-button svg{width:18px;height:18px;display:block;fill:currentColor}
+    .preview-row.is-playing .preview-button{
+      background:var(--stage-soft,rgba(137,169,255,.12));
+      border-color:var(--stage-border,rgba(137,169,255,.32));
+      color:var(--stage-text,#e6edff);
+    }
+
+    @media (max-width:520px){
+      .preview-heading{align-items:center}
+      .preview-row{
+        grid-template-columns:48px minmax(0,1fr) 44px;
+        gap:10px;
+        padding:10px;
+      }
+      .preview-art{width:48px;height:48px;border-radius:11px}
+      .preview-button{width:44px;height:44px}
+      .preview-song{font-size:.91rem}
+    }
+
+    @media (max-width:300px){
+      .preview-heading{flex-direction:column;gap:8px}
+      .preview-row{grid-template-columns:42px minmax(0,1fr) 40px}
+      .preview-art{width:42px;height:42px}
+      .preview-button{width:40px;height:40px}
+    }
+
     .songs{
       display:grid;
       gap:12px;
@@ -1553,6 +1712,7 @@
       .current .cover-edge-detail,
       .current .cover-subject-detail{transition:none!important}
       .ambient-field{opacity:.46!important}.ambient-blob{animation:none!important}
+      .preview-card,.preview-art,.preview-button{transition:none!important}
       .platform{transition:none}
       .progress-fill{transition:none}
       .progress-wrap{transition:none}
@@ -1611,6 +1771,17 @@
     </section>
 
     <div id="current-song-cards" class="current-song-cards" aria-live="polite"></div>
+
+    <section class="card preview-card" id="preview-section" hidden aria-labelledby="preview-title">
+      <div class="preview-heading">
+        <div>
+          <h2 class="section-title" id="preview-title">Adelanto</h2>
+          <p class="section-note">Escucha un fragmento clave de la canción en preparación.</p>
+        </div>
+        <span class="preview-badge">10–15 s</span>
+      </div>
+      <div class="preview-queue" id="preview-queue"></div>
+    </section>
 
     <section class="card reveal">
       <h2 class="section-title">Después</h2>
@@ -2011,6 +2182,7 @@
         artist:"Miel San Marcos & Kim Richards",
         artworkQuery:"Dios De Milagros En Vivo Desde México Miel San Marcos Kim Richards",
         itunesCollectionId:"6799307691",
+        previewClipDuration:12,
         activeFrom:"2026-09-14T00:00:00-04:00",
         learningStart:"2026-09-14T00:00:00-04:00",
         learningEnd:"2026-09-20T23:59:59-04:00",
@@ -2287,6 +2459,7 @@
       card.style.setProperty("--cover-image",'url("'+safe+'")');
       card.dataset.coverArtwork=song.id;
       card.dataset.coverArtworkUrl=resolvedUrl;
+      syncPreviewArtwork(song,resolvedUrl);
       revealCoverWhenLoaded(card,resolvedUrl);
     }
 
@@ -2563,6 +2736,404 @@
       score+=artistTokens.filter(t=>artist.includes(t)).length*2;
       if(result.artworkUrl100)score+=2;
       return score;
+    }
+
+    const PREVIEW_CACHE_PREFIX="ipcdj-song-preview-v1:";
+    const previewClipPromises=new Map();
+    let previewQueueSignature="";
+    let previewAudio=null;
+    let activePreviewSongId="";
+    let previewFrame=0;
+    let previewStopTimer=0;
+    let previewManualFadeFrame=0;
+
+    function previewIcon(type){
+      if(type==="pause"){
+        return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 5.5h4v13h-4zm7 0h4v13h-4z"/></svg>';
+      }
+      if(type==="loading"){
+        return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4a8 8 0 1 0 8 8h-2.2a5.8 5.8 0 1 1-1.7-4.1l-2.3 2.3H20V4l-2.3 2.3A7.95 7.95 0 0 0 12 4z"/></svg>';
+      }
+      return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.2v13.6L18.8 12z"/></svg>';
+    }
+
+    function setPreviewButtonState(songId,state){
+      const row=document.querySelector('[data-preview-song-id="'+CSS.escape(songId)+'"]');
+      if(!row)return;
+      const button=row.querySelector(".preview-button");
+      if(!button)return;
+      button.innerHTML=previewIcon(state);
+      button.setAttribute("aria-label",state==="pause"?"Pausar adelanto":state==="loading"?"Preparando adelanto":"Reproducir adelanto");
+      row.classList.toggle("is-playing",state==="pause");
+      row.classList.toggle("is-loading",state==="loading");
+    }
+
+    function syncPreviewArtwork(song,url){
+      const row=document.querySelector('[data-preview-song-id="'+CSS.escape(song.id)+'"]');
+      const art=row&&row.querySelector(".preview-art");
+      if(!art||!url)return;
+      const safe=highResolutionArtworkUrl(url).replace(/["'\\()]/g,m=>"\\"+m);
+      art.style.backgroundImage='url("'+safe+'")';
+    }
+
+    async function resolveItunesPreviewData(song){
+      const cacheKey=PREVIEW_CACHE_PREFIX+song.id;
+      try{
+        const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");
+        if(cached&&cached.previewUrl&&Date.now()-(cached.savedAt||0)<30*24*60*60*1000)return cached;
+      }catch(_){}
+
+      let candidates=[];
+      if(song.itunesCollectionId){
+        try{
+          const response=await fetch(
+            "https://itunes.apple.com/lookup?id="+encodeURIComponent(song.itunesCollectionId)+"&entity=song&limit=30",
+            {cache:"force-cache"}
+          );
+          if(response.ok){
+            const data=await response.json();
+            candidates=(data.results||[]).filter(r=>r.previewUrl);
+          }
+        }catch(_){}
+      }
+
+      if(!candidates.length){
+        try{
+          const query=encodeURIComponent(song.artworkQuery||song.title+" "+song.artist);
+          const response=await fetch(
+            "https://itunes.apple.com/search?term="+query+"&country=US&media=music&entity=song&limit=20",
+            {cache:"force-cache"}
+          );
+          if(response.ok){
+            const data=await response.json();
+            candidates=(data.results||[]).filter(r=>r.previewUrl);
+          }
+        }catch(_){}
+      }
+
+      const candidate=candidates.sort((a,b)=>scoreCatalogResult(song,b)-scoreCatalogResult(song,a))[0];
+      if(!candidate||scoreCatalogResult(song,candidate)<4||!candidate.previewUrl)throw new Error("No reliable song preview");
+
+      const result={
+        previewUrl:candidate.previewUrl,
+        artworkUrl:candidate.artworkUrl100?highResolutionArtworkUrl(candidate.artworkUrl100):"",
+        trackName:candidate.trackName||song.title,
+        artistName:candidate.artistName||song.artist,
+        savedAt:Date.now()
+      };
+      try{localStorage.setItem(cacheKey,JSON.stringify(result))}catch(_){}
+      return result;
+    }
+
+    function energyFrames(audioBuffer,frameSeconds=.20){
+      const rate=audioBuffer.sampleRate;
+      const frameSize=Math.max(1,Math.floor(rate*frameSeconds));
+      const channels=[];
+      for(let c=0;c<audioBuffer.numberOfChannels;c++)channels.push(audioBuffer.getChannelData(c));
+      const frames=[];
+      for(let start=0;start<audioBuffer.length;start+=frameSize){
+        const end=Math.min(audioBuffer.length,start+frameSize);
+        let sum=0,count=0;
+        for(let i=start;i<end;i+=2){
+          let sample=0;
+          for(let c=0;c<channels.length;c++)sample+=channels[c][i]||0;
+          sample/=Math.max(1,channels.length);
+          sum+=sample*sample;
+          count++;
+        }
+        frames.push(count?Math.sqrt(sum/count):0);
+      }
+      return {frames,frameSeconds};
+    }
+
+    function strongestPreviewWindow(audioBuffer,durationSeconds){
+      const total=audioBuffer.duration||30;
+      const clipDuration=Math.min(Math.max(10,durationSeconds||12),15,Math.max(10,total-1));
+      if(total<=clipDuration+1)return {start:0,duration:Math.max(1,total)};
+
+      const {frames,frameSeconds}=energyFrames(audioBuffer,.20);
+      const windowFrames=Math.max(1,Math.round(clipDuration/frameSeconds));
+      const minStart=Math.max(0,Math.round(1.2/frameSeconds));
+      const maxStart=Math.max(minStart,frames.length-windowFrames-Math.round(1.0/frameSeconds));
+
+      let moving=0;
+      for(let i=0;i<windowFrames&&i<frames.length;i++)moving+=frames[i];
+      let bestScore=-1,bestIndex=minStart;
+
+      for(let i=0;i<=maxStart;i++){
+        if(i>0){
+          moving-=frames[i-1]||0;
+          moving+=frames[i+windowFrames-1]||0;
+        }
+        if(i<minStart)continue;
+        const centerBias=1-Math.min(.18,Math.abs((i+(windowFrames/2))-(frames.length/2))/Math.max(1,frames.length)*.16);
+        const score=(moving/windowFrames)*centerBias;
+        if(score>bestScore){
+          bestScore=score;
+          bestIndex=i;
+        }
+      }
+
+      return {
+        start:Math.max(0,bestIndex*frameSeconds),
+        duration:clipDuration
+      };
+    }
+
+    async function analyzePreviewClip(song,previewUrl){
+      if(Number.isFinite(song.previewClipStart)){
+        return {start:Math.max(0,song.previewClipStart),duration:Math.min(15,Math.max(10,song.previewClipDuration||12)),source:"manual"};
+      }
+
+      try{
+        const response=await fetch(previewUrl,{cache:"force-cache"});
+        if(!response.ok)throw new Error("Preview fetch failed");
+        const bytes=await response.arrayBuffer();
+        const AudioCtx=window.AudioContext||window.webkitAudioContext;
+        if(!AudioCtx)throw new Error("Web Audio unavailable");
+        const context=new AudioCtx();
+        try{
+          const buffer=await context.decodeAudioData(bytes.slice(0));
+          const clip=strongestPreviewWindow(buffer,song.previewClipDuration||12);
+          return {...clip,source:"energy"};
+        }finally{
+          context.close().catch(()=>{});
+        }
+      }catch(_){
+        return {start:8,duration:Math.min(15,Math.max(10,song.previewClipDuration||12)),source:"fallback"};
+      }
+    }
+
+    function preparePreviewClip(song,previewUrl){
+      const key=song.id+"|"+previewUrl;
+      if(!previewClipPromises.has(key)){
+        previewClipPromises.set(key,analyzePreviewClip(song,previewUrl));
+      }
+      return previewClipPromises.get(key);
+    }
+
+    function previewFallbackClip(song,audio){
+      const duration=Number.isFinite(audio.duration)&&audio.duration>0?audio.duration:30;
+      const clipDuration=Math.min(15,Math.max(10,song.previewClipDuration||12),Math.max(10,duration-1));
+      return {
+        start:Math.max(0,Math.min(duration-clipDuration,Math.max(2,(duration-clipDuration)/2))),
+        duration:clipDuration,
+        source:"fallback"
+      };
+    }
+
+    function updatePreviewProgress(songId,progress){
+      const row=document.querySelector('[data-preview-song-id="'+CSS.escape(songId)+'"]');
+      if(row)row.style.setProperty("--preview-progress",(Math.max(0,Math.min(1,progress))*100).toFixed(2)+"%");
+    }
+
+    function stopPreviewTracking(){
+      cancelAnimationFrame(previewFrame);
+      previewFrame=0;
+      clearTimeout(previewStopTimer);
+      previewStopTimer=0;
+    }
+
+    function fadePreviewToPause(audio,songId,duration=320){
+      cancelAnimationFrame(previewManualFadeFrame);
+      const startVolume=audio.volume;
+      const started=performance.now();
+      return new Promise(resolve=>{
+        const step=now=>{
+          const t=Math.min(1,(now-started)/duration);
+          audio.volume=Math.max(0,startVolume*(1-t));
+          if(t<1){
+            previewManualFadeFrame=requestAnimationFrame(step);
+          }else{
+            audio.pause();
+            audio.volume=0;
+            setPreviewButtonState(songId,"play");
+            resolve();
+          }
+        };
+        previewManualFadeFrame=requestAnimationFrame(step);
+      });
+    }
+
+    function trackPreviewSegment(songId,clip){
+      stopPreviewTracking();
+      const end=clip.start+clip.duration;
+      const fadeIn=.8;
+      const fadeOut=1.15;
+
+      const frame=()=>{
+        if(!previewAudio||previewAudio.paused||activePreviewSongId!==songId)return;
+        const position=previewAudio.currentTime;
+        const elapsed=position-clip.start;
+        const remaining=end-position;
+        const inGain=Math.max(0,Math.min(1,elapsed/fadeIn));
+        const outGain=Math.max(0,Math.min(1,remaining/fadeOut));
+        previewAudio.volume=Math.min(inGain,outGain,.92);
+        updatePreviewProgress(songId,elapsed/clip.duration);
+
+        if(position>=end-.03){
+          previewAudio.pause();
+          previewAudio.volume=0;
+          try{previewAudio.currentTime=clip.start}catch(_){}
+          updatePreviewProgress(songId,0);
+          setPreviewButtonState(songId,"play");
+          return;
+        }
+        previewFrame=requestAnimationFrame(frame);
+      };
+
+      previewFrame=requestAnimationFrame(frame);
+      previewStopTimer=setTimeout(()=>{
+        if(previewAudio&&!previewAudio.paused&&activePreviewSongId===songId){
+          previewAudio.pause();
+          previewAudio.volume=0;
+          try{previewAudio.currentTime=clip.start}catch(_){}
+          updatePreviewProgress(songId,0);
+          setPreviewButtonState(songId,"play");
+        }
+      },Math.ceil((clip.duration+1)*1000));
+    }
+
+    async function playPreviewSong(song,previewData){
+      if(!previewData||!previewData.previewUrl)return;
+      const sameSong=activePreviewSongId===song.id;
+
+      if(previewAudio&&sameSong&&!previewAudio.paused){
+        await fadePreviewToPause(previewAudio,song.id,280);
+        stopPreviewTracking();
+        return;
+      }
+
+      if(previewAudio&&!previewAudio.paused&&activePreviewSongId){
+        const previousId=activePreviewSongId;
+        await fadePreviewToPause(previewAudio,previousId,220);
+        updatePreviewProgress(previousId,0);
+      }
+
+      activePreviewSongId=song.id;
+      setPreviewButtonState(song.id,"loading");
+
+      if(!previewAudio){
+        previewAudio=new Audio();
+        previewAudio.preload="auto";
+        previewAudio.playsInline=true;
+      }
+
+      if(previewAudio.src!==previewData.previewUrl){
+        previewAudio.src=previewData.previewUrl;
+        previewAudio.load();
+      }
+
+      previewAudio.volume=0;
+
+      // Begin playback from the user's tap immediately so iOS/Safari preserves
+      // the media-playback gesture while the local highlight analysis finishes.
+      let playPromise;
+      try{playPromise=previewAudio.play()}catch(_){playPromise=null}
+
+      const clipPromise=preparePreviewClip(song,previewData.previewUrl);
+      let clip;
+      try{
+        clip=await Promise.race([
+          clipPromise,
+          new Promise(resolve=>setTimeout(()=>resolve(previewFallbackClip(song,previewAudio)),1100))
+        ]);
+      }catch(_){
+        clip=previewFallbackClip(song,previewAudio);
+      }
+
+      try{
+        if(playPromise)await playPromise;
+        if(activePreviewSongId!==song.id)return;
+        if(previewAudio.readyState<1){
+          await new Promise(resolve=>{
+            const done=()=>resolve();
+            previewAudio.addEventListener("loadedmetadata",done,{once:true});
+            setTimeout(done,1200);
+          });
+        }
+        if(clip.source==="fallback"&&Number.isFinite(previewAudio.duration)){
+          clip=previewFallbackClip(song,previewAudio);
+        }
+        previewAudio.currentTime=Math.min(Math.max(0,clip.start),Math.max(0,(previewAudio.duration||30)-.25));
+        setPreviewButtonState(song.id,"pause");
+        trackPreviewSegment(song.id,clip);
+      }catch(_){
+        setPreviewButtonState(song.id,"play");
+      }
+    }
+
+    function previewRowMarkup(song){
+      return `
+        <div class="preview-row" data-preview-song-id="${escapeHtml(song.id)}" data-preview-state="loading">
+          <div class="preview-art" aria-hidden="true"></div>
+          <div class="preview-copy">
+            <p class="preview-song">${escapeHtml(song.title)}</p>
+            <p class="preview-artist">${escapeHtml(song.artist)}</p>
+            <div class="preview-meta" data-preview-meta>Preparando adelanto…</div>
+          </div>
+          <button class="preview-button" type="button" disabled aria-label="Preparando adelanto">
+            ${previewIcon("loading")}
+          </button>
+        </div>
+      `;
+    }
+
+    async function hydratePreviewRow(song){
+      const row=document.querySelector('[data-preview-song-id="'+CSS.escape(song.id)+'"]');
+      if(!row)return;
+      try{
+        const data=await resolveItunesPreviewData(song);
+        if(!row.isConnected)return;
+        row._previewData=data;
+        if(data.artworkUrl)syncPreviewArtwork(song,data.artworkUrl);
+
+        const card=document.querySelector('[data-current-song-card][data-song-id="'+CSS.escape(song.id)+'"]');
+        if(card&&card.dataset.coverArtworkUrl)syncPreviewArtwork(song,card.dataset.coverArtworkUrl);
+
+        const meta=row.querySelector("[data-preview-meta]");
+        if(meta)meta.textContent="Fragmento destacado · "+Math.min(15,Math.max(10,song.previewClipDuration||12))+" s";
+
+        const button=row.querySelector(".preview-button");
+        if(button){
+          button.disabled=false;
+          button.innerHTML=previewIcon("play");
+          button.setAttribute("aria-label","Reproducir adelanto de "+song.title);
+          button.addEventListener("click",()=>playPreviewSong(song,data));
+        }
+
+        // Analyze quietly after the official preview is known so a later tap can
+        // jump directly to the song's strongest available section.
+        const prepare=()=>preparePreviewClip(song,data.previewUrl).catch(()=>{});
+        if("requestIdleCallback" in window)requestIdleCallback(prepare,{timeout:2600});
+        else setTimeout(prepare,900);
+      }catch(_){
+        const meta=row.querySelector("[data-preview-meta]");
+        if(meta)meta.textContent="Adelanto no disponible";
+        const button=row.querySelector(".preview-button");
+        if(button){button.disabled=true;button.innerHTML=previewIcon("play")}
+      }
+    }
+
+    function syncPreviewQueue(songs){
+      const section=$("preview-section");
+      const queue=$("preview-queue");
+      if(!section||!queue)return;
+
+      const signature=songs.map(song=>song.id).join("|");
+      if(!signature){
+        previewQueueSignature="";
+        section.classList.remove("preview-ready");
+        section.hidden=true;
+        return;
+      }
+      if(signature===previewQueueSignature)return;
+      previewQueueSignature=signature;
+
+      queue.innerHTML=songs.map(previewRowMarkup).join("");
+      section.hidden=false;
+      requestAnimationFrame(()=>requestAnimationFrame(()=>section.classList.add("preview-ready")));
+      songs.forEach(hydratePreviewRow);
     }
 
     function covQuerySignature(song){
@@ -3008,12 +3579,14 @@
 
       if(!current.length){
         renderEmptyCurrent();
+        syncPreviewQueue([]);
         renderUpcoming(new Set(),now);
         renderIntroduced(now);
         return;
       }
 
       syncCurrentCards(current);
+      syncPreviewQueue(current.map(({song})=>song));
       const activeIds=new Set(current.map(({song})=>song.id));
       current.forEach(({song})=>{
         const card=document.querySelector('[data-current-song-card][data-song-id="'+CSS.escape(song.id)+'"]');
