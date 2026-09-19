@@ -606,3 +606,8 @@ On mobile, when the lower portion of the isolated person remains visible beneath
 ## Mobile deep lower-body swell v64
 
 On narrow mobile layouts, when the lower portion of the subject remains perceptible beneath the countdown card, the fade must begin substantially earlier and remain continuous through the lower half of the subject crop. Preserve the approved subject placement and upper-body clarity, but reduce lower-body alpha progressively from roughly the midpoint downward so no distinct torso or body-ending contour remains. The intended result is a soft atmospheric swell into the album-art background and countdown region, not a visible cropped figure edge.
+
+
+## Mobile deeper lower-body swell v65
+
+On narrow mobile layouts, preserve the approved subject placement, crop, side feathering, and upper-body clarity while making the lower-body dissolve materially stronger than v64. Begin the bottom alpha decay shortly after the upper half of the crop, then use a long multi-stop fade so the torso loses any distinguishable ending contour before it reaches the countdown region. The lower quarter should read as atmosphere rather than as a cropped body edge. Do not alter desktop/tablet composition or the approved mobile focal position.
