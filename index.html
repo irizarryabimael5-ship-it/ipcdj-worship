@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="preview-response-tune-v85" />
+  <meta name="ipcdj-build" content="preview-microtune-v86" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -2092,9 +2092,9 @@
         artist:"Miel San Marcos & Kim Richards",
         artworkQuery:"Dios De Milagros En Vivo Desde México Miel San Marcos Kim Richards",
         itunesCollectionId:"6799307691",
-        previewClipDuration:18,
+        previewClipDuration:18.8,
         previewClipStart:79,
-        previewFadeIn:.16,
+        previewFadeIn:.08,
         previewFadeOut:.9,
         previewClipSection:"chorus",
         previewSource:"youtube",
@@ -3395,9 +3395,9 @@
             prebufferYouTubePreview(song);
           };
           if(document.readyState==="loading"){
-            document.addEventListener("DOMContentLoaded",()=>setTimeout(prepareFast,40),{once:true});
+            document.addEventListener("DOMContentLoaded",()=>setTimeout(prepareFast,10),{once:true});
           }else{
-            setTimeout(prepareFast,40);
+            setTimeout(prepareFast,10);
           }
         }
         return;
