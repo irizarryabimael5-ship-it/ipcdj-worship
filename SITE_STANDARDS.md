@@ -712,3 +712,19 @@ Required behavior:
 - The startup deployed-build probe must itself have a finite timeout.
 - Preserve cache-busted freshness parameters and the ability for stale cached HTML to self-correct when a newer deployed build is detected.
 - Optimize load speed by keeping noncritical update work off the critical rendering path while retaining all v67-v71 aesthetic, responsive, countdown, subject-detection, and freshness invariants.
+
+
+## Instant album-cover boot v73
+
+Album artwork must begin loading as early as possible and must not wait for the current-card renderer or external catalog lookup on repeat visits.
+
+Required behavior:
+- Whenever a reliable artwork URL is resolved for a pipeline song, persist that URL locally together with songId, activeFrom, rolloverAt, and savedAt.
+- During document head parsing, before the main application renderer runs, read the locally persisted cover records and identify any record whose active window contains the current time.
+- Immediately inject image preload hints for those currently active cover URLs, with the first active cover receiving high fetch priority.
+- Also inject a temporary CSS rule keyed by data-song-id so a dynamically created current card can inherit the already-known cover the instant it enters the DOM, before provider resolution completes.
+- The normal resolver remains authoritative and replaces/refreshes the card artwork when needed.
+- After first paint/idle, resolve and warm the next few pipeline covers at low priority, persist their URLs, and allow the browser HTTP cache to warm the image bytes before their future activation date.
+- Background warming must never block first paint, interactivity, countdown updates, refresh behavior, or current-cover loading.
+- Continue to prefer curated artworkUrl first, then COV high-resolution sources, then Apple/iTunes fallback.
+- The early boot optimization must support multiple simultaneously active preparation songs by preloading and styling each active song independently.
