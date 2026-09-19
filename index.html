@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="mobile-bottom-edge-feather-v60" />
+  <meta name="ipcdj-build" content="refresh-robustness-v61" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -1565,7 +1565,7 @@
     let refreshInFlight=false;
     const refreshThreshold=82;
     const maxPull=126;
-    const minimumSpinnerMs=2200;
+    const minimumSpinnerMs=900;
 
     const setPullVisual=progress=>{
       if(!pullRefresh||!refreshGlyph)return;
@@ -1612,12 +1612,22 @@
         const freshUrl=new URL(window.location.href);
         freshUrl.searchParams.set("refresh",Date.now().toString());
 
-        // Fetch a fresh copy first using force-reload semantics.
-        const response=await fetch(freshUrl.toString(),{
-          method:"GET",
-          cache:"reload",
-          credentials:"same-origin"
-        });
+        // Fetch a genuinely fresh copy first. The service worker treats this
+        // refresh URL as network-only, and the timeout prevents the web app from hanging.
+        const refreshController=new AbortController();
+        const refreshTimeout=setTimeout(()=>refreshController.abort(),8000);
+        let response;
+        try{
+          response=await fetch(freshUrl.toString(),{
+            method:"GET",
+            cache:"no-store",
+            credentials:"same-origin",
+            headers:{"Cache-Control":"no-cache, no-store, must-revalidate"},
+            signal:refreshController.signal
+          });
+        }finally{
+          clearTimeout(refreshTimeout);
+        }
 
         if(!response.ok) throw new Error("Refresh request failed");
         await response.text();
