@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="instant-cover-boot-v73" />
+  <meta name="ipcdj-build" content="staged-cover-fade-v74" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -509,8 +509,8 @@
       filter:blur(30px) saturate(1.18) contrast(1.04);
       -webkit-filter:blur(30px) saturate(1.18) contrast(1.04);
       transform:scale(1.10);
-      opacity:.76;
-      transition:opacity .8s ease,filter .8s ease;
+      opacity:0;
+      transition:opacity 1.05s cubic-bezier(.22,.65,.25,1),filter .8s ease;
     }
 
     .current > *{
@@ -539,7 +539,7 @@
       background-repeat:no-repeat;
       filter:blur(2.6px) saturate(1.10) contrast(1.04);
       -webkit-filter:blur(2.6px) saturate(1.10) contrast(1.04);
-      opacity:.42;
+      opacity:0;
       transform:scale(1.025);
       -webkit-mask-image:
         radial-gradient(ellipse 38% 28% at 90% 13%, #000 0%, rgba(0,0,0,.92) 34%, rgba(0,0,0,.52) 67%, transparent 100%),
@@ -559,7 +559,7 @@
         linear-gradient(90deg, rgba(0,0,0,.54) 0 7%, transparent 15% 85%, rgba(0,0,0,.54) 93% 100%);
       -webkit-mask-composite:source-over;
       mask-composite:add;
-      transition:opacity .9s ease;
+      transition:opacity 1.15s cubic-bezier(.22,.65,.25,1);
     }
 
     .current .cover-edge-detail{
@@ -573,11 +573,11 @@
       background-repeat:no-repeat;
       filter:blur(1.6px) saturate(1.12) contrast(1.05);
       -webkit-filter:blur(1.6px) saturate(1.12) contrast(1.05);
-      opacity:.50;
+      opacity:0;
       transform:scale(1.018);
       -webkit-mask-image:radial-gradient(ellipse 74% 70% at 50% 50%, transparent 0%, transparent 54%, rgba(0,0,0,.18) 63%, rgba(0,0,0,.58) 76%, #000 100%);
       mask-image:radial-gradient(ellipse 74% 70% at 50% 50%, transparent 0%, transparent 54%, rgba(0,0,0,.18) 63%, rgba(0,0,0,.58) 76%, #000 100%);
-      transition:opacity .9s ease;
+      transition:opacity 1.18s cubic-bezier(.22,.65,.25,1);
     }
 
     .current .cover-edge-detail::after{
@@ -603,7 +603,7 @@
       background-repeat:no-repeat;
       filter:brightness(1.02) saturate(1.12) contrast(1.05);
       -webkit-filter:brightness(1.02) saturate(1.12) contrast(1.05);
-      opacity:var(--subject-opacity);
+      opacity:0;
       transform:none;
       transform-origin:top right;
       /* Photoshop-style edge feather:
@@ -683,9 +683,14 @@
       mask-mode:alpha,alpha;
       -webkit-mask-repeat:no-repeat,no-repeat;
       mask-repeat:no-repeat,no-repeat;
-      transition:opacity .8s ease;
+      transition:opacity 1.32s cubic-bezier(.22,.65,.25,1);
       will-change:opacity;
     }
+
+    .current.cover-ready::before{opacity:.76}
+    .current.cover-ready .cover-detail{opacity:.42}
+    .current.cover-ready .cover-edge-detail{opacity:.50}
+    .current.subject-ready .cover-subject-detail{opacity:var(--subject-opacity)}
 
     .current .countdown-wrap,
     .current .progress-wrap,
@@ -791,14 +796,14 @@
       }
 
       .current .cover-edge-detail{
-        opacity:.40;
+        opacity:0;
         background-position:var(--cover-pos-x) var(--cover-pos-y);
         -webkit-mask-image:radial-gradient(ellipse 80% 74% at 50% 50%, transparent 0%, transparent 58%, rgba(0,0,0,.18) 67%, rgba(0,0,0,.50) 79%, #000 100%);
         mask-image:radial-gradient(ellipse 80% 74% at 50% 50%, transparent 0%, transparent 58%, rgba(0,0,0,.18) 67%, rgba(0,0,0,.50) 79%, #000 100%);
       }
 
       .current .cover-detail{
-        opacity:.31;
+        opacity:0;
         background-position:var(--cover-pos-x) var(--cover-pos-y);
         -webkit-mask-image:
           radial-gradient(ellipse 31% 17% at 91% 9%, #000 0%, rgba(0,0,0,.78) 34%, transparent 100%),
@@ -817,9 +822,14 @@
       }
     }
 
+    @media (max-width:640px){
+      .current.cover-ready .cover-detail{opacity:.31}
+      .current.cover-ready .cover-edge-detail{opacity:.40}
+    }
+
     @media (prefers-reduced-transparency: reduce){
-      .current .cover-detail{opacity:.14}
-      .current .cover-edge-detail{opacity:.18}
+      .current.cover-ready .cover-detail{opacity:.14}
+      .current.cover-ready .cover-edge-detail{opacity:.18}
       .current .cover-subject-detail{--subject-opacity:.12}
       .current .countdown-wrap,
       .current .progress-wrap,
@@ -1538,6 +1548,10 @@
     }
 
     @media (prefers-reduced-motion: reduce){
+      .current::before,
+      .current .cover-detail,
+      .current .cover-edge-detail,
+      .current .cover-subject-detail{transition:none!important}
       .ambient-field{opacity:.46!important}.ambient-blob{animation:none!important}
       .platform{transition:none}
       .progress-fill{transition:none}
@@ -2172,6 +2186,52 @@
         .replace(/100x100bb/gi,"1200x1200bb");
     }
 
+    function clearCoverRevealState(card){
+      if(!card)return;
+      card.classList.remove("cover-ready","subject-ready");
+      if(card._subjectRevealTimer){
+        clearTimeout(card._subjectRevealTimer);
+        card._subjectRevealTimer=null;
+      }
+    }
+
+    function scheduleSubjectReveal(card){
+      if(!card||!card.dataset.coverSubject)return;
+      if(card._subjectRevealTimer)clearTimeout(card._subjectRevealTimer);
+      const reveal=()=>{
+        if(!card.isConnected||!card.dataset.coverSubject)return;
+        card.classList.add("subject-ready");
+        card._subjectRevealTimer=null;
+      };
+      if(card.classList.contains("cover-ready")){
+        card._subjectRevealTimer=setTimeout(reveal,180);
+      }else{
+        card._subjectRevealTimer=setTimeout(()=>scheduleSubjectReveal(card),90);
+      }
+    }
+
+    function revealCoverWhenLoaded(card,url){
+      if(!card||!url)return;
+      const image=new Image();
+      image.crossOrigin="anonymous";
+      image.decoding="async";
+      if("fetchPriority" in image)image.fetchPriority="high";
+      const reveal=()=>{
+        if(!card.isConnected)return;
+        requestAnimationFrame(()=>{
+          requestAnimationFrame(()=>{
+            if(!card.isConnected)return;
+            card.classList.add("cover-ready");
+            if(card.dataset.coverSubject)scheduleSubjectReveal(card);
+          });
+        });
+      };
+      image.onload=reveal;
+      image.onerror=reveal;
+      image.src=url;
+      if(image.complete&&image.naturalWidth)reveal();
+    }
+
     function resetCoverSubject(card){
       if(!card)return;
       card.style.setProperty("--subject-width","32%");
@@ -2186,6 +2246,7 @@
       card.style.setProperty("--subject-mobile-bg-y","64%");
       card.style.setProperty("--subject-mobile-bg-size","360%");
       card.style.setProperty("--subject-opacity","0");
+      card.classList.remove("subject-ready");
       delete card.dataset.coverSubject;
     }
 
@@ -2219,11 +2280,14 @@
 
     function applyCoverArtwork(song,url,card){
       if(!card||!url)return;
-      const safe=highResolutionArtworkUrl(url).replace(/["'\\()]/g,m=>"\\"+m);
+      const resolvedUrl=highResolutionArtworkUrl(url);
+      const safe=resolvedUrl.replace(/["'\\()]/g,m=>"\\"+m);
+      clearCoverRevealState(card);
       resetCoverSubject(card);
       card.style.setProperty("--cover-image",'url("'+safe+'")');
       card.dataset.coverArtwork=song.id;
-      card.dataset.coverArtworkUrl=url;
+      card.dataset.coverArtworkUrl=resolvedUrl;
+      revealCoverWhenLoaded(card,resolvedUrl);
     }
 
     function clampCoverSubject(value,min,max){
@@ -2264,6 +2328,8 @@
       card.style.setProperty("--subject-mobile-bg-size",mobile.bgSize||"360%");
       card.style.setProperty("--subject-opacity",focus.opacity||desktop.opacity||mobile.opacity||".93");
       card.dataset.coverSubject=label||focus.source||desktop.source||"cover-person";
+      card.classList.remove("subject-ready");
+      scheduleSubjectReveal(card);
       return true;
     }
 
@@ -2799,7 +2865,7 @@
 
     function currentSongCardMarkup(song){
       return `
-        <section class="card current reveal visible" data-current-song-card data-song-id="${escapeHtml(song.id)}">
+        <section class="card current reveal visible" data-current-song-card data-song-id="${escapeHtml(song.id)}" data-cover-transition="staged">
           <div class="cover-detail" aria-hidden="true"></div>
           <div class="cover-edge-detail" aria-hidden="true"></div>
           <div class="cover-subject-detail" aria-hidden="true"></div>
