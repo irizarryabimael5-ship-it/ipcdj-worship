@@ -908,3 +908,14 @@ Required behavior:
 - Silently prebuffer only the current song at volume 0/muted, then pause and hold it at the chorus start so the Play tap reuses a ready player.
 - Do not prebuffer future songs or multiple players.
 - Preserve all existing first-paint/current-cover optimizations and the v84 center-cover composition.
+
+
+## Dios De Milagros preview micro-tune v86
+
+Small song-specific timing refinement:
+- Keep previewClipStart at 79 seconds.
+- Extend the endpoint slightly by using previewClipDuration 18.8 seconds.
+- Keep previewFadeOut at .9 seconds.
+- Reduce previewFadeIn to .08 seconds so audio becomes audible almost immediately while still avoiding a hard zero-to-full edge.
+- Begin current-song prebuffer preparation about 10 ms after the current card/DOM is ready.
+- Do not apply these micro-timing values globally to future songs.
