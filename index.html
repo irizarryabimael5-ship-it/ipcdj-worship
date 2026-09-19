@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="instant-button-fade-speed-v79" />
+  <meta name="ipcdj-build" content="preview-playback-fix-v80" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -2889,8 +2889,12 @@
         }
 
         setTimeout(()=>{
-          if(window.YT&&typeof window.YT.Player==="function")resolve(window.YT);
-        },1800);
+          if(window.YT&&typeof window.YT.Player==="function"){
+            resolve(window.YT);
+          }else{
+            reject(new Error("YouTube API timeout"));
+          }
+        },3500);
       }).catch(error=>{
         youtubeApiPromise=null;
         throw error;
@@ -2912,7 +2916,6 @@
     }
 
     function destroyYouTubePreviewPlayer(){
-      youtubePreviewRequestToken++;
       cancelAnimationFrame(youtubePreviewMonitorFrame);
       youtubePreviewMonitorFrame=0;
       youtubePreviewPlaying=false;
@@ -3079,6 +3082,7 @@
       // UI responds immediately and remains visually stable while YouTube starts.
       setPreviewButtonState(song.id,"starting");
 
+      const playingWaitStarted=performance.now();
       const waitForPlaying=()=>{
         if(token!==youtubePreviewRequestToken||activePreviewSongId!==song.id)return;
         let state=-1;
@@ -3092,6 +3096,12 @@
           }catch(_){}
           setPreviewButtonState(song.id,"pause");
           monitorYouTubePreview(song);
+          return;
+        }
+        if(performance.now()-playingWaitStarted>4500){
+          youtubePreviewPlaying=false;
+          if(activePreviewSongId===song.id)activePreviewSongId="";
+          setPreviewButtonState(song.id,"play");
           return;
         }
         requestAnimationFrame(waitForPlaying);
@@ -3198,7 +3208,11 @@
         try{
           await playYouTubePreview(song);
         }catch(_){
-          if(activePreviewSongId===song.id)setPreviewButtonState(song.id,"play");
+          if(activePreviewSongId===song.id){
+            activePreviewSongId="";
+            youtubePreviewPlaying=false;
+            setPreviewButtonState(song.id,"play");
+          }
         }
         return;
       }
