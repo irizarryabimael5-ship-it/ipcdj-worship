@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="inline-chorus-preview-v76" />
+  <meta name="ipcdj-build" content="simple-chorus-player-v77" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -1097,11 +1097,14 @@
 
     .inline-preview{
       margin-top:14px;
-      padding-top:13px;
-      border-top:1px solid rgba(255,255,255,.075);
+      display:flex;
+      align-items:center;
+      justify-content:flex-start;
+      gap:10px;
+      min-height:46px;
       opacity:0;
-      transform:translateY(7px);
-      transition:opacity .42s cubic-bezier(.2,.65,.2,1),transform .42s cubic-bezier(.2,.65,.2,1);
+      transform:translateY(5px);
+      transition:opacity .36s cubic-bezier(.2,.65,.2,1),transform .36s cubic-bezier(.2,.65,.2,1);
     }
 
     .inline-preview.preview-ready{
@@ -1110,117 +1113,62 @@
     }
 
     .inline-preview-label{
-      margin:0 0 9px;
+      margin:0;
       color:#dfe5f1;
-      font-size:.75rem;
+      font-size:.78rem;
       font-weight:800;
       letter-spacing:.055em;
       text-transform:uppercase;
     }
 
-    .preview-queue{
-      display:grid;
-      gap:10px;
-    }
+    .preview-queue{display:contents}
 
     .preview-row{
-      --preview-progress:0%;
-      display:grid;
-      grid-template-columns:minmax(0,1fr) 46px;
-      align-items:center;
-      gap:12px;
-      min-width:0;
-      padding:11px;
-      border:1px solid rgba(255,255,255,.08);
-      border-radius:16px;
-      background:
-        linear-gradient(90deg,rgba(var(--cover-c1,96,62,44),.07),rgba(8,12,19,.36),rgba(var(--cover-c2,166,108,61),.035));
-      box-shadow:inset 0 1px 0 rgba(255,255,255,.025);
-      overflow:hidden;
-      position:relative;
+      display:contents;
     }
 
-    .preview-row::after{
-      content:"";
-      position:absolute;
-      left:0;
-      bottom:0;
-      width:var(--preview-progress);
-      height:2px;
-      background:linear-gradient(90deg,var(--stage-accent,#89a9ff),rgba(255,255,255,.92));
-      box-shadow:0 0 10px var(--stage-accent,#89a9ff);
-      transition:width .08s linear;
-    }
-
-    .preview-copy{
-      min-width:0;
-    }
-
-    .preview-song{
-      margin:0;
-      color:#fff;
-      font-size:.96rem;
-      font-weight:800;
-      letter-spacing:-.015em;
-      line-height:1.2;
-    }
-
-    .preview-artist{
-      margin:3px 0 0;
-      color:var(--muted);
-      font-size:.82rem;
-      line-height:1.3;
-    }
-
-    .preview-meta{
-      margin-top:6px;
-      color:#c8d0df;
-      font-size:.72rem;
-      font-weight:700;
-      letter-spacing:.025em;
-    }
+    .preview-copy{display:none}
 
     .preview-button{
-      width:46px;
-      height:46px;
+      width:42px;
+      height:42px;
       display:grid;
       place-items:center;
+      flex:0 0 auto;
       border-radius:50%;
-      border:1px solid rgba(255,255,255,.15);
-      background:rgba(255,255,255,.055);
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.045);
       color:#fff;
       cursor:pointer;
       -webkit-tap-highlight-color:transparent;
       touch-action:manipulation;
-      box-shadow:0 8px 22px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.06);
-      transition:transform .16s ease,background .16s ease,border-color .16s ease;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+      transition:transform .14s ease,background .14s ease,border-color .14s ease;
       padding:0;
     }
 
-    .preview-button:active{transform:scale(.95)}
-    .preview-button[disabled]{opacity:.48;cursor:default}
-    .preview-button svg{width:18px;height:18px;display:block;fill:currentColor}
+    .preview-button:active{transform:scale(.94)}
+    .preview-button[disabled]{opacity:.45;cursor:default}
+    .preview-button svg{width:17px;height:17px;display:block;fill:currentColor}
     .preview-row.is-playing .preview-button{
-      background:var(--stage-soft,rgba(137,169,255,.12));
-      border-color:var(--stage-border,rgba(137,169,255,.32));
+      background:var(--stage-soft,rgba(137,169,255,.10));
+      border-color:var(--stage-border,rgba(137,169,255,.28));
       color:var(--stage-text,#e6edff);
     }
 
-    @media (max-width:520px){
-      .preview-heading{align-items:center}
-      .preview-row{
-        grid-template-columns:minmax(0,1fr) 44px;
-        gap:10px;
-        padding:10px;
-      }
-      .preview-button{width:44px;height:44px}
-      .preview-song{font-size:.91rem}
+    .youtube-preview-host{
+      position:fixed;
+      width:1px;
+      height:1px;
+      left:-9999px;
+      top:-9999px;
+      overflow:hidden;
+      pointer-events:none;
+      opacity:0;
     }
 
-    @media (max-width:300px){
-      .preview-heading{flex-direction:column;gap:8px}
-      .preview-row{grid-template-columns:minmax(0,1fr) 40px}
-      .preview-button{width:40px;height:40px}
+    @media (prefers-reduced-motion: reduce){
+      .inline-preview,.preview-button{transition:none!important}
     }
 
     .songs{
@@ -2141,8 +2089,10 @@
         artworkQuery:"Dios De Milagros En Vivo Desde México Miel San Marcos Kim Richards",
         itunesCollectionId:"6799307691",
         previewClipDuration:15,
-        previewClipStart:0,
+        previewClipStart:82,
         previewClipSection:"chorus",
+        previewSource:"youtube",
+        previewYouTubeId:"0_Wgv6_Dj8U",
         activeFrom:"2026-09-14T00:00:00-04:00",
         learningStart:"2026-09-14T00:00:00-04:00",
         learningEnd:"2026-09-20T23:59:59-04:00",
@@ -2884,9 +2834,78 @@
       };
     }
 
-    function updatePreviewProgress(songId,progress){
-      const row=document.querySelector('[data-preview-song-id="'+CSS.escape(songId)+'"]');
-      if(row)row.style.setProperty("--preview-progress",(Math.max(0,Math.min(1,progress))*100).toFixed(2)+"%");
+    function updatePreviewProgress(){}
+
+
+    let youtubePreviewFrame=null;
+    let youtubePreviewTimer=0;
+    let youtubePreviewStartedAt=0;
+    let youtubePreviewSongId="";
+    let youtubePreviewPausedOffset=0;
+
+    function ensureYouTubePreviewHost(){
+      let host=document.getElementById("youtube-preview-host");
+      if(!host){
+        host=document.createElement("div");
+        host.id="youtube-preview-host";
+        host.className="youtube-preview-host";
+        host.setAttribute("aria-hidden","true");
+        document.body.appendChild(host);
+      }
+      return host;
+    }
+
+    function stopYouTubePreview(reset=true){
+      clearTimeout(youtubePreviewTimer);
+      youtubePreviewTimer=0;
+      const host=document.getElementById("youtube-preview-host");
+      if(host)host.replaceChildren();
+      if(reset)youtubePreviewPausedOffset=0;
+      youtubePreviewStartedAt=0;
+    }
+
+    function pauseYouTubePreview(songId){
+      if(youtubePreviewStartedAt){
+        youtubePreviewPausedOffset=Math.min(
+          14.5,
+          youtubePreviewPausedOffset+((performance.now()-youtubePreviewStartedAt)/1000)
+        );
+      }
+      stopYouTubePreview(false);
+      youtubePreviewSongId=songId;
+      activePreviewSongId=songId;
+      setPreviewButtonState(songId,"play");
+    }
+
+    function playYouTubePreview(song){
+      const host=ensureYouTubePreviewHost();
+      const clipStart=Math.max(0,Number(song.previewClipStart)||0);
+      const remaining=Math.max(.5,15-youtubePreviewPausedOffset);
+      const start=Math.floor(clipStart+youtubePreviewPausedOffset);
+      const end=Math.ceil(clipStart+15);
+
+      host.replaceChildren();
+      const iframe=document.createElement("iframe");
+      iframe.width="1";
+      iframe.height="1";
+      iframe.allow="autoplay";
+      iframe.title="Adelanto de "+song.title;
+      iframe.src="https://www.youtube.com/embed/"+encodeURIComponent(song.previewYouTubeId)+
+        "?autoplay=1&playsinline=1&controls=0&rel=0&modestbranding=1&start="+start+"&end="+end;
+      host.appendChild(iframe);
+
+      activePreviewSongId=song.id;
+      youtubePreviewSongId=song.id;
+      youtubePreviewStartedAt=performance.now();
+      setPreviewButtonState(song.id,"pause");
+
+      clearTimeout(youtubePreviewTimer);
+      youtubePreviewTimer=setTimeout(()=>{
+        stopYouTubePreview(true);
+        if(activePreviewSongId===song.id){
+          setPreviewButtonState(song.id,"play");
+        }
+      },Math.ceil(remaining*1000));
     }
 
     function stopPreviewTracking(){
@@ -2957,21 +2976,58 @@
     }
 
     async function playPreviewSong(song,previewData){
+      if(song.previewSource==="youtube"&&song.previewYouTubeId){
+        const sameSong=activePreviewSongId===song.id;
+        const currentlyPlaying=
+          sameSong&&
+          youtubePreviewStartedAt>0&&
+          document.getElementById("youtube-preview-host")?.childElementCount;
+
+        if(currentlyPlaying){
+          // Pause is immediate: no lingering fade, animation frame, or timer.
+          stopPreviewTracking();
+          cancelAnimationFrame(previewManualFadeFrame);
+          pauseYouTubePreview(song.id);
+          return;
+        }
+
+        // Stop any other provider immediately before switching.
+        stopPreviewTracking();
+        cancelAnimationFrame(previewManualFadeFrame);
+        if(previewAudio){
+          previewAudio.pause();
+          previewAudio.volume=0;
+        }
+        if(youtubePreviewSongId&&youtubePreviewSongId!==song.id){
+          setPreviewButtonState(youtubePreviewSongId,"play");
+          stopYouTubePreview(true);
+        }
+        playYouTubePreview(song);
+        return;
+      }
+
       if(!previewData||!previewData.previewUrl)return;
       const sameSong=activePreviewSongId===song.id;
 
       if(previewAudio&&sameSong&&!previewAudio.paused){
-        await fadePreviewToPause(previewAudio,song.id,280);
+        // User-requested immediate pause: stop tracking first, then pause now.
         stopPreviewTracking();
+        cancelAnimationFrame(previewManualFadeFrame);
+        previewAudio.pause();
+        previewAudio.volume=0;
+        setPreviewButtonState(song.id,"play");
         return;
       }
 
       if(previewAudio&&!previewAudio.paused&&activePreviewSongId){
         const previousId=activePreviewSongId;
-        await fadePreviewToPause(previewAudio,previousId,220);
-        updatePreviewProgress(previousId,0);
+        stopPreviewTracking();
+        previewAudio.pause();
+        previewAudio.volume=0;
+        setPreviewButtonState(previousId,"play");
       }
 
+      stopYouTubePreview(true);
       activePreviewSongId=song.id;
       setPreviewButtonState(song.id,"loading");
 
@@ -2987,9 +3043,6 @@
       }
 
       previewAudio.volume=0;
-
-      // Begin playback from the user's tap immediately so iOS/Safari preserves
-      // the media-playback gesture while the local highlight analysis finishes.
       let playPromise;
       try{playPromise=previewAudio.play()}catch(_){playPromise=null}
 
@@ -3014,9 +3067,6 @@
             setTimeout(done,1200);
           });
         }
-        if(clip.source==="fallback"&&Number.isFinite(previewAudio.duration)){
-          clip=previewFallbackClip(song,previewAudio);
-        }
         previewAudio.currentTime=Math.min(Math.max(0,clip.start),Math.max(0,(previewAudio.duration||30)-.25));
         setPreviewButtonState(song.id,"pause");
         trackPreviewSegment(song.id,clip);
@@ -3028,10 +3078,7 @@
     function previewRowMarkup(song){
       return `
         <div class="preview-row" data-preview-song-id="${escapeHtml(song.id)}" data-preview-state="loading">
-          <div class="preview-copy">
-            <div class="preview-meta" data-preview-meta>Preparando coro…</div>
-          </div>
-          <button class="preview-button" type="button" disabled aria-label="Preparando coro">
+          <button class="preview-button" type="button" disabled aria-label="Preparando adelanto">
             ${previewIcon("loading")}
           </button>
         </div>
@@ -3041,36 +3088,33 @@
     async function hydratePreviewRow(song){
       const row=document.querySelector('[data-preview-song-id="'+CSS.escape(song.id)+'"]');
       if(!row)return;
+
+      const button=row.querySelector(".preview-button");
+
+      if(song.previewSource==="youtube"&&song.previewYouTubeId&&song.previewClipSection==="chorus"){
+        row._previewData={source:"youtube"};
+        if(button&&!button.dataset.bound){
+          button.disabled=false;
+          button.innerHTML=previewIcon("play");
+          button.setAttribute("aria-label","Reproducir adelanto de "+song.title);
+          button.dataset.bound="true";
+          button.addEventListener("click",()=>playPreviewSong(song,row._previewData));
+        }
+        return;
+      }
+
       try{
         const data=await resolveItunesPreviewData(song);
         if(!row.isConnected)return;
         row._previewData=data;
-        const meta=row.querySelector("[data-preview-meta]");
-        if(meta){
-          meta.textContent=song.previewClipSection==="chorus"
-            ? "Coro · 15 s"
-            : "Coro pendiente de confirmar";
-        }
-
-        const button=row.querySelector(".preview-button");
         if(button&&!button.dataset.bound){
           button.disabled=false;
           button.innerHTML=previewIcon("play");
-          button.setAttribute("aria-label","Reproducir coro de "+song.title);
+          button.setAttribute("aria-label","Reproducir adelanto de "+song.title);
           button.dataset.bound="true";
           button.addEventListener("click",()=>playPreviewSong(song,data));
         }
-        row._previewData=data;
-
-        // Analyze quietly after the official preview is known so a later tap can
-        // jump directly to the song's strongest available section.
-        const prepare=()=>preparePreviewClip(song,data.previewUrl).catch(()=>{});
-        if("requestIdleCallback" in window)requestIdleCallback(prepare,{timeout:2600});
-        else setTimeout(prepare,900);
       }catch(_){
-        const meta=row.querySelector("[data-preview-meta]");
-        if(meta)meta.textContent="Coro no disponible";
-        const button=row.querySelector(".preview-button");
         if(button){button.disabled=true;button.innerHTML=previewIcon("play")}
       }
     }
@@ -3385,7 +3429,7 @@
           <p class="artist" data-role="artist">${escapeHtml(song.artist)}</p>
 
           <div class="inline-preview" data-role="inline-preview">
-            <div class="inline-preview-label">Escuchar coro</div>
+            <div class="inline-preview-label">Adelanto</div>
             <div class="preview-queue">
               ${previewRowMarkup(song)}
             </div>
