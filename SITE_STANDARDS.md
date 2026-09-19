@@ -839,3 +839,15 @@ Required behavior:
 - A first Play request must survive asynchronous API loading and player construction and reach playVideo().
 - If the YouTube API or player does not become ready, clear the starting state and return the control to Play within a bounded timeout; never leave the button stuck.
 - Preserve v79 zero-volume fade-in timing, on-intent dependency loading, and first-page performance rules.
+
+
+## Dios De Milagros chorus extension v81
+
+For Dios De Milagros, the Adelanto chorus window is song-specific at 17 seconds instead of the default 15 seconds so the chorus phrase can complete naturally before the existing fade-out envelope finishes.
+
+Required behavior:
+- Keep previewClipStart at the manually confirmed chorus start.
+- Use previewClipDuration from song metadata when calculating the YouTube segment endpoint.
+- Dios De Milagros uses 17 seconds.
+- Preserve the existing fade-in and fade-out durations and all interaction/load-speed behavior.
+- Other songs remain free to use their own configured duration; do not globally change every preview to 17 seconds.
