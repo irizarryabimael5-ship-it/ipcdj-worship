@@ -677,3 +677,21 @@ Required behavior:
 - Preconnect only to the small set of external origins required by current-cover resolution and portable face detection.
 - Below-fold list containers may use content-visibility when supported, but the active current-song card must remain eagerly rendered.
 - Performance changes must not weaken the refresh/PWA freshness system, countdown accuracy, stage colors, automatic subject detection, or approved album-art aesthetic.
+
+
+## Cross-device responsive compatibility v71
+
+The approved IPCDJ Worship aesthetic must remain structurally consistent across arbitrary viewport widths, heights, orientations, browser zoom levels, safe-area devices, installed PWAs, split-screen layouts, tablets, laptops, and large desktop displays.
+
+Required behavior:
+- Use intrinsic sizing and min-width:0 / minmax(0,1fr) where needed so flex/grid children cannot force horizontal overflow.
+- The primary shell remains centered and visually capped near the established 860px design width while never exceeding the available viewport.
+- Preserve safe-area padding on notched and rounded-screen devices.
+- Long song titles, artist names, status text, dates, metadata, and accessibility text must wrap instead of clipping or widening the page.
+- Preserve the established three-platform desktop/tablet layout and single-column phone layout.
+- Countdown cards use four columns where space supports them and two columns on narrower phones; short landscape layouts may retain four compact columns when vertical space is limited.
+- Tiny/narrow viewports may reduce padding and typography modestly, but must not alter the approved hierarchy, dark-glass aesthetic, semantic colors, album-art system, or subject-mask character.
+- The isolated subject system must recalculate its focal placement after resize, orientation change, split-screen changes, and visual viewport changes so automatic face framing does not retain stale coordinates from a previous card size.
+- Manual subject overrides remain deterministic across responsive changes.
+- Browsers without CSS mask support must hide the isolated subject enhancement rather than display a rectangular duplicate-art crop; the centered blurred/detail/perimeter cover treatment remains the graceful fallback.
+- Responsive compatibility work must preserve one-way reveal behavior, refresh/PWA freshness, countdown accuracy, COV artwork resolution, MediaPipe/native detection, semantic progress colors, and all approved v67-v70 visual treatments.
