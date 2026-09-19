@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="preview-cover-polish-v84" />
+  <meta name="ipcdj-build" content="preview-response-tune-v85" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -2094,8 +2094,8 @@
         itunesCollectionId:"6799307691",
         previewClipDuration:18,
         previewClipStart:79,
-        previewFadeIn:.22,
-        previewFadeOut:2.4,
+        previewFadeIn:.16,
+        previewFadeOut:.9,
         previewClipSection:"chorus",
         previewSource:"youtube",
         previewYouTubeId:"0_Wgv6_Dj8U",
@@ -2861,6 +2861,7 @@
     let youtubePreviewFadeStartedAt=0;
     let youtubePreviewRequestToken=0;
     let youtubePreviewPreparedSongId="";
+    let youtubePreviewPrebufferedSongId="";
 
     function warmYouTubePreviewNetwork(){
       if(document.querySelector('link[data-ipcdj-youtube-preconnect]'))return;
@@ -2931,6 +2932,7 @@
       youtubePreviewPlayer=null;
       youtubePreviewPlayerSongId="";
       youtubePreviewPreparedSongId="";
+      youtubePreviewPrebufferedSongId="";
       const host=document.getElementById("youtube-preview-host");
       if(host)host.replaceChildren();
     }
@@ -3016,6 +3018,7 @@
                 startSeconds:Math.max(0,Number(song.previewClipStart)||youtubePreviewStart)
               });
               youtubePreviewPreparedSongId=song.id;
+            youtubePreviewPrebufferedSongId=song.id;
             }
           }
         }catch(_){}
@@ -3076,6 +3079,41 @@
       };
 
       youtubePreviewMonitorFrame=requestAnimationFrame(step);
+    }
+
+    async function prebufferYouTubePreview(song){
+      try{
+        const player=await ensureYouTubePreviewPlayer(song);
+        if(!player||youtubePreviewPrebufferedSongId===song.id)return;
+
+        const start=Math.max(0,Number(song.previewClipStart)||0);
+        player.mute();
+        player.setVolume(0);
+        player.loadVideoById({
+          videoId:song.previewYouTubeId,
+          startSeconds:start
+        });
+
+        const started=performance.now();
+        const settle=()=>{
+          if(!youtubePreviewPlayer||youtubePreviewPlayerSongId!==song.id)return;
+          let state=-1;
+          try{state=player.getPlayerState()}catch(_){}
+          if(state===1||state===3||performance.now()-started>1800){
+            try{
+              player.pauseVideo();
+              player.seekTo(start,true);
+              player.mute();
+              player.setVolume(0);
+            }catch(_){}
+            youtubePreviewPreparedSongId=song.id;
+            youtubePreviewPrebufferedSongId=song.id;
+            return;
+          }
+          requestAnimationFrame(settle);
+        };
+        requestAnimationFrame(settle);
+      }catch(_){}
     }
 
     async function playYouTubePreview(song){
@@ -3349,12 +3387,17 @@
             warmYouTubePreviewNetwork();
             ensureYouTubePreviewPlayer(song).catch(()=>{});
           };
-          // Prepare shortly after the visible page is settled so Play can respond
-          // immediately, without blocking initial rendering or current-cover work.
-          if(document.readyState==="complete"){
-            setTimeout(prepare,280);
+          // Start preparation almost immediately after this card is rendered.
+          // Only the current song is warmed, muted at zero volume, so the eventual
+          // Play tap can reuse an already-created, already-buffered player.
+          const prepareFast=()=>{
+            prepare();
+            prebufferYouTubePreview(song);
+          };
+          if(document.readyState==="loading"){
+            document.addEventListener("DOMContentLoaded",()=>setTimeout(prepareFast,40),{once:true});
           }else{
-            window.addEventListener("load",()=>setTimeout(prepare,280),{once:true});
+            setTimeout(prepareFast,40);
           }
         }
         return;
