@@ -765,3 +765,18 @@ Required behavior:
 - Show a subtle progress line, album artwork, song title, artist, play/pause state, and compact "Fragmento destacado" metadata while preserving the existing glass/card aesthetic.
 - Current-card artwork should synchronize into the preview thumbnail when available.
 - Preview lookup/analysis must never block page rendering, countdowns, cover loading, refresh, responsive behavior, or current-song rollover.
+
+
+## Inline chorus preview v76
+
+The audio preview control belongs inside each existing current/preparation song card. Do not create a separate Adelanto card or independent preview section.
+
+Required behavior:
+- Each current preparation card contains a compact "Escuchar coro" control directly beneath the song title/artist and before the countdown content.
+- Preview length is exactly 15 seconds.
+- Do not display a "10–15 s" badge or standalone Adelanto heading/card.
+- A preview may be labeled "Coro" only when that song has explicit previewClipSection:"chorus" metadata and an explicit previewClipStart.
+- Do not infer "chorus" solely from RMS energy or volume. Energy analysis may remain as an internal fallback for unconfigured songs, but the UI must identify that state as chorus pending confirmation rather than claiming it is the chorus.
+- Song-specific manual chorus metadata overrides all automatic highlight selection.
+- Current song Dios De Milagros is configured as a manual chorus preview using the official Apple/iTunes preview source. The song structure is externally confirmed to contain the chorus "Dios de milagros / Dios de imposibles..." repeatedly.
+- Fade-in/fade-out, one-song-at-a-time playback, explicit user-tap requirement, iOS/Safari gesture handling, and local analysis fallback remain preserved from v75.
