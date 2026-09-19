@@ -877,3 +877,20 @@ Required behavior:
 - The shorter fade-in is intentional so the chorus is audible essentially immediately while still avoiding a hard audio edge.
 - After automatic completion, cue the player back to the chorus start so the next tap is immediate again.
 - Preserve first-page performance by doing preparation only after render/idle.
+
+
+## Preview immediacy and center-cover reveal v84
+
+Current-song preview:
+- Prepare the current hidden YouTube player shortly after the window load event (roughly 280 ms later), rather than waiting several seconds for generic idle time.
+- This preparation remains after first render and must not block the initial document/current cover.
+- Dios De Milagros uses start 79 seconds, duration 18 seconds, fade-in .22 seconds, fade-out 2.4 seconds.
+- The earlier fade-out is intentional; do not lengthen the overall window to compensate.
+- Keep the player cued back to the song-specific chorus start whenever a reset occurs so subsequent Play taps require no seek.
+
+Current-card album art:
+- Do not leave the visual center as a low-detail blurred dead spot.
+- The lightly blurred detail layer must include a broad, low-opacity central reveal so album typography/art remains perceptible through the center.
+- Preserve the approved person isolation/masks exactly.
+- Move the stronger soft/dark blending toward the left/title side with a gentle left-to-center gradient; the center and right side should retain more visible album detail.
+- Apply the same principle on mobile with a slightly softer central reveal.
