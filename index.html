@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="responsive-compatibility-v71" />
+  <meta name="ipcdj-build" content="refresh-speed-hardening-v72" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -67,13 +67,17 @@
       const probe=new URL(location.href);
       probe.searchParams.set("latest-check",Date.now().toString());
 
+      const probeController=new AbortController();
+      const probeTimeout=setTimeout(()=>probeController.abort(),3500);
       fetch(probe.toString(),{
         method:"GET",
-        cache:"reload",
+        cache:"no-store",
         credentials:"same-origin",
-        headers:{"Cache-Control":"no-cache"}
+        headers:{"Cache-Control":"no-cache, no-store, must-revalidate"},
+        signal:probeController.signal
       })
       .then(response=>response.ok ? response.text() : "")
+      .finally(()=>clearTimeout(probeTimeout))
       .then(text=>{
         if(!text)return;
         const match=text.match(/<meta\s+name=["']ipcdj-build["']\s+content=["']([^"']+)["']/i);
@@ -1535,17 +1539,17 @@
 
       <div class="platforms">
         <a class="platform" href="https://open.spotify.com/playlist/6j6ePmuQQOKZpbeG0SeG1y?si=idXk7HCHSBu6Hc7103HjXA" target="_blank" rel="noopener">
-          <img src="spotify.svg" alt="Spotify" width="24" height="24" decoding="async" />
+          <img src="spotify.svg" alt="Spotify" width="24" height="24" decoding="async" fetchpriority="low" />
           <span>Spotify</span>
         </a>
 
         <a class="platform" href="https://music.apple.com/us/playlist/cdj-proximas-canciones-2026/pl.u-d2b0kxBTMvWBb9L" target="_blank" rel="noopener">
-          <img src="apple-music.svg" alt="Apple Music" width="24" height="24" decoding="async" />
+          <img src="apple-music.svg" alt="Apple Music" width="24" height="24" decoding="async" fetchpriority="low" />
           <span>Apple Music</span>
         </a>
 
         <a class="platform" href="https://music.youtube.com/playlist?list=PLbgTCYVVyjGM&si=txigQZ5_6stN0zym" target="_blank" rel="noopener">
-          <img src="youtube-music.svg" alt="YouTube Music" width="24" height="24" decoding="async" />
+          <img src="youtube-music.svg" alt="YouTube Music" width="24" height="24" decoding="async" fetchpriority="low" />
           <span>YouTube Music</span>
         </a>
       </div>
@@ -1628,20 +1632,28 @@
       }
     })();
 
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./sw.js", { updateViaCache:"none" })
-          .then(async registration => {
-            await registration.update();
-            if (registration.waiting) {
-              registration.waiting.postMessage({type:"SKIP_WAITING"});
+    if("serviceWorker" in navigator){
+      window.addEventListener("load",()=>{
+        navigator.serviceWorker.register("./sw.js",{updateViaCache:"none"})
+          .then(registration=>{
+            const updateWorker=()=>{
+              registration.update().then(()=>{
+                if(registration.waiting){
+                  registration.waiting.postMessage({type:"SKIP_WAITING"});
+                }
+              }).catch(()=>{});
+            };
+            if("requestIdleCallback" in window){
+              requestIdleCallback(updateWorker,{timeout:1800});
+            }else{
+              setTimeout(updateWorker,700);
             }
           })
-          .catch(() => {});
-      });
+          .catch(()=>{});
+      },{once:true});
 
-      navigator.serviceWorker.addEventListener("controllerchange", () => {
-        // The new service worker controls the next navigation automatically.
+      navigator.serviceWorker.addEventListener("controllerchange",()=>{
+        // New worker takes control without forcing an extra reload loop.
       });
     }
 
@@ -1653,7 +1665,8 @@
     let refreshInFlight=false;
     const refreshThreshold=82;
     const maxPull=126;
-    const minimumSpinnerMs=900;
+    const minimumSpinnerMs=420;
+    const refreshNetworkTimeoutMs=5000;
 
     const setPullVisual=progress=>{
       if(!pullRefresh||!refreshGlyph)return;
@@ -1690,21 +1703,25 @@
           ? await navigator.serviceWorker.getRegistration()
           : null;
 
+        // Do not let service-worker update checking become the refresh bottleneck.
         if(registration){
-          await registration.update().catch(()=>{});
-          if(registration.waiting){
-            registration.waiting.postMessage({type:"SKIP_WAITING"});
-          }
+          Promise.race([
+            registration.update().catch(()=>null),
+            new Promise(resolve=>setTimeout(resolve,1400))
+          ]).then(()=>{
+            if(registration.waiting){
+              registration.waiting.postMessage({type:"SKIP_WAITING"});
+            }
+          }).catch(()=>{});
         }
 
         const freshUrl=new URL(window.location.href);
         freshUrl.searchParams.set("refresh",Date.now().toString());
 
-        // Fetch a genuinely fresh copy first. The service worker treats this
-        // refresh URL as network-only, and the timeout prevents the web app from hanging.
         const refreshController=new AbortController();
-        const refreshTimeout=setTimeout(()=>refreshController.abort(),8000);
+        const refreshTimeout=setTimeout(()=>refreshController.abort(),refreshNetworkTimeoutMs);
         let response;
+        let latestHtml="";
         try{
           response=await fetch(freshUrl.toString(),{
             method:"GET",
@@ -1713,12 +1730,14 @@
             headers:{"Cache-Control":"no-cache, no-store, must-revalidate"},
             signal:refreshController.signal
           });
+          if(!response.ok)throw new Error("Refresh request failed");
+          latestHtml=await response.text();
         }finally{
           clearTimeout(refreshTimeout);
         }
 
-        if(!response.ok) throw new Error("Refresh request failed");
-        await response.text();
+        const latestMatch=latestHtml.match(/<meta\s+name=["']ipcdj-build["']\s+content=["']([^"']+)["']/i);
+        if(!latestMatch)throw new Error("Fresh build marker missing");
 
         const elapsed=performance.now()-started;
         if(elapsed<minimumSpinnerMs){
@@ -1726,15 +1745,26 @@
         }
 
         persistClockSeed();
+
+        // The fresh document has already been successfully fetched. Navigation is now
+        // protected by the service worker's bounded network strategy; if that second
+        // request stalls, the last known-good shell is returned instead of hanging.
         window.location.replace(freshUrl.toString());
       }catch(_){
         const elapsed=performance.now()-started;
         if(elapsed<minimumSpinnerMs){
           await new Promise(resolve=>setTimeout(resolve,minimumSpinnerMs-elapsed));
         }
-        // Keep the previous known-good app shell if the network request fails.
-        persistClockSeed();
-        window.location.reload();
+
+        // A failed refresh must never destroy or indefinitely block the working app.
+        // Keep the current known-good shell and return the refresh control to idle.
+        refreshInFlight=false;
+        pullRefresh.classList.remove("pulling","ready","refreshing");
+        pullRefresh.style.transform="translate(-50%,-62px)";
+        pullRefresh.style.opacity="0";
+        pullRefresh.style.setProperty("--pull-rotation","0deg");
+        pullDistance=0;
+        pulling=false;
       }
     }
 
