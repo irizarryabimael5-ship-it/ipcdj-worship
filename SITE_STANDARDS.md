@@ -695,3 +695,20 @@ Required behavior:
 - Manual subject overrides remain deterministic across responsive changes.
 - Browsers without CSS mask support must hide the isolated subject enhancement rather than display a rectangular duplicate-art crop; the centered blurred/detail/perimeter cover treatment remains the graceful fallback.
 - Responsive compatibility work must preserve one-way reveal behavior, refresh/PWA freshness, countdown accuracy, COV artwork resolution, MediaPipe/native detection, semantic progress colors, and all approved v67-v70 visual treatments.
+
+
+## Non-blocking refresh and instant navigation v72
+
+The installed mobile web app and normal browser must never remain indefinitely in a loading/navigation state during refresh, update checks, cold opens, or intermittent network conditions.
+
+Required behavior:
+- Every service-worker navigation network request must have a finite abort timeout. Never use an unbounded network-first navigation.
+- Normal app opens should return the last verified cached application shell immediately when available, while updating that shell from the network in the background.
+- Explicit refresh/fresh/latest navigations should prefer the network so the user can receive a newly deployed build, but the network attempt must still be bounded and must fall back to the last verified shell on timeout or failure.
+- Seed the offline/known-good application shell during service-worker installation when possible so the first controlled navigation has a fast fallback.
+- Pull-to-refresh must fetch and verify a fresh build marker before navigation.
+- A failed pull-to-refresh must stop its spinner and keep the already-working application visible; it must not call an unbounded location.reload fallback.
+- Service-worker update checks must not block first paint or page interactivity. Run routine update checks after load/idle and bound explicit update waits.
+- The startup deployed-build probe must itself have a finite timeout.
+- Preserve cache-busted freshness parameters and the ability for stale cached HTML to self-correct when a newer deployed build is detected.
+- Optimize load speed by keeping noncritical update work off the critical rendering path while retaining all v67-v71 aesthetic, responsive, countdown, subject-detection, and freshness invariants.
