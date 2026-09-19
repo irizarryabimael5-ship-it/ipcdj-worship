@@ -780,3 +780,17 @@ Required behavior:
 - Song-specific manual chorus metadata overrides all automatic highlight selection.
 - Current song Dios De Milagros is configured as a manual chorus preview using the official Apple/iTunes preview source. The song structure is externally confirmed to contain the chorus "Dios de milagros / Dios de imposibles..." repeatedly.
 - Fade-in/fade-out, one-song-at-a-time playback, explicit user-tap requirement, iOS/Safari gesture handling, and local analysis fallback remain preserved from v75.
+
+
+## Minimal Adelanto control and deterministic chorus source v77
+
+The current preparation-card audio control is intentionally minimal.
+
+Required behavior:
+- Inside each prep card, show only the text "Adelanto" and one circular play/pause button. No progress bar, time display, thumbnail, "Coro" label, duration badge, explanatory copy, or mini-player container styling.
+- Pause is immediate and authoritative. On pause, cancel any active animation frame and stop timer first, stop/pause the media immediately, then switch the button state in the same interaction. Do not fade after a user explicitly presses pause.
+- Song switching must also stop the previous source immediately before starting the new one.
+- Dios De Milagros must not use the Apple/iTunes 30-second preview because that provider excerpt begins at the start of the song rather than the chorus.
+- Dios De Milagros uses the official Miel San Marcos YouTube video id 0_Wgv6_Dj8U as the preview source, with a song-specific manual chorus window and exactly 15 seconds of playback.
+- The externally documented song arrangement identifies "Dios de milagros / Dios de imposibles..." as the chorus after Verse 1 and Verse 2. The preview source/timestamp must therefore target that chorus rather than infer a section from loudness.
+- Future songs may use an official full-song source plus a manually confirmed chorus timestamp when provider preview clips do not contain the chorus.
