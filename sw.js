@@ -1,4 +1,4 @@
-const CACHE_NAME = "ipcdj-worship-v60";
+const CACHE_NAME = "ipcdj-worship-v61";
 const OFFLINE_PAGE = "./__offline_index__";
 const STATIC_ASSETS = [
   "./favicon.svg",
@@ -48,6 +48,22 @@ self.addEventListener("fetch", event => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+
+  // Freshness probes and explicit in-app refreshes must never be satisfied
+  // from the static cache. Always go directly to the network so a refresh
+  // can actually see a newly deployed build.
+  const isFreshnessRequest =
+    url.searchParams.has("refresh") ||
+    url.searchParams.has("latest-check") ||
+    url.searchParams.has("fresh");
+
+  if (isFreshnessRequest && request.mode !== "navigate") {
+    event.respondWith(
+      fetch(request, { cache:"no-store" })
+        .catch(() => new Response("", { status:504 }))
+    );
+    return;
+  }
 
   if (request.mode === "navigate") {
     event.respondWith((async () => {
