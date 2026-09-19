@@ -863,3 +863,17 @@ Required behavior:
 - Current settings: previewClipStart 80 seconds, previewClipDuration 21 seconds, previewFadeIn 1.35 seconds, previewFadeOut 2.0 seconds.
 - Do not globally apply these values to other songs; they are song-specific.
 - Preserve the actual-player-time envelope and immediate user pause behavior.
+
+
+## Immediate current-song preview start v83
+
+For the current preparation song, the Adelanto player is prepared after initial page load so a Play tap can start media immediately without doing player creation/seek work on that tap.
+
+Required behavior:
+- Prepare the hidden YouTube player only after the current page has rendered and become idle; never block first paint/current card loading.
+- Cue the current song at its configured chorus start while muted at volume 0.
+- On Play, if that song is already prepared, do not perform a redundant seek before playVideo(); unmute, keep volume at 0, and start immediately.
+- Current Dios De Milagros settings: start 80 seconds, duration 18 seconds, fade-in .35 seconds, fade-out 1.5 seconds.
+- The shorter fade-in is intentional so the chorus is audible essentially immediately while still avoiding a hard audio edge.
+- After automatic completion, cue the player back to the chorus start so the next tap is immediate again.
+- Preserve first-page performance by doing preparation only after render/idle.
