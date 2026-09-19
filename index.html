@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="automatic-cover-subject-system-v68" />
+  <meta name="ipcdj-build" content="portable-auto-subject-system-v69" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -1929,8 +1929,12 @@
     const COV_ENDPOINT="https://covers.musichoarders.xyz/api/search";
     const COV_SOURCES=["tidal","spotify","applemusic"];
     const COVER_ARTWORK_CACHE_MAX_AGE=30*24*60*60*1000;
+    const MEDIAPIPE_VISION_MODULE="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/+esm";
+    const MEDIAPIPE_WASM_ROOT="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm";
+    const MEDIAPIPE_FACE_MODEL="https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite";
     const coverThemeRequestTokens=new Map();
     const coverSubjectFocusCache=new Map();
+    let portableFaceDetectorPromise=null;
     const COVER_THEME_FALLBACKS={
       "dios-de-milagros":[[96,62,44],[166,108,61],[56,76,93]],
       "glorioso-dia":[[38,78,139],[215,142,78],[205,177,78]],
@@ -2086,12 +2090,23 @@
       return song.coverSubjectFocus||song.subjectFocus||null;
     }
 
+    function normalizedFaceBox(face){
+      const box=face&&face.boundingBox;
+      if(!box)return null;
+      const x=Number.isFinite(box.x)?box.x:Number(box.originX);
+      const y=Number.isFinite(box.y)?box.y:Number(box.originY);
+      const width=Number(box.width);
+      const height=Number(box.height);
+      if(![x,y,width,height].every(Number.isFinite)||width<=0||height<=0)return null;
+      return {x,y,width,height};
+    }
+
     function chooseBestCoverFace(faces,image){
       if(!Array.isArray(faces)||!faces.length)return null;
       const iw=Math.max(1,image.naturalWidth), ih=Math.max(1,image.naturalHeight);
       return faces.slice().sort((a,b)=>{
         const score=face=>{
-          const box=face&&face.boundingBox;
+          const box=normalizedFaceBox(face);
           if(!box)return -1;
           const area=(box.width*box.height)/(iw*ih);
           const cx=(box.x+(box.width/2))/iw;
@@ -2102,6 +2117,46 @@
         };
         return score(b)-score(a);
       })[0];
+    }
+
+    async function getPortableFaceDetector(){
+      if(portableFaceDetectorPromise)return portableFaceDetectorPromise;
+      portableFaceDetectorPromise=(async()=>{
+        const visionTasks=await import(MEDIAPIPE_VISION_MODULE);
+        const vision=await visionTasks.FilesetResolver.forVisionTasks(MEDIAPIPE_WASM_ROOT);
+        return await visionTasks.FaceDetector.createFromOptions(vision,{
+          baseOptions:{
+            modelAssetPath:MEDIAPIPE_FACE_MODEL,
+            delegate:"CPU"
+          },
+          runningMode:"IMAGE",
+          minDetectionConfidence:.48,
+          minSuppressionThreshold:.30
+        });
+      })().catch(error=>{
+        portableFaceDetectorPromise=null;
+        throw error;
+      });
+      return portableFaceDetectorPromise;
+    }
+
+    async function detectFacesPortable(image){
+      if(typeof window.FaceDetector==="function"&&window.isSecureContext){
+        try{
+          const detector=new FaceDetector({fastMode:false,maxDetectedFaces:8});
+          const faces=await detector.detect(image);
+          if(Array.isArray(faces)&&faces.length)return {faces,source:"native-face-detection"};
+        }catch(_){}
+      }
+
+      try{
+        const detector=await getPortableFaceDetector();
+        const result=detector.detect(image);
+        const faces=(result&&Array.isArray(result.detections))?result.detections:[];
+        if(faces.length)return {faces,source:"mediapipe-face-detection"};
+      }catch(_){}
+
+      return {faces:[],source:"none"};
     }
 
     function solveBackgroundPosition(source,target,scale){
@@ -2141,8 +2196,8 @@
       };
     }
 
-    function detectedFaceToCoverFocus(face,image,card){
-      const box=face&&face.boundingBox;
+    function focusFromFace(face,image,card,source){
+      const box=normalizedFaceBox(face);
       if(!box||!image.naturalWidth||!image.naturalHeight||!card)return null;
       const subject={
         cx:(box.x+(box.width/2))/image.naturalWidth,
@@ -2150,15 +2205,18 @@
         faceRatio:Math.max(box.width/image.naturalWidth,box.height/image.naturalHeight)
       };
       return {
-        desktop:focusFromNormalizedFace(subject,{width:image.naturalWidth,height:image.naturalHeight},card,"desktop"),
-        mobile:focusFromNormalizedFace(subject,{width:image.naturalWidth,height:image.naturalHeight},card,"mobile"),
-        opacity:".93",
-        source:"native-face-detection"
+        subject,
+        focus:{
+          desktop:focusFromNormalizedFace(subject,{width:image.naturalWidth,height:image.naturalHeight},card,"desktop"),
+          mobile:focusFromNormalizedFace(subject,{width:image.naturalWidth,height:image.naturalHeight},card,"mobile"),
+          opacity:".93",
+          source:source||"automatic-face-detection"
+        }
       };
     }
 
     async function detectCoverSubjectFocus(song,artworkUrl,card){
-      if(!artworkUrl||!card||typeof window.FaceDetector!=="function"||!window.isSecureContext)return null;
+      if(!artworkUrl||!card||!window.isSecureContext)return null;
       const key=song.id+"|"+artworkUrl+"|"+Math.round(card.getBoundingClientRect().width);
       if(coverSubjectFocusCache.has(key))return coverSubjectFocusCache.get(key);
 
@@ -2187,24 +2245,16 @@
 
       let focus=null;
       try{
-        const detector=new FaceDetector({fastMode:false,maxDetectedFaces:8});
-        const faces=await detector.detect(image);
-        const best=chooseBestCoverFace(faces,image);
-        if(best&&best.boundingBox){
-          const box=best.boundingBox;
-          const subject={
-            cx:(box.x+(box.width/2))/image.naturalWidth,
-            cy:(box.y+(box.height*.55))/image.naturalHeight,
-            faceRatio:Math.max(box.width/image.naturalWidth,box.height/image.naturalHeight)
-          };
-          focus={
-            desktop:focusFromNormalizedFace(subject,{width:image.naturalWidth,height:image.naturalHeight},card,"desktop"),
-            mobile:focusFromNormalizedFace(subject,{width:image.naturalWidth,height:image.naturalHeight},card,"mobile"),
-            opacity:".93",
-            source:"native-face-detection"
-          };
+        const detection=await detectFacesPortable(image);
+        const best=chooseBestCoverFace(detection.faces,image);
+        const resolved=best?focusFromFace(best,image,card,detection.source):null;
+        if(resolved){
+          focus=resolved.focus;
           try{
-            localStorage.setItem(COVER_SUBJECT_CACHE_PREFIX+song.id,JSON.stringify({artworkUrl,subject}));
+            localStorage.setItem(
+              COVER_SUBJECT_CACHE_PREFIX+song.id,
+              JSON.stringify({artworkUrl,subject:resolved.subject,detector:detection.source})
+            );
           }catch(_){}
         }
       }catch(_){}
@@ -2389,6 +2439,8 @@
 
     async function ensureCoverTheme(song,card){
       if(!card)return;
+      if(card.dataset.coverLoading===song.id)return;
+      card.dataset.coverLoading=song.id;
       const token=(coverThemeRequestTokens.get(song.id)||0)+1;
       coverThemeRequestTokens.set(song.id,token);
       const fallback=COVER_THEME_FALLBACKS[song.id]||[[82,74,68],[116,92,70],[58,68,78]];
@@ -2423,6 +2475,8 @@
       }catch(_){
         // The curated fallback palette remains active. Cover-provider, CORS, image,
         // or detection failures never affect the countdown, stage logic, or rollover.
+      }finally{
+        if(card.dataset.coverLoading===song.id)delete card.dataset.coverLoading;
       }
     }
 
@@ -2624,7 +2678,10 @@
       setCardText(card,"song-name",song.title);
       setCardText(card,"artist",song.artist);
 
-      if(card.dataset.coverTheme!==song.id||card.dataset.coverArtwork!==song.id){
+      if(
+        (card.dataset.coverTheme!==song.id||card.dataset.coverArtwork!==song.id)&&
+        card.dataset.coverLoading!==song.id
+      ){
         ensureCoverTheme(song,card);
       }
 
