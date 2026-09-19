@@ -601,3 +601,8 @@ Across desktop, tablet, and mobile, an isolated worship-subject crop must never 
 ## Mobile countdown-area subject swell v63
 
 On mobile, when the lower portion of the isolated person remains visible beneath or behind the countdown box, avoid a hard torso-ending line. Keep the approved placement and side feathering, but begin the bottom alpha fade earlier and distribute it across a wider vertical range so the lower body dissolves like a soft swell into the background beneath the countdown area. Preserve the person's upper-body presence and do not alter desktop/tablet composition.
+
+
+## Mobile deep lower-body swell v64
+
+On narrow mobile layouts, when the lower portion of the subject remains perceptible beneath the countdown card, the fade must begin substantially earlier and remain continuous through the lower half of the subject crop. Preserve the approved subject placement and upper-body clarity, but reduce lower-body alpha progressively from roughly the midpoint downward so no distinct torso or body-ending contour remains. The intended result is a soft atmospheric swell into the album-art background and countdown region, not a visible cropped figure edge.
