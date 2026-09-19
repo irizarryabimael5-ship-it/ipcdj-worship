@@ -611,3 +611,8 @@ On narrow mobile layouts, when the lower portion of the subject remains percepti
 ## Mobile deeper lower-body swell v65
 
 On narrow mobile layouts, preserve the approved subject placement, crop, side feathering, and upper-body clarity while making the lower-body dissolve materially stronger than v64. Begin the bottom alpha decay shortly after the upper half of the crop, then use a long multi-stop fade so the torso loses any distinguishable ending contour before it reaches the countdown region. The lower quarter should read as atmosphere rather than as a cropped body edge. Do not alter desktop/tablet composition or the approved mobile focal position.
+
+
+## Mobile erased lower-body swell v66
+
+On narrow mobile layouts, preserve the approved subject box and focal placement exactly: right:-2%, width:40%, height:34%, background-size:360% auto, and background-position:84% 64%. Preserve the established horizontal side feather. For the lower-body boundary, keep full vertical mask visibility only through roughly the upper third, then begin a materially stronger, long alpha decay so the torso/body-ending contour is already faint by the middle-lower region and becomes atmospheric well before the bottom edge. The lower quarter should be nearly indistinguishable from the centered album-art background, especially behind and beneath the Cuenta regresiva region. Do not weaken the upper-body/head presence and do not alter desktop/tablet composition.
