@@ -1,4 +1,4 @@
-const CACHE_NAME = "ipcdj-worship-v79";
+const CACHE_NAME = "ipcdj-worship-v80";
 const OFFLINE_PAGE = "./__offline_index__";
 const STATIC_ASSETS = [
   "./favicon.svg",
