@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="precise-chorus-envelope-v78" />
+  <meta name="ipcdj-build" content="instant-button-fade-speed-v79" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -28,8 +28,6 @@
   <link rel="canonical" href="https://worship.ipcdj.org/" />
   <link rel="preconnect" href="https://covers.musichoarders.xyz" crossorigin />
   <link rel="preconnect" href="https://itunes.apple.com" crossorigin />
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-  <link rel="preconnect" href="https://storage.googleapis.com" crossorigin />
   <link rel="dns-prefetch" href="//covers.musichoarders.xyz" />
   <link rel="dns-prefetch" href="//itunes.apple.com" />
   <meta property="og:type" content="website" />
@@ -1150,7 +1148,8 @@
     .preview-button:active{transform:scale(.94)}
     .preview-button[disabled]{opacity:.45;cursor:default}
     .preview-button svg{width:17px;height:17px;display:block;fill:currentColor}
-    .preview-row.is-playing .preview-button{
+    .preview-row.is-playing .preview-button,
+    .preview-row.is-starting .preview-button{
       background:var(--stage-soft,rgba(137,169,255,.10));
       border-color:var(--stage-border,rgba(137,169,255,.28));
       color:var(--stage-text,#e6edff);
@@ -2674,10 +2673,16 @@
       if(!row)return;
       const button=row.querySelector(".preview-button");
       if(!button)return;
-      button.innerHTML=previewIcon(state);
-      button.setAttribute("aria-label",state==="pause"?"Pausar adelanto":state==="loading"?"Preparando adelanto":"Reproducir adelanto");
+      const visualState=state==="starting"?"pause":state;
+      button.innerHTML=previewIcon(visualState);
+      button.setAttribute(
+        "aria-label",
+        state==="pause"||state==="starting"?"Pausar adelanto":"Reproducir adelanto"
+      );
+      button.setAttribute("aria-busy",state==="starting"?"true":"false");
       row.classList.toggle("is-playing",state==="pause");
-      row.classList.toggle("is-loading",state==="loading");
+      row.classList.toggle("is-starting",state==="starting");
+      row.classList.remove("is-loading");
     }
 
     async function resolveItunesPreviewData(song){
@@ -2848,6 +2853,20 @@
     let youtubePreviewFadeIn=1;
     let youtubePreviewFadeOut=1.8;
     let youtubePreviewPlaying=false;
+    let youtubePreviewFadeStartedAt=0;
+    let youtubePreviewRequestToken=0;
+
+    function warmYouTubePreviewNetwork(){
+      if(document.querySelector('link[data-ipcdj-youtube-preconnect]'))return;
+      ["https://www.youtube.com","https://www.google.com"].forEach(href=>{
+        const link=document.createElement("link");
+        link.rel="preconnect";
+        link.href=href;
+        link.crossOrigin="anonymous";
+        link.dataset.ipcdjYoutubePreconnect="true";
+        document.head.appendChild(link);
+      });
+    }
 
     function loadYouTubeIframeApi(){
       if(window.YT&&typeof window.YT.Player==="function")return Promise.resolve(window.YT);
@@ -2893,6 +2912,7 @@
     }
 
     function destroyYouTubePreviewPlayer(){
+      youtubePreviewRequestToken++;
       cancelAnimationFrame(youtubePreviewMonitorFrame);
       youtubePreviewMonitorFrame=0;
       youtubePreviewPlaying=false;
@@ -2964,6 +2984,7 @@
     }
 
     function stopYouTubePreview(songId,{reset=true}={}){
+      youtubePreviewRequestToken++;
       cancelAnimationFrame(youtubePreviewMonitorFrame);
       youtubePreviewMonitorFrame=0;
       youtubePreviewPlaying=false;
@@ -2991,13 +3012,12 @@
 
         let current=youtubePreviewStart;
         try{current=Number(youtubePreviewPlayer.getCurrentTime())||youtubePreviewStart}catch(_){}
-        const elapsed=Math.max(0,current-youtubePreviewStart);
         const remaining=Math.max(0,youtubePreviewEnd-current);
+        const fadeElapsed=Math.max(0,(performance.now()-youtubePreviewFadeStartedAt)/1000);
 
-        let volume=100;
-        if(elapsed<youtubePreviewFadeIn){
-          volume=Math.round(100*(elapsed/Math.max(.05,youtubePreviewFadeIn)));
-        }
+        let volume=Math.round(
+          100*Math.min(1,fadeElapsed/Math.max(.05,youtubePreviewFadeIn))
+        );
         if(remaining<youtubePreviewFadeOut){
           volume=Math.min(
             volume,
@@ -3031,33 +3051,52 @@
     }
 
     async function playYouTubePreview(song){
+      const token=++youtubePreviewRequestToken;
+      warmYouTubePreviewNetwork();
+
       const player=await ensureYouTubePreviewPlayer(song);
+      if(token!==youtubePreviewRequestToken)return;
+
       youtubePreviewStart=Math.max(0,Number(song.previewClipStart)||0);
       youtubePreviewEnd=youtubePreviewStart+15;
       youtubePreviewFadeIn=Math.max(.25,Number(song.previewFadeIn)||1);
       youtubePreviewFadeOut=Math.max(.5,Number(song.previewFadeOut)||1.8);
 
       activePreviewSongId=song.id;
+
       try{
+        // Unmute first, then explicitly force volume back to zero. This avoids
+        // mobile browsers restoring an old non-zero volume when unmuting.
+        player.unMute();
         player.setVolume(0);
-        player.mute();
         player.seekTo(youtubePreviewStart,true);
         player.playVideo();
       }catch(_){
-        setPreviewButtonState(song.id,"play");
+        if(token===youtubePreviewRequestToken)setPreviewButtonState(song.id,"play");
         return;
       }
 
-      youtubePreviewPlaying=true;
-      setPreviewButtonState(song.id,"pause");
+      // UI responds immediately and remains visually stable while YouTube starts.
+      setPreviewButtonState(song.id,"starting");
 
-      // Wait a fraction for the seek/play to settle, then control volume against
-      // actual player time instead of a wall-clock timeout.
-      setTimeout(()=>{
-        if(activePreviewSongId!==song.id||!youtubePreviewPlaying)return;
-        try{player.unMute()}catch(_){}
-        monitorYouTubePreview(song);
-      },90);
+      const waitForPlaying=()=>{
+        if(token!==youtubePreviewRequestToken||activePreviewSongId!==song.id)return;
+        let state=-1;
+        try{state=player.getPlayerState()}catch(_){}
+        if(state===1){
+          youtubePreviewPlaying=true;
+          youtubePreviewFadeStartedAt=performance.now();
+          try{
+            player.unMute();
+            player.setVolume(0);
+          }catch(_){}
+          setPreviewButtonState(song.id,"pause");
+          monitorYouTubePreview(song);
+          return;
+        }
+        requestAnimationFrame(waitForPlaying);
+      };
+      requestAnimationFrame(waitForPlaying);
     }
 
     function stopPreviewTracking(){
@@ -3130,9 +3169,11 @@
     async function playPreviewSong(song,previewData){
       if(song.previewSource==="youtube"&&song.previewYouTubeId){
         const sameSong=activePreviewSongId===song.id;
+        const row=document.querySelector('[data-preview-song-id="'+CSS.escape(song.id)+'"]');
+        const isStarting=!!row?.classList.contains("is-starting");
 
-        if(sameSong&&youtubePreviewPlaying){
-          // User pause is intentionally immediate; automatic segment ending is faded.
+        if(sameSong&&(youtubePreviewPlaying||isStarting)){
+          // One tap always stops immediately, even while the player is still starting.
           stopPreviewTracking();
           cancelAnimationFrame(previewManualFadeFrame);
           pauseYouTubePreview(song.id);
@@ -3152,11 +3193,12 @@
           stopYouTubePreview(activePreviewSongId,{reset:true});
         }
 
-        setPreviewButtonState(song.id,"loading");
+        activePreviewSongId=song.id;
+        setPreviewButtonState(song.id,"starting");
         try{
           await playYouTubePreview(song);
         }catch(_){
-          setPreviewButtonState(song.id,"play");
+          if(activePreviewSongId===song.id)setPreviewButtonState(song.id,"play");
         }
         return;
       }
@@ -3240,15 +3282,6 @@
       `;
     }
 
-    function warmYouTubePreviewApi(){
-      loadYouTubeIframeApi().catch(()=>{});
-    }
-    if("requestIdleCallback" in window){
-      requestIdleCallback(warmYouTubePreviewApi,{timeout:2500});
-    }else{
-      setTimeout(warmYouTubePreviewApi,1200);
-    }
-
     async function hydratePreviewRow(song){
       const row=document.querySelector('[data-preview-song-id="'+CSS.escape(song.id)+'"]');
       if(!row)return;
@@ -3262,6 +3295,10 @@
           button.innerHTML=previewIcon("play");
           button.setAttribute("aria-label","Reproducir adelanto de "+song.title);
           button.dataset.bound="true";
+          button.addEventListener("pointerdown",()=>{
+            warmYouTubePreviewNetwork();
+            loadYouTubeIframeApi().catch(()=>{});
+          },{passive:true});
           button.addEventListener("click",()=>playPreviewSong(song,row._previewData));
         }
         return;
@@ -3916,7 +3953,7 @@
       const now=calibratedNow();
       const future=songPipeline
         .filter(song=>now<new Date(song.rolloverAt).getTime())
-        .slice(0,4);
+        .slice(0,3);
 
       let offset=0;
       future.forEach(song=>{
@@ -3927,14 +3964,14 @@
             warmCoverImage(url,"low");
           }).catch(()=>{});
         },offset);
-        offset+=700;
+        offset+=1100;
       });
     }
 
     if("requestIdleCallback" in window){
-      requestIdleCallback(warmFutureSongCovers,{timeout:2600});
+      requestIdleCallback(warmFutureSongCovers,{timeout:5000});
     }else{
-      setTimeout(warmFutureSongCovers,1400);
+      setTimeout(warmFutureSongCovers,3200);
     }
 
     const revealItems=[...document.querySelectorAll(".reveal")];
