@@ -744,3 +744,24 @@ Required behavior:
 - If the cover was already preloaded by the v73 boot system, still perform the brief staged visual fade so repeat loads remain polished rather than flashing instantly.
 - Respect prefers-reduced-motion by removing transition animation while still showing the final artwork and subject state.
 - Loading/reveal state must not affect countdown logic, semantic stage colors, masks, responsive subject positioning, multi-current-song support, refresh behavior, or cover-source selection.
+
+
+## Current-song highlight preview queue v75
+
+Songs currently in preparation may expose a compact official-audio preview module directly below the current preparation cards.
+
+Required behavior:
+- The preview module appears only when at least one current/preparation song exists and is placed immediately below the preparation cards.
+- Every simultaneously active preparation song gets its own queued preview row; only one preview may play at a time.
+- Resolve previews from Apple/iTunes song results using the same title/artist reliability scoring used for artwork matching.
+- Use only official provider preview URLs; do not host or copy full copyrighted tracks into the repository.
+- Default preview length is song-configurable from 10 to 15 seconds, with 12 seconds as the normal target.
+- If a song provides previewClipStart, treat it as the authoritative manual chorus/climax override.
+- Otherwise, locally fetch/decode the provider's preview and analyze short RMS energy frames to choose the strongest available 10–15 second window, favoring a central high-energy section and avoiding the extreme beginning/end when possible.
+- If Web Audio analysis or preview fetching fails, fall back to a safe centered 10–15 second segment rather than breaking playback.
+- Audio analysis happens locally in the listener's browser and does not upload audio to a third party.
+- Start playback only from an explicit user tap. Preserve the user gesture immediately on iOS/Safari while highlight analysis resolves.
+- Fade preview volume in over roughly 0.8 seconds and fade it out over roughly 1.15 seconds near the segment end. Manual pause and song switching should also fade down rather than cut abruptly.
+- Show a subtle progress line, album artwork, song title, artist, play/pause state, and compact "Fragmento destacado" metadata while preserving the existing glass/card aesthetic.
+- Current-card artwork should synchronize into the preview thumbnail when available.
+- Preview lookup/analysis must never block page rendering, countdowns, cover loading, refresh, responsive behavior, or current-song rollover.
