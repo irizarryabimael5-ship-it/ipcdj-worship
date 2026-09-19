@@ -586,3 +586,8 @@ On narrow mobile layouts, avoid making an isolated worship-subject crop read lik
 ## Mobile bottom-edge feather v60
 
 When the lower-body crop is already positioned correctly, do not move or resize the subject. Refine only the bottom mask boundary so the exact line where the body ends dissolves more gradually into the album-art background. Preserve side feathering, subject visibility, and all desktop/tablet placement.
+
+
+## Refresh reliability v61
+
+The installed web app's pull-to-refresh must never remain indefinitely in a loading state or keep serving a stale document after a deployment. Explicit refresh requests and deployed-build probes bypass the service-worker static cache and go network-only. The pull-refresh fetch uses no-store semantics plus a finite timeout, then navigates to the cache-busted URL. Keep a short minimum spinner only for visual continuity; do not let the animation delay a successful update unnecessarily. Normal offline fallback remains intact for ordinary navigation.
