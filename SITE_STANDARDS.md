@@ -728,3 +728,19 @@ Required behavior:
 - Background warming must never block first paint, interactivity, countdown updates, refresh behavior, or current-cover loading.
 - Continue to prefer curated artworkUrl first, then COV high-resolution sources, then Apple/iTunes fallback.
 - The early boot optimization must support multiple simultaneously active preparation songs by preloading and styling each active song independently.
+
+
+## Staged cover and subject reveal v74
+
+Album-cover loading must look intentional even when a first-time device has not yet cached the current artwork.
+
+Required behavior:
+- Current-song album artwork layers begin visually hidden while the rest of the card UI renders normally.
+- Once the cover image is confirmed loaded or available from cache, reveal the blurred base, detail layer, and perimeter layer with a smooth approximately one-second fade.
+- The isolated person/subject must not pop in simultaneously. It should begin roughly 180ms after the cover atmosphere becomes visible and use a slightly longer fade so it settles naturally into the composition.
+- Preserve the exact approved cover/detail/perimeter target opacities on desktop and mobile; the fade changes timing only, not the final aesthetic.
+- Manual and automatically detected subjects use the same staged subject reveal.
+- If subject detection finishes before the cover is visually ready, hold the subject reveal until the cover has begun/finished entering rather than showing the person against an empty card.
+- If the cover was already preloaded by the v73 boot system, still perform the brief staged visual fade so repeat loads remain polished rather than flashing instantly.
+- Respect prefers-reduced-motion by removing transition animation while still showing the final artwork and subject state.
+- Loading/reveal state must not affect countdown logic, semantic stage colors, masks, responsive subject positioning, multi-current-song support, refresh behavior, or cover-source selection.
