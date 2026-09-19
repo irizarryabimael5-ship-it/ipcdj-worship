@@ -576,3 +576,8 @@ For oversized subject background crops, remember that increasing percentage-base
 ## Mobile subject blend refinement v58
 
 Keep the approved v57 mobile subject position and crop. On narrow mobile layouts only, use a slightly broader left and bottom feather so the subject integrates more naturally with the album-art background without losing the person. Do not change desktop or tablet-landscape positioning, and preserve the intersected horizontal/vertical mask method from v55.
+
+
+## Mobile lower-body continuity v59
+
+On narrow mobile layouts, avoid making an isolated worship-subject crop read like a torso cut off at the bottom. Preserve the approved horizontal placement and side feathering, reveal slightly more lower body by extending the subject region vertically, and move the bottom feather lower so the visible body transitions naturally into the album-art background. The fade should remain gradual and edge-focused rather than reducing the subject's overall presence.
