@@ -596,3 +596,8 @@ The installed web app's pull-to-refresh must never remain indefinitely in a load
 ## Global lower-body feather continuity v62
 
 Across desktop, tablet, and mobile, an isolated worship-subject crop must never read as a torso abruptly cut off at the lower edge. Preserve approved subject placement and side feathering, but extend the lower vertical alpha transition farther upward and make the final edge more gradual so the body dissolves naturally into the album-art background. This refinement applies to all responsive breakpoints, with slightly stronger lower-edge feathering on narrow mobile layouts.
+
+
+## Mobile countdown-area subject swell v63
+
+On mobile, when the lower portion of the isolated person remains visible beneath or behind the countdown box, avoid a hard torso-ending line. Keep the approved placement and side feathering, but begin the bottom alpha fade earlier and distribute it across a wider vertical range so the lower body dissolves like a soft swell into the background beneath the countdown area. Preserve the person's upper-body presence and do not alter desktop/tablet composition.
