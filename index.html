@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="preview-playback-fix-v80" />
+  <meta name="ipcdj-build" content="dios-preview-extension-v81" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -2087,7 +2087,7 @@
         artist:"Miel San Marcos & Kim Richards",
         artworkQuery:"Dios De Milagros En Vivo Desde México Miel San Marcos Kim Richards",
         itunesCollectionId:"6799307691",
-        previewClipDuration:15,
+        previewClipDuration:17,
         previewClipStart:82,
         previewFadeIn:1.0,
         previewFadeOut:1.8,
@@ -3061,7 +3061,7 @@
       if(token!==youtubePreviewRequestToken)return;
 
       youtubePreviewStart=Math.max(0,Number(song.previewClipStart)||0);
-      youtubePreviewEnd=youtubePreviewStart+15;
+      youtubePreviewEnd=youtubePreviewStart+Math.max(1,Number(song.previewClipDuration)||15);
       youtubePreviewFadeIn=Math.max(.25,Number(song.previewFadeIn)||1);
       youtubePreviewFadeOut=Math.max(.5,Number(song.previewFadeOut)||1.8);
 
