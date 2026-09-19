@@ -827,3 +827,15 @@ Required behavior:
 - Remove nonessential MediaPipe CDN preconnects from the initial document head. Face-detection libraries are loaded only if automatic subject detection is actually required.
 - Current-song artwork remains eager/high priority; future-song artwork warming is delayed further into idle time and staggered so it cannot compete with the current card, refresh, or first interaction.
 - Preserve v72 bounded refresh, v73 instant current-cover boot, v74 staged cover/person fade, and all responsive compatibility rules.
+
+
+## Preview playback request integrity v80
+
+The Adelanto request token represents user intent only.
+
+Required behavior:
+- Creating, replacing, or destroying an internal YouTube Player instance as part of the same requested Play operation must not increment/invalidate the request token.
+- Explicit user pause/stop and a subsequent new user play request may invalidate older asynchronous work.
+- A first Play request must survive asynchronous API loading and player construction and reach playVideo().
+- If the YouTube API or player does not become ready, clear the starting state and return the control to Play within a bounded timeout; never leave the button stuck.
+- Preserve v79 zero-volume fade-in timing, on-intent dependency loading, and first-page performance rules.
