@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="simple-chorus-player-v77" />
+  <meta name="ipcdj-build" content="precise-chorus-envelope-v78" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -2090,6 +2090,8 @@
         itunesCollectionId:"6799307691",
         previewClipDuration:15,
         previewClipStart:82,
+        previewFadeIn:1.0,
+        previewFadeOut:1.8,
         previewClipSection:"chorus",
         previewSource:"youtube",
         previewYouTubeId:"0_Wgv6_Dj8U",
@@ -2837,11 +2839,46 @@
     function updatePreviewProgress(){}
 
 
-    let youtubePreviewFrame=null;
-    let youtubePreviewTimer=0;
-    let youtubePreviewStartedAt=0;
-    let youtubePreviewSongId="";
-    let youtubePreviewPausedOffset=0;
+    let youtubeApiPromise=null;
+    let youtubePreviewPlayer=null;
+    let youtubePreviewPlayerSongId="";
+    let youtubePreviewMonitorFrame=0;
+    let youtubePreviewStart=0;
+    let youtubePreviewEnd=0;
+    let youtubePreviewFadeIn=1;
+    let youtubePreviewFadeOut=1.8;
+    let youtubePreviewPlaying=false;
+
+    function loadYouTubeIframeApi(){
+      if(window.YT&&typeof window.YT.Player==="function")return Promise.resolve(window.YT);
+      if(youtubeApiPromise)return youtubeApiPromise;
+
+      youtubeApiPromise=new Promise((resolve,reject)=>{
+        const previous=window.onYouTubeIframeAPIReady;
+        window.onYouTubeIframeAPIReady=()=>{
+          try{if(typeof previous==="function")previous()}catch(_){}
+          resolve(window.YT);
+        };
+
+        if(!document.querySelector('script[data-ipcdj-youtube-api]')){
+          const script=document.createElement("script");
+          script.src="https://www.youtube.com/iframe_api";
+          script.async=true;
+          script.dataset.ipcdjYoutubeApi="true";
+          script.onerror=()=>reject(new Error("YouTube API unavailable"));
+          document.head.appendChild(script);
+        }
+
+        setTimeout(()=>{
+          if(window.YT&&typeof window.YT.Player==="function")resolve(window.YT);
+        },1800);
+      }).catch(error=>{
+        youtubeApiPromise=null;
+        throw error;
+      });
+
+      return youtubeApiPromise;
+    }
 
     function ensureYouTubePreviewHost(){
       let host=document.getElementById("youtube-preview-host");
@@ -2855,57 +2892,172 @@
       return host;
     }
 
-    function stopYouTubePreview(reset=true){
-      clearTimeout(youtubePreviewTimer);
-      youtubePreviewTimer=0;
+    function destroyYouTubePreviewPlayer(){
+      cancelAnimationFrame(youtubePreviewMonitorFrame);
+      youtubePreviewMonitorFrame=0;
+      youtubePreviewPlaying=false;
+      if(youtubePreviewPlayer){
+        try{youtubePreviewPlayer.destroy()}catch(_){}
+      }
+      youtubePreviewPlayer=null;
+      youtubePreviewPlayerSongId="";
       const host=document.getElementById("youtube-preview-host");
       if(host)host.replaceChildren();
-      if(reset)youtubePreviewPausedOffset=0;
-      youtubePreviewStartedAt=0;
+    }
+
+    async function ensureYouTubePreviewPlayer(song){
+      if(
+        youtubePreviewPlayer&&
+        youtubePreviewPlayerSongId===song.id
+      )return youtubePreviewPlayer;
+
+      destroyYouTubePreviewPlayer();
+      const YT=await loadYouTubeIframeApi();
+      const host=ensureYouTubePreviewHost();
+      const mount=document.createElement("div");
+      mount.id="youtube-preview-player";
+      host.appendChild(mount);
+
+      youtubePreviewPlayer=await new Promise((resolve,reject)=>{
+        let settled=false;
+        const timer=setTimeout(()=>{
+          if(!settled)reject(new Error("YouTube player timeout"));
+        },4000);
+
+        const player=new YT.Player(mount,{
+          width:"1",
+          height:"1",
+          videoId:song.previewYouTubeId,
+          playerVars:{
+            autoplay:0,
+            controls:0,
+            disablekb:1,
+            fs:0,
+            playsinline:1,
+            rel:0,
+            modestbranding:1,
+            origin:location.origin
+          },
+          events:{
+            onReady:()=>{
+              settled=true;
+              clearTimeout(timer);
+              resolve(player);
+            },
+            onError:()=>{
+              if(!settled){
+                settled=true;
+                clearTimeout(timer);
+                reject(new Error("YouTube player error"));
+              }
+            }
+          }
+        });
+      });
+
+      youtubePreviewPlayerSongId=song.id;
+      try{
+        youtubePreviewPlayer.setVolume(0);
+        youtubePreviewPlayer.mute();
+      }catch(_){}
+      return youtubePreviewPlayer;
+    }
+
+    function stopYouTubePreview(songId,{reset=true}={}){
+      cancelAnimationFrame(youtubePreviewMonitorFrame);
+      youtubePreviewMonitorFrame=0;
+      youtubePreviewPlaying=false;
+
+      if(youtubePreviewPlayer){
+        try{
+          youtubePreviewPlayer.setVolume(0);
+          youtubePreviewPlayer.pauseVideo();
+          if(reset)youtubePreviewPlayer.seekTo(youtubePreviewStart,true);
+        }catch(_){}
+      }
+
+      if(songId)setPreviewButtonState(songId,"play");
     }
 
     function pauseYouTubePreview(songId){
-      if(youtubePreviewStartedAt){
-        youtubePreviewPausedOffset=Math.min(
-          14.5,
-          youtubePreviewPausedOffset+((performance.now()-youtubePreviewStartedAt)/1000)
-        );
-      }
-      stopYouTubePreview(false);
-      youtubePreviewSongId=songId;
-      activePreviewSongId=songId;
-      setPreviewButtonState(songId,"play");
+      stopYouTubePreview(songId,{reset:false});
     }
 
-    function playYouTubePreview(song){
-      const host=ensureYouTubePreviewHost();
-      const clipStart=Math.max(0,Number(song.previewClipStart)||0);
-      const remaining=Math.max(.5,15-youtubePreviewPausedOffset);
-      const start=Math.floor(clipStart+youtubePreviewPausedOffset);
-      const end=Math.ceil(clipStart+15);
+    function monitorYouTubePreview(song){
+      cancelAnimationFrame(youtubePreviewMonitorFrame);
 
-      host.replaceChildren();
-      const iframe=document.createElement("iframe");
-      iframe.width="1";
-      iframe.height="1";
-      iframe.allow="autoplay";
-      iframe.title="Adelanto de "+song.title;
-      iframe.src="https://www.youtube.com/embed/"+encodeURIComponent(song.previewYouTubeId)+
-        "?autoplay=1&playsinline=1&controls=0&rel=0&modestbranding=1&start="+start+"&end="+end;
-      host.appendChild(iframe);
+      const step=()=>{
+        if(!youtubePreviewPlayer||!youtubePreviewPlaying||activePreviewSongId!==song.id)return;
+
+        let current=youtubePreviewStart;
+        try{current=Number(youtubePreviewPlayer.getCurrentTime())||youtubePreviewStart}catch(_){}
+        const elapsed=Math.max(0,current-youtubePreviewStart);
+        const remaining=Math.max(0,youtubePreviewEnd-current);
+
+        let volume=100;
+        if(elapsed<youtubePreviewFadeIn){
+          volume=Math.round(100*(elapsed/Math.max(.05,youtubePreviewFadeIn)));
+        }
+        if(remaining<youtubePreviewFadeOut){
+          volume=Math.min(
+            volume,
+            Math.round(100*(remaining/Math.max(.05,youtubePreviewFadeOut)))
+          );
+        }
+        volume=Math.max(0,Math.min(100,volume));
+
+        try{
+          youtubePreviewPlayer.unMute();
+          youtubePreviewPlayer.setVolume(volume);
+        }catch(_){}
+
+        // Stop only after the programmed fade has reached silence at the exact
+        // 15-second chorus boundary.
+        if(current>=youtubePreviewEnd-.035){
+          try{
+            youtubePreviewPlayer.setVolume(0);
+            youtubePreviewPlayer.pauseVideo();
+            youtubePreviewPlayer.seekTo(youtubePreviewStart,true);
+          }catch(_){}
+          youtubePreviewPlaying=false;
+          setPreviewButtonState(song.id,"play");
+          return;
+        }
+
+        youtubePreviewMonitorFrame=requestAnimationFrame(step);
+      };
+
+      youtubePreviewMonitorFrame=requestAnimationFrame(step);
+    }
+
+    async function playYouTubePreview(song){
+      const player=await ensureYouTubePreviewPlayer(song);
+      youtubePreviewStart=Math.max(0,Number(song.previewClipStart)||0);
+      youtubePreviewEnd=youtubePreviewStart+15;
+      youtubePreviewFadeIn=Math.max(.25,Number(song.previewFadeIn)||1);
+      youtubePreviewFadeOut=Math.max(.5,Number(song.previewFadeOut)||1.8);
 
       activePreviewSongId=song.id;
-      youtubePreviewSongId=song.id;
-      youtubePreviewStartedAt=performance.now();
+      try{
+        player.setVolume(0);
+        player.mute();
+        player.seekTo(youtubePreviewStart,true);
+        player.playVideo();
+      }catch(_){
+        setPreviewButtonState(song.id,"play");
+        return;
+      }
+
+      youtubePreviewPlaying=true;
       setPreviewButtonState(song.id,"pause");
 
-      clearTimeout(youtubePreviewTimer);
-      youtubePreviewTimer=setTimeout(()=>{
-        stopYouTubePreview(true);
-        if(activePreviewSongId===song.id){
-          setPreviewButtonState(song.id,"play");
-        }
-      },Math.ceil(remaining*1000));
+      // Wait a fraction for the seek/play to settle, then control volume against
+      // actual player time instead of a wall-clock timeout.
+      setTimeout(()=>{
+        if(activePreviewSongId!==song.id||!youtubePreviewPlaying)return;
+        try{player.unMute()}catch(_){}
+        monitorYouTubePreview(song);
+      },90);
     }
 
     function stopPreviewTracking(){
@@ -2978,31 +3130,34 @@
     async function playPreviewSong(song,previewData){
       if(song.previewSource==="youtube"&&song.previewYouTubeId){
         const sameSong=activePreviewSongId===song.id;
-        const currentlyPlaying=
-          sameSong&&
-          youtubePreviewStartedAt>0&&
-          document.getElementById("youtube-preview-host")?.childElementCount;
 
-        if(currentlyPlaying){
-          // Pause is immediate: no lingering fade, animation frame, or timer.
+        if(sameSong&&youtubePreviewPlaying){
+          // User pause is intentionally immediate; automatic segment ending is faded.
           stopPreviewTracking();
           cancelAnimationFrame(previewManualFadeFrame);
           pauseYouTubePreview(song.id);
           return;
         }
 
-        // Stop any other provider immediately before switching.
         stopPreviewTracking();
         cancelAnimationFrame(previewManualFadeFrame);
+
         if(previewAudio){
           previewAudio.pause();
           previewAudio.volume=0;
         }
-        if(youtubePreviewSongId&&youtubePreviewSongId!==song.id){
-          setPreviewButtonState(youtubePreviewSongId,"play");
-          stopYouTubePreview(true);
+
+        if(activePreviewSongId&&activePreviewSongId!==song.id){
+          setPreviewButtonState(activePreviewSongId,"play");
+          stopYouTubePreview(activePreviewSongId,{reset:true});
         }
-        playYouTubePreview(song);
+
+        setPreviewButtonState(song.id,"loading");
+        try{
+          await playYouTubePreview(song);
+        }catch(_){
+          setPreviewButtonState(song.id,"play");
+        }
         return;
       }
 
@@ -3027,7 +3182,7 @@
         setPreviewButtonState(previousId,"play");
       }
 
-      stopYouTubePreview(true);
+      if(activePreviewSongId)stopYouTubePreview(activePreviewSongId,{reset:true});
       activePreviewSongId=song.id;
       setPreviewButtonState(song.id,"loading");
 
@@ -3083,6 +3238,15 @@
           </button>
         </div>
       `;
+    }
+
+    function warmYouTubePreviewApi(){
+      loadYouTubeIframeApi().catch(()=>{});
+    }
+    if("requestIdleCallback" in window){
+      requestIdleCallback(warmYouTubePreviewApi,{timeout:2500});
+    }else{
+      setTimeout(warmYouTubePreviewApi,1200);
     }
 
     async function hydratePreviewRow(song){
