@@ -894,3 +894,17 @@ Current-card album art:
 - Preserve the approved person isolation/masks exactly.
 - Move the stronger soft/dark blending toward the left/title side with a gentle left-to-center gradient; the center and right side should retain more visible album detail.
 - Apply the same principle on mobile with a slightly softer central reveal.
+
+
+## Faster Adelanto response v85
+
+For the current song, favor near-instant Adelanto response once the visible card has rendered.
+
+Required behavior:
+- Dios De Milagros keeps the same start/end window from v84: start 79 seconds, duration 18 seconds.
+- Move the outro fade approximately 1.5 seconds later by shortening the fade-out envelope from 2.4 seconds to .9 seconds; do not extend the endpoint.
+- Use a very short .16-second fade-in so the audio edge remains polished but feels immediate.
+- Prepare the current YouTube player approximately 40 ms after DOMContentLoaded/current-card render rather than waiting for the full load event.
+- Silently prebuffer only the current song at volume 0/muted, then pause and hold it at the chorus start so the Play tap reuses a ready player.
+- Do not prebuffer future songs or multiple players.
+- Preserve all existing first-paint/current-cover optimizations and the v84 center-cover composition.
