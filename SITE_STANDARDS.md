@@ -660,3 +660,20 @@ Required behavior:
 - Cache normalized subject coordinates per song/artwork so the detector/model does not need to rerun on every page load.
 - Keep manual subject-focus overrides as the highest-priority art-direction correction.
 - Lock each current card while artwork is being resolved so the one-second countdown render loop cannot repeatedly restart a slow COV/catalog request.
+
+
+## Load performance and one-way reveal stability v70
+
+The website must prioritize fast first paint, low mobile CPU/layout churn, and deterministic element visibility.
+
+Required behavior:
+- Scroll reveal animations are one-way only. A section may transition from hidden to visible once, but scrolling it out of the viewport must never remove visibility or trigger a second fade cycle.
+- After a reveal completes, stop observing that element.
+- Elements already in or immediately adjacent to the initial viewport should be made visible immediately rather than waiting for an asynchronous observer callback.
+- Include a short defensive reveal fallback so no card, section, or footer can remain permanently hidden because of an IntersectionObserver/browser scrolling bug.
+- The live countdown timer aligns to absolute one-second boundaries; do not update the DOM multiple times per second when the displayed values only change once per second.
+- Dynamic upcoming and introduced-song sections must use render signatures and only rebuild their innerHTML when their actual contents change.
+- COV and Apple/iTunes artwork lookups may begin in parallel. COV remains the preferred high-resolution source, but a slow COV response must not block first usable cover rendering; Apple/iTunes may supply the current load while COV continues and populates its cache for future loads.
+- Preconnect only to the small set of external origins required by current-cover resolution and portable face detection.
+- Below-fold list containers may use content-visibility when supported, but the active current-song card must remain eagerly rendered.
+- Performance changes must not weaken the refresh/PWA freshness system, countdown accuracy, stage colors, automatic subject detection, or approved album-art aesthetic.
