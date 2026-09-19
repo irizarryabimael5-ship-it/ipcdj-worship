@@ -794,3 +794,19 @@ Required behavior:
 - Dios De Milagros uses the official Miel San Marcos YouTube video id 0_Wgv6_Dj8U as the preview source, with a song-specific manual chorus window and exactly 15 seconds of playback.
 - The externally documented song arrangement identifies "Dios de milagros / Dios de imposibles..." as the chorus after Verse 1 and Verse 2. The preview source/timestamp must therefore target that chorus rather than infer a section from loudness.
 - Future songs may use an official full-song source plus a manually confirmed chorus timestamp when provider preview clips do not contain the chorus.
+
+
+## Precise chorus envelope v78
+
+Automatic completion of a song preview must sound like a deliberately edited chorus excerpt, not a hard iframe cutoff.
+
+Required behavior:
+- YouTube-based chorus previews use the YouTube IFrame Player API with JavaScript control enabled, not only start/end URL parameters.
+- Seek to the manually configured chorus start and define the segment endpoint as exactly start + 15 seconds.
+- Fade from 0% to full preview volume during approximately the first 1.0 second.
+- Begin the outro fade before the endpoint and reach 0% volume by the exact 15-second boundary. Current Dios De Milagros uses an approximately 1.8-second outro fade.
+- Poll the player's actual getCurrentTime() during playback; do not use a wall-clock-only timeout to decide the audible endpoint.
+- At the segment boundary: set volume to zero first, pause the player, seek back to the configured chorus start, then return the UI button to Play.
+- Explicit user pause remains immediate and does not wait for an outro fade.
+- Preload the YouTube IFrame API during idle time so preparing the player does not unnecessarily delay a user tap.
+- Do not change the minimal "Adelanto + play/pause button" visual design established in v77.
