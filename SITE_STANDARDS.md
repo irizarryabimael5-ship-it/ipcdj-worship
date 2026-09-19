@@ -644,3 +644,19 @@ Required behavior:
 - If browser-native person detection is unavailable, the centered cover system still renders normally; curated per-song subject metadata remains the deterministic fallback for covers requiring a person treatment on unsupported browsers.
 - Cover lookup, subject detection, or palette failures must never break countdowns, timeline logic, song rollover, semantic stage colors, offline/PWA behavior, or readability.
 - Future pipeline additions should provide coverSearchArtist / coverSearchAlbum when the release metadata differs from the displayed song title/artist, and may provide coverMinResolution when a higher COV threshold is appropriate.
+
+
+## Portable automatic face detection v69
+
+Automatic person-aware cover composition must not depend exclusively on the browser-native Shape Detection FaceDetector API.
+
+Required behavior:
+- Use native FaceDetector first when available.
+- When native FaceDetector is unavailable or fails, lazily load MediaPipe Tasks Vision FaceDetector and the BlazeFace short-range model, then run still-image face detection locally in the browser.
+- The portable fallback is specifically required so Safari/iOS/PWA users can receive automatic person-aware cover placement rather than silently losing the subject overlay.
+- MediaPipe should use the CPU delegate for the still-image cover task for broad mobile/Safari stability.
+- The face image itself is processed locally; do not upload album artwork to a face-recognition service.
+- Normalize native and MediaPipe bounding-box shapes into one internal representation before subject scoring and focal-position calculation.
+- Cache normalized subject coordinates per song/artwork so the detector/model does not need to rerun on every page load.
+- Keep manual subject-focus overrides as the highest-priority art-direction correction.
+- Lock each current card while artwork is being resolved so the one-second countdown render loop cannot repeatedly restart a slow COV/catalog request.
