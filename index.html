@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="es" class="ipcdj-launch-active">
+<html lang="es" class="ipcdj-launch-active ipcdj-launch-site-hidden">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v118" />
+  <meta name="ipcdj-build" content="persistent-launch-v119" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -114,6 +114,19 @@
       overscroll-behavior:none;
     }
 
+    html.ipcdj-ios-light-launch.ipcdj-launch-site-hidden body > :not(#ipcdj-launch){
+      visibility:hidden !important;
+    }
+
+    html.ipcdj-ios-light-launch.ipcdj-launch-active.ipcdj-launch-black-stage{
+      color-scheme:dark;
+      background:#000000;
+    }
+
+    html.ipcdj-ios-light-launch.ipcdj-launch-active.ipcdj-launch-black-stage body{
+      background:#000000;
+    }
+
     html.ipcdj-ios-light-launch #ipcdj-launch{
       background:#ffffff;
       inset:-160px;
@@ -124,6 +137,26 @@
 
     html.ipcdj-ios-light-launch #ipcdj-launch .launch-logo-stage svg{
       filter:brightness(0);
+    }
+
+    html.ipcdj-ios-light-launch #ipcdj-launch.launch-light-black{
+      opacity:1;
+      visibility:visible;
+      pointer-events:none;
+      background:#000000;
+      transition:background-color .68s cubic-bezier(.22,.61,.36,1);
+    }
+
+    html.ipcdj-ios-light-launch #ipcdj-launch.launch-light-black .launch-logo-stage{
+      opacity:0;
+      transition:opacity .50s cubic-bezier(.4,0,.2,1);
+    }
+
+    html.ipcdj-ios-light-launch #ipcdj-launch.launch-exit{
+      background:#000000;
+      transition:
+        opacity .82s cubic-bezier(.22,.61,.36,1),
+        visibility 0s linear .82s;
     }
 
     .launch-logo-stage{
@@ -2021,11 +2054,21 @@
       let cycleToken=0;
 
       const lockPage=enabled=>{
-        document.documentElement.classList.toggle("ipcdj-launch-active",!!enabled);
+        const root=document.documentElement;
+        root.classList.toggle("ipcdj-launch-active",!!enabled);
 
-        if(document.documentElement.classList.contains("ipcdj-ios-light-launch")){
+        if(root.classList.contains("ipcdj-ios-light-launch")){
           const themeMeta=document.querySelector('meta[name="theme-color"]');
-          if(themeMeta)themeMeta.setAttribute("content",enabled?"#ffffff":"#000000");
+          if(enabled){
+            root.classList.add("ipcdj-launch-site-hidden");
+            root.classList.remove("ipcdj-launch-black-stage");
+            if(themeMeta)themeMeta.setAttribute("content","#ffffff");
+          }else{
+            root.classList.remove("ipcdj-launch-site-hidden","ipcdj-launch-black-stage");
+            if(themeMeta)themeMeta.setAttribute("content","#000000");
+          }
+        }else if(!enabled){
+          root.classList.remove("ipcdj-launch-site-hidden","ipcdj-launch-black-stage");
         }
       };
 
@@ -2050,6 +2093,31 @@
         if(exiting)return;
         exiting=true;
         const token=++cycleToken;
+        const root=document.documentElement;
+        const lightLaunch=root.classList.contains("ipcdj-ios-light-launch");
+
+        if(lightLaunch&&!reduced){
+          // Stage 1: keep the website completely masked while the white launch
+          // surface itself transitions to pure black and the black logo disappears.
+          launch.className="launch-light-black";
+
+          setTimeout(()=>{
+            if(token!==cycleToken)return;
+
+            const themeMeta=document.querySelector('meta[name="theme-color"]');
+            root.classList.add("ipcdj-launch-black-stage");
+            if(themeMeta)themeMeta.setAttribute("content","#000000");
+
+            // Stage 2: the page is allowed to render only after the launch
+            // surface is fully black. The opaque black surface then fades away.
+            root.classList.remove("ipcdj-launch-site-hidden");
+            launch.className="launch-exit";
+
+            setTimeout(()=>settleIdle(token),860);
+          },700);
+          return;
+        }
+
         launch.className="launch-exit";
         setTimeout(()=>settleIdle(token),reduced?280:1320);
       };
