@@ -1825,7 +1825,7 @@
       stroke:rgb(var(--future-accent,255,255,255));
       stroke-linecap:round;
       stroke-dasharray:100;
-      stroke-dashoffset:calc(100 - var(--future-ring-progress));
+      stroke-dashoffset:100;
       transition:stroke-dashoffset .10s linear,opacity .24s ease;
       filter:drop-shadow(0 0 4px rgba(var(--future-accent,255,255,255),.24));
     }
@@ -4477,6 +4477,10 @@
         if(time&&!row.classList.contains("is-playing")){
           time.textContent=formatPreviewRemaining(seconds);
         }
+        const futureTime=row.querySelector(".future-preview-countdown");
+        if(futureTime&&!row.classList.contains("is-playing")){
+          futureTime.textContent=formatPreviewRemaining(seconds);
+        }
       });
     }
 
@@ -4498,9 +4502,11 @@
         const futureButton=row.querySelector(".future-preview-button");
         if(futureButton){
           const futureTime=row.querySelector(".future-preview-countdown");
+          const futureRing=row.querySelector(".future-preview-ring-progress");
           if(futureTime)futureTime.textContent=formatPreviewRemaining(remaining);
           if(normalized!==null){
             futureButton.style.setProperty("--future-ring-progress",String(normalized));
+            if(futureRing)futureRing.style.strokeDashoffset=String(100-normalized);
           }
         }
       });
@@ -4526,7 +4532,9 @@
           }
 
           const futureTime=row.querySelector(".future-preview-countdown");
+          const futureRing=row.querySelector(".future-preview-ring-progress");
           futureButton.style.setProperty("--future-ring-progress","100");
+          if(futureRing)futureRing.style.strokeDashoffset="0";
           if(futureTime)futureTime.textContent="0:00";
           row.classList.add("preview-future-ending");
 
@@ -4535,6 +4543,7 @@
             row.classList.remove("preview-future-ending");
             setPreviewButtonState(songId,"play");
             futureButton.style.setProperty("--future-ring-progress","0");
+            if(futureRing)futureRing.style.strokeDashoffset="100";
             if(futureTime)futureTime.textContent=formatPreviewRemaining(fullDuration);
             row._previewFutureEndTimer=null;
           },520);
