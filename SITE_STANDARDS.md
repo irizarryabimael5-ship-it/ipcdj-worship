@@ -1551,3 +1551,27 @@ Revert:
 
 Repository hygiene:
 - The temporary PNG generator workflow is removed after successful asset generation.
+
+
+## iOS light-launch safe-area hardening v118
+
+v118 tightens the reversible v117 white-launch experiment without changing desktop, Android, or normal mobile-browser launch behavior.
+
+Safe-area/compositor coverage:
+- While html has both ipcdj-ios-light-launch and ipcdj-launch-active, html/body backgrounds are forced to #ffffff.
+- Body scrolling/overscroll is disabled during the launch cycle.
+- The iOS light launch overlay deliberately bleeds 160px beyond every viewport edge via negative inset and expands its minimum height accordingly.
+- This overscan exists to prevent any bottom safe-area or compositor frame from exposing underlying website content during standalone startup/resume.
+- Logo centering remains visually fixed because the overscan is symmetric on every edge.
+
+System visual alignment:
+- The early iOS standalone detector temporarily changes the standard theme-color meta to #ffffff before body paint.
+- While the launch is active, root color-scheme is light.
+- When the launch lifecycle settles idle, theme-color returns to #000000 for the dark website.
+- Do not dynamically change apple-mobile-web-app-status-bar-style; keep black-translucent because current WebKit standalone viewport behavior can depend on it at install time.
+
+Known status-bar tradeoff:
+- black-translucent is intentionally retained for correct fullscreen/viewport behavior. Apple documents that it is translucent black and allows content beneath it, so some top-edge darkening over a white launch may remain system-owned.
+- If that visual tradeoff is unacceptable, revert the entire light-launch experiment to backup-before-mobile-light-launch-v117 (v116 black launch), rather than changing the status-bar meta and risking standalone viewport regressions.
+
+Preserve v117 iOS-only scope and v115/v114 fixed opacity/lifecycle behavior.
