@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v134" />
+  <meta name="ipcdj-build" content="persistent-launch-v135" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -2558,6 +2558,26 @@
         filter:blur(12px);
       }
     }
+
+    /* macOS desktop scrolling guard.
+       The fixed ambient field and live glass surfaces are intentionally rich at
+       rest. While a Mac is actively scrolling, pause only decorative blob motion
+       and temporarily bypass backdrop sampling so older iMac GPUs do not have to
+       recompute animated blur + glass every scroll frame. The full treatment
+       returns immediately after scrolling settles. */
+    html.ipcdj-macos-desktop.ipcdj-scroll-active .ambient-blob{
+      animation-play-state:paused !important;
+      will-change:auto;
+    }
+
+    html.ipcdj-macos-desktop.ipcdj-scroll-active .card,
+    html.ipcdj-macos-desktop.ipcdj-scroll-active .eyebrow,
+    html.ipcdj-macos-desktop.ipcdj-scroll-active .future-preview-button,
+    html.ipcdj-macos-desktop.ipcdj-scroll-active .current .countdown-wrap,
+    html.ipcdj-macos-desktop.ipcdj-scroll-active .current .progress-wrap{
+      backdrop-filter:none !important;
+      -webkit-backdrop-filter:none !important;
+    }
   </style>
 </head>
 <body>
@@ -3078,6 +3098,42 @@
     },{passive:true});
 
     window.addEventListener("touchcancel",resetPull,{passive:true});
+
+    // On desktop macOS, keep the exact same ambient palette/glass design at rest
+    // but reduce compositor pressure only while scrolling. iPadOS can identify as
+    // Macintosh, so maxTouchPoints prevents it from entering this desktop path.
+    (() => {
+      const ua=navigator.userAgent||"";
+      const isMacDesktop=(
+        /Macintosh|Mac OS X/i.test(ua) &&
+        Number(navigator.maxTouchPoints||0)<=1
+      );
+      if(!isMacDesktop)return;
+
+      const root=document.documentElement;
+      root.classList.add("ipcdj-macos-desktop");
+
+      let active=false;
+      let settleTimer=0;
+      const enterScrollMode=()=>{
+        if(!active){
+          active=true;
+          root.classList.add("ipcdj-scroll-active");
+        }
+        clearTimeout(settleTimer);
+        settleTimer=setTimeout(()=>{
+          active=false;
+          root.classList.remove("ipcdj-scroll-active");
+        },160);
+      };
+
+      window.addEventListener("scroll",enterScrollMode,{passive:true});
+      window.addEventListener("pagehide",()=>{
+        clearTimeout(settleTimer);
+        active=false;
+        root.classList.remove("ipcdj-scroll-active");
+      },{passive:true});
+    })();
 
     // Song-driven ambient field controller.
     // Two complete moving fields crossfade so a palette can change without any
@@ -6047,7 +6103,18 @@
 
       if(!button.dataset.bound){
         button.disabled=false;
-        button.innerHTML=previewIcon("play");
+
+        // Preserve the future-card control shell. Replacing button.innerHTML here
+        // destroys its SVG progress ring + countdown after hydration and silently
+        // reverts the UI to the old plain Play button. Only refresh the dedicated
+        // icon slot when the richer shell exists.
+        const iconSlot=button.querySelector(".preview-icon-slot");
+        if(iconSlot){
+          iconSlot.innerHTML=previewIcon("play");
+        }else{
+          button.innerHTML=previewIcon("play");
+        }
+
         button.setAttribute("aria-label","Reproducir adelanto de "+song.title);
         button.dataset.bound="true";
 
