@@ -919,3 +919,17 @@ Small song-specific timing refinement:
 - Reduce previewFadeIn to .08 seconds so audio becomes audible almost immediately while still avoiding a hard zero-to-full edge.
 - Begin current-song prebuffer preparation about 10 ms after the current card/DOM is ready.
 - Do not apply these micro-timing values globally to future songs.
+
+
+## Hot-standby Adelanto playback v87
+
+Tap-to-audio latency is independent from the fade envelope.
+
+Required behavior:
+- Dios De Milagros uses previewClipStart 79 seconds, previewClipDuration 19.4 seconds, previewFadeIn .35 seconds, and previewFadeOut .9 seconds.
+- Keep the smooth .35-second fade-in; do not shorten it to hide startup latency.
+- After prebuffering, keep the current YouTube player actively PLAYING while muted at volume 0 and repeatedly anchored within roughly .25 seconds of the chorus start.
+- On Play, release hot standby and unmute the already-running stream. Avoid waking a paused iframe when hot standby is available.
+- Explicit Pause remains immediate, then silently restores hot standby at the chorus start.
+- Automatic completion fades to zero, then silently restores hot standby at the chorus start.
+- Only the current song may use hot standby.
