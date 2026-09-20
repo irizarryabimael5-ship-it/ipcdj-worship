@@ -1161,3 +1161,30 @@ Required behavior:
 - Desktop AudioContext keepalive behavior from v100 remains unchanged.
 - Mobile background/lock pause behavior remains unchanged.
 - Full Spotify preview playback and .70 / 1.60 second fades remain unchanged.
+
+
+## Cross-platform stability polish v102
+
+This pass tightens mobile audio shutdown, preparation-card artwork reliability, and playlist visual hierarchy.
+
+Mobile audio shutdown:
+- On mobile/tablet visibility loss, pagehide, or freeze, do not tear down an active Web Audio source at full gain.
+- Save elapsed preview time, cancel scheduled gain automation, ramp GainNode exponentially to near-zero over approximately 80 ms, then stop/disconnect the source after approximately 95 ms.
+- Suspend the mobile AudioContext after the source is silent.
+- This shutdown path exists to prevent iOS route-change clicks, chirps, or sine-like artifacts.
+- Manual Pause remains immediate and preserves the existing pause/resume semantics.
+- Desktop hidden-tab continuation from v100 remains unchanged.
+
+Cover reliability:
+- Reuse the most recent valid per-song boot artwork from localStorage immediately before provider lookup.
+- Provider lookup may retry up to three attempts with short backoff.
+- If provider lookup fails, retain the boot artwork rather than clearing the visual.
+- revealCoverWhenLoaded must have a timeout watchdog so a stalled image event cannot leave the cover permanently invisible.
+- Do not restart the cover reveal when the resolved provider URL is identical to the already-applied boot artwork URL.
+- Preserve the coordinated 1.65 second cover/detail/edge/person fade, mobile explicit opacity safeguards, approved masks, and cross-platform composition locks.
+
+Playlist hierarchy:
+- The playlist card remains near the top as a quick utility but is visually secondary to current preparation songs.
+- Use tighter card padding, smaller title/note, smaller icons, 44px minimum controls, and reduced gaps.
+- On normal mobile widths, keep the three playlist services in one compact row when practical.
+- On extremely narrow screens, allow labels to stack/wrap without horizontal overflow.
