@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="stability-polish-v102" />
+  <meta name="ipcdj-build" content="instant-mobile-stop-direct-cover-v103" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -28,8 +28,11 @@
   <link rel="canonical" href="https://worship.ipcdj.org/" />
   <link rel="preconnect" href="https://covers.musichoarders.xyz" crossorigin />
   <link rel="preconnect" href="https://itunes.apple.com" crossorigin />
+  <link rel="preconnect" href="https://i.scdn.co" crossorigin />
   <link rel="dns-prefetch" href="//covers.musichoarders.xyz" />
   <link rel="dns-prefetch" href="//itunes.apple.com" />
+  <link rel="dns-prefetch" href="//i.scdn.co" />
+  <link rel="preload" as="image" href="https://i.scdn.co/image/ab67616d0000b27341b7ffdb9e0bde66a24425c4" fetchpriority="high" crossorigin />
   <meta property="og:type" content="website" />
   <meta property="og:locale" content="es_US" />
   <meta property="og:title" content="IPCDJ Worship | Ministerio de Alabanza" />
@@ -2210,6 +2213,7 @@
         title:"Dios De Milagros",
         artist:"Miel San Marcos & Kim Richards",
         artworkQuery:"Dios De Milagros En Vivo Desde México Miel San Marcos Kim Richards",
+        artworkUrl:"https://i.scdn.co/image/ab67616d0000b27341b7ffdb9e0bde66a24425c4",
         itunesCollectionId:"6799307691",
         previewClipDuration:19.4,
         previewUseFullAsset:true,
@@ -3322,43 +3326,43 @@
 
       const elapsed=Math.max(0,(performance.now()-webPreviewStartedAt)/1000);
       webPreviewElapsed=Math.min(webPreviewClipDuration,elapsed);
-      const token=++webPreviewRunToken;
+      webPreviewRunToken++;
       webPreviewPlaying=false;
 
       const ctx=webPreviewContext;
       const gain=webPreviewGain;
       const source=webPreviewSource;
 
+      // Mobile lock/background must be a true immediate stop. Do not schedule a
+      // fade, timeout, or suspend transition here: iOS can continue processing
+      // that graph briefly during the audio-route change, which is what produced
+      // the delayed chirp/tonal artifact.
       if(ctx&&gain&&ctx.state!=="closed"){
         try{
           const now=ctx.currentTime;
-          const current=Math.max(.0001,Number(gain.gain.value)||webPreviewGainAt(webPreviewElapsed)||.0001);
           gain.gain.cancelScheduledValues(now);
-          gain.gain.setValueAtTime(current,now);
-          gain.gain.exponentialRampToValueAtTime(.0001,now+.08);
+          gain.gain.setValueAtTime(0,now);
         }catch(_){}
       }
 
-      // Let the gain reach silence before disconnecting/stopping the source.
-      // This prevents the short click/whine that some iOS audio routes produce
-      // when an active Web Audio graph is torn down at lock/background time.
-      setTimeout(()=>{
-        if(token!==webPreviewRunToken)return;
-        if(source){
-          try{source.onended=null}catch(_){}
-          try{source.stop()}catch(_){}
-          try{source.disconnect()}catch(_){}
-        }
-        if(gain){
-          try{gain.disconnect()}catch(_){}
-        }
-        if(webPreviewSource===source)webPreviewSource=null;
-        if(webPreviewGain===gain)webPreviewGain=null;
+      if(source){
+        try{source.onended=null}catch(_){}
+        try{source.stop(0)}catch(_){}
+        try{source.disconnect()}catch(_){}
+      }
+      if(gain){
+        try{gain.disconnect()}catch(_){}
+      }
 
-        if(ctx&&isMobilePreviewEnvironment()&&ctx.state==="running"){
-          ctx.suspend().catch(()=>{});
-        }
-      },95);
+      webPreviewSource=null;
+      webPreviewGain=null;
+
+      // Destroy the mobile playback context entirely after the graph is already
+      // muted/disconnected. The next user tap creates and unlocks a clean context.
+      if(ctx&&isMobilePreviewEnvironment()&&ctx.state!=="closed"){
+        try{ctx.close().catch(()=>{})}catch(_){}
+        if(webPreviewContext===ctx)webPreviewContext=null;
+      }
 
       setPreviewButtonState(songId,"play");
       clearNativePreviewMediaSession();
@@ -4351,12 +4355,14 @@
       }catch(_){}
 
       try{
-        let artworkUrl="";
-        for(let attempt=0;attempt<3&&!artworkUrl;attempt++){
-          if(attempt>0){
-            await new Promise(resolve=>setTimeout(resolve,attempt*450));
+        let artworkUrl=song.artworkUrl ? highResolutionArtworkUrl(song.artworkUrl) : "";
+        if(!artworkUrl){
+          for(let attempt=0;attempt<3&&!artworkUrl;attempt++){
+            if(attempt>0){
+              await new Promise(resolve=>setTimeout(resolve,attempt*450));
+            }
+            artworkUrl=await resolveArtworkUrl(song).catch(()=>"");
           }
-          artworkUrl=await resolveArtworkUrl(song).catch(()=>"");
         }
 
         if(coverThemeRequestTokens.get(song.id)!==token)return;
