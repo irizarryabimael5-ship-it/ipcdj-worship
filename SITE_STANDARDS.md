@@ -2086,3 +2086,75 @@ Standards basis:
 
 Revert:
 - backup-before-preview-normalization-v130 preserves the complete v129 state.
+
+
+## Album-driven upcoming cards and circular preview countdown v131
+
+v131 redesigns every song in the future/upcoming section using its own artwork palette and upgrades its compact preview control.
+
+Artwork sourcing:
+- COV / MusicHoarders remains the preferred high-resolution artwork resolver across Tidal, Spotify and Apple Music.
+- Future cards use resolveFutureArtworkUrl(), which gives COV approximately 1.8 seconds to return before using a verified exact Spotify large-cover fallback.
+- Verified Spotify fallback artwork:
+  - Glorioso Día — https://i.scdn.co/image/ab67616d0000b27372bba4048e09a242595e4a2c
+  - No Fallarás — https://i.scdn.co/image/ab67616d0000b273decf3d0f2c88d97720437f20
+- Browser palette extraction/caching still refines the card when provider artwork is available.
+- The existing curated COVER_THEME_FALLBACKS are applied synchronously so cards never flash as generic gray before asynchronous artwork/palette work finishes.
+
+Upcoming-card palette:
+- Each future card derives four background colors from the cover-art palette.
+- The first three colors come from extracted/cached cover colors.
+- The fourth uses the existing harmonious/complementary ambient-color generator.
+- A separately tuned complementary --future-accent is generated for the preview ring, release chip and border.
+- Accent luminance is constrained so it remains visible against the card.
+- The palette is automatic for future pipeline entries; no song-specific CSS is required.
+
+Upcoming-card background:
+- Future cards use layered radial gradients built from --future-c1 through --future-c4.
+- The visual should read as a soft blurred/mixed album-color field without displaying the album cover itself.
+- Gradients are static layers rather than continuously animated filters, avoiding unnecessary per-frame GPU/paint cost.
+- A dark translucent overlay preserves title/date/meta contrast.
+- Card borders and release-date indicators inherit --future-accent.
+- Text and metadata remain readable with translation expansion and mobile layouts.
+- prefers-reduced-motion does not affect the static card palette.
+
+Future preview control:
+- Idle state remains a compact circular Play button at the upper-right of its corresponding card.
+- When playback begins, the Play icon fades/scales out and a countdown interface fades/scales in inside the same fixed 48x48 footprint.
+- Playback state shows:
+  - remaining preview time;
+  - circular SVG progress ring;
+  - ring/accent color from the card's generated --future-accent.
+- The control does not resize or move during the morph, preventing card layout shifts.
+- The full control remains the Pause target while the countdown is visible.
+- Pausing returns visually to Play while preserving the underlying elapsed position; resuming restores the ring from the preserved progress.
+- Cross-song switching continues using the existing one-preview-at-a-time Web Audio ownership/crossfade behavior.
+- v130 loudness normalization remains upstream of the fade/crossfade stage for all these future previews.
+
+Circular progress implementation:
+- SVG circle pathLength=100 is used for normalized progress.
+- stroke-dasharray=100 and explicit JavaScript strokeDashoffset values represent playback completion.
+- The ring starts at the top through a -90 degree SVG rotation.
+- Progress updates from the existing shared requestAnimationFrame preview visual loop and remaining-time calculation.
+- Direct strokeDashoffset writes are used instead of CSS calc() to minimize SVG/CSS arithmetic differences across Chromium, Firefox and WebKit.
+- Ring updates transition linearly over .10 seconds so they visually track audio without stepping.
+- SVG stroke dasharray/dashoffset are the standards-based cross-browser mechanism; no canvas or third-party rendering library is required.
+
+Future natural-end behavior:
+- At natural preview completion, the ring reaches 100% and the timer reaches 0:00.
+- The active countdown state fades/scales back into the idle Play state over approximately .52 seconds.
+- Ring/timer reset only after that end transition.
+- A new playback start cancels any pending end-reset timer/state.
+- Current preparation-song gold/coral Adelanto pill behavior from v126 remains unchanged.
+
+Performance:
+- Future gradient backgrounds use CSS gradients rather than canvas/video.
+- The countdown morph uses opacity/transform.
+- Progress uses an SVG stroke rather than geometry-changing layout properties.
+- The fixed control footprint prevents reflow during playback.
+- Reduced-motion disables the optional morph/ring transitions while preserving all state information.
+
+Revert:
+- backup-before-future-card-themes-v131 preserves the complete v130 state.
+
+Preserve v130 loudness normalization, v129 audio compatibility diagnostics/fallbacks, v128 health monitoring, v127 song-driven ambient/release lifecycle/translation architecture, and all earlier launch/audio safety invariants.
