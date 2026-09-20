@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v132" />
+  <meta name="ipcdj-build" content="persistent-launch-v134" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -1904,7 +1904,8 @@
       overflow:hidden;
       border:1px solid var(--line);
       border-radius:18px;
-      background:rgba(255,255,255,.018);
+      background-color:#0a0d14;
+      background-image:none;
       padding:15px 72px 15px 16px;
       box-shadow:inset 0 1px 0 rgba(255,255,255,.035);
       transition:
@@ -1921,20 +1922,20 @@
       opacity:0;
       background:
         radial-gradient(circle at 15% 20%,
-          rgba(var(--future-c1),.72) 0%,
-          rgba(var(--future-c1),.32) 30%,
+          rgba(var(--future-c1),.80) 0%,
+          rgba(var(--future-c1),.38) 30%,
           rgba(var(--future-c1),0) 62%),
         radial-gradient(circle at 84% 12%,
-          rgba(var(--future-c2),.64) 0%,
-          rgba(var(--future-c2),.28) 28%,
+          rgba(var(--future-c2),.72) 0%,
+          rgba(var(--future-c2),.34) 28%,
           rgba(var(--future-c2),0) 60%),
         radial-gradient(circle at 78% 88%,
-          rgba(var(--future-c3),.58) 0%,
-          rgba(var(--future-c3),.24) 30%,
+          rgba(var(--future-c3),.66) 0%,
+          rgba(var(--future-c3),.30) 30%,
           rgba(var(--future-c3),0) 62%),
         radial-gradient(circle at 8% 86%,
-          rgba(var(--future-c4),.52) 0%,
-          rgba(var(--future-c4),.22) 30%,
+          rgba(var(--future-c4),.60) 0%,
+          rgba(var(--future-c4),.28) 30%,
           rgba(var(--future-c4),0) 64%);
       transform:scale(1.05) translateZ(0);
       transition:opacity .82s cubic-bezier(.22,.65,.25,1);
@@ -1947,9 +1948,9 @@
       inset:0;
       pointer-events:none;
       background:
-        linear-gradient(105deg,rgba(8,10,16,.38),rgba(8,10,16,.13) 50%,rgba(8,10,16,.38)),
-        linear-gradient(180deg,rgba(255,255,255,.045),rgba(0,0,0,.16));
-      opacity:.98;
+        linear-gradient(105deg,rgba(8,10,16,.30),rgba(8,10,16,.09) 50%,rgba(8,10,16,.30)),
+        linear-gradient(180deg,rgba(255,255,255,.035),rgba(0,0,0,.11));
+      opacity:1;
     }
 
     .song-row.future-themed{
@@ -3474,10 +3475,28 @@
       return [Math.round(r),Math.round(g),Math.round(b)];
     }
 
+    function normalizeVibrantSrgbColor(color){
+      const base=tuneCoverColor(color).map(value=>Math.max(0,Math.min(255,Math.round(value))));
+      const [h,s,l]=ambientRgbToHsl(base);
+
+      // Preserve neutral/grayscale artwork instead of inventing a hue.
+      if(!Number.isFinite(s)||s<.08)return base;
+
+      const saturation=Math.max(.34,Math.min(.86,(s*1.10)+.035));
+      const lightness=Math.max(.24,Math.min(.72,l));
+      return ambientHslToRgb([h,saturation,lightness]).map(
+        value=>Math.max(0,Math.min(255,Math.round(value)))
+      );
+    }
+
     function extractCoverPalette(image){
       const canvas=document.createElement("canvas");
       canvas.width=48; canvas.height=48;
-      const ctx=canvas.getContext("2d",{willReadFrequently:true});
+      let ctx=null;
+      try{
+        ctx=canvas.getContext("2d",{willReadFrequently:true,colorSpace:"srgb"});
+      }catch(_){}
+      if(!ctx)ctx=canvas.getContext("2d",{willReadFrequently:true});
       if(!ctx)throw new Error("Canvas unavailable");
       ctx.drawImage(image,0,0,48,48);
       const data=ctx.getImageData(0,0,48,48).data;
@@ -3502,7 +3521,7 @@
       const chosen=[];
       for(const item of ranked){
         if(chosen.every(c=>colorDistance(c,item.rgb)>68)){
-          chosen.push(tuneCoverColor(item.rgb));
+          chosen.push(normalizeVibrantSrgbColor(item.rgb));
           if(chosen.length===3)break;
         }
       }
@@ -3524,8 +3543,10 @@
     }
 
     function futureAccentFromPalette(palette){
-      const colors=buildAmbientPalette(palette);
-      let accent=tuneCoverColor(colors[3]||colors[1]||[255,255,255]);
+      const colors=buildAmbientPalette(
+        palette.map(normalizeVibrantSrgbColor)
+      ).map(normalizeVibrantSrgbColor);
+      let accent=normalizeVibrantSrgbColor(colors[3]||colors[1]||[255,255,255]);
       const lum=.2126*accent[0]+.7152*accent[1]+.0722*accent[2];
       if(lum<92)accent=mixRgb(accent,[255,255,255],.34);
       if(lum>218)accent=mixRgb(accent,[0,0,0],.18);
@@ -3536,9 +3557,11 @@
       if(!card||!Array.isArray(palette)||palette.length<3)return;
       const themed=futureAccentFromPalette(palette);
       themed.colors.forEach((color,index)=>{
-        card.style.setProperty("--future-c"+(index+1),color.join(","));
+        const srgb=color.map(value=>Math.max(0,Math.min(255,Math.round(value))));
+        card.style.setProperty("--future-c"+(index+1),srgb.join(","));
       });
-      card.style.setProperty("--future-accent",themed.accent.join(","));
+      const accent=themed.accent.map(value=>Math.max(0,Math.min(255,Math.round(value))));
+      card.style.setProperty("--future-accent",accent.join(","));
       card.dataset.futureTheme=song.id;
       card.classList.add("future-themed");
     }
