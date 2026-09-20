@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="preview-microtune-v86" />
+  <meta name="ipcdj-build" content="hot-preview-start-v87" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -2092,9 +2092,9 @@
         artist:"Miel San Marcos & Kim Richards",
         artworkQuery:"Dios De Milagros En Vivo Desde México Miel San Marcos Kim Richards",
         itunesCollectionId:"6799307691",
-        previewClipDuration:18.8,
+        previewClipDuration:19.4,
         previewClipStart:79,
-        previewFadeIn:.08,
+        previewFadeIn:.35,
         previewFadeOut:.9,
         previewClipSection:"chorus",
         previewSource:"youtube",
@@ -2862,6 +2862,8 @@
     let youtubePreviewRequestToken=0;
     let youtubePreviewPreparedSongId="";
     let youtubePreviewPrebufferedSongId="";
+    let youtubePreviewHotStandbySongId="";
+    let youtubePreviewHotStandbyFrame=0;
 
     function warmYouTubePreviewNetwork(){
       if(document.querySelector('link[data-ipcdj-youtube-preconnect]'))return;
@@ -2933,6 +2935,9 @@
       youtubePreviewPlayerSongId="";
       youtubePreviewPreparedSongId="";
       youtubePreviewPrebufferedSongId="";
+      youtubePreviewHotStandbySongId="";
+      cancelAnimationFrame(youtubePreviewHotStandbyFrame);
+      youtubePreviewHotStandbyFrame=0;
       const host=document.getElementById("youtube-preview-host");
       if(host)host.replaceChildren();
     }
@@ -3018,7 +3023,7 @@
                 startSeconds:Math.max(0,Number(song.previewClipStart)||youtubePreviewStart)
               });
               youtubePreviewPreparedSongId=song.id;
-            youtubePreviewPrebufferedSongId=song.id;
+              youtubePreviewPrebufferedSongId=song.id;
             }
           }
         }catch(_){}
@@ -3029,6 +3034,20 @@
 
     function pauseYouTubePreview(songId){
       stopYouTubePreview(songId,{reset:false});
+      const song=songPipeline.find(item=>item.id===songId);
+      if(song&&youtubePreviewPlayer&&youtubePreviewPlayerSongId===songId){
+        const start=Math.max(0,Number(song.previewClipStart)||0);
+        try{
+          youtubePreviewPlayer.mute();
+          youtubePreviewPlayer.setVolume(0);
+          youtubePreviewPlayer.seekTo(start,true);
+          youtubePreviewPlayer.playVideo();
+          youtubePreviewPreparedSongId=song.id;
+          youtubePreviewPrebufferedSongId=song.id;
+          activePreviewSongId="";
+          holdYouTubePreviewHot(song,youtubePreviewPlayer,start);
+        }catch(_){}
+      }
     }
 
     function monitorYouTubePreview(song){
@@ -3059,16 +3078,17 @@
         }catch(_){}
 
         // Stop only after the programmed fade has reached silence at the exact
-        // 15-second chorus boundary.
+        // configured chorus boundary.
         if(current>=youtubePreviewEnd-.035){
           try{
             youtubePreviewPlayer.setVolume(0);
-            youtubePreviewPlayer.pauseVideo();
-            youtubePreviewPlayer.cueVideoById({
-              videoId:song.previewYouTubeId,
-              startSeconds:youtubePreviewStart
-            });
+            youtubePreviewPlayer.mute();
+            youtubePreviewPlayer.seekTo(youtubePreviewStart,true);
+            youtubePreviewPlayer.playVideo();
             youtubePreviewPreparedSongId=song.id;
+            youtubePreviewPrebufferedSongId=song.id;
+            activePreviewSongId="";
+            holdYouTubePreviewHot(song,youtubePreviewPlayer,youtubePreviewStart);
           }catch(_){}
           youtubePreviewPlaying=false;
           setPreviewButtonState(song.id,"play");
@@ -3079,6 +3099,33 @@
       };
 
       youtubePreviewMonitorFrame=requestAnimationFrame(step);
+    }
+
+    function holdYouTubePreviewHot(song,player,start){
+      cancelAnimationFrame(youtubePreviewHotStandbyFrame);
+      youtubePreviewHotStandbySongId=song.id;
+
+      const hold=()=>{
+        if(youtubePreviewHotStandbySongId!==song.id||youtubePreviewPlaying)return;
+        try{
+          const state=player.getPlayerState();
+          const current=Number(player.getCurrentTime())||start;
+          player.mute();
+          player.setVolume(0);
+          if(state!==1)player.playVideo();
+          if(current>start+.24||current<start-.08)player.seekTo(start,true);
+        }catch(_){}
+        youtubePreviewHotStandbyFrame=requestAnimationFrame(hold);
+      };
+
+      youtubePreviewHotStandbyFrame=requestAnimationFrame(hold);
+    }
+
+    function releaseYouTubeHotStandby(songId){
+      if(youtubePreviewHotStandbySongId!==songId)return;
+      youtubePreviewHotStandbySongId="";
+      cancelAnimationFrame(youtubePreviewHotStandbyFrame);
+      youtubePreviewHotStandbyFrame=0;
     }
 
     async function prebufferYouTubePreview(song){
@@ -3101,13 +3148,15 @@
           try{state=player.getPlayerState()}catch(_){}
           if(state===1||state===3||performance.now()-started>1800){
             try{
-              player.pauseVideo();
-              player.seekTo(start,true);
               player.mute();
               player.setVolume(0);
+              player.seekTo(start,true);
+              player.playVideo();
             }catch(_){}
             youtubePreviewPreparedSongId=song.id;
             youtubePreviewPrebufferedSongId=song.id;
+            activePreviewSongId="";
+            holdYouTubePreviewHot(song,player,start);
             return;
           }
           requestAnimationFrame(settle);
@@ -3131,14 +3180,20 @@
       activePreviewSongId=song.id;
 
       try{
-        // The current song is prepared after page load, so the tap normally only
-        // needs to unmute and start the already-cued player.
-        player.unMute();
+        releaseYouTubeHotStandby(song.id);
         player.setVolume(0);
+
         if(youtubePreviewPreparedSongId!==song.id){
+          player.mute();
           player.seekTo(youtubePreviewStart,true);
+          player.playVideo();
+        }else{
+          const current=Number(player.getCurrentTime())||youtubePreviewStart;
+          if(current>youtubePreviewStart+.28||current<youtubePreviewStart-.10){
+            player.seekTo(youtubePreviewStart,true);
+          }
+          player.unMute();
         }
-        player.playVideo();
       }catch(_){
         if(token===youtubePreviewRequestToken)setPreviewButtonState(song.id,"play");
         return;
