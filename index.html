@@ -1883,6 +1883,7 @@
       flex-wrap:wrap;
       gap:16px;
       color:var(--soft);
+      animation:recentArrive .56s cubic-bezier(.22,.65,.25,1) both;
       border:1px solid rgba(129,160,255,.16);
       background:linear-gradient(90deg, rgba(72,103,188,.055), rgba(255,255,255,.012));
       border-left:3px solid rgba(129,160,255,.56);
@@ -1918,6 +1919,11 @@
       border-radius:999px;
       border:1px solid rgba(129,160,255,.24);
       background:rgba(94,125,214,.07);
+    }
+
+    @keyframes recentArrive{
+      from{opacity:0;transform:translateY(7px)}
+      to{opacity:1;transform:none}
     }
 
     .pull-refresh{
@@ -2296,6 +2302,7 @@
       .progress-wrap{transition:none}
       .progress-fill::after{animation:none}
       .reveal{opacity:1;transform:none;transition:none}
+      .post-release-banner,.recent{animation:none!important}
       .pull-refresh{transition:none}
     }
     /* Cross-platform invariants: browser engines may differ in native controls,
@@ -2320,6 +2327,13 @@
       font-family:inherit;
       -webkit-user-select:none;
       user-select:none;
+    }
+
+    .section-title,.section-note,.status,.countdown-kicker,.countdown-target,
+    .countdown-note,.progress-top,.progress-note,.timeline-label,.timeline-date,
+    .post-release-banner,.recent,.song-date{
+      min-width:0;
+      overflow-wrap:anywhere;
     }
 
     .preview-button svg{
@@ -3270,7 +3284,7 @@
 
       ambientSongPalettes.set(song.id,palette.slice(0,3));
       if(ambientDriverSongId===song.id){
-        setAmbientPalette(palette,"song:"+song.id);
+        setAmbientPalette(palette,"driver:"+song.id);
       }
     }
 
@@ -6055,6 +6069,8 @@
       const current=getCurrentSongs(now);
 
       if(!current.length){
+        ambientDriverSongId="";
+        setAmbientPalette(AMBIENT_FALLBACK,"fallback");
         renderEmptyCurrent();
         renderUpcoming(new Set(),now);
         renderIntroduced(now);
