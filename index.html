@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v113" />
+  <meta name="ipcdj-build" content="persistent-launch-v114" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -45,31 +45,6 @@
   <meta name="twitter:description" content="Próximas canciones, preparación y estrenos del Ministerio de Alabanza de IPCDJ." />
   <meta name="twitter:image" content="https://worship.ipcdj.org/icon-512.png?v=8" />
   <title>IPCDJ Worship | Ministerio de Alabanza</title>
-  <script id="ipcdj-launch-environment">
-    (() => {
-      try{
-        const standalone=(
-          navigator.standalone===true ||
-          (window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches) ||
-          (window.matchMedia&&window.matchMedia("(display-mode: fullscreen)").matches)
-        );
-        const ua=navigator.userAgent||"";
-        const ios=(
-          /iPhone|iPad|iPod/i.test(ua) ||
-          (navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1)
-        );
-        if(!standalone||!ios)return;
-
-        const viewportH=window.innerHeight||0;
-        const screenH=(window.screen&&window.screen.height)||0;
-        const gap=screenH&&viewportH ? screenH-viewportH : 0;
-        const correction=(gap>=20&&gap<=140) ? -(gap/2) : 0;
-
-        document.documentElement.classList.add("ipcdj-ios-standalone");
-        document.documentElement.style.setProperty("--ipcdj-launch-y",correction.toFixed(2)+"px");
-      }catch(_){}
-    })();
-  </script>
   <style id="ipcdj-launch-critical">
     html,body{
       width:100%;
@@ -101,7 +76,6 @@
       display:grid;
       place-items:center;
       opacity:0;
-      transform:translate3d(0,var(--ipcdj-launch-y,0px),0);
       will-change:opacity;
     }
 
@@ -120,7 +94,8 @@
     }
 
     #ipcdj-launch.launch-playing .launch-logo-stage{
-      animation:ipcdjLogoReveal .72s cubic-bezier(.22,.61,.36,1) 0s forwards;
+      opacity:1;
+      transition:opacity .72s cubic-bezier(.22,.61,.36,1);
     }
 
     #ipcdj-launch.launch-armed{
@@ -132,7 +107,6 @@
 
     #ipcdj-launch.launch-armed .launch-logo-stage{
       opacity:0;
-      animation:none;
       transition:none;
     }
 
@@ -141,14 +115,13 @@
       visibility:hidden;
       pointer-events:none;
       transition:
-        opacity .60s cubic-bezier(.22,.61,.36,1) .48s,
-        visibility 0s linear 1.08s;
+        opacity .68s cubic-bezier(.22,.61,.36,1) .38s,
+        visibility 0s linear 1.06s;
     }
 
     #ipcdj-launch.launch-exit .launch-logo-stage{
       opacity:0;
-      transition:opacity .48s cubic-bezier(.4,0,.2,1);
-      animation:none;
+      transition:opacity .62s cubic-bezier(.4,0,.2,1);
     }
 
     #ipcdj-launch.launch-idle{
@@ -160,17 +133,7 @@
 
     #ipcdj-launch.launch-idle .launch-logo-stage{
       opacity:0;
-      animation:none;
       transition:none;
-    }
-
-    @keyframes ipcdjLogoReveal{
-      0%{
-        opacity:0;
-      }
-      100%{
-        opacity:1;
-      }
     }
 
     @media (max-width:640px){
@@ -188,7 +151,7 @@
     @media (prefers-reduced-motion:reduce){
       #ipcdj-launch.launch-playing .launch-logo-stage{
         opacity:1;
-        animation:none;
+        transition:none;
         will-change:auto;
       }
 
@@ -1967,7 +1930,7 @@
   </style>
 </head>
 <body>
-  <div id="ipcdj-launch" class="launch-playing" role="status" aria-label="Abriendo IPCDJ Worship">
+  <div id="ipcdj-launch" class="launch-armed" role="status" aria-label="Abriendo IPCDJ Worship">
     <div class="launch-logo-stage" aria-hidden="true">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 1500" preserveAspectRatio="xMidYMid meet" role="img" aria-label="IPCDJ Worship">
   <defs>
@@ -1996,17 +1959,6 @@
         (window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches) ||
         (window.matchMedia&&window.matchMedia("(display-mode: fullscreen)").matches)
       );
-      const iosStandalone=standalone&&document.documentElement.classList.contains("ipcdj-ios-standalone");
-
-      const syncStandaloneLaunchAlignment=()=>{
-        if(!iosStandalone)return;
-        const viewportH=window.innerHeight||0;
-        const screenH=(window.screen&&window.screen.height)||0;
-        const gap=screenH&&viewportH ? screenH-viewportH : 0;
-        const correction=(gap>=20&&gap<=140) ? -(gap/2) : 0;
-        document.documentElement.style.setProperty("--ipcdj-launch-y",correction.toFixed(2)+"px");
-      };
-
       let cycleStarted=performance.now();
       let exiting=false;
       let armed=false;
@@ -2062,15 +2014,17 @@
         const token=++cycleToken;
         exiting=false;
         armed=false;
-        cycleStarted=performance.now();
         lockPage(true);
-        syncStandaloneLaunchAlignment();
 
-        launch.className="launch-playing";
-
-        // launch-armed sets animation:none; switching back to launch-playing
-        // restarts the opacity animation without a forced synchronous reflow.
-        requestAnimationFrame(()=>checkCycle(token));
+        // Keep the black overlay fully present while one paint establishes
+        // opacity:0. Only then transition the fixed logo to opacity:1.
+        launch.className="launch-armed";
+        requestAnimationFrame(()=>{
+          if(token!==cycleToken)return;
+          cycleStarted=performance.now();
+          launch.className="launch-playing";
+          requestAnimationFrame(()=>checkCycle(token));
+        });
       };
 
       const armLaunch=()=>{
@@ -2080,17 +2034,17 @@
         armed=true;
         lockPage(true);
         launch.className="launch-armed";
-        syncStandaloneLaunchAlignment();
 
-        // Flush the armed black state immediately before iOS can suspend/snapshot
-        // the web process during an app switch or Home-screen transition.
+        // Commit the opaque armed state before WebKit can suspend/snapshot
+        // the installed app during a background transition.
         void launch.offsetHeight;
       };
 
-      // Initial document launch.
+      // Initial document launch begins from the same armed state used for
+      // warm PWA resumes, so every platform gets one continuous fade timeline.
       lockPage(true);
-      const initialToken=++cycleToken;
-      requestAnimationFrame(()=>checkCycle(initialToken));
+      armed=true;
+      playLaunch();
 
       // Installed PWAs are often resumed rather than reloaded. Arm the black
       // launch canvas while hidden so the first returning frame can never expose
