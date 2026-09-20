@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="true-pause-resume-v93" />
+  <meta name="ipcdj-build" content="coordinated-cover-reveal-v94" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -513,7 +513,7 @@
       -webkit-filter:blur(30px) saturate(1.18) contrast(1.04);
       transform:scale(1.10);
       opacity:0;
-      transition:opacity 1.05s cubic-bezier(.22,.65,.25,1),filter .8s ease;
+      transition:opacity 1.65s cubic-bezier(.22,.65,.25,1),filter 1.2s ease;
     }
 
     .current > *{
@@ -564,7 +564,7 @@
         linear-gradient(90deg, rgba(0,0,0,.54) 0 7%, transparent 15% 85%, rgba(0,0,0,.54) 93% 100%);
       -webkit-mask-composite:source-over;
       mask-composite:add;
-      transition:opacity 1.15s cubic-bezier(.22,.65,.25,1);
+      transition:opacity 1.65s cubic-bezier(.22,.65,.25,1);
     }
 
     .current .cover-edge-detail{
@@ -582,7 +582,7 @@
       transform:scale(1.018);
       -webkit-mask-image:radial-gradient(ellipse 74% 70% at 50% 50%, transparent 0%, transparent 54%, rgba(0,0,0,.18) 63%, rgba(0,0,0,.58) 76%, #000 100%);
       mask-image:radial-gradient(ellipse 74% 70% at 50% 50%, transparent 0%, transparent 54%, rgba(0,0,0,.18) 63%, rgba(0,0,0,.58) 76%, #000 100%);
-      transition:opacity 1.18s cubic-bezier(.22,.65,.25,1);
+      transition:opacity 1.65s cubic-bezier(.22,.65,.25,1);
     }
 
     .current .cover-edge-detail::after{
@@ -688,7 +688,7 @@
       mask-mode:alpha,alpha;
       -webkit-mask-repeat:no-repeat,no-repeat;
       mask-repeat:no-repeat,no-repeat;
-      transition:opacity 1.32s cubic-bezier(.22,.65,.25,1);
+      transition:opacity 1.65s cubic-bezier(.22,.65,.25,1);
       will-change:opacity;
     }
 
@@ -2346,16 +2346,16 @@
 
     function scheduleSubjectReveal(card){
       if(!card||!card.dataset.coverSubject)return;
-      if(card._subjectRevealTimer)clearTimeout(card._subjectRevealTimer);
-      const reveal=()=>{
-        if(!card.isConnected||!card.dataset.coverSubject)return;
-        card.classList.add("subject-ready");
+      if(card._subjectRevealTimer){
+        clearTimeout(card._subjectRevealTimer);
         card._subjectRevealTimer=null;
-      };
+      }
+
       if(card.classList.contains("cover-ready")){
-        card._subjectRevealTimer=setTimeout(reveal,180);
-      }else{
-        card._subjectRevealTimer=setTimeout(()=>scheduleSubjectReveal(card),90);
+        requestAnimationFrame(()=>{
+          if(!card.isConnected||!card.dataset.coverSubject)return;
+          card.classList.add("subject-ready");
+        });
       }
     }
 
@@ -2365,16 +2365,29 @@
       image.crossOrigin="anonymous";
       image.decoding="async";
       if("fetchPriority" in image)image.fetchPriority="high";
-      const reveal=()=>{
-        if(!card.isConnected)return;
+
+      let revealed=false;
+      const reveal=async()=>{
+        if(revealed||!card.isConnected)return;
+        revealed=true;
+
+        // Wait for decode when supported so all CSS background layers can begin
+        // their opacity transition from the same already-decoded image resource.
+        try{
+          if(typeof image.decode==="function")await image.decode();
+        }catch(_){}
+
         requestAnimationFrame(()=>{
           requestAnimationFrame(()=>{
             if(!card.isConnected)return;
             card.classList.add("cover-ready");
-            if(card.dataset.coverSubject)scheduleSubjectReveal(card);
+            if(card.dataset.coverSubject){
+              card.classList.add("subject-ready");
+            }
           });
         });
       };
+
       image.onload=reveal;
       image.onerror=reveal;
       image.src=url;
