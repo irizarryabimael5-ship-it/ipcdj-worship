@@ -1098,3 +1098,20 @@ Required behavior:
 - The direct preview still plays only through the universal Web Audio engine.
 - Do not re-enable Spotify's full player, YouTube iframe playback, Media Session transport, or background playback for the Adelanto.
 - Pause/resume, visibility/background stop, exact duration, and gain-envelope behavior from v95 remain unchanged.
+
+
+## Full Spotify preview playback v98
+
+Dios De Milagros uses the complete decoded Spotify preview asset rather than truncating it to 19.4 seconds.
+
+Required behavior:
+- previewUseFullAsset: true.
+- Start at 0 seconds of the Spotify preview asset.
+- Use the asset's actual decoded duration as the total Adelanto duration on every platform.
+- Keep previewFadeIn at .70 seconds.
+- Keep previewFadeOut at 1.60 seconds and apply it to the final 1.60 seconds of the full provider preview.
+- Pause/resume continues within the same full-preview timeline.
+- Natural completion resets to the beginning for the next Play.
+- Web Audio remains the only active playback engine for the Adelanto.
+- Background/lock-screen stopping and Media Session clearing remain unchanged.
+- previewClipDuration may remain in song metadata for historical/fallback compatibility but must not limit playback when previewUseFullAsset is true.
