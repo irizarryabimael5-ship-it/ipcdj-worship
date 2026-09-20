@@ -1781,3 +1781,32 @@ Revert:
 - backup-before-preview-palette-logo-v123 preserves the complete v122 state.
 
 Preserve the v122 true overlapping audio crossfade, live analyser meter, remaining-time display, future top-right controls, and all v120-v119 launch reliability behavior.
+
+
+## Cold-start launch fade and curated preview accent v124
+
+v124 fixes the first-document launch fade and introduces an explicit contrasting accent system for the active preview pill.
+
+Cold-start logo entrance:
+- A single requestAnimationFrame is not sufficient to guarantee the launch-armed opacity:0 frame has actually been painted on a fresh document load.
+- playLaunch() now sets launch-armed, forces layout through the logo stage, waits two nested requestAnimationFrame callbacks, and only then applies launch-playing.
+- The transition therefore begins from a committed hidden logo frame on first install/cold start as well as warm standalone resumes.
+- Preserve opacity-only animation; never add scale, translation, bounce, drift, or internal SVG animation.
+- Base launch logo fade-in is approximately 1.32 seconds.
+- Mobile launch logo fade-in is approximately 1.42 seconds.
+- Preserve cubic-bezier(.4,0,.2,1).
+
+Curated preview accent:
+- Album-derived palette remains the fallback for songs without a curated preview accent.
+- Songs may define previewAccent1 and previewAccent2 as RGB triplets for a deliberate contrasting player color that still belongs visually with the cover.
+- The current card applies these values as --preview-accent-1 and --preview-accent-2.
+- Dios De Milagros uses warm gold rgb(242,184,75) -> coral rgb(255,118,87), chosen as a strong complementary accent against the approved blue cover treatment.
+- Idle pill uses a clearly visible low-to-medium intensity accent gradient and stronger accent border.
+- Playback progress uses a high-visibility accent fill so left-to-right completion is obvious.
+- Playing state keeps the same curated accent family with increased intensity.
+- High-contrast light text/icon/meter remains unchanged.
+
+Revert:
+- backup-before-cold-fade-accent-v124 preserves the complete v123 state.
+
+Preserve v122 true overlapping preview crossfade, analyser-driven live meter, remaining-time display, future top-right controls, and v119-v120 launch masking/readiness architecture.
