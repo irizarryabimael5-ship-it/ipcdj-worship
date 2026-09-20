@@ -2186,3 +2186,94 @@ Interaction safety:
 
 Revert:
 - backup-before-future-preview-finish-v132 preserves the complete v131 state.
+
+
+## Dormant push notification foundation v133
+
+v133 lays down the architecture for a future platform-wide Web Push notification system without activating any notification behavior in the live website.
+
+Runtime isolation:
+- Nothing under notifications/ is imported by index.html.
+- sw.js does not import notifications/sw-foundation.js.
+- No notification permission prompt exists.
+- No PushManager.subscribe() call is executed.
+- No push backend is contacted.
+- No new service-worker push or notificationclick handler is active.
+- No VAPID key is present in the live website.
+- Build marker and service-worker cache remain at v132 because runtime behavior is intentionally unchanged.
+- The notification groundwork must remain dormant until a future explicit implementation request activates a stage.
+
+Standards-based platform model:
+- Future notification transport must use the standards-based Push API, Notifications API and existing Service Worker.
+- Use feature detection instead of browser-name detection.
+- Notification permission/subscription must be initiated only after direct user action.
+- Persistent/mobile notifications must be displayed from the service worker with ServiceWorkerRegistration.showNotification().
+- iPhone/iPad support should target the installed/Home Screen web-app flow while retaining the same standards-based transport for other supporting platforms.
+- Do not depend on browser timers, setTimeout, page visibility or Periodic Background Sync for scheduled ministry notifications.
+- Server-side scheduling is authoritative.
+
+Foundation files:
+- notifications/README.md — architecture, staging and intentionally undecided product rules.
+- notifications/notification-foundation.js — side-effect-free client capability/subscription helpers.
+- notifications/sw-foundation.js — dormant service-worker payload and click-routing helpers.
+- notifications/notification-contract.schema.json — version-1 push payload schema.
+- notifications/event-catalog.json — draft extensible event taxonomy/preferences with enabled:false.
+- notifications/backend-contract.md — vendor-neutral secure backend/subscription/scheduler contract.
+
+Draft notification categories:
+- song_phases
+- estreno
+- live_set
+- announcements
+
+Draft event types:
+- song.phase.entered
+- song.release.reminder
+- song.release.today
+- live_set.published
+- live_set.updated
+- system.announcement
+
+All categories default disabled in the foundation. The catalog is a vocabulary/contract, not an activation schedule.
+
+Canonical scheduling:
+- Future push timing must come from a server-side scheduler using the same versioned canonical event/song schedule as the website renderer.
+- Church/song scheduling timezone is America/New_York.
+- Every generated notification event must have an idempotency/deduplication key.
+- The server must never infer notification state from translated DOM text or a user's local browser timer.
+- Live Set notifications should ultimately be driven by explicit publish/update revisions, not by scraping whether a tab happens to be visible.
+
+Subscription/privacy model:
+- A notification subscription should not require name, email, phone number or account merely to receive ministry notifications.
+- Store an anonymous installation id plus PushSubscription endpoint/keys, category preferences, locale/timezone and operational timestamps.
+- Treat push endpoints and encryption keys as secrets/capability URLs.
+- VAPID private key and backend/database secrets must never be embedded in the website repository/runtime.
+- Remove permanently invalid subscriptions when the push service reports them gone.
+- Preferences should be updatable without forcing the user to create a new push subscription.
+
+Future activation sequence:
+1. Add a user-facing Notifications settings surface and support/install-state guidance.
+2. Deploy secure backend API + storage + VAPID.
+3. Activate sw.js push / notificationclick handlers using the dormant foundation.
+4. Connect canonical song/Live Set events to the server scheduler.
+5. Enable only notification scenarios/wording/timing explicitly approved later.
+
+Deliberately unresolved until future product decisions:
+- exact phase events that notify;
+- reminder lead times;
+- quiet hours;
+- repeat rules;
+- per-song overrides;
+- Live Set publication/update policy;
+- manual admin announcements;
+- badge-count semantics;
+- notification wording;
+- default category choices.
+
+Preview verification:
+- The health matrix now explicitly verifies that future preview controls contain the countdown/ring and that the SVG ring advances once the future preview takes playback ownership.
+- The cross-browser scroll sweep was moved out of in-page requestAnimationFrame loops because headless WebKit can throttle rAF independently of actual scroll health.
+- These monitoring changes do not alter website runtime behavior.
+
+Revert:
+- backup-before-notification-foundation-v133 preserves the complete v132 website state before notification groundwork and monitoring-test changes.
