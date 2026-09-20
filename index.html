@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="platform-hardening-v105" />
+  <meta name="ipcdj-build" content="zero-flash-startup-v106" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -125,9 +125,20 @@
         const match=text.match(/<meta\s+name=["']ipcdj-build["']\s+content=["']([^"']+)["']/i);
         const deployedBuild=match ? match[1] : "";
         if(deployedBuild && deployedBuild!==CURRENT_BUILD){
-          const fresh=new URL(location.href);
-          fresh.searchParams.set("fresh",Date.now().toString());
-          location.replace(fresh.toString());
+          // Do not visibly reload an already-painted PWA. The service worker
+          // update path refreshes the cached shell silently; the next navigation
+          // receives the new build without a startup double-paint/flash.
+          window.__ipcdjFreshBuildAvailable=deployedBuild;
+          if("serviceWorker" in navigator){
+            navigator.serviceWorker.getRegistration().then(registration=>{
+              if(!registration)return;
+              registration.update().then(()=>{
+                if(registration.waiting){
+                  registration.waiting.postMessage({type:"SKIP_WAITING"});
+                }
+              }).catch(()=>{});
+            }).catch(()=>{});
+          }
         }
       })
       .catch(()=>{});
@@ -1462,6 +1473,11 @@
     }
 
     .reveal{
+      opacity:1;
+      transform:none;
+    }
+
+    .reveal.reveal-pending{
       opacity:0;
       transform:translateY(14px);
       transition:
@@ -1469,7 +1485,7 @@
         transform .42s cubic-bezier(.2,.65,.2,1);
     }
 
-    .reveal.visible{
+    .reveal.reveal-pending.visible{
       opacity:1;
       transform:translateY(0);
       will-change:auto;
@@ -4982,8 +4998,9 @@
 
     const revealItems=[...document.querySelectorAll(".reveal")];
     const showRevealItem=item=>{
-      if(!item||item.classList.contains("visible"))return;
+      if(!item)return;
       item.classList.add("visible");
+      requestAnimationFrame(()=>item.classList.remove("reveal-pending"));
     };
 
     if("IntersectionObserver" in window&&!window.matchMedia("(prefers-reduced-motion: reduce)").matches){
@@ -4999,24 +5016,24 @@
       });
 
       revealItems.forEach(item=>{
-        // Anything already in/near the initial viewport is shown immediately,
-        // avoiding a blank or half-faded first frame on slower mobile devices.
         const rect=item.getBoundingClientRect();
+
+        // Initial/near-viewport content is already visible in CSS and stays that
+        // way. Only genuinely below-the-fold content opts into reveal animation.
         if(rect.top<window.innerHeight*1.08&&rect.bottom>-40){
-          showRevealItem(item);
+          item.classList.add("visible");
         }else{
+          item.classList.add("reveal-pending");
           observer.observe(item);
         }
       });
 
-      // Defensive fallback: no content is ever allowed to remain invisible because
-      // of an IntersectionObserver/browser scrolling quirk.
       setTimeout(()=>{
         revealItems.forEach(showRevealItem);
         observer.disconnect();
       },1800);
     }else{
-      revealItems.forEach(showRevealItem);
+      revealItems.forEach(item=>item.classList.add("visible"));
     }
   </script>
 </body>
