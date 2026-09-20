@@ -1411,3 +1411,28 @@ Installed PWA backgrounding:
 - Foreground resume still restarts the opacity-only launch sequence synchronously.
 
 Preserve v111 repository hygiene, v110 fixed-position animation, v109 persistent launch lifecycle, v106 zero-flash content rules, and all audio/visual invariants.
+
+
+## iOS standalone launch alignment v113
+
+v113 addresses the installed-iOS PWA center jump and smoothness issues while leaving normal desktop/browser launch behavior intact.
+
+Installed iOS alignment:
+- Detect installed iOS/iPadOS standalone/fullscreen mode synchronously in <head>, before the launch node can paint.
+- Compare screen.height with window.innerHeight.
+- When the standalone web layer is measurably shorter than the physical screen by a plausible system/status-bar gap, offset the web launch logo upward by one half of that gap so its visual center matches the native full-screen center.
+- This offset is static positioning compensation only; it is not an animation and must never tween.
+- Recalculate the compensation only while the logo is hidden/armed or immediately before a fresh reveal.
+- Do not use explicit 100vh/100svh/100dvh sizing on #ipcdj-launch; fixed inset:0 is the launch surface geometry.
+
+Opacity sequence:
+- Logo fade-in is opacity-only over approximately .72 s.
+- Normal minimum launch visibility is approximately 1.10 s.
+- On exit, first fade the logo to black over approximately .48 s while the launch canvas remains fully black.
+- Only after the logo fade completes should the black launch canvas fade into the rendered website over approximately .60 s.
+- Do not compound the logo opacity fade with the canvas opacity fade at the same time.
+- The logo remains fixed in one visual position throughout every visible frame.
+
+iOS native bridge remains pure black so the visible IPCDJ logo belongs to the web animation rather than a competing static startup image.
+
+Preserve v112 seamless handoff, v111 repository hygiene, v110 fixed-position design intent, v109 persistent launch lifecycle, and all existing audio/visual reliability invariants.
