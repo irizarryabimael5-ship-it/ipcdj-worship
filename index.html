@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v119" />
+  <meta name="ipcdj-build" content="persistent-launch-v120" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -42,7 +42,9 @@
   <link rel="preconnect" href="https://covers.musichoarders.xyz" crossorigin />
   <link rel="preconnect" href="https://itunes.apple.com" crossorigin />
   <link rel="preconnect" href="https://i.scdn.co" crossorigin />
+  <link rel="preconnect" href="https://p.scdn.co" crossorigin />
   <link rel="dns-prefetch" href="//covers.musichoarders.xyz" />
+  <link rel="dns-prefetch" href="//p.scdn.co" />
   <link rel="dns-prefetch" href="//itunes.apple.com" />
   <link rel="dns-prefetch" href="//i.scdn.co" />
   <link rel="preload" as="image" href="https://i.scdn.co/image/ab67616d0000b27341b7ffdb9e0bde66a24425c4" fetchpriority="high" />
@@ -118,6 +120,14 @@
       visibility:hidden !important;
     }
 
+    html.ipcdj-ios-light-launch.ipcdj-launch-site-hidden .current::before,
+    html.ipcdj-ios-light-launch.ipcdj-launch-site-hidden .current .cover-detail,
+    html.ipcdj-ios-light-launch.ipcdj-launch-site-hidden .current .cover-edge-detail,
+    html.ipcdj-ios-light-launch.ipcdj-launch-site-hidden .current .cover-subject-detail,
+    html.ipcdj-ios-light-launch.ipcdj-launch-site-hidden .inline-preview{
+      transition:none !important;
+    }
+
     html.ipcdj-ios-light-launch.ipcdj-launch-active.ipcdj-launch-black-stage{
       color-scheme:dark;
       background:#000000;
@@ -144,19 +154,19 @@
       visibility:visible;
       pointer-events:none;
       background:#000000;
-      transition:background-color .68s cubic-bezier(.22,.61,.36,1);
+      transition:background-color .48s cubic-bezier(.22,.61,.36,1);
     }
 
     html.ipcdj-ios-light-launch #ipcdj-launch.launch-light-black .launch-logo-stage{
       opacity:0;
-      transition:opacity .50s cubic-bezier(.4,0,.2,1);
+      transition:opacity .42s cubic-bezier(.4,0,.2,1);
     }
 
     html.ipcdj-ios-light-launch #ipcdj-launch.launch-exit{
       background:#000000;
       transition:
-        opacity .82s cubic-bezier(.22,.61,.36,1),
-        visibility 0s linear .82s;
+        opacity .74s cubic-bezier(.22,.61,.36,1),
+        visibility 0s linear .74s;
     }
 
     .launch-logo-stage{
@@ -1402,14 +1412,14 @@
       justify-content:flex-start;
       gap:10px;
       min-height:46px;
-      opacity:0;
-      transform:translateY(5px);
-      transition:opacity .36s cubic-bezier(.2,.65,.2,1),transform .36s cubic-bezier(.2,.65,.2,1);
+      opacity:1;
+      transform:none;
+      transition:none;
     }
 
     .inline-preview.preview-ready{
       opacity:1;
-      transform:translateY(0);
+      transform:none;
     }
 
     .inline-preview-label{
@@ -2074,11 +2084,22 @@
 
       const appFrameReady=()=>{
         const host=document.getElementById("current-song-cards");
-        if(!host||!host.firstElementChild)return false;
+        const card=host&&host.firstElementChild;
+        if(!card)return false;
 
-        const cover=host.querySelector(".cover-native-fallback");
-        if(!cover)return true;
-        return !!(cover.complete&&cover.naturalWidth>0);
+        const songName=card.querySelector('[data-role="song-name"]');
+        const countdownTarget=card.querySelector('[data-role="countdown-target"]');
+        const previewButton=card.querySelector(".preview-button");
+        if(!songName||!songName.textContent.trim())return false;
+        if(countdownTarget&&!countdownTarget.textContent.trim())return false;
+        if(previewButton&&previewButton.disabled)return false;
+
+        const cover=card.querySelector(".cover-native-fallback");
+        if(cover&&!(cover.complete&&cover.naturalWidth>0))return false;
+        if(card.classList.contains("has-native-cover")&&!card.classList.contains("cover-ready"))return false;
+        if(card.dataset.coverSubject&&!card.classList.contains("subject-ready"))return false;
+
+        return true;
       };
 
       const settleIdle=token=>{
@@ -2097,24 +2118,27 @@
         const lightLaunch=root.classList.contains("ipcdj-ios-light-launch");
 
         if(lightLaunch&&!reduced){
-          // Stage 1: keep the website completely masked while the white launch
-          // surface itself transitions to pure black and the black logo disappears.
+          // Stage 1: switch the system/root theme at the exact same moment as the
+          // white launch surface begins becoming black. This keeps the top
+          // standalone/status region visually synchronized instead of lagging behind.
+          const themeMeta=document.querySelector('meta[name="theme-color"]');
+          root.classList.add("ipcdj-launch-black-stage");
+          if(themeMeta)themeMeta.setAttribute("content","#000000");
           launch.className="launch-light-black";
 
           setTimeout(()=>{
             if(token!==cycleToken)return;
 
-            const themeMeta=document.querySelector('meta[name="theme-color"]');
-            root.classList.add("ipcdj-launch-black-stage");
-            if(themeMeta)themeMeta.setAttribute("content","#000000");
-
-            // Stage 2: the page is allowed to render only after the launch
-            // surface is fully black. The opaque black surface then fades away.
+            // The launch surface is now fully black. Let the already-rendered page
+            // exist underneath it, hold black briefly, then dissolve to the site.
             root.classList.remove("ipcdj-launch-site-hidden");
-            launch.className="launch-exit";
 
-            setTimeout(()=>settleIdle(token),860);
-          },700);
+            setTimeout(()=>{
+              if(token!==cycleToken)return;
+              launch.className="launch-exit";
+              setTimeout(()=>settleIdle(token),780);
+            },90);
+          },520);
           return;
         }
 
@@ -2673,9 +2697,10 @@
       }
     }
 
-    // Calibrate immediately and every five minutes. The current countdown starts
-    // immediately from the restored seed/device time; calibration never blocks it.
-    syncServerClock().then(()=>renderCurrent(calibratedNow()));
+    // Start calibration immediately, but never make first content depend on it.
+    // The first current-card render below uses the restored/device clock at once;
+    // calibration updates the absolute clock silently in the background.
+    syncServerClock();
     setInterval(syncServerClock,5*60*1000);
 
     // IPCDJ song pipeline: one source of truth for current song, countdown, phases and rollover.
@@ -4632,9 +4657,9 @@
 
     function previewRowMarkup(song){
       return `
-        <div class="preview-row" data-preview-song-id="${escapeHtml(song.id)}" data-preview-state="loading">
-          <button class="preview-button" type="button" disabled aria-label="Preparando adelanto">
-            ${previewIcon("loading")}
+        <div class="preview-row" data-preview-song-id="${escapeHtml(song.id)}" data-preview-state="play">
+          <button class="preview-button" type="button" aria-label="Reproducir adelanto de ${escapeHtml(song.title)}">
+            ${previewIcon("play")}
           </button>
         </div>
       `;
@@ -4645,38 +4670,55 @@
       if(!row)return;
 
       const button=row.querySelector(".preview-button");
+      if(!button)return;
 
-      try{
-        const data=await prepareWebAudioPreview(song);
-        if(!row.isConnected)return;
-        row._previewData=data;
-        if(button&&!button.dataset.bound){
-          button.disabled=false;
-          button.innerHTML=previewIcon("play");
-          button.setAttribute("aria-label","Reproducir adelanto de "+song.title);
-          button.dataset.bound="true";
-
-          // Create + unlock the live AudioContext inside the earliest user
-          // gesture. This is required for reliable iPhone/iPad Safari/PWA playback.
-          button.addEventListener("pointerdown",()=>{
-            unlockWebPreviewContextFromGesture();
-          },{passive:true});
-
-          button.addEventListener("touchstart",()=>{
-            unlockWebPreviewContextFromGesture();
-          },{passive:true});
-
-          button.addEventListener("click",()=>{
-            unlockWebPreviewContextFromGesture();
-            playPreviewSong(song,row._previewData);
+      const prepare=()=>{
+        if(row._previewData)return Promise.resolve(row._previewData);
+        if(!row._previewPromise){
+          row._previewPromise=prepareWebAudioPreview(song).then(data=>{
+            if(row.isConnected)row._previewData=data;
+            return data;
           });
         }
+        return row._previewPromise;
+      };
+
+      if(!button.dataset.bound){
+        button.disabled=false;
+        button.innerHTML=previewIcon("play");
+        button.setAttribute("aria-label","Reproducir adelanto de "+song.title);
+        button.dataset.bound="true";
+
+        // Unlock on the earliest gesture, but never replace the Play icon with a
+        // boot/loading glyph. Audio preparation continues invisibly underneath.
+        button.addEventListener("pointerdown",()=>{
+          unlockWebPreviewContextFromGesture();
+        },{passive:true});
+
+        button.addEventListener("touchstart",()=>{
+          unlockWebPreviewContextFromGesture();
+        },{passive:true});
+
+        button.addEventListener("click",async()=>{
+          unlockWebPreviewContextFromGesture();
+          try{
+            const data=await prepare();
+            if(row.isConnected)playPreviewSong(song,data);
+          }catch(_){
+            if(row.isConnected){
+              button.disabled=true;
+              button.innerHTML=previewIcon("play");
+              button.setAttribute("aria-label","Adelanto no disponible");
+            }
+          }
+        });
+      }
+
+      try{
+        await prepare();
       }catch(_){
-        if(button){
-          button.disabled=true;
-          button.innerHTML=previewIcon("play");
-          button.setAttribute("aria-label","Adelanto no disponible");
-        }
+        // Keep the stable Play visual during boot. Only an actual interaction
+        // needs to surface permanent unavailability.
       }
     }
 
@@ -5119,10 +5161,14 @@
       setCardText(card,"artist",song.artist);
 
       if(song.artworkUrl&&card.classList.contains("has-native-cover")&&!card.classList.contains("cover-ready")){
-        requestAnimationFrame(()=>{
-          if(!card.isConnected)return;
+        if(document.documentElement.classList.contains("ipcdj-launch-site-hidden")){
           card.classList.add("cover-ready");
-        });
+        }else{
+          requestAnimationFrame(()=>{
+            if(!card.isConnected)return;
+            card.classList.add("cover-ready");
+          });
+        }
       }
 
       if(
@@ -5198,7 +5244,7 @@
             if(row.isConnected)delete row.dataset.hydrating;
           });
         }
-        if(inline)requestAnimationFrame(()=>inline.classList.add("preview-ready"));
+        if(inline)inline.classList.add("preview-ready");
       });
       const activeIds=new Set(current.map(({song})=>song.id));
       current.forEach(({song})=>{
