@@ -1744,3 +1744,40 @@ Revert:
 - backup-before-preview-ui-crossfade-v122 preserves the complete v121 state.
 
 Preserve all v120 launch/readiness behavior, v119 masked white-to-black iOS architecture, and existing preview source/audio safety invariants.
+
+
+## Album-derived preview pill palette and launch fade v123
+
+v123 refines the active preparation-song Adelanto pill and the platform-wide launch logo entrance.
+
+Active preview pill palette:
+- The current-song preview pill must not appear neutral/gray while idle.
+- Its idle background uses a restrained two-color gradient derived from the current card's extracted album palette.
+- Primary idle gradient colors are --cover-c1 and --cover-c2, so every future active song automatically inherits colors appropriate to its own cover art.
+- Default fallbacks remain within the established IPCDJ blue family: approximately rgb(55,93,202) and rgb(137,169,255).
+- The border also inherits --cover-c2 at low opacity.
+- Text, time, icon, and live meter remain high-contrast neutral light tones.
+
+Playback progress fill:
+- The existing non-seekable fill remains tied to --preview-progress.
+- While playing, the fill becomes materially visible rather than nearly transparent.
+- Fill colors use stronger versions of --cover-c1 and --cover-c2, with a restrained --cover-c3 tail for depth.
+- The fill updates continuously with preview progress and reaches the full width of the pill at the end.
+- The visual remains decorative/informational only; do not make the pill seekable.
+- Keep the fill subtle enough that labels and meter remain legible.
+
+Playing state:
+- Do not replace the album-derived palette with a generic gray when playback begins.
+- The playing pill continues using the same album palette with slightly stronger border/background intensity.
+
+Launch logo fade:
+- Preserve the completely fixed launch logo with opacity-only animation.
+- Base platform fade-in duration is approximately 1.18 seconds.
+- Mobile fade-in duration is approximately 1.28 seconds.
+- Preserve cubic-bezier(.4,0,.2,1), matching the approved soft fade character.
+- Do not add scale, translation, drift, bounce, or internal SVG animation.
+
+Revert:
+- backup-before-preview-palette-logo-v123 preserves the complete v122 state.
+
+Preserve the v122 true overlapping audio crossfade, live analyser meter, remaining-time display, future top-right controls, and all v120-v119 launch reliability behavior.
