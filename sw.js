@@ -1,4 +1,4 @@
-const CACHE_NAME = "ipcdj-worship-v115";
+const CACHE_NAME = "ipcdj-worship-v116";
 const OFFLINE_PAGE = "./__offline_index__";
 const STATIC_ASSETS = [
   "./favicon.svg",
@@ -12,7 +12,19 @@ const STATIC_ASSETS = [
   "./apple-music.svg",
   "./youtube-music.svg",
   "./launch-logo-white.svg",
-  "./ios-startup-universal.svg",
+  "./ios-launch/apple-launch-1320x2868.png",
+  "./ios-launch/apple-launch-1260x2736.png",
+  "./ios-launch/apple-launch-1206x2622.png",
+  "./ios-launch/apple-launch-1290x2796.png",
+  "./ios-launch/apple-launch-1179x2556.png",
+  "./ios-launch/apple-launch-1284x2778.png",
+  "./ios-launch/apple-launch-1170x2532.png",
+  "./ios-launch/apple-launch-1125x2436.png",
+  "./ios-launch/apple-launch-1242x2688.png",
+  "./ios-launch/apple-launch-828x1792.png",
+  "./ios-launch/apple-launch-1242x2208.png",
+  "./ios-launch/apple-launch-750x1334.png",
+  "./ios-launch/apple-launch-640x1136.png",
   "./manifest-v9.webmanifest"
 ];
 
