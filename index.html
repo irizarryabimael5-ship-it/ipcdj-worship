@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="coordinated-cover-reveal-v94" />
+  <meta name="ipcdj-build" content="universal-webaudio-preview-v95" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -2154,9 +2154,9 @@
         previewClipDuration:19.4,
         previewClipStart:79,
         previewFadeIn:.70,
-        previewFadeOut:1.0,
+        previewFadeOut:1.60,
         previewClipSection:"chorus",
-        previewSource:"youtube",
+        previewSource:"webaudio",
         previewYouTubeId:"0_Wgv6_Dj8U",
         activeFrom:"2026-09-14T00:00:00-04:00",
         learningStart:"2026-09-14T00:00:00-04:00",
@@ -2834,7 +2834,8 @@
 
     function strongestPreviewWindow(audioBuffer,durationSeconds){
       const total=audioBuffer.duration||30;
-      const clipDuration=Math.min(15,Math.max(1,total-1));
+      const requested=Math.max(1,Number(durationSeconds)||15);
+      const clipDuration=Math.min(requested,Math.max(1,total-.35));
       if(total<=clipDuration+1)return {start:0,duration:Math.max(1,total)};
 
       const {frames,frameSeconds}=energyFrames(audioBuffer,.20);
@@ -2920,6 +2921,266 @@
 
     function updatePreviewProgress(){}
 
+
+    const webPreviewBufferPromises=new Map();
+    let webPreviewContext=null;
+    let webPreviewSource=null;
+    let webPreviewGain=null;
+    let webPreviewSongId="";
+    let webPreviewBuffer=null;
+    let webPreviewClipStart=0;
+    let webPreviewClipDuration=0;
+    let webPreviewFadeIn=.7;
+    let webPreviewFadeOut=1.6;
+    let webPreviewElapsed=0;
+    let webPreviewStartedAt=0;
+    let webPreviewPlaying=false;
+    let webPreviewRunToken=0;
+
+    function ensureWebPreviewContext(){
+      if(webPreviewContext&&webPreviewContext.state!=="closed")return webPreviewContext;
+      const AudioCtx=window.AudioContext||window.webkitAudioContext;
+      if(!AudioCtx)throw new Error("Web Audio unavailable");
+      webPreviewContext=new AudioCtx();
+      return webPreviewContext;
+    }
+
+    function webPreviewSmoothstep(t){
+      const x=Math.max(0,Math.min(1,t));
+      return x*x*(3-(2*x));
+    }
+
+    function webPreviewCurve(fromProgress,toProgress,reverse=false,steps=96){
+      const curve=new Float32Array(steps);
+      for(let i=0;i<steps;i++){
+        const t=steps===1?1:i/(steps-1);
+        const p=fromProgress+((toProgress-fromProgress)*t);
+        const value=webPreviewSmoothstep(p);
+        curve[i]=reverse?1-value:value;
+      }
+      return curve;
+    }
+
+    function webPreviewGainAt(elapsed){
+      const e=Math.max(0,elapsed);
+      const remaining=Math.max(0,webPreviewClipDuration-e);
+      const inGain=webPreviewSmoothstep(e/Math.max(.05,webPreviewFadeIn));
+      const outGain=webPreviewSmoothstep(remaining/Math.max(.05,webPreviewFadeOut));
+      return Math.max(0,Math.min(1,inGain,outGain));
+    }
+
+    function clearNativePreviewMediaSession(){
+      if(!("mediaSession" in navigator))return;
+      try{navigator.mediaSession.metadata=null}catch(_){}
+      try{navigator.mediaSession.playbackState="none"}catch(_){}
+      [
+        "play","pause","stop","seekbackward","seekforward","seekto",
+        "previoustrack","nexttrack"
+      ].forEach(action=>{
+        try{navigator.mediaSession.setActionHandler(action,null)}catch(_){}
+      });
+    }
+
+    async function prepareWebAudioPreview(song){
+      const data=await resolveItunesPreviewData(song);
+      const key=song.id+"|"+data.previewUrl;
+      if(!webPreviewBufferPromises.has(key)){
+        webPreviewBufferPromises.set(key,(async()=>{
+          const response=await fetch(data.previewUrl,{cache:"force-cache"});
+          if(!response.ok)throw new Error("Preview audio fetch failed");
+          const bytes=await response.arrayBuffer();
+          const ctx=ensureWebPreviewContext();
+          const buffer=await ctx.decodeAudioData(bytes.slice(0));
+          const clip=strongestPreviewWindow(
+            buffer,
+            Math.max(1,Number(song.previewClipDuration)||15)
+          );
+          return {
+            source:"webaudio",
+            buffer,
+            clipStart:clip.start,
+            clipDuration:clip.duration,
+            previewUrl:data.previewUrl,
+            trackName:data.trackName,
+            artistName:data.artistName
+          };
+        })());
+      }
+      return webPreviewBufferPromises.get(key);
+    }
+
+    function stopWebAudioSource(){
+      const source=webPreviewSource;
+      webPreviewSource=null;
+      if(source){
+        try{source.onended=null}catch(_){}
+        try{source.stop()}catch(_){}
+        try{source.disconnect()}catch(_){}
+      }
+      if(webPreviewGain){
+        try{webPreviewGain.disconnect()}catch(_){}
+      }
+      webPreviewGain=null;
+    }
+
+    function resetWebAudioPreview(songId="",updateButton=true){
+      webPreviewRunToken++;
+      stopWebAudioSource();
+      webPreviewPlaying=false;
+      webPreviewElapsed=0;
+      webPreviewStartedAt=0;
+      if(songId)webPreviewSongId=songId;
+      if(updateButton&&webPreviewSongId)setPreviewButtonState(webPreviewSongId,"play");
+      clearNativePreviewMediaSession();
+    }
+
+    function scheduleWebPreviewGain(ctx,gainNode,elapsed){
+      const now=ctx.currentTime;
+      const duration=webPreviewClipDuration;
+      const fadeIn=Math.max(.05,webPreviewFadeIn);
+      const fadeOut=Math.max(.05,webPreviewFadeOut);
+      const e=Math.max(0,Math.min(duration,elapsed));
+      const fadeOutStart=Math.max(0,duration-fadeOut);
+      const gain=gainNode.gain;
+
+      gain.cancelScheduledValues(now);
+      gain.setValueAtTime(webPreviewGainAt(e),now);
+
+      if(e<fadeIn){
+        const p=Math.max(0,Math.min(1,e/fadeIn));
+        const remainingIn=fadeIn-e;
+        if(remainingIn>.01){
+          gain.setValueCurveAtTime(webPreviewCurve(p,1,false),now,remainingIn);
+        }
+      }
+
+      if(e<fadeOutStart){
+        const untilOut=fadeOutStart-e;
+        gain.setValueAtTime(1,now+Math.max(0,untilOut-.001));
+        gain.setValueCurveAtTime(
+          webPreviewCurve(0,1,true),
+          now+untilOut,
+          fadeOut
+        );
+      }else if(e<duration){
+        const outProgress=(e-fadeOutStart)/fadeOut;
+        const remainingOut=duration-e;
+        if(remainingOut>.01){
+          gain.setValueCurveAtTime(
+            webPreviewCurve(outProgress,1,true),
+            now,
+            remainingOut
+          );
+        }
+      }
+    }
+
+    async function startWebAudioPreview(song,data,{resume=false}={}){
+      const ctx=ensureWebPreviewContext();
+      try{await ctx.resume()}catch(_){}
+
+      stopWebAudioSource();
+      clearNativePreviewMediaSession();
+
+      webPreviewSongId=song.id;
+      webPreviewBuffer=data.buffer;
+      webPreviewClipStart=Math.max(0,Number(data.clipStart)||0);
+      webPreviewClipDuration=Math.min(
+        Math.max(1,Number(song.previewClipDuration)||Number(data.clipDuration)||15),
+        Math.max(1,data.buffer.duration-webPreviewClipStart)
+      );
+      webPreviewFadeIn=Math.max(.05,Number(song.previewFadeIn)||.7);
+      webPreviewFadeOut=Math.max(.15,Number(song.previewFadeOut)||1.6);
+
+      if(!resume)webPreviewElapsed=0;
+      webPreviewElapsed=Math.max(0,Math.min(webPreviewClipDuration-.01,webPreviewElapsed));
+
+      const remaining=Math.max(.01,webPreviewClipDuration-webPreviewElapsed);
+      const source=ctx.createBufferSource();
+      const gain=ctx.createGain();
+      source.buffer=data.buffer;
+      source.connect(gain);
+      gain.connect(ctx.destination);
+      webPreviewSource=source;
+      webPreviewGain=gain;
+
+      scheduleWebPreviewGain(ctx,gain,webPreviewElapsed);
+
+      const token=++webPreviewRunToken;
+      const offset=Math.min(
+        data.buffer.duration-.01,
+        webPreviewClipStart+webPreviewElapsed
+      );
+
+      source.onended=()=>{
+        if(token!==webPreviewRunToken||!webPreviewPlaying)return;
+        webPreviewPlaying=false;
+        webPreviewElapsed=0;
+        webPreviewStartedAt=0;
+        webPreviewSource=null;
+        if(webPreviewGain){
+          try{webPreviewGain.disconnect()}catch(_){}
+        }
+        webPreviewGain=null;
+        setPreviewButtonState(song.id,"play");
+        clearNativePreviewMediaSession();
+      };
+
+      webPreviewStartedAt=performance.now()-(webPreviewElapsed*1000);
+      webPreviewPlaying=true;
+      activePreviewSongId=song.id;
+      setPreviewButtonState(song.id,"pause");
+
+      source.start(ctx.currentTime,offset,remaining);
+    }
+
+    function pauseWebAudioPreview(songId){
+      if(!webPreviewPlaying||webPreviewSongId!==songId)return;
+      const elapsed=Math.max(0,(performance.now()-webPreviewStartedAt)/1000);
+      webPreviewElapsed=Math.min(webPreviewClipDuration,elapsed);
+      webPreviewRunToken++;
+      webPreviewPlaying=false;
+      stopWebAudioSource();
+      setPreviewButtonState(songId,"play");
+      clearNativePreviewMediaSession();
+    }
+
+    async function toggleWebAudioPreview(song,data){
+      if(webPreviewPlaying&&webPreviewSongId===song.id){
+        pauseWebAudioPreview(song.id);
+        return;
+      }
+
+      if(webPreviewSongId!==song.id){
+        resetWebAudioPreview(song.id,false);
+        webPreviewElapsed=0;
+      }
+
+      const isResume=webPreviewElapsed>0&&webPreviewElapsed<webPreviewClipDuration;
+      await startWebAudioPreview(song,data,{resume:isResume});
+    }
+
+    function pausePreviewWhenBackgrounded(){
+      if(document.hidden&&webPreviewPlaying&&webPreviewSongId){
+        pauseWebAudioPreview(webPreviewSongId);
+      }
+      if(document.hidden&&youtubePreviewPlaying&&youtubePreviewPlayerSongId){
+        try{youtubePreviewPlayer.pauseVideo()}catch(_){}
+        youtubePreviewPlaying=false;
+      }
+      clearNativePreviewMediaSession();
+    }
+
+    document.addEventListener("visibilitychange",pausePreviewWhenBackgrounded,{passive:true});
+    window.addEventListener("pagehide",()=>{
+      if(webPreviewPlaying&&webPreviewSongId)pauseWebAudioPreview(webPreviewSongId);
+      if(youtubePreviewPlayer){
+        try{youtubePreviewPlayer.pauseVideo()}catch(_){}
+      }
+      clearNativePreviewMediaSession();
+    },{passive:true});
+    document.addEventListener("freeze",pausePreviewWhenBackgrounded,{passive:true});
+    clearNativePreviewMediaSession();
 
     let youtubeApiPromise=null;
     let youtubePreviewPlayer=null;
@@ -3465,6 +3726,25 @@
     }
 
     async function playPreviewSong(song,previewData){
+      if(previewData&&previewData.source==="webaudio"){
+        stopPreviewTracking();
+        cancelAnimationFrame(previewManualFadeFrame);
+
+        if(activePreviewSongId&&activePreviewSongId!==song.id){
+          if(webPreviewPlaying&&webPreviewSongId===activePreviewSongId){
+            pauseWebAudioPreview(activePreviewSongId);
+          }
+          stopYouTubePreview(activePreviewSongId,{reset:true});
+        }
+
+        try{
+          await toggleWebAudioPreview(song,previewData);
+        }catch(_){
+          resetWebAudioPreview(song.id,true);
+        }
+        return;
+      }
+
       if(song.previewSource==="youtube"&&song.previewYouTubeId){
         const sameSong=activePreviewSongId===song.id;
         const row=document.querySelector('[data-preview-song-id="'+CSS.escape(song.id)+'"]');
@@ -3600,44 +3880,8 @@
 
       const button=row.querySelector(".preview-button");
 
-      if(song.previewSource==="youtube"&&song.previewYouTubeId&&song.previewClipSection==="chorus"){
-        row._previewData={source:"youtube"};
-        if(button&&!button.dataset.bound){
-          button.disabled=false;
-          button.innerHTML=previewIcon("play");
-          button.setAttribute("aria-label","Reproducir adelanto de "+song.title);
-          button.dataset.bound="true";
-          button.addEventListener("pointerdown",()=>{
-            warmYouTubePreviewNetwork();
-            loadYouTubeIframeApi().catch(()=>{});
-          },{passive:true});
-          button.addEventListener("click",()=>playPreviewSong(song,row._previewData));
-        }
-
-        if(!row.dataset.previewPrepareScheduled){
-          row.dataset.previewPrepareScheduled="true";
-          const prepare=()=>{
-            warmYouTubePreviewNetwork();
-            ensureYouTubePreviewPlayer(song).catch(()=>{});
-          };
-          // Start preparation almost immediately after this card is rendered.
-          // Only the current song is warmed, muted at zero volume, so the eventual
-          // Play tap can reuse an already-created, already-buffered player.
-          const prepareFast=()=>{
-            prepare();
-            prebufferYouTubePreview(song);
-          };
-          if(document.readyState==="loading"){
-            document.addEventListener("DOMContentLoaded",()=>setTimeout(prepareFast,10),{once:true});
-          }else{
-            setTimeout(prepareFast,10);
-          }
-        }
-        return;
-      }
-
       try{
-        const data=await resolveItunesPreviewData(song);
+        const data=await prepareWebAudioPreview(song);
         if(!row.isConnected)return;
         row._previewData=data;
         if(button&&!button.dataset.bound){
@@ -3645,10 +3889,23 @@
           button.innerHTML=previewIcon("play");
           button.setAttribute("aria-label","Reproducir adelanto de "+song.title);
           button.dataset.bound="true";
-          button.addEventListener("click",()=>playPreviewSong(song,data));
+
+          // Resume the AudioContext on the earliest user gesture for iOS/PWA.
+          button.addEventListener("pointerdown",()=>{
+            try{
+              const ctx=ensureWebPreviewContext();
+              if(ctx.state==="suspended")ctx.resume().catch(()=>{});
+            }catch(_){}
+          },{passive:true});
+
+          button.addEventListener("click",()=>playPreviewSong(song,row._previewData));
         }
       }catch(_){
-        if(button){button.disabled=true;button.innerHTML=previewIcon("play")}
+        if(button){
+          button.disabled=true;
+          button.innerHTML=previewIcon("play");
+          button.setAttribute("aria-label","Adelanto no disponible");
+        }
       }
     }
 
