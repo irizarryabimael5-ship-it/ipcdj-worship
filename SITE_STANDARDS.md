@@ -2320,3 +2320,28 @@ Physical-display limitation:
 
 Revert:
 - backup-before-srgb-vibrancy-v134 preserves the complete v132 runtime before this color consistency pass.
+
+## Future preview hydration integrity v135
+
+The upcoming-song preview control is a persistent composite control, not a disposable Play icon.
+
+Required behavior:
+- Hydration must preserve the complete `.future-preview-button` DOM shell, including `.future-preview-idle`, `.future-preview-active`, the SVG ring, ring progress circle, and countdown.
+- Never replace the entire future preview button `innerHTML` during hydration, preparation, play/pause transitions, or recovery. Update only the dedicated `.preview-icon-slot` when an icon refresh is needed.
+- On playback start, Play crossfades out while the countdown and clockwise progress ring crossfade in together.
+- The ring begins at 12 o'clock, advances with actual preview elapsed time, and reaches 100% at the same moment the countdown reaches `0:00`.
+- At natural completion, the complete ring/countdown state remains briefly readable, then both fade away while Play returns; the hidden ring may reset only after it is invisible.
+- Automated health coverage must verify that the countdown and ring still exist after hydration, not merely in the initial HTML template.
+
+## macOS desktop scroll compositor guard v135
+
+Desktop macOS receives a scroll-only compositor guard for smoothness on older Intel iMac-class hardware while preserving the approved visual identity at rest.
+
+Required behavior:
+- Detect desktop macOS without misclassifying iPadOS devices that report Macintosh.
+- Only while active scrolling, pause decorative ambient blob animation and bypass expensive backdrop-filter sampling on the main glass surfaces.
+- Do not remove, recolor, flatten, or replace the ambient palette; the exact current palette remains visible while scrolling.
+- Restore the complete ambient animation and glass blur automatically shortly after scrolling settles.
+- The optimization must not alter song lifecycle, countdown timing, preview audio, preview progress, launch behavior, translation, keyboard/input behavior, or PWA freshness.
+- Do not use permanent low-quality rendering merely because the platform is macOS; this is a transient scroll-path optimization.
+
