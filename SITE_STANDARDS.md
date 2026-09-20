@@ -1004,3 +1004,20 @@ Required behavior:
 - If the player was not prepared and must actually start later, reset the fade clock when the player reaches PLAYING.
 - Do not use YouTube currentTime to decide when the fade-out begins or when the preview stops.
 - This is specifically to eliminate Safari/iOS and Chromium timing differences caused by iframe seek/playback clock behavior.
+
+
+## True Adelanto pause/resume state machine v93
+
+The Adelanto control must behave as a real media player, not a play/stop toggle.
+
+Required behavior:
+- First Play starts from the configured preview beginning and uses the normal smooth fade-in.
+- Pause is immediate and freezes the current YouTube media position exactly where the user paused.
+- A paused preview must not be rewound, hot-standby looped, or silently advanced.
+- Play after Pause resumes from the saved media position and continues the same preview timeline toward the original ending.
+- Pause/resume may be repeated any number of times without invalidating the control or resetting the clip.
+- Wall-clock elapsed preview time is saved on Pause and restored on Resume so the ending and fade-out remain tied to the original preview timeline rather than restarting.
+- Resume does not replay the opening fade-in unless the pause occurred during that opening fade; the envelope continues from the saved elapsed position.
+- When the preview reaches its natural end, clear all pause state, fade out normally, stop audibly, and return the hidden player to the beginning/hot standby.
+- The next Play after natural completion is a brand-new play from the beginning with the normal smooth fade-in.
+- Behavior must be identical across mobile Safari/PWA, Android Chromium/PWA, and desktop browsers.
