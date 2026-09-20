@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v123" />
+  <meta name="ipcdj-build" content="persistent-launch-v124" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -194,7 +194,7 @@
 
     #ipcdj-launch.launch-playing .launch-logo-stage{
       opacity:1;
-      transition:opacity 1.18s cubic-bezier(.4,0,.2,1);
+      transition:opacity 1.32s cubic-bezier(.4,0,.2,1);
     }
 
     #ipcdj-launch.launch-armed{
@@ -241,7 +241,7 @@
       }
 
       #ipcdj-launch.launch-playing .launch-logo-stage{
-        transition-duration:1.28s;
+        transition-duration:1.42s;
       }
     }
 
@@ -1461,13 +1461,13 @@
       gap:9px;
       padding:0 12px 0 9px;
       border-radius:999px;
-      border:1px solid rgba(var(--cover-c2,137,169,255),.28);
+      border:1px solid rgba(var(--preview-accent-2,var(--cover-c2,137,169,255)),.46);
       background:
         linear-gradient(
           110deg,
-          rgba(var(--cover-c1,55,93,202),.24) 0%,
-          rgba(var(--cover-c2,137,169,255),.14) 56%,
-          rgba(255,255,255,.035) 100%
+          rgba(var(--preview-accent-1,var(--cover-c1,55,93,202)),.42) 0%,
+          rgba(var(--preview-accent-2,var(--cover-c2,137,169,255)),.24) 58%,
+          rgba(255,255,255,.045) 100%
         );
       color:#f7f8fb;
       box-shadow:
@@ -1492,9 +1492,9 @@
       background:
         linear-gradient(
           100deg,
-          rgba(var(--cover-c1,55,93,202),.54) 0%,
-          rgba(var(--cover-c2,137,169,255),.42) 62%,
-          rgba(var(--cover-c3,83,126,222),.30) 100%
+          rgba(var(--preview-accent-1,var(--cover-c1,55,93,202)),.88) 0%,
+          rgba(var(--preview-accent-2,var(--cover-c2,137,169,255)),.74) 68%,
+          rgba(var(--preview-accent-2,var(--cover-c3,83,126,222)),.58) 100%
         );
       box-shadow:inset -1px 0 0 rgba(255,255,255,.08);
       transition:width .10s linear;
@@ -1560,13 +1560,13 @@
     }
 
     .preview-row.is-playing .preview-pill{
-      border-color:rgba(var(--cover-c2,137,169,255),.48);
+      border-color:rgba(var(--preview-accent-2,var(--cover-c2,137,169,255)),.72);
       background:
         linear-gradient(
           110deg,
-          rgba(var(--cover-c1,55,93,202),.30) 0%,
-          rgba(var(--cover-c2,137,169,255),.18) 58%,
-          rgba(255,255,255,.045) 100%
+          rgba(var(--preview-accent-1,var(--cover-c1,55,93,202)),.50) 0%,
+          rgba(var(--preview-accent-2,var(--cover-c2,137,169,255)),.30) 58%,
+          rgba(255,255,255,.05) 100%
         );
       box-shadow:
         inset 0 1px 0 rgba(255,255,255,.075),
@@ -2331,14 +2331,21 @@
         armed=false;
         lockPage(true);
 
-        // Keep the black overlay fully present while one paint establishes
-        // opacity:0. Only then transition the fixed logo to opacity:1.
+        // Fresh document launches can execute a single rAF before the browser has
+        // committed the armed opacity:0 frame. Require two animation frames so
+        // the hidden logo is genuinely painted before opacity transitions to 1.
         launch.className="launch-armed";
+        void stage.offsetWidth;
+
         requestAnimationFrame(()=>{
           if(token!==cycleToken)return;
-          cycleStarted=performance.now();
-          launch.className="launch-playing";
-          requestAnimationFrame(()=>checkCycle(token));
+
+          requestAnimationFrame(()=>{
+            if(token!==cycleToken)return;
+            cycleStarted=performance.now();
+            launch.className="launch-playing";
+            requestAnimationFrame(()=>checkCycle(token));
+          });
         });
       };
 
@@ -2881,6 +2888,8 @@
         previewAudioUrl:"https://p.scdn.co/mp3-preview/7885aca093c7465af5cb0c4696094db59d167c3f.mp3",
         previewFadeIn:.70,
         previewFadeOut:1.60,
+        previewAccent1:"242,184,75",
+        previewAccent2:"255,118,87",
         previewClipSection:"chorus",
         previewSource:"webaudio",
         previewYouTubeId:"0_Wgv6_Dj8U",
@@ -5639,6 +5648,17 @@
       setCardText(card,"status",phase.key==="release"?"HOY · ESTRENO":(phase.key==="upcoming"?"PRÓXIMA CANCIÓN":"AHORA EN PREPARACIÓN"));
       setCardText(card,"song-name",song.title);
       setCardText(card,"artist",song.artist);
+
+      if(song.previewAccent1){
+        card.style.setProperty("--preview-accent-1",song.previewAccent1);
+      }else{
+        card.style.removeProperty("--preview-accent-1");
+      }
+      if(song.previewAccent2){
+        card.style.setProperty("--preview-accent-2",song.previewAccent2);
+      }else{
+        card.style.removeProperty("--preview-accent-2");
+      }
 
       if(song.artworkUrl&&card.classList.contains("has-native-cover")&&!card.classList.contains("cover-ready")){
         if(document.documentElement.classList.contains("ipcdj-launch-site-hidden")){
