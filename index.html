@@ -2953,16 +2953,32 @@
       const current=ambientFields[ambientActiveField];
       configureAmbientField(next,colors);
 
+      next.querySelectorAll(".ambient-blob").forEach(blob=>{
+        blob.style.animationPlayState="running";
+      });
+
       // Force style resolution before crossfading the complete fields.
       void next.offsetWidth;
       next.classList.add("ambient-field-active");
       current.classList.remove("ambient-field-active");
       ambientActiveField=nextIndex;
+
+      setTimeout(()=>{
+        if(current.classList.contains("ambient-field-active"))return;
+        current.querySelectorAll(".ambient-blob").forEach(blob=>{
+          blob.style.animationPlayState="paused";
+        });
+      },2480);
     }
 
     configureAmbientField(ambientFields[0],AMBIENT_FALLBACK);
     if(ambientFields[0])ambientFields[0].classList.add("ambient-field-active");
-    if(ambientFields[1])configureAmbientField(ambientFields[1],AMBIENT_FALLBACK);
+    if(ambientFields[1]){
+      configureAmbientField(ambientFields[1],AMBIENT_FALLBACK);
+      ambientFields[1].querySelectorAll(".ambient-blob").forEach(blob=>{
+        blob.style.animationPlayState="paused";
+      });
+    }
 
     // Absolute, refresh-safe clock.
     // The countdown NEVER subtracts one second from a stored number. Every frame is
