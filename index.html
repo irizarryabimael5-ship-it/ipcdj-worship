@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v130" />
+  <meta name="ipcdj-build" content="persistent-launch-v131" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -1721,38 +1721,135 @@
     }
 
     .future-preview-button{
-      width:44px;
-      height:44px;
+      --future-ring-progress:0;
+      position:relative;
+      width:48px;
+      height:48px;
       display:grid;
       place-items:center;
+      overflow:visible;
       border-radius:50%;
-      border:1px solid rgba(255,255,255,.80);
-      background:#f7f8fb;
-      color:#090b10;
+      border:1px solid rgba(255,255,255,.54);
+      background:rgba(8,10,16,.78);
+      color:#ffffff;
       box-shadow:
-        0 9px 24px rgba(0,0,0,.23),
-        inset 0 1px 0 rgba(255,255,255,.86);
+        0 9px 24px rgba(0,0,0,.25),
+        inset 0 1px 0 rgba(255,255,255,.08);
+      backdrop-filter:blur(10px);
+      -webkit-backdrop-filter:blur(10px);
       transition:
-        transform .14s ease,
-        box-shadow .18s ease,
-        background .18s ease;
+        transform .16s ease,
+        box-shadow .24s ease,
+        border-color .24s ease,
+        background .24s ease;
     }
 
     .future-preview-button:hover{
       box-shadow:
-        0 11px 28px rgba(0,0,0,.26),
-        inset 0 1px 0 rgba(255,255,255,.90);
+        0 12px 28px rgba(0,0,0,.28),
+        inset 0 1px 0 rgba(255,255,255,.10);
     }
 
-    .preview-row.is-playing .future-preview-button,
-    .preview-row.is-starting .future-preview-button{
-      background:#ffffff;
-      color:#080a0f;
+    .future-preview-idle,
+    .future-preview-active{
+      position:absolute;
+      inset:0;
+      display:grid;
+      place-items:center;
+      transition:
+        opacity .30s cubic-bezier(.22,.65,.25,1),
+        transform .34s cubic-bezier(.22,.65,.25,1);
     }
 
-    .future-preview-button svg{
+    .future-preview-idle{
+      opacity:1;
+      transform:scale(1);
+    }
+
+    .future-preview-active{
+      opacity:0;
+      transform:scale(.90);
+      pointer-events:none;
+    }
+
+    .preview-row-future.is-playing .future-preview-idle{
+      opacity:0;
+      transform:scale(.84);
+    }
+
+    .preview-row-future.is-playing .future-preview-active{
+      opacity:1;
+      transform:scale(1);
+    }
+
+    .preview-row-future.is-starting .future-preview-idle{
+      opacity:.46;
+      transform:scale(.94);
+    }
+
+    .preview-row-future.is-playing .future-preview-button{
+      border-color:rgba(var(--future-accent,255,255,255),.78);
+      background:rgba(7,9,14,.82);
+      box-shadow:
+        0 10px 28px rgba(0,0,0,.28),
+        0 0 18px rgba(var(--future-accent,255,255,255),.14),
+        inset 0 1px 0 rgba(255,255,255,.09);
+    }
+
+    .future-preview-idle svg{
       width:18px;
       height:18px;
+    }
+
+    .future-preview-ring{
+      position:absolute;
+      inset:1px;
+      width:46px;
+      height:46px;
+      transform:rotate(-90deg);
+      overflow:visible;
+    }
+
+    .future-preview-ring-track,
+    .future-preview-ring-progress{
+      fill:none;
+      stroke-width:2.2;
+      vector-effect:non-scaling-stroke;
+    }
+
+    .future-preview-ring-track{
+      stroke:rgba(255,255,255,.18);
+    }
+
+    .future-preview-ring-progress{
+      stroke:rgb(var(--future-accent,255,255,255));
+      stroke-linecap:round;
+      stroke-dasharray:100;
+      stroke-dashoffset:calc(100 - var(--future-ring-progress));
+      transition:stroke-dashoffset .10s linear,opacity .24s ease;
+      filter:drop-shadow(0 0 4px rgba(var(--future-accent,255,255,255),.24));
+    }
+
+    .future-preview-countdown{
+      position:relative;
+      z-index:2;
+      color:#fff;
+      font-size:.66rem;
+      line-height:1;
+      font-weight:850;
+      font-variant-numeric:tabular-nums;
+      letter-spacing:-.02em;
+      text-shadow:0 1px 6px rgba(0,0,0,.42);
+    }
+
+    .preview-row-future.preview-future-ending .future-preview-active{
+      opacity:0;
+      transform:scale(.92);
+    }
+
+    .preview-row-future.preview-future-ending .future-preview-idle{
+      opacity:1;
+      transform:scale(1);
     }
 
     .youtube-preview-host{
@@ -1767,7 +1864,8 @@
     }
 
     @media (prefers-reduced-motion: reduce){
-      .inline-preview,.preview-button,.preview-eq-bar{transition:none!important}
+      .inline-preview,.preview-button,.preview-eq-bar,
+      .future-preview-idle,.future-preview-active,.future-preview-ring-progress{transition:none!important}
       .preview-eq-bar{transform:scaleY(.42)!important}
     }
 
@@ -1785,12 +1883,102 @@
     }
 
     .song-row{
+      --future-c1:38,78,139;
+      --future-c2:215,142,78;
+      --future-c3:205,177,78;
+      --future-c4:120,74,188;
+      --future-accent:255,202,99;
       position:relative;
+      isolation:isolate;
       min-width:0;
+      overflow:hidden;
       border:1px solid var(--line);
       border-radius:18px;
       background:rgba(255,255,255,.018);
       padding:15px 72px 15px 16px;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.035);
+      transition:
+        border-color .45s cubic-bezier(.22,.65,.25,1),
+        box-shadow .45s cubic-bezier(.22,.65,.25,1);
+    }
+
+    .song-row::before{
+      content:"";
+      position:absolute;
+      z-index:-2;
+      inset:-24%;
+      pointer-events:none;
+      opacity:0;
+      background:
+        radial-gradient(circle at 15% 20%,
+          rgba(var(--future-c1),.72) 0%,
+          rgba(var(--future-c1),.32) 30%,
+          rgba(var(--future-c1),0) 62%),
+        radial-gradient(circle at 84% 12%,
+          rgba(var(--future-c2),.64) 0%,
+          rgba(var(--future-c2),.28) 28%,
+          rgba(var(--future-c2),0) 60%),
+        radial-gradient(circle at 78% 88%,
+          rgba(var(--future-c3),.58) 0%,
+          rgba(var(--future-c3),.24) 30%,
+          rgba(var(--future-c3),0) 62%),
+        radial-gradient(circle at 8% 86%,
+          rgba(var(--future-c4),.52) 0%,
+          rgba(var(--future-c4),.22) 30%,
+          rgba(var(--future-c4),0) 64%);
+      transform:scale(1.05) translateZ(0);
+      transition:opacity .82s cubic-bezier(.22,.65,.25,1);
+    }
+
+    .song-row::after{
+      content:"";
+      position:absolute;
+      z-index:-1;
+      inset:0;
+      pointer-events:none;
+      background:
+        linear-gradient(105deg,rgba(8,10,16,.38),rgba(8,10,16,.13) 50%,rgba(8,10,16,.38)),
+        linear-gradient(180deg,rgba(255,255,255,.045),rgba(0,0,0,.16));
+      opacity:.98;
+    }
+
+    .song-row.future-themed{
+      border-color:rgba(var(--future-accent),.25);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.06),
+        0 12px 32px rgba(0,0,0,.18);
+    }
+
+    .song-row.future-themed::before{
+      opacity:.92;
+    }
+
+    .song-row.future-themed .song-top h3{
+      color:#fff;
+      text-shadow:0 2px 14px rgba(0,0,0,.34);
+    }
+
+    .song-row.future-themed .song-top p,
+    .song-row.future-themed .song-meta{
+      color:rgba(255,255,255,.80);
+      text-shadow:0 1px 12px rgba(0,0,0,.28);
+    }
+
+    .song-row.future-themed .song-meta .meta-label{
+      color:rgba(255,255,255,.96);
+    }
+
+    .song-row.future-themed .song-date{
+      border-color:rgba(var(--future-accent),.38);
+      background:rgba(var(--future-accent),.12);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.055),
+        0 6px 18px rgba(0,0,0,.10);
+    }
+
+    .song-row.future-themed .song-date::before{
+      background:rgb(var(--future-accent));
+      box-shadow:0 0 12px rgba(var(--future-accent),.50);
     }
 
     .song-top{
@@ -3138,6 +3326,7 @@
         title:"Glorioso Día",
         artist:"Passion Music",
         artworkQuery:"Glorioso Día Passion Kristian Stanfill 2017",
+        artworkFallbackUrl:"https://i.scdn.co/image/ab67616d0000b27372bba4048e09a242595e4a2c",
         spotifyTrackUri:"spotify:track:0ksqrKoeNvywkfeqltzVQ3",
         previewClipDuration:30,
         previewUseFullAsset:true,
@@ -3164,6 +3353,7 @@
         title:"No Fallarás",
         artist:"Saddleback Worship",
         artworkQuery:"No Fallarás En Vivo Saddleback Worship 2024",
+        artworkFallbackUrl:"https://i.scdn.co/image/ab67616d0000b273decf3d0f2c88d97720437f20",
         itunesCollectionId:"1760002960",
         spotifyTrackUri:"spotify:track:04IkHz1UynmZ48Imgkla2J",
         previewClipDuration:30,
@@ -3320,6 +3510,88 @@
       ambientSongPalettes.set(song.id,palette.slice(0,3));
       if(ambientDriverSongId===song.id){
         setAmbientPalette(palette,"driver:"+song.id);
+      }
+    }
+
+    function futureAccentFromPalette(palette){
+      const colors=buildAmbientPalette(palette);
+      let accent=tuneCoverColor(colors[3]||colors[1]||[255,255,255]);
+      const lum=.2126*accent[0]+.7152*accent[1]+.0722*accent[2];
+      if(lum<92)accent=mixRgb(accent,[255,255,255],.34);
+      if(lum>218)accent=mixRgb(accent,[0,0,0],.18);
+      return {colors,accent};
+    }
+
+    function applyFutureCardTheme(song,palette,card){
+      if(!card||!Array.isArray(palette)||palette.length<3)return;
+      const themed=futureAccentFromPalette(palette);
+      themed.colors.forEach((color,index)=>{
+        card.style.setProperty("--future-c"+(index+1),color.join(","));
+      });
+      card.style.setProperty("--future-accent",themed.accent.join(","));
+      card.dataset.futureTheme=song.id;
+      card.classList.add("future-themed");
+    }
+
+    async function resolveFutureArtworkUrl(song){
+      if(song.artworkUrl)return highResolutionArtworkUrl(song.artworkUrl);
+
+      const covPromise=resolveCovArtworkUrl(song).catch(()=>"");
+      const fastCov=await Promise.race([
+        covPromise,
+        new Promise(resolve=>setTimeout(()=>resolve(""),1800))
+      ]);
+      if(fastCov)return fastCov;
+
+      if(song.artworkFallbackUrl){
+        // Use the exact verified Spotify cover immediately if COV is slow;
+        // COV remains the preferred source whenever it resolves promptly.
+        return highResolutionArtworkUrl(song.artworkFallbackUrl);
+      }
+
+      const itunes=await resolveItunesArtworkUrl(song).catch(()=>"");
+      if(itunes)return itunes;
+      return await covPromise;
+    }
+
+    async function ensureFutureCardTheme(song,card){
+      if(!card||card.dataset.futureThemeLoading===song.id)return;
+      card.dataset.futureThemeLoading=song.id;
+
+      const fallback=COVER_THEME_FALLBACKS[song.id]||[[82,74,68],[116,92,70],[58,68,78]];
+      applyFutureCardTheme(song,fallback,card);
+
+      let cachedPalette=null;
+      try{
+        const cached=localStorage.getItem(COVER_THEME_CACHE_PREFIX+song.id);
+        if(cached){
+          const parsed=JSON.parse(cached);
+          if(Array.isArray(parsed)&&parsed.length>=3){
+            cachedPalette=parsed;
+            applyFutureCardTheme(song,parsed,card);
+          }
+        }
+      }catch(_){}
+
+      try{
+        const artworkUrl=await resolveFutureArtworkUrl(song);
+        if(!artworkUrl)return;
+
+        warmCoverImage(artworkUrl,"low");
+        if(cachedPalette)return;
+
+        const palette=await loadPaletteFromArtwork(artworkUrl);
+        applyFutureCardTheme(song,palette,card);
+        try{
+          localStorage.setItem(COVER_THEME_CACHE_PREFIX+song.id,JSON.stringify(palette));
+        }catch(_){}
+      }catch(_){
+        // Curated cover-derived fallback remains visible if a provider blocks CORS
+        // or is temporarily unavailable.
+      }finally{
+        if(card.dataset.futureThemeLoading===song.id){
+          delete card.dataset.futureThemeLoading;
+        }
       }
     }
 
@@ -3770,12 +4042,18 @@
       const button=row.querySelector(".preview-button");
       if(!button)return;
 
+      const isFuture=row.classList.contains("preview-row-future");
       const visualState=state==="pause"?"pause":"play";
       const iconSlot=button.querySelector(".preview-icon-slot");
-      if(iconSlot){
-        iconSlot.innerHTML=previewIcon(visualState);
-      }else{
-        button.innerHTML=previewIcon(visualState);
+
+      if(!isFuture){
+        if(iconSlot){
+          iconSlot.innerHTML=previewIcon(visualState);
+        }else{
+          button.innerHTML=previewIcon(visualState);
+        }
+      }else if(iconSlot&&state!=="pause"){
+        iconSlot.innerHTML=previewIcon("play");
       }
 
       button.setAttribute(
@@ -3790,7 +4068,11 @@
           clearTimeout(row._previewEndTimer);
           row._previewEndTimer=null;
         }
-        row.classList.remove("preview-ending","preview-resetting");
+        row.classList.remove("preview-ending","preview-resetting","preview-future-ending");
+        if(row._previewFutureEndTimer){
+          clearTimeout(row._previewFutureEndTimer);
+          row._previewFutureEndTimer=null;
+        }
       }
 
       row.classList.toggle("is-playing",state==="pause");
@@ -4203,11 +4485,23 @@
         const time=row.querySelector(".preview-time");
         if(time)time.textContent=formatPreviewRemaining(remaining);
 
+        const normalized=Number.isFinite(progress)
+          ? Math.max(0,Math.min(100,progress))
+          : null;
+
         const button=row.querySelector(".preview-pill");
-        if(button&&Number.isFinite(progress)){
-          const normalized=Math.max(0,Math.min(100,progress));
+        if(button&&normalized!==null){
           button.style.setProperty("--preview-progress",normalized+"%");
           button.style.setProperty("--preview-progress-scale",String(normalized/100));
+        }
+
+        const futureButton=row.querySelector(".future-preview-button");
+        if(futureButton){
+          const futureTime=row.querySelector(".future-preview-countdown");
+          if(futureTime)futureTime.textContent=formatPreviewRemaining(remaining);
+          if(normalized!==null){
+            futureButton.style.setProperty("--future-ring-progress",String(normalized));
+          }
         }
       });
     }
@@ -4223,6 +4517,29 @@
 
         const pill=row.querySelector(".preview-pill");
         const time=row.querySelector(".preview-time");
+        const futureButton=row.querySelector(".future-preview-button");
+
+        if(futureButton){
+          if(row._previewFutureEndTimer){
+            clearTimeout(row._previewFutureEndTimer);
+            row._previewFutureEndTimer=null;
+          }
+
+          const futureTime=row.querySelector(".future-preview-countdown");
+          futureButton.style.setProperty("--future-ring-progress","100");
+          if(futureTime)futureTime.textContent="0:00";
+          row.classList.add("preview-future-ending");
+
+          row._previewFutureEndTimer=setTimeout(()=>{
+            if(!row.isConnected)return;
+            row.classList.remove("preview-future-ending");
+            setPreviewButtonState(songId,"play");
+            futureButton.style.setProperty("--future-ring-progress","0");
+            if(futureTime)futureTime.textContent=formatPreviewRemaining(fullDuration);
+            row._previewFutureEndTimer=null;
+          },520);
+          return;
+        }
 
         if(!pill){
           if(time)time.textContent=formatPreviewRemaining(fullDuration);
@@ -4689,8 +5006,15 @@
           webPreviewGain=null;
         }
 
-        setPreviewButtonState(song.id,"play");
-        finishPreviewVisual(song.id,webPreviewClipDuration);
+        const futureRow=document.querySelector(
+          '[data-preview-song-id="'+CSS.escape(song.id)+'"].preview-row-future'
+        );
+        if(futureRow){
+          finishPreviewVisual(song.id,webPreviewClipDuration);
+        }else{
+          setPreviewButtonState(song.id,"play");
+          finishPreviewVisual(song.id,webPreviewClipDuration);
+        }
         resetPreviewMeter(song.id);
         cancelAnimationFrame(previewVisualFrame);
         previewVisualFrame=0;
@@ -5604,7 +5928,14 @@
         return `
           <div class="preview-row preview-row-future" ${common}>
             <button class="preview-button future-preview-button" type="button" aria-label="Reproducir adelanto de ${escapeHtml(song.title)}">
-              <span class="preview-icon-slot">${previewIcon("play")}</span>
+              <span class="future-preview-idle preview-icon-slot">${previewIcon("play")}</span>
+              <span class="future-preview-active" aria-hidden="true">
+                <svg class="future-preview-ring" viewBox="0 0 44 44" focusable="false" aria-hidden="true">
+                  <circle class="future-preview-ring-track" cx="22" cy="22" r="19" pathLength="100"></circle>
+                  <circle class="future-preview-ring-progress" cx="22" cy="22" r="19" pathLength="100"></circle>
+                </svg>
+                <span class="future-preview-countdown">${formatPreviewRemaining(duration)}</span>
+              </span>
             </button>
           </div>
         `;
@@ -5860,7 +6191,12 @@
       const itunes=await itunesPromise;
       if(itunes)return itunes;
 
-      return await covPromise;
+      const lateCov=await covPromise;
+      if(lateCov)return lateCov;
+
+      return song.artworkFallbackUrl
+        ? highResolutionArtworkUrl(song.artworkFallbackUrl)
+        : "";
     }
 
     async function ensureCoverTheme(song,card){
@@ -6366,6 +6702,9 @@
       `).join("");
 
       future.forEach(song=>{
+        const card=container.querySelector('[data-song-id="'+CSS.escape(song.id)+'"]');
+        if(card)ensureFutureCardTheme(song,card);
+
         const row=container.querySelector('[data-preview-song-id="'+CSS.escape(song.id)+'"]');
         if(row&&!row.dataset.hydrating&&!row._previewData){
           row.dataset.hydrating="true";
@@ -6474,6 +6813,11 @@
         ){
           ensureCoverTheme(song,card);
         }
+      });
+
+      document.querySelectorAll("#upcoming-songs [data-song-id]").forEach(card=>{
+        const song=songPipeline.find(item=>item.id===card.dataset.songId);
+        if(song)ensureFutureCardTheme(song,card);
       });
 
       document.querySelectorAll("[data-preview-song-id]").forEach(row=>{
