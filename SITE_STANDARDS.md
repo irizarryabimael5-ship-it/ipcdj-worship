@@ -2021,3 +2021,34 @@ Limits:
 
 Revert:
 - backup-before-health-monitor-v128 preserves the complete v127 state.
+
+
+## Health-matrix calibration and audio compatibility v129
+
+v129 calibrates the v128 monitoring system using evidence from the first real six-profile matrix run.
+
+Audio compatibility hardening:
+- Keep the preferred scheduled Web Audio curve envelopes where the browser accepts them.
+- scheduleWebPreviewGain() now falls back to linearRampToValueAtTime if a browser rejects stricter setValueCurveAtTime scheduling.
+- Crossfade outgoing/incoming GainNodes also have linear-ramp fallbacks.
+- The preferred .68-second equal-power crossfade remains unchanged on browsers that accept the curve schedule.
+- Preview playback/preparation failures dispatch ipcdj:preview-error with song id, stage and error message.
+- The health monitor records previewErrors and exposes recentPreviewErrors in snapshots/persistence.
+- Do not silently swallow a cross-browser preview-start failure.
+
+Synthetic test calibration:
+- Optional COV/MusicHoarders artwork-provider CORS/network errors remain diagnostic but are not treated as fatal site errors; artwork resolution already has fallback providers and curated palettes.
+- Same-origin resource failures, JavaScript page errors, unhandled rejections, layout overflow and preview errors remain fatal signals.
+- Launch settlement wait is extended to 20 seconds for headless WebKit runner throttling while still requiring the launch-active lock to clear.
+- CI frame sampling is a gross-freeze detector, not an absolute FPS benchmark. Shared GitHub runners are not deterministic display hardware.
+- Synthetic frame checks therefore require meaningful progress and reject catastrophic stalls, while real-device in-page adaptive sampling retains the stricter user-experience thresholds.
+- CI worker count is reduced to 1 to avoid browser-engine contention falsely appearing as IPCDJ jank.
+- Failure video capture is disabled to avoid ~250 MB diagnostic uploads; Playwright traces, screenshots, health JSON and console diagnostics remain retained.
+
+First-run evidence:
+- The first v128 workflow successfully installed Chromium, Firefox and WebKit, ran all six projects, uploaded diagnostics and created the health-alert issue.
+- It exposed invalid minimum-frame assumptions on shared CI, optional third-party CORS noise, headless WebKit launch timing contention, and a Firefox preview-start signal.
+- v129 addresses those issues rather than simply suppressing the entire monitor.
+
+Revert:
+- backup-before-health-calibration-v129 preserves the complete v128 state.
