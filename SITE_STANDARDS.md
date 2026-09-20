@@ -1871,3 +1871,66 @@ Revert:
 - backup-before-preview-end-fade-v126 preserves the complete v125 state.
 
 Preserve v125 gold/coral player contrast, v124/v125 launch behavior, v122 overlapping Web Audio crossfade, analyser meter, and all mobile hard-stop protections.
+
+
+## Dynamic ambient palette, release lifecycle, and translation hardening v127
+
+v127 is a broad architecture pass. Preserve all v126 preview-completion behavior, v125 launch behavior, and v122 Web Audio behavior unless explicitly superseded below.
+
+Platform-wide preview smoothness:
+- The active preview pill progress fill no longer animates width per frame.
+- Progress uses a full-width pseudo-element with transform:scaleX() from a left transform-origin.
+- JavaScript writes a normalized --preview-progress-scale from 0 to 1.
+- Completion dissolve remains opacity-only while the fill is held at scaleX(1), then scale resets to 0 while hidden.
+- This keeps the preview fill on transform/opacity compositing paths and avoids repeated layout work during playback.
+- The natural-end coral-to-gold dissolve from v126 remains intact.
+- prefers-reduced-motion continues to suppress non-essential meter/state animations.
+
+Song-driven ambient background:
+- The previous fixed global color cycle is replaced by a two-field song-driven ambient system.
+- The selected ambient driver is the active preparation song with the nearest future release date.
+- Songs in release or released state are ranked below still-preparing songs and do not drive the ambient background when another preparation song exists.
+- If no still-preparing song exists, the current release/released song may remain the driver.
+- The first three ambient colors come from the same extracted/cached artwork palette used by the current-song card.
+- A fourth complementary color is generated from the dominant artwork color by rotating hue approximately 165 degrees and constraining saturation/lightness into a harmonious range.
+- The four moving blobs use the four resulting colors simultaneously; individual drift/breathing remains continuous.
+- Palette changes crossfade between two complete ambient fields over approximately 2.4 seconds rather than relying on custom-property color interpolation.
+- The incoming field is configured while hidden, then fades in while the outgoing field fades out.
+- After the crossfade completes, the outgoing field's blob animations are paused to reduce mobile GPU/battery cost.
+- The standby field wakes before its next palette transition.
+- Reduced-motion and reduced-data modes keep one static active field and disable blob movement.
+
+Release lifecycle:
+- Every scheduled song may define releaseDayStartAt, releaseAt, releaseDayEndAt, and introducedAt.
+- Estreno state begins at 12:00 AM on the configured release date, not only at the service start time.
+- Estreno lasts until the next midnight.
+- At that next midnight, the song becomes "Ya estrenado".
+- "Ya estrenado" remains in the preparation/current section for one full calendar day.
+- At the following midnight, the song leaves the preparation section and moves into Introducciones recientes.
+- Exact configured transitions:
+  - Dios De Milagros: Estreno Sep 27 00:00 ET; Ya estrenado Sep 28 00:00 ET; Introducciones recientes Sep 29 00:00 ET.
+  - Glorioso Día: Estreno Oct 25 00:00 ET; Ya estrenado Oct 26 00:00 ET; Introducciones recientes Oct 27 00:00 ET.
+  - No Fallarás: Estreno Nov 8 00:00 ET; Ya estrenado Nov 9 00:00 ET; Introducciones recientes Nov 10 00:00 ET.
+- These timestamps retain explicit Eastern offsets across the November DST boundary.
+- Multiple preparation songs remain supported.
+- Current cards sort unreleased/preparation songs first by nearest release date; release/released cards follow beneath them.
+- Release cards use a gold Estreno treatment and dedicated banner.
+- Released cards use a distinct green/teal "Ya estrenado" treatment and dedicated banner.
+- Countdown/progress/timeline panels are hidden for release and released states so these cards read as completed milestones rather than active countdowns.
+- State colors/borders transition smoothly; state banners animate in unless reduced-motion is enabled.
+- Newly auto-introduced rows fade into Introducciones recientes unless reduced-motion is enabled.
+
+Google/page-translation compatibility:
+- Do not add a dependency on the legacy Google Website Translator Widget.
+- The site must remain compatible with browser-native translation and Google Translate's website translation flow.
+- Dynamic rendering must never use translated visible text as application state.
+- setCardText stores the untranslated Spanish source in data-source-text.
+- If the source value has not changed, the one-second renderer does not rewrite the visible text node, allowing a translation engine's translated DOM text to remain intact.
+- When the underlying source value changes, the source text is updated and the translation engine may translate the new mutation normally.
+- IPCDJ branding, song titles, and artist names use translate="no" plus notranslate so canonical music/entity names are not accidentally translated.
+- Normal interface labels remain translatable.
+- Translation-sensitive chips, dates, notes, timelines, recent rows, and current-state banners permit wrapping/expanded text instead of depending on English/Spanish fixed widths.
+- Do not use innerText/textContent of translated labels to decide phases, song identity, playback ownership, dates, or selectors; continue using data attributes, IDs, configured timestamps, and internal state.
+
+Revert:
+- backup-before-dynamic-palette-states-v127 preserves the complete v126 state.
