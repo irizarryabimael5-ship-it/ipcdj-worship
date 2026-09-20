@@ -1676,3 +1676,71 @@ Rapid selection:
 - An in-progress fade-down promise is shared by later selection requests rather than creating competing gain ramps.
 
 Preserve all v120 startup/readiness behavior and existing preview background-stop/audio safety invariants.
+
+
+## Preview player redesign and true crossfade v122
+
+v122 redesigns preview presentation and replaces sequential song switching with a real overlapping Web Audio crossfade.
+
+Active/current song UI:
+- The active preparation card keeps the preview in its existing general location below title/artist.
+- Do not render a separate "Adelanto" text label followed by a detached circular button.
+- Render one rounded horizontal preview pill containing:
+  - Play/Pause affordance.
+  - "Adelanto" label.
+  - Five compact live level bars.
+  - Remaining preview time.
+  - A subtle non-seekable progress fill inside the pill.
+- Remaining time uses tabular numerals and updates during playback.
+- Progress is informational only and must not imply seekability.
+- The equalizer bars are not a decorative loop: they are driven from the actual Web Audio signal through an AnalyserNode and getByteFrequencyData().
+- Under prefers-reduced-motion, meter movement is replaced by a static bar state.
+
+Future "Después" song UI:
+- Future song cards do not display the word "Adelanto" or a separate preview row.
+- Each future song has one circular Play/Pause control fixed in the upper-right corner of its own card.
+- The release-date chip remains inside the card content stack under title/artist so it never competes with the playback control.
+- Every future control uses the same hydrated Web Audio preview pipeline and exact Spotify preview source already configured for that song.
+
+True crossfade:
+- Switching between Web Audio previews must overlap the outgoing and incoming AudioBufferSourceNode graphs.
+- The outgoing source remains alive while the incoming source starts.
+- Use a .68-second equal-power transition:
+  - outgoing GainNode follows a cosine-derived curve to zero;
+  - incoming GainNode follows a sine-derived curve from zero to full level.
+- Use AudioParam scheduling / setValueCurveAtTime for the gain envelopes; do not emulate crossfade volume with JS interval stepping.
+- The outgoing graph is stopped/disconnected only after the overlap completes.
+- The incoming preview retains its configured natural end fade-out.
+- When an incoming preview has not decoded yet, keep the currently playing preview audible until the incoming buffer is genuinely ready. Do not fade to silence while waiting.
+- Rapid selection remains last-selection-wins.
+- A rapid A -> B -> C sequence may replace the selected voice, but stale asynchronous preparation must never start a superseded song.
+
+Audio visualization:
+- One AnalyserNode is attached to the shared preview AudioContext output.
+- fftSize=64 with smoothingTimeConstant=.72.
+- All live preview GainNodes route through the analyser before destination.
+- requestAnimationFrame reads frequency data and maps five frequency regions to the five pill bars.
+- The analyser must not alter the audio signal.
+- Visual tracking also updates remaining time and the pill progress fill.
+
+Mobile safety:
+- Foreground crossfade behavior must never replace the established hard-stop background policy.
+- On iPhone/iPad/mobile background or lock, current and outgoing crossfade voices are stopped and disconnected immediately.
+- The mobile AudioContext is still closed after the graph is silenced.
+- Analyser references are cleared with the closed mobile context.
+
+Playback control scope:
+- Keep controls to Play/Pause only.
+- Do not add skip, previous, seek, scrubber, repeat, or other transport controls to preview surfaces.
+- The active pill progress is display-only.
+
+Launch logo:
+- Platform-wide logo fade-in uses the same smooth cubic-bezier(.4,0,.2,1) character as the approved fade-out.
+- Default fade-in is approximately 1.04 seconds.
+- Mobile fade-in is approximately 1.12 seconds.
+- Logo position remains completely fixed; no transforms, scale, drift, or runtime positional corrections are reintroduced.
+
+Revert:
+- backup-before-preview-ui-crossfade-v122 preserves the complete v121 state.
+
+Preserve all v120 launch/readiness behavior, v119 masked white-to-black iOS architecture, and existing preview source/audio safety invariants.
