@@ -5,7 +5,7 @@ export default defineConfig({
   timeout: 45000,
   expect: { timeout: 12000 },
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 3 : undefined,
+  workers: process.env.CI ? 1 : undefined,
   reporter: [
     ['line'],
     ['html', { outputFolder: 'playwright-report', open: 'never' }]
@@ -17,7 +17,7 @@ export default defineConfig({
     ignoreHTTPSErrors: false,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
-    video: 'retain-on-failure'
+    video: 'off'
   },
   projects: [
     {
