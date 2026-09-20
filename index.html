@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="cross-platform-cover-lock-v88" />
+  <meta name="ipcdj-build" content="mobile-cover-visibility-fix-v89" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -833,11 +833,12 @@
 
     @media (max-width:640px){
       .current{
-        --cover-detail-opacity:.40;
-        --cover-edge-opacity:.48;
         --cover-detail-blur:2.8px;
         --cover-edge-blur:1.7px;
       }
+      .current.cover-ready::before{opacity:.76}
+      .current.cover-ready .cover-detail{opacity:.40}
+      .current.cover-ready .cover-edge-detail{opacity:.48}
     }
 
     @media (prefers-reduced-transparency: reduce){
