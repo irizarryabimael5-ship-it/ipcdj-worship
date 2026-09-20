@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v112" />
+  <meta name="ipcdj-build" content="persistent-launch-v113" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -14,7 +14,7 @@
   <link rel="icon" type="image/x-icon" href="./favicon.ico?v=8" />
   <link rel="shortcut icon" href="./favicon.ico?v=8" />
   <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png?v=9" />
-  <link rel="apple-touch-startup-image" href="./ios-startup-universal.svg?v=112" />
+  <link rel="apple-touch-startup-image" href="./ios-startup-universal.svg?v=113" />
   <link rel="manifest" href="./manifest-v9.webmanifest?v=9" />
   <meta name="application-name" content="IPCDJ Worship" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -45,6 +45,31 @@
   <meta name="twitter:description" content="Próximas canciones, preparación y estrenos del Ministerio de Alabanza de IPCDJ." />
   <meta name="twitter:image" content="https://worship.ipcdj.org/icon-512.png?v=8" />
   <title>IPCDJ Worship | Ministerio de Alabanza</title>
+  <script id="ipcdj-launch-environment">
+    (() => {
+      try{
+        const standalone=(
+          navigator.standalone===true ||
+          (window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches) ||
+          (window.matchMedia&&window.matchMedia("(display-mode: fullscreen)").matches)
+        );
+        const ua=navigator.userAgent||"";
+        const ios=(
+          /iPhone|iPad|iPod/i.test(ua) ||
+          (navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1)
+        );
+        if(!standalone||!ios)return;
+
+        const viewportH=window.innerHeight||0;
+        const screenH=(window.screen&&window.screen.height)||0;
+        const gap=screenH&&viewportH ? screenH-viewportH : 0;
+        const correction=(gap>=20&&gap<=140) ? -(gap/2) : 0;
+
+        document.documentElement.classList.add("ipcdj-ios-standalone");
+        document.documentElement.style.setProperty("--ipcdj-launch-y",correction.toFixed(2)+"px");
+      }catch(_){}
+    })();
+  </script>
   <style id="ipcdj-launch-critical">
     html,body{
       width:100%;
@@ -57,9 +82,6 @@
       position:fixed;
       inset:0;
       width:100%;
-      height:100vh;
-      height:100svh;
-      height:100dvh;
       z-index:2147483647;
       display:grid;
       place-items:center;
@@ -79,6 +101,7 @@
       display:grid;
       place-items:center;
       opacity:0;
+      transform:translate3d(0,var(--ipcdj-launch-y,0px),0);
       will-change:opacity;
     }
 
@@ -97,7 +120,7 @@
     }
 
     #ipcdj-launch.launch-playing .launch-logo-stage{
-      animation:ipcdjLogoReveal .92s cubic-bezier(.2,.72,.2,1) 0s forwards;
+      animation:ipcdjLogoReveal .72s cubic-bezier(.22,.61,.36,1) 0s forwards;
     }
 
     #ipcdj-launch.launch-armed{
@@ -118,13 +141,13 @@
       visibility:hidden;
       pointer-events:none;
       transition:
-        opacity .72s cubic-bezier(.22,.68,.22,1),
-        visibility 0s linear .72s;
+        opacity .60s cubic-bezier(.22,.61,.36,1) .48s,
+        visibility 0s linear 1.08s;
     }
 
     #ipcdj-launch.launch-exit .launch-logo-stage{
       opacity:0;
-      transition:opacity .34s ease;
+      transition:opacity .48s cubic-bezier(.4,0,.2,1);
       animation:none;
     }
 
@@ -144,9 +167,6 @@
     @keyframes ipcdjLogoReveal{
       0%{
         opacity:0;
-      }
-      52%{
-        opacity:.88;
       }
       100%{
         opacity:1;
@@ -1976,6 +1996,16 @@
         (window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches) ||
         (window.matchMedia&&window.matchMedia("(display-mode: fullscreen)").matches)
       );
+      const iosStandalone=standalone&&document.documentElement.classList.contains("ipcdj-ios-standalone");
+
+      const syncStandaloneLaunchAlignment=()=>{
+        if(!iosStandalone)return;
+        const viewportH=window.innerHeight||0;
+        const screenH=(window.screen&&window.screen.height)||0;
+        const gap=screenH&&viewportH ? screenH-viewportH : 0;
+        const correction=(gap>=20&&gap<=140) ? -(gap/2) : 0;
+        document.documentElement.style.setProperty("--ipcdj-launch-y",correction.toFixed(2)+"px");
+      };
 
       let cycleStarted=performance.now();
       let exiting=false;
@@ -2008,14 +2038,14 @@
         exiting=true;
         const token=++cycleToken;
         launch.className="launch-exit";
-        setTimeout(()=>settleIdle(token),reduced?280:780);
+        setTimeout(()=>settleIdle(token),reduced?280:1120);
       };
 
       const checkCycle=token=>{
         if(token!==cycleToken||exiting||armed)return;
 
         const elapsed=performance.now()-cycleStarted;
-        const minimumVisible=reduced?280:1260;
+        const minimumVisible=reduced?280:1100;
         const hardMaximum=reduced?800:2600;
 
         if((elapsed>=minimumVisible&&appFrameReady())||elapsed>=hardMaximum){
@@ -2034,6 +2064,7 @@
         armed=false;
         cycleStarted=performance.now();
         lockPage(true);
+        syncStandaloneLaunchAlignment();
 
         launch.className="launch-playing";
 
@@ -2049,6 +2080,7 @@
         armed=true;
         lockPage(true);
         launch.className="launch-armed";
+        syncStandaloneLaunchAlignment();
 
         // Flush the armed black state immediately before iOS can suspend/snapshot
         // the web process during an app switch or Home-screen transition.
