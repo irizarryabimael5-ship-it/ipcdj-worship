@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="catalog-chorus-lock-v96" />
+  <meta name="ipcdj-build" content="spotify-chorus-preview-v97" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -2154,6 +2154,8 @@
         previewClipDuration:19.4,
         previewClipStart:79,
         previewCatalogOffset:0,
+        previewAudioProvider:"spotify",
+        previewAudioUrl:"https://p.scdn.co/mp3-preview/7885aca093c7465af5cb0c4696094db59d167c3f.mp3",
         previewFadeIn:.70,
         previewFadeOut:1.60,
         previewClipSection:"chorus",
@@ -2983,7 +2985,15 @@
     }
 
     async function prepareWebAudioPreview(song){
-      const data=await resolveItunesPreviewData(song);
+      const data=song.previewAudioUrl
+        ? {
+            previewUrl:song.previewAudioUrl,
+            trackName:song.title,
+            artistName:song.artist,
+            provider:song.previewAudioProvider||"direct"
+          }
+        : await resolveItunesPreviewData(song);
+
       const key=song.id+"|"+data.previewUrl;
       if(!webPreviewBufferPromises.has(key)){
         webPreviewBufferPromises.set(key,(async()=>{
@@ -3022,6 +3032,7 @@
             clipDuration:clip.duration,
             clipSource:clip.source||"catalog-analysis",
             previewUrl:data.previewUrl,
+            previewProvider:data.provider||song.previewAudioProvider||"itunes",
             trackName:data.trackName,
             artistName:data.artistName
           };
