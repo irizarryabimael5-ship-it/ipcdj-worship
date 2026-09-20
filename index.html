@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v129" />
+  <meta name="ipcdj-build" content="persistent-launch-v130" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -3963,6 +3963,7 @@
     const webPreviewBufferPromises=new Map();
     let webPreviewContext=null;
     let webPreviewSource=null;
+    let webPreviewNormalizeGain=null;
     let webPreviewGain=null;
     let webPreviewSongId="";
     let webPreviewBuffer=null;
@@ -4037,6 +4038,97 @@
       }
 
       throw new Error("Offline Web Audio decode unavailable");
+    }
+
+    function analyzePreviewNormalization(buffer,clipStart=0,clipDuration=null){
+      if(!buffer||!buffer.length||!buffer.numberOfChannels)return {
+        gain:1,
+        measuredDb:null,
+        adjustmentDb:0,
+        peak:0
+      };
+
+      const sampleRate=Math.max(8000,Number(buffer.sampleRate)||44100);
+      const startFrame=Math.max(
+        0,
+        Math.min(buffer.length-1,Math.floor(Math.max(0,Number(clipStart)||0)*sampleRate))
+      );
+      const requestedDuration=Number.isFinite(Number(clipDuration))
+        ? Math.max(.01,Number(clipDuration))
+        : Math.max(.01,buffer.duration-(startFrame/sampleRate));
+      const endFrame=Math.max(
+        startFrame+1,
+        Math.min(buffer.length,Math.ceil(startFrame+(requestedDuration*sampleRate)))
+      );
+
+      // A gated 400 ms block-RMS program level is a stable lightweight proxy for
+      // perceived preview loudness. It is intentionally computed on the exact
+      // preview clip, not the whole song asset.
+      const blockFrames=Math.max(256,Math.round(sampleRate*.4));
+      const stride=Math.max(1,Math.floor(sampleRate/12000));
+      const gateRms=Math.pow(10,-50/20);
+      const blockRms=[];
+      let peak=0;
+
+      for(let blockStart=startFrame;blockStart<endFrame;blockStart+=blockFrames){
+        const blockEnd=Math.min(endFrame,blockStart+blockFrames);
+        let sumSquares=0;
+        let sampleCount=0;
+
+        for(let channel=0;channel<buffer.numberOfChannels;channel++){
+          let channelData;
+          try{channelData=buffer.getChannelData(channel)}catch(_){continue}
+          for(let frame=blockStart;frame<blockEnd;frame+=stride){
+            const sample=Number(channelData[frame])||0;
+            const absolute=Math.abs(sample);
+            if(absolute>peak)peak=absolute;
+            sumSquares+=sample*sample;
+            sampleCount++;
+          }
+        }
+
+        if(!sampleCount)continue;
+        const rms=Math.sqrt(sumSquares/sampleCount);
+        if(Number.isFinite(rms)&&rms>=gateRms)blockRms.push(rms);
+      }
+
+      if(!blockRms.length)return {
+        gain:1,
+        measuredDb:null,
+        adjustmentDb:0,
+        peak
+      };
+
+      blockRms.sort((a,b)=>a-b);
+
+      // Use the 70th-percentile active block instead of an all-sample average so
+      // silence/intros do not make one preview artificially louder than another.
+      const index=Math.min(
+        blockRms.length-1,
+        Math.max(0,Math.ceil(blockRms.length*.70)-1)
+      );
+      const representativeRms=Math.max(.000001,blockRms[index]);
+      const targetDb=-14.5;
+      const targetRms=Math.pow(10,targetDb/20);
+      const rawGain=targetRms/representativeRms;
+
+      // Keep corrections natural and protect headroom. Most previews should land
+      // inside +/-6 dB; the peak ceiling always wins if the source is unusually hot.
+      const minGain=Math.pow(10,-6/20);
+      const maxGain=Math.pow(10,6/20);
+      const boundedGain=Math.max(minGain,Math.min(maxGain,rawGain));
+      const peakSafeGain=peak>0?Math.max(.01,.97/peak):maxGain;
+      const gain=Math.max(.01,Math.min(boundedGain,peakSafeGain));
+
+      const measuredDb=20*Math.log10(representativeRms);
+      const adjustmentDb=20*Math.log10(gain);
+
+      return {
+        gain,
+        measuredDb:Number.isFinite(measuredDb)?measuredDb:null,
+        adjustmentDb:Number.isFinite(adjustmentDb)?adjustmentDb:0,
+        peak
+      };
     }
 
     function unlockWebPreviewContextFromGesture(){
@@ -4280,6 +4372,12 @@
             clip=strongestPreviewWindow(buffer,requestedDuration);
           }
 
+          const normalization=analyzePreviewNormalization(
+            buffer,
+            clip.start,
+            clip.duration
+          );
+
           return {
             source:"webaudio",
             buffer,
@@ -4289,7 +4387,11 @@
             previewUrl:data.previewUrl,
             previewProvider:data.provider||song.previewAudioProvider||"itunes",
             trackName:data.trackName,
-            artistName:data.artistName
+            artistName:data.artistName,
+            normalizationGain:normalization.gain,
+            normalizationMeasuredDb:normalization.measuredDb,
+            normalizationAdjustmentDb:normalization.adjustmentDb,
+            normalizationPeak:normalization.peak
           };
         })());
       }
@@ -4301,20 +4403,26 @@
       try{voice.source.onended=null}catch(_){}
       try{voice.source.stop(0)}catch(_){}
       try{voice.source.disconnect()}catch(_){}
+      try{voice.normalizeGain?.disconnect()}catch(_){}
       try{voice.gain.disconnect()}catch(_){}
       webPreviewOutgoingVoices.delete(voice);
     }
 
     function stopWebAudioSource(){
       const source=webPreviewSource;
+      const normalizeGain=webPreviewNormalizeGain;
       const gain=webPreviewGain;
       webPreviewSource=null;
+      webPreviewNormalizeGain=null;
       webPreviewGain=null;
 
       if(source){
         try{source.onended=null}catch(_){}
         try{source.stop(0)}catch(_){}
         try{source.disconnect()}catch(_){}
+      }
+      if(normalizeGain){
+        try{normalizeGain.disconnect()}catch(_){}
       }
       if(gain){
         try{gain.disconnect()}catch(_){}
@@ -4421,6 +4529,7 @@
         outgoing={
           songId:webPreviewSongId,
           source:webPreviewSource,
+          normalizeGain:webPreviewNormalizeGain,
           gain:webPreviewGain,
           level:webPreviewGainAt(outgoingElapsed)
         };
@@ -4448,12 +4557,22 @@
 
       const remaining=Math.max(.01,webPreviewClipDuration-webPreviewElapsed);
       const source=ctx.createBufferSource();
+      const normalizeGain=ctx.createGain();
       const gain=ctx.createGain();
       source.buffer=data.buffer;
-      source.connect(gain);
+
+      const normalizationGain=Math.max(
+        .01,
+        Math.min(4,Number(data.normalizationGain)||1)
+      );
+      normalizeGain.gain.setValueAtTime(normalizationGain,ctx.currentTime);
+
+      source.connect(normalizeGain);
+      normalizeGain.connect(gain);
       gain.connect(webPreviewAnalyser||ctx.destination);
 
       webPreviewSource=source;
+      webPreviewNormalizeGain=normalizeGain;
       webPreviewGain=gain;
       setPreviewDuration(song.id,webPreviewClipDuration);
 
@@ -4559,6 +4678,11 @@
         webPreviewElapsed=0;
         webPreviewStartedAt=0;
         webPreviewSource=null;
+
+        if(webPreviewNormalizeGain===normalizeGain){
+          try{normalizeGain.disconnect()}catch(_){}
+          webPreviewNormalizeGain=null;
+        }
 
         if(webPreviewGain===gain){
           try{gain.disconnect()}catch(_){}
