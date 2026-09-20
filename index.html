@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v126" />
+  <meta name="ipcdj-build" content="persistent-launch-v127" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -281,7 +281,7 @@
         const active=records.filter(record=>{
           if(!record||!record.songId||!record.url)return false;
           const start=Date.parse(record.activeFrom||"");
-          const end=Date.parse(record.rolloverAt||"");
+          const end=Date.parse(record.introducedAt||record.rolloverAt||"");
           return Number.isFinite(start)&&Number.isFinite(end)&&now>=start&&now<end;
         });
         if(!active.length)return;
@@ -454,7 +454,6 @@
     }
 
     .ambient-field{
-      --field-rgb:55,93,202;
       position:absolute;
       top:-14vmax;
       right:-14vmax;
@@ -464,17 +463,21 @@
       opacity:0;
       will-change:opacity;
       transform:translateZ(0);
+      transition:opacity 2.4s cubic-bezier(.4,0,.2,1);
     }
 
+    .ambient-field-active{opacity:.82}
+
     .ambient-blob{
+      --blob-rgb:55,93,202;
       position:absolute;
       border-radius:50%;
       background:radial-gradient(circle,
-        rgba(var(--field-rgb),.76) 0%,
-        rgba(var(--field-rgb),.46) 34%,
-        rgba(var(--field-rgb),.20) 58%,
-        rgba(var(--field-rgb),.055) 76%,
-        rgba(var(--field-rgb),0) 92%);
+        rgba(var(--blob-rgb),.76) 0%,
+        rgba(var(--blob-rgb),.46) 34%,
+        rgba(var(--blob-rgb),.20) 58%,
+        rgba(var(--blob-rgb),.055) 76%,
+        rgba(var(--blob-rgb),0) 92%);
       filter:blur(18px);
       will-change:transform,opacity;
       transform:translate3d(0,0,0) scale(1);
@@ -1181,6 +1184,111 @@
       margin-bottom:14px;
     }
 
+    .post-release-banner{
+      display:none;
+      margin:16px 0 4px;
+      padding:16px 17px;
+      border-radius:17px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(8,11,17,.60);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.045);
+      overflow:hidden;
+    }
+
+    .post-release-kicker{
+      display:block;
+      font-size:.72rem;
+      font-weight:850;
+      letter-spacing:.09em;
+      text-transform:uppercase;
+      margin-bottom:6px;
+    }
+
+    .post-release-title{
+      display:block;
+      color:#fff;
+      font-size:clamp(1.1rem,3vw,1.35rem);
+      font-weight:850;
+      letter-spacing:-.02em;
+    }
+
+    .post-release-note{
+      display:block;
+      margin-top:6px;
+      color:#d2d8e3;
+      font-size:.86rem;
+      line-height:1.45;
+    }
+
+    .current{
+      transition:
+        border-color .72s cubic-bezier(.4,0,.2,1),
+        box-shadow .72s cubic-bezier(.4,0,.2,1),
+        background-color .72s cubic-bezier(.4,0,.2,1);
+    }
+
+    .current.phase-release{
+      border-color:rgba(242,193,78,.42);
+      box-shadow:
+        0 20px 58px rgba(0,0,0,.30),
+        inset 0 1px 0 rgba(255,235,178,.07),
+        inset 0 0 0 1px rgba(242,193,78,.06);
+    }
+
+    .current.phase-release .status{
+      background:rgba(242,193,78,.15);
+      border-color:rgba(242,193,78,.42);
+      color:#fff0b9;
+    }
+
+    .current.phase-release .post-release-banner{
+      display:block;
+      border-color:rgba(242,193,78,.38);
+      background:
+        linear-gradient(110deg,rgba(242,193,78,.18),rgba(255,151,73,.08),rgba(8,11,17,.68));
+      animation:phaseBannerIn .62s cubic-bezier(.22,.65,.25,1) both;
+    }
+
+    .current.phase-release .post-release-kicker{color:#f2c14e}
+
+    .current.phase-released{
+      border-color:rgba(93,211,167,.34);
+      box-shadow:
+        0 18px 52px rgba(0,0,0,.28),
+        inset 0 1px 0 rgba(178,255,226,.055),
+        inset 0 0 0 1px rgba(93,211,167,.045);
+    }
+
+    .current.phase-released .status{
+      background:rgba(93,211,167,.11);
+      border-color:rgba(93,211,167,.34);
+      color:#d9fff0;
+    }
+
+    .current.phase-released .post-release-banner{
+      display:block;
+      border-color:rgba(93,211,167,.28);
+      background:
+        linear-gradient(110deg,rgba(93,211,167,.13),rgba(89,146,255,.07),rgba(8,11,17,.72));
+      animation:phaseBannerIn .62s cubic-bezier(.22,.65,.25,1) both;
+    }
+
+    .current.phase-released .post-release-kicker{color:#74dfb7}
+
+    .current.phase-release .countdown-wrap,
+    .current.phase-release .progress-wrap,
+    .current.phase-release .timeline,
+    .current.phase-released .countdown-wrap,
+    .current.phase-released .progress-wrap,
+    .current.phase-released .timeline{
+      display:none;
+    }
+
+    @keyframes phaseBannerIn{
+      from{opacity:0;transform:translateY(7px)}
+      to{opacity:1;transform:none}
+    }
+
     .song-name{
       margin:0;
       font-size:clamp(1.9rem, 5vw, 2.7rem);
@@ -1224,7 +1332,9 @@
       color:#dac89c;
       font-size:.8rem;
       font-weight:700;
-      white-space:nowrap;
+      white-space:normal;
+      text-align:right;
+      overflow-wrap:anywhere;
     }
 
     .countdown-grid{
@@ -1452,9 +1562,11 @@
 
     .preview-pill{
       --preview-progress:0%;
+      --preview-progress-scale:0;
       position:relative;
       isolation:isolate;
       min-width:196px;
+      max-width:100%;
       height:44px;
       display:inline-flex;
       align-items:center;
@@ -1489,7 +1601,10 @@
       left:0;
       top:0;
       bottom:0;
-      width:var(--preview-progress);
+      width:100%;
+      transform:scaleX(var(--preview-progress-scale));
+      transform-origin:left center;
+      will-change:transform,opacity;
       background:
         linear-gradient(
           100deg,
@@ -1502,7 +1617,7 @@
         8px 0 18px rgba(var(--preview-accent-2,var(--cover-c2,137,169,255)),.16);
       opacity:1;
       transition:
-        width .10s linear,
+        transform .10s linear,
         opacity .78s cubic-bezier(.4,0,.2,1);
       pointer-events:none;
     }
@@ -1703,7 +1818,9 @@
       align-items:center;
       width:fit-content;
       margin-top:10px;
-      white-space:nowrap;
+      white-space:normal;
+      text-wrap:balance;
+      overflow-wrap:anywhere;
       color:#ffffff;
       font-size:.82rem;
       font-weight:800;
@@ -1763,6 +1880,7 @@
       min-width:0;
       align-items:center;
       justify-content:space-between;
+      flex-wrap:wrap;
       gap:16px;
       color:var(--soft);
       border:1px solid rgba(129,160,255,.16);
@@ -1788,7 +1906,9 @@
     }
 
     .recent .date{
-      flex:0 0 auto;
+      flex:0 1 auto;
+      max-width:100%;
+      white-space:normal;
       color:#dbe5ff;
       font-size:.79rem;
       font-weight:800;
@@ -2131,7 +2251,8 @@
     }
 
     @media (prefers-reduced-data: reduce){
-      .ambient-field{opacity:.42!important}.ambient-blob{animation:none!important}
+      .ambient-field{transition:none!important}.ambient-field:not(.ambient-field-active){opacity:0!important}.ambient-field-active{opacity:.42!important}
+      .ambient-blob{animation:none!important}
       .ambient-dither{display:none}
     }
 
@@ -2167,7 +2288,8 @@
       .current .cover-detail,
       .current .cover-edge-detail,
       .current .cover-subject-detail{transition:none!important}
-      .ambient-field{opacity:.46!important}.ambient-blob{animation:none!important}
+      .ambient-field{transition:none!important}.ambient-field:not(.ambient-field-active){opacity:0!important}.ambient-field-active{opacity:.46!important}
+      .ambient-blob{animation:none!important}
       .inline-preview,.preview-button{transition:none!important}
       .platform{transition:none}
       .progress-fill{transition:none}
@@ -2436,7 +2558,13 @@
     })();
   </script>
   <div class="ambient-bg" aria-hidden="true">
-    <div class="ambient-field" id="ambient-field">
+    <div class="ambient-field ambient-field-active" id="ambient-field-a">
+      <div class="ambient-blob b1"></div>
+      <div class="ambient-blob b2"></div>
+      <div class="ambient-blob b3"></div>
+      <div class="ambient-blob b4"></div>
+    </div>
+    <div class="ambient-field" id="ambient-field-b">
       <div class="ambient-blob b1"></div>
       <div class="ambient-blob b2"></div>
       <div class="ambient-blob b3"></div>
@@ -2453,7 +2581,7 @@
 
     <header class="hero">
       <div class="eyebrow"><span class="dot"></span> Ministerio de Alabanza</div>
-      <h1>IPCDJ <span class="brand-sub">Worship</span></h1>
+      <h1 translate="no" class="notranslate">IPCDJ <span class="brand-sub">Worship</span></h1>
       <p class="subtitle">
         Acceso rápido a las próximas canciones del ministerio.
         Abre la playlist en la plataforma que ya utilizas y mantente al día con el proceso de aprendizaje.
@@ -2719,76 +2847,108 @@
 
     window.addEventListener("touchcancel",resetPull,{passive:true});
 
-    // Professional ambient field controller:
-    // fixed black base + several same-color soft concentrations moving independently.
-    // The field fully dims to black before its color changes, so two hues never overlap.
-    const ambientField=document.getElementById("ambient-field");
-    const ambientPalette=[
+    // Song-driven ambient field controller.
+    // Two complete moving fields crossfade so a palette can change without any
+    // single-frame hue snap or custom-property interpolation dependency.
+    const ambientFields=[
+      document.getElementById("ambient-field-a"),
+      document.getElementById("ambient-field-b")
+    ].filter(Boolean);
+    const AMBIENT_FALLBACK=[
       [55,93,202],
       [137,169,255],
       [53,183,92],
-      [255,90,90],
-      [255,255,255]
+      [255,90,90]
     ];
-    const ambientSlotMs=28000;
-    const fadeInStart=0;
-    const fadeInEnd=3200;
-    const dwellEnd=20500;
-    const fadeOutEnd=25500;
-    const ambientEpoch=performance.now();
-    let ambientFrame=0;
-    let ambientColorIndex=-1;
+    let ambientActiveField=0;
+    let ambientPaletteSignature="";
+    let ambientDriverSongId="";
+    const ambientSongPalettes=new Map();
 
-    const smoothstep=t=>{
-      const x=Math.min(1,Math.max(0,t));
-      return x*x*(3-2*x);
-    };
-
-    function ambientPresence(slot){
-      if(slot<fadeInStart)return 0;
-      if(slot<fadeInEnd)return smoothstep((slot-fadeInStart)/(fadeInEnd-fadeInStart));
-      if(slot<dwellEnd)return 1;
-      if(slot<fadeOutEnd)return 1-smoothstep((slot-dwellEnd)/(fadeOutEnd-dwellEnd));
-      return 0;
+    function ambientRgbToHsl(rgbValue){
+      let [r,g,b]=rgbValue.map(v=>Math.max(0,Math.min(255,v))/255);
+      const max=Math.max(r,g,b),min=Math.min(r,g,b);
+      const d=max-min;
+      let h=0;
+      const l=(max+min)/2;
+      const sat=d===0?0:d/(1-Math.abs((2*l)-1));
+      if(d!==0){
+        if(max===r)h=60*(((g-b)/d)%6);
+        else if(max===g)h=60*(((b-r)/d)+2);
+        else h=60*(((r-g)/d)+4);
+      }
+      if(h<0)h+=360;
+      return [h,sat,l];
     }
 
-    function renderAmbient(nowPerf){
-      if(!ambientField)return;
+    function ambientHslToRgb(hsl){
+      let [h,sat,l]=hsl;
+      h=((h%360)+360)%360;
+      sat=Math.max(0,Math.min(1,sat));
+      l=Math.max(0,Math.min(1,l));
+      const c=(1-Math.abs((2*l)-1))*sat;
+      const x=c*(1-Math.abs(((h/60)%2)-1));
+      const m=l-(c/2);
+      let r=0,g=0,b=0;
+      if(h<60){r=c;g=x}
+      else if(h<120){r=x;g=c}
+      else if(h<180){g=c;b=x}
+      else if(h<240){g=x;b=c}
+      else if(h<300){r=x;b=c}
+      else{r=c;b=x}
+      return [r,g,b].map(v=>Math.round((v+m)*255));
+    }
 
-      const elapsed=Math.max(0,nowPerf-ambientEpoch);
-      const slot=elapsed%ambientSlotMs;
-      const index=Math.floor(elapsed/ambientSlotMs)%ambientPalette.length;
-      const presence=ambientPresence(slot);
+    function buildAmbientPalette(palette){
+      const base=Array.isArray(palette)?palette.filter(x=>Array.isArray(x)&&x.length>=3).slice(0,3):[];
+      while(base.length<3)base.push(AMBIENT_FALLBACK[base.length]);
 
-      // Only change hue while the field is fully black.
-      if(index!==ambientColorIndex && presence===0){
-        ambientField.style.setProperty("--field-rgb",ambientPalette[index].join(","));
-        ambientColorIndex=index;
+      const [h,sat,l]=ambientRgbToHsl(base[0]);
+      const complement=ambientHslToRgb([
+        h+165,
+        Math.max(.48,Math.min(.82,sat+.08)),
+        Math.max(.38,Math.min(.62,l+.06))
+      ]);
+
+      return [base[0],base[1],base[2],complement];
+    }
+
+    function configureAmbientField(field,palette){
+      if(!field)return;
+      const colors=buildAmbientPalette(palette);
+      [...field.querySelectorAll(".ambient-blob")].forEach((blob,index)=>{
+        blob.style.setProperty("--blob-rgb",(colors[index]||colors[0]).join(","));
+      });
+    }
+
+    function setAmbientPalette(palette,signature=""){
+      if(!ambientFields.length)return;
+      const colors=buildAmbientPalette(palette);
+      const nextSignature=signature+"|"+colors.map(c=>c.join(",")).join("|");
+      if(nextSignature===ambientPaletteSignature)return;
+      ambientPaletteSignature=nextSignature;
+
+      if(ambientFields.length===1){
+        configureAmbientField(ambientFields[0],colors);
+        ambientFields[0].classList.add("ambient-field-active");
+        return;
       }
 
-      // Gentle whole-field breathing; individual blobs also breathe independently.
-      const fieldBreath=.90+.10*Math.sin((slot/ambientSlotMs)*Math.PI*4);
-      ambientField.style.opacity=String(Math.max(0,Math.min(1,presence*fieldBreath)));
+      const nextIndex=ambientActiveField===0?1:0;
+      const next=ambientFields[nextIndex];
+      const current=ambientFields[ambientActiveField];
+      configureAmbientField(next,colors);
 
-      ambientFrame=requestAnimationFrame(renderAmbient);
+      // Force style resolution before crossfading the complete fields.
+      void next.offsetWidth;
+      next.classList.add("ambient-field-active");
+      current.classList.remove("ambient-field-active");
+      ambientActiveField=nextIndex;
     }
 
-    if(ambientField && !window.matchMedia("(prefers-reduced-motion: reduce)").matches){
-      ambientField.style.setProperty("--field-rgb",ambientPalette[0].join(","));
-      ambientColorIndex=0;
-      ambientFrame=requestAnimationFrame(renderAmbient);
-      document.addEventListener("visibilitychange",()=>{
-        if(document.hidden){
-          cancelAnimationFrame(ambientFrame);
-        }else{
-          ambientFrame=requestAnimationFrame(renderAmbient);
-        }
-      });
-    }else if(ambientField){
-      ambientField.style.setProperty("--field-rgb","55,93,202");
-      ambientField.style.opacity=".46";
-      ambientField.querySelectorAll(".ambient-blob").forEach(blob=>blob.style.animation="none");
-    }
+    configureAmbientField(ambientFields[0],AMBIENT_FALLBACK);
+    if(ambientFields[0])ambientFields[0].classList.add("ambient-field-active");
+    if(ambientFields[1])configureAmbientField(ambientFields[1],AMBIENT_FALLBACK);
 
     // Absolute, refresh-safe clock.
     // The countdown NEVER subtracts one second from a stored number. Every frame is
@@ -2915,7 +3075,10 @@
         learningEnd:"2026-09-20T23:59:59-04:00",
         finalStart:"2026-09-21T00:00:00-04:00",
         finalEnd:"2026-09-26T23:59:59-04:00",
+        releaseDayStartAt:"2026-09-27T00:00:00-04:00",
         releaseAt:"2026-09-27T11:00:00-04:00",
+        releaseDayEndAt:"2026-09-28T00:00:00-04:00",
+        introducedAt:"2026-09-29T00:00:00-04:00",
         rolloverAt:"2026-09-28T06:00:00-04:00",
         learningLabel:"Lun. 14 Sep – Dom. 20 Sep",
         finalLabel:"Lun. 21 Sep – Sáb. 26 Sep",
@@ -2938,7 +3101,10 @@
         learningEnd:"2026-10-18T23:59:59-04:00",
         finalStart:"2026-10-19T00:00:00-04:00",
         finalEnd:"2026-10-24T23:59:59-04:00",
+        releaseDayStartAt:"2026-10-25T00:00:00-04:00",
         releaseAt:"2026-10-25T11:00:00-04:00",
+        releaseDayEndAt:"2026-10-26T00:00:00-04:00",
+        introducedAt:"2026-10-27T00:00:00-04:00",
         rolloverAt:"2026-10-26T06:00:00-04:00",
         learningLabel:"Lun. 12 Oct – Dom. 18 Oct",
         finalLabel:"Lun. 19 Oct – Sáb. 24 Oct",
@@ -2962,7 +3128,10 @@
         learningEnd:"2026-11-01T23:59:59-05:00",
         finalStart:"2026-11-02T00:00:00-05:00",
         finalEnd:"2026-11-07T23:59:59-05:00",
+        releaseDayStartAt:"2026-11-08T00:00:00-05:00",
         releaseAt:"2026-11-08T11:00:00-05:00",
+        releaseDayEndAt:"2026-11-09T00:00:00-05:00",
+        introducedAt:"2026-11-10T00:00:00-05:00",
         rolloverAt:"2026-11-09T06:00:00-05:00",
         learningLabel:"Lun. 26 Oct – Dom. 1 Nov",
         finalLabel:"Lun. 2 Nov – Sáb. 7 Nov",
@@ -2976,7 +3145,15 @@
     const cardRole=(card,role)=>card ? card.querySelector('[data-role="'+role+'"]') : null;
     const setCardText=(card,role,value)=>{
       const el=cardRole(card,role);
-      if(el)el.textContent=value;
+      if(!el)return;
+      const source=String(value??"");
+
+      // Translation engines rewrite visible text nodes. Track our untranslated
+      // source separately so the one-second render loop does not overwrite an
+      // already-translated label unless the underlying Spanish source changed.
+      if(el.dataset.sourceText===source)return;
+      el.dataset.sourceText=source;
+      el.textContent=source;
     };
     const escapeHtml=value=>String(value??"")
       .replace(/&/g,"&amp;")
@@ -3090,6 +3267,11 @@
       card.style.setProperty("--cover-c2",palette[1].join(","));
       card.style.setProperty("--cover-c3",palette[2].join(","));
       card.dataset.coverTheme=song.id;
+
+      ambientSongPalettes.set(song.id,palette.slice(0,3));
+      if(ambientDriverSongId===song.id){
+        setAmbientPalette(palette,"song:"+song.id);
+      }
     }
 
     function highResolutionArtworkUrl(url){
@@ -3206,6 +3388,7 @@
           url:highResolutionArtworkUrl(url),
           activeFrom:song.activeFrom,
           rolloverAt:song.rolloverAt,
+          introducedAt:song.introducedAt||song.rolloverAt,
           savedAt:Date.now()
         });
         list.sort((a,b)=>(b.savedAt||0)-(a.savedAt||0));
@@ -3881,7 +4064,9 @@
 
         const button=row.querySelector(".preview-pill");
         if(button&&Number.isFinite(progress)){
-          button.style.setProperty("--preview-progress",Math.max(0,Math.min(100,progress))+"%");
+          const normalized=Math.max(0,Math.min(100,progress));
+          button.style.setProperty("--preview-progress",normalized+"%");
+          button.style.setProperty("--preview-progress-scale",String(normalized/100));
         }
       });
     }
@@ -3905,6 +4090,7 @@
 
         // Hold the completed fill at 100% and dissolve only the coral layer.
         pill.style.setProperty("--preview-progress","100%");
+        pill.style.setProperty("--preview-progress-scale","1");
         if(time)time.textContent="0:00";
         row.classList.remove("preview-resetting");
         row.classList.add("preview-ending");
@@ -3916,6 +4102,7 @@
           // visible 100% -> 0% sweep.
           row.classList.add("preview-resetting");
           pill.style.setProperty("--preview-progress","0%");
+          pill.style.setProperty("--preview-progress-scale","0");
           if(time)time.textContent=formatPreviewRemaining(fullDuration);
 
           requestAnimationFrame(()=>{
@@ -5584,36 +5771,69 @@
       if(track)track.setAttribute("aria-valuetext",palette.phaseText);
     }
 
-    function getCurrentSongs(now){
-      const active=songPipeline
-        .map((song,index)=>({song,index}))
-        .filter(({song})=>{
-          const start=new Date(song.activeFrom).getTime();
-          const end=new Date(song.rolloverAt).getTime();
-          return now>=start&&now<end;
-        });
-
-      if(active.length)return active;
-
-      const first=songPipeline[0];
-      if(first&&now<new Date(first.activeFrom).getTime())return [{song:first,index:0}];
-      return [];
-    }
-
     function getPhase(song, now){
       const learningStart=new Date(song.learningStart).getTime();
       const learningEnd=new Date(song.learningEnd).getTime();
       const finalStart=new Date(song.finalStart).getTime();
       const finalEnd=new Date(song.finalEnd).getTime();
+      const releaseDayStart=new Date(song.releaseDayStartAt||song.releaseAt).getTime();
       const release=new Date(song.releaseAt).getTime();
-      const rollover=new Date(song.rolloverAt).getTime();
+      const releaseDayEnd=new Date(song.releaseDayEndAt||song.rolloverAt).getTime();
+      const introduced=new Date(song.introducedAt||song.rolloverAt).getTime();
 
-      if(now<learningStart) return {key:"upcoming",label:"Próximamente",note:"Próxima fase · aprendizaje"};
-      if(now<=learningEnd) return {key:"learning",label:"Aprendizaje",note:"Fase 1 de 3 · aprendizaje en curso"};
-      if(now>=finalStart && now<=finalEnd) return {key:"final",label:"Preparación final",note:"Fase 2 de 3 · preparación final"};
-      if(now<release) return {key:"final",label:"Preparación final",note:"Fase 2 de 3 · preparación final"};
-      if(now<rollover) return {key:"release",label:"Estreno",note:"Fase 3 de 3 · estreno"};
+      if(now<learningStart)return {key:"upcoming",label:"Próximamente",note:"Próxima fase · aprendizaje"};
+      if(now<=learningEnd)return {key:"learning",label:"Aprendizaje",note:"Fase 1 de 3 · aprendizaje en curso"};
+      if(now>=finalStart&&now<=finalEnd)return {key:"final",label:"Preparación final",note:"Fase 2 de 3 · preparación final"};
+      if(now<releaseDayStart)return {key:"final",label:"Preparación final",note:"Fase 2 de 3 · preparación final"};
+      if(now<releaseDayEnd)return {
+        key:"release",
+        label:"Estreno",
+        note:now<release?"Estreno de hoy · servicio pendiente":"Estreno de hoy"
+      };
+      if(now<introduced)return {
+        key:"released",
+        label:"Ya estrenado",
+        note:"Estreno completado · pasa mañana a Introducciones recientes"
+      };
       return {key:"complete",label:"Introducida",note:"Estreno completado"};
+    }
+
+    function getCurrentSongs(now){
+      const active=songPipeline
+        .map((song,index)=>({song,index,phase:getPhase(song,now)}))
+        .filter(({song,phase})=>{
+          const start=new Date(song.activeFrom).getTime();
+          return now>=start&&phase.key!=="complete";
+        })
+        .sort((a,b)=>{
+          const aPost=a.phase.key==="release"||a.phase.key==="released";
+          const bPost=b.phase.key==="release"||b.phase.key==="released";
+          if(aPost!==bPost)return aPost?1:-1;
+          return new Date(a.song.releaseAt)-new Date(b.song.releaseAt);
+        });
+
+      if(active.length)return active;
+
+      const first=songPipeline[0];
+      if(first&&now<new Date(first.activeFrom).getTime()){
+        return [{song:first,index:0,phase:getPhase(first,now)}];
+      }
+      return [];
+    }
+
+    function chooseAmbientDriver(entries,now){
+      if(!Array.isArray(entries)||!entries.length)return null;
+      const preparation=entries.filter(({phase})=>phase&&phase.key!=="release"&&phase.key!=="released"&&phase.key!=="complete");
+      const driver=(preparation.length?preparation:entries)[0];
+      return driver?driver.song:null;
+    }
+
+    function syncAmbientDriver(entries,now){
+      const song=chooseAmbientDriver(entries,now);
+      if(!song)return;
+      ambientDriverSongId=song.id;
+      const palette=ambientSongPalettes.get(song.id)||COVER_THEME_FALLBACKS[song.id]||AMBIENT_FALLBACK;
+      setAmbientPalette(palette,"driver:"+song.id);
     }
 
     let renderedCurrentSongKey="";
@@ -5637,8 +5857,14 @@
           <div class="cover-edge-detail" aria-hidden="true"></div>
           <div class="cover-subject-detail" aria-hidden="true"></div>
           <div class="status" data-role="status">AHORA EN PREPARACIÓN</div>
-          <h2 class="song-name" data-role="song-name">${escapeHtml(song.title)}</h2>
-          <p class="artist" data-role="artist">${escapeHtml(song.artist)}</p>
+          <h2 class="song-name notranslate" data-role="song-name" translate="no">${escapeHtml(song.title)}</h2>
+          <p class="artist notranslate" data-role="artist" translate="no">${escapeHtml(song.artist)}</p>
+
+          <div class="post-release-banner" data-role="post-release-banner" aria-live="polite">
+            <span class="post-release-kicker" data-role="post-release-kicker"></span>
+            <strong class="post-release-title" data-role="post-release-title"></strong>
+            <span class="post-release-note" data-role="post-release-note"></span>
+          </div>
 
           <div class="inline-preview" data-role="inline-preview">
             <div class="preview-queue">
@@ -5719,9 +5945,36 @@
       const release=new Date(song.releaseAt).getTime();
       const activeStart=new Date(song.activeFrom).getTime();
 
-      setCardText(card,"status",phase.key==="release"?"HOY · ESTRENO":(phase.key==="upcoming"?"PRÓXIMA CANCIÓN":"AHORA EN PREPARACIÓN"));
+      card.classList.toggle("phase-release",phase.key==="release");
+      card.classList.toggle("phase-released",phase.key==="released");
+      card.dataset.phase=phase.key;
+
+      const statusText=
+        phase.key==="release"?"HOY · ESTRENO":
+        phase.key==="released"?"YA ESTRENADO":
+        phase.key==="upcoming"?"PRÓXIMA CANCIÓN":
+        "AHORA EN PREPARACIÓN";
+
+      setCardText(card,"status",statusText);
       setCardText(card,"song-name",song.title);
       setCardText(card,"artist",song.artist);
+
+      if(phase.key==="release"){
+        const releaseTime=new Date(song.releaseAt).getTime();
+        setCardText(card,"post-release-kicker","ESTRENO");
+        setCardText(card,"post-release-title","Hoy es el día");
+        setCardText(
+          card,
+          "post-release-note",
+          now<releaseTime
+            ? "La canción se estrena hoy en el servicio · "+(song.releaseClockLabel||"11:00 AM")+"."
+            : "La canción llegó a su día de estreno y permanece destacada durante hoy."
+        );
+      }else if(phase.key==="released"){
+        setCardText(card,"post-release-kicker","YA ESTRENADO");
+        setCardText(card,"post-release-title","Estreno completado");
+        setCardText(card,"post-release-note","Permanece aquí durante hoy y pasa a Introducciones recientes a medianoche.");
+      }
 
       if(song.previewAccent1){
         card.style.setProperty("--preview-accent-1",song.previewAccent1);
@@ -5808,6 +6061,7 @@
         return;
       }
 
+      syncAmbientDriver(current,now);
       syncCurrentCards(current);
       current.forEach(({song})=>{
         const row=document.querySelector('[data-preview-song-id="'+CSS.escape(song.id)+'"]');
@@ -5850,8 +6104,8 @@
           </div>
           <div class="song-top">
             <div>
-              <h3>${escapeHtml(song.title)}</h3>
-              <p>${escapeHtml(song.artist)}</p>
+              <h3 class="notranslate" translate="no">${escapeHtml(song.title)}</h3>
+              <p class="notranslate" translate="no">${escapeHtml(song.artist)}</p>
               <div class="song-date">Estreno: ${escapeHtml(song.releaseLabel.replace("Dom. ",""))}</div>
             </div>
           </div>
@@ -5904,11 +6158,11 @@
       if(!container) return;
 
       const autoIntroduced=songPipeline
-        .filter(song=>now>=new Date(song.rolloverAt).getTime())
+        .filter(song=>now>=new Date(song.introducedAt||song.rolloverAt).getTime())
         .map(song=>({
           title:song.title,
           artist:song.artist,
-          introducedAt:song.releaseAt,
+          introducedAt:song.introducedAt||song.rolloverAt,
           label:spanishReleaseLabel(song)
         }));
 
@@ -5921,8 +6175,8 @@
       container.innerHTML=all.map(item=>`
         <div class="recent">
           <div class="recent-main">
-            <strong>${item.title}</strong>
-            <span class="recent-artist">${item.artist}</span>
+            <strong class="notranslate" translate="no">${item.title}</strong>
+            <span class="recent-artist notranslate" translate="no">${item.artist}</span>
           </div>
           <span class="date">Introducida · ${item.label}</span>
         </div>
