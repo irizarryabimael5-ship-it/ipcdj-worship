@@ -1221,3 +1221,38 @@ Required behavior:
 - Event listeners use capture where supported so the stop runs as early as possible in dispatch.
 - Desktop tab switching must remain unaffected. Desktop blur must not stop the preview.
 - Desktop pagehide still stops playback when the page is actually being left/closed.
+
+
+## Platform reliability hardening v105
+
+The website/PWA must prefer deterministic first-load behavior and self-healing over optimistic network timing.
+
+Current preparation cover:
+- A song with explicit artworkUrl renders an eager native <img> blurred base directly in currentSongCardMarkup.
+- The native base is independent of provider lookup, Image.decode(), palette extraction, subject detection, and cover-ready state.
+- The native image uses loading="eager", decoding="async", and fetchpriority="high".
+- The existing CSS detail/edge/person layers remain layered above it and retain the approved composition.
+- For explicit native artwork, the pseudo-element blurred base is disabled to avoid double brightness.
+- The head preload for the current Spotify cover must use the same non-CORS request mode as the displayed image/CSS request; do not add crossorigin to that image preload.
+- Explicit artwork is also written into --cover-image inline on card creation so detail layers do not wait on ensureCoverTheme.
+- Subject setup still runs when the native/inline artwork URL already matches the resolved URL.
+- Existing v94 1.65-second detail/person transitions remain intact; the native blurred base exists as the fail-safe layer.
+
+Bounded resources:
+- Clock sync uses a 2.5-second bounded request.
+- iTunes artwork and preview lookups use bounded requests.
+- Direct/Spotify preview audio fetch uses an 8-second bound.
+- Palette and subject image helpers reject after 6.5 seconds instead of hanging forever.
+- A timed-out optional enhancement must never prevent the current card, countdown, links, or other primary UI from remaining usable.
+
+Lifecycle recovery:
+- On pageshow, re-render current state and retry missing transient artwork/preview resources.
+- On online, retry transient resources and recalibrate the server clock.
+- Never require the user to close/reopen the app merely to recover from a temporary network/resource failure.
+
+Service worker:
+- Register immediately when the main script executes instead of waiting for window.load.
+- Service-worker installation must cache static assets independently; one failed asset may not reject the whole install.
+- Healthy-network navigations should prefer a fresh deployed shell within a short bounded window, with the last known-good cached shell as fallback.
+- Cache matching for version-query static assets should ignore the query string because the service-worker cache name already versions the asset set.
+- Offline or slow-network fallback remains mandatory.
