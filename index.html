@@ -4731,6 +4731,7 @@
       webPreviewPlaying=false;
 
       const ctx=webPreviewContext;
+      const normalizeGain=webPreviewNormalizeGain;
       const gain=webPreviewGain;
       const source=webPreviewSource;
 
@@ -4751,11 +4752,15 @@
         try{source.stop(0)}catch(_){}
         try{source.disconnect()}catch(_){}
       }
+      if(normalizeGain){
+        try{normalizeGain.disconnect()}catch(_){}
+      }
       if(gain){
         try{gain.disconnect()}catch(_){}
       }
 
       webPreviewSource=null;
+      webPreviewNormalizeGain=null;
       webPreviewGain=null;
       [...webPreviewOutgoingVoices].forEach(disposeWebPreviewVoice);
       cancelAnimationFrame(previewVisualFrame);
