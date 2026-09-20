@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="hot-preview-start-v87" />
+  <meta name="ipcdj-build" content="cross-platform-cover-lock-v88" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -465,6 +465,11 @@
       --cover-image:none;
       --cover-pos-x:50%;
       --cover-pos-y:50%;
+      --cover-base-opacity:.76;
+      --cover-detail-opacity:.42;
+      --cover-edge-opacity:.50;
+      --cover-detail-blur:2.6px;
+      --cover-edge-blur:1.6px;
       --subject-width:32%;
       --subject-height:36%;
       --subject-bg-x:88%;
@@ -535,8 +540,8 @@
       background-size:cover;
       background-position:var(--cover-pos-x) var(--cover-pos-y);
       background-repeat:no-repeat;
-      filter:blur(2.6px) saturate(1.10) contrast(1.04);
-      -webkit-filter:blur(2.6px) saturate(1.10) contrast(1.04);
+      filter:blur(var(--cover-detail-blur)) saturate(1.10) contrast(1.04);
+      -webkit-filter:blur(var(--cover-detail-blur)) saturate(1.10) contrast(1.04);
       opacity:0;
       transform:scale(1.025);
       -webkit-mask-image:
@@ -571,8 +576,8 @@
       background-size:cover;
       background-position:var(--cover-pos-x) var(--cover-pos-y);
       background-repeat:no-repeat;
-      filter:blur(1.6px) saturate(1.12) contrast(1.05);
-      -webkit-filter:blur(1.6px) saturate(1.12) contrast(1.05);
+      filter:blur(var(--cover-edge-blur)) saturate(1.12) contrast(1.05);
+      -webkit-filter:blur(var(--cover-edge-blur)) saturate(1.12) contrast(1.05);
       opacity:0;
       transform:scale(1.018);
       -webkit-mask-image:radial-gradient(ellipse 74% 70% at 50% 50%, transparent 0%, transparent 54%, rgba(0,0,0,.18) 63%, rgba(0,0,0,.58) 76%, #000 100%);
@@ -687,9 +692,9 @@
       will-change:opacity;
     }
 
-    .current.cover-ready::before{opacity:.76}
-    .current.cover-ready .cover-detail{opacity:.42}
-    .current.cover-ready .cover-edge-detail{opacity:.50}
+    .current.cover-ready::before{opacity:var(--cover-base-opacity)}
+    .current.cover-ready .cover-detail{opacity:var(--cover-detail-opacity)}
+    .current.cover-ready .cover-edge-detail{opacity:var(--cover-edge-opacity)}
     .current.subject-ready .cover-subject-detail{opacity:var(--subject-opacity)}
 
     .current .countdown-wrap,
@@ -805,9 +810,11 @@
       .current .cover-detail{
         opacity:0;
         background-position:var(--cover-pos-x) var(--cover-pos-y);
+        /* Keep the same central artwork focal reveal as desktop; only the subject
+           placement itself changes responsively. */
         -webkit-mask-image:
           radial-gradient(ellipse 31% 17% at 91% 9%, #000 0%, rgba(0,0,0,.78) 34%, transparent 100%),
-          radial-gradient(ellipse 48% 32% at 54% 40%, rgba(0,0,0,.38) 0%, rgba(0,0,0,.22) 46%, rgba(0,0,0,.08) 72%, transparent 100%),
+          radial-gradient(ellipse 46% 34% at 54% 39%, rgba(0,0,0,.42) 0%, rgba(0,0,0,.27) 44%, rgba(0,0,0,.10) 71%, transparent 100%),
           radial-gradient(ellipse 25% 15% at 8% 12%, #000 0%, rgba(0,0,0,.58) 36%, transparent 100%),
           radial-gradient(ellipse 26% 15% at 92% 52%, #000 0%, rgba(0,0,0,.56) 36%, transparent 100%),
           radial-gradient(ellipse 27% 16% at 8% 57%, #000 0%, rgba(0,0,0,.52) 36%, transparent 100%),
@@ -815,7 +822,7 @@
           radial-gradient(ellipse 24% 17% at 8% 94%, #000 0%, rgba(0,0,0,.58) 34%, transparent 100%);
         mask-image:
           radial-gradient(ellipse 31% 17% at 91% 9%, #000 0%, rgba(0,0,0,.78) 34%, transparent 100%),
-          radial-gradient(ellipse 48% 32% at 54% 40%, rgba(0,0,0,.38) 0%, rgba(0,0,0,.22) 46%, rgba(0,0,0,.08) 72%, transparent 100%),
+          radial-gradient(ellipse 46% 34% at 54% 39%, rgba(0,0,0,.42) 0%, rgba(0,0,0,.27) 44%, rgba(0,0,0,.10) 71%, transparent 100%),
           radial-gradient(ellipse 25% 15% at 8% 12%, #000 0%, rgba(0,0,0,.58) 36%, transparent 100%),
           radial-gradient(ellipse 26% 15% at 92% 52%, #000 0%, rgba(0,0,0,.56) 36%, transparent 100%),
           radial-gradient(ellipse 27% 16% at 8% 57%, #000 0%, rgba(0,0,0,.52) 36%, transparent 100%),
@@ -825,8 +832,12 @@
     }
 
     @media (max-width:640px){
-      .current.cover-ready .cover-detail{opacity:.31}
-      .current.cover-ready .cover-edge-detail{opacity:.40}
+      .current{
+        --cover-detail-opacity:.40;
+        --cover-edge-opacity:.48;
+        --cover-detail-blur:2.8px;
+        --cover-edge-blur:1.7px;
+      }
     }
 
     @media (prefers-reduced-transparency: reduce){
@@ -1463,6 +1474,11 @@
     }
 
     @media (max-height:520px) and (orientation:landscape){
+      .current{
+        --cover-base-opacity:.76;
+        --cover-detail-opacity:.42;
+        --cover-edge-opacity:.50;
+      }
       .shell{max-inline-size:min(860px,100%)}
       .countdown-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
       .countdown-unit{min-height:0}
@@ -1473,6 +1489,16 @@
        Browsers without CSS masking retain the centered album-art treatment. */
     @supports not ((mask-image:linear-gradient(#000,#000)) or (-webkit-mask-image:linear-gradient(#000,#000))){
       .current .cover-subject-detail{display:none!important}
+    }
+
+    @media (min-width:641px) and (max-width:899px){
+      .current{
+        --cover-base-opacity:.76;
+        --cover-detail-opacity:.42;
+        --cover-edge-opacity:.50;
+        --cover-detail-blur:2.6px;
+        --cover-edge-blur:1.6px;
+      }
     }
 
     @media (min-width:900px){
@@ -1544,6 +1570,11 @@
     }
 
     @media (max-width:340px){
+      .current{
+        --cover-detail-opacity:.40;
+        --cover-edge-opacity:.48;
+      }
+
       body{
         padding-left:max(8px, env(safe-area-inset-left, 0px));
         padding-right:max(8px, env(safe-area-inset-right, 0px));
