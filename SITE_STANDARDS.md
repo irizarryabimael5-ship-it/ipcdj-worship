@@ -1490,3 +1490,34 @@ Native handoff:
 - Existing Home Screen installations may retain launch-screen/install-time behavior independently from live web updates; device testing must distinguish installed-state artifacts from current web code.
 
 Preserve v114 fixed-position transition architecture, v112 black native bridge, v111 repository hygiene, and all audio/reliability invariants.
+
+
+## Exact native black iPhone startup surfaces v116
+
+v116 replaces the single universal iOS startup SVG with exact-size native PNG startup surfaces for supported iPhone viewport families.
+
+Purpose:
+- iOS Home Screen web apps have a native startup phase before HTML/CSS/JavaScript controls the screen.
+- If no matching startup image exists, iOS may display a fallback/previous-app screenshot or a blank system frame.
+- The native phase must therefore be visually indistinguishable from the web launch canvas: pure #000000 with no logo or other visible content.
+
+Assets:
+- Native startup files live under ios-launch/.
+- Each file is a real RGB PNG whose pixel dimensions exactly match its targeted iPhone standalone window family.
+- All startup PNGs are solid #000000.
+- The obsolete ios-startup-universal.svg is removed.
+- Startup PNGs are referenced with exact device-width, device-height, -webkit-device-pixel-ratio, and portrait orientation media queries.
+- Current/common iPhone families from 320x568@2 through 440x956@3 are covered.
+- sw.js precaches the startup PNG set so the assets remain available offline and during installed-app launches.
+
+Visual ownership:
+- Native startup PNG: pure black only.
+- Visible IPCDJ logo: web #ipcdj-launch overlay only.
+- Website content: revealed only after the approved web fade sequence.
+- Never place a logo, spinner, text, screenshot, gradient, or other visible object in native iOS startup PNGs.
+
+Repository hygiene:
+- The temporary generator workflow used to create the binary PNGs must not remain in the repository after generation.
+- Startup assets are functional compatibility files and are not repository clutter.
+
+Preserve v115 idempotent standalone lifecycle, v114 fixed-position opacity transitions, all audio behavior, and all other site invariants.
