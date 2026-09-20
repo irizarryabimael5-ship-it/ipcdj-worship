@@ -2052,3 +2052,37 @@ First-run evidence:
 
 Revert:
 - backup-before-health-calibration-v129 preserves the complete v128 state.
+
+
+## Preview loudness normalization v130
+
+v130 adds consistent automatic loudness matching to every scheduled Web Audio preview.
+
+Normalization architecture:
+- Every decoded preview buffer is analyzed before playback.
+- Analysis is performed on the exact preview clip that will be heard, not blindly across the entire provider asset.
+- Use gated 400 ms block RMS measurements so silence, quiet intros and tails do not cause a preview to be boosted excessively.
+- Use the 70th-percentile active block as the representative program level.
+- Target program level is approximately -14.5 dBFS RMS proxy.
+- Automatic correction is normally limited to approximately +/-6 dB.
+- A 0.97 peak ceiling always overrides upward gain if needed to preserve headroom and avoid normalization-created clipping.
+- Silence/invalid-analysis fallback is unity gain.
+
+Playback chain:
+- AudioBufferSourceNode -> fixed normalization GainNode -> existing fade/crossfade GainNode -> analyser/output.
+- Normalization gain is constant for the preview voice.
+- Existing fade-in, fade-out and .68-second song-to-song crossfade remain independent and unchanged.
+- Outgoing crossfade voices retain their own normalization node until disposal.
+- Natural end, pause/reset, switching, mobile lock/background hard-stop and outgoing-voice cleanup disconnect normalization nodes correctly.
+
+Scope:
+- The current song pipeline uses Web Audio / Spotify preview assets, so current and future scheduled previews receive the same normalization system automatically.
+- Do not normalize by arbitrary provider volume metadata; derive the correction from decoded PCM for consistency across providers.
+
+Standards basis:
+- AudioBuffer.getChannelData() is the canonical Web Audio path for PCM analysis.
+- GainNode is the standard cross-browser amplitude stage.
+- Avoid changing GainNode levels abruptly during active playback; v130 uses a fixed pre-play normalization gain and leaves timed fade automation on the existing envelope node.
+
+Revert:
+- backup-before-preview-normalization-v130 preserves the complete v129 state.
