@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v127" />
+  <meta name="ipcdj-build" content="persistent-launch-v128" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -2340,6 +2340,25 @@
       pointer-events:none;
     }
 
+  </style>
+  <style id="ipcdj-health-guard-style">
+    /* Adaptive health guard: only expensive ambient decoration is degraded.
+       Core content, scrolling, countdowns, previews and controls are never hidden. */
+    html.ipcdj-performance-lite .ambient-blob{
+      filter:blur(12px);
+    }
+
+    html.ipcdj-performance-lite .ambient-blob.b3,
+    html.ipcdj-performance-lite .ambient-blob.b4{
+      animation-play-state:paused !important;
+      opacity:.38 !important;
+    }
+
+    @media (prefers-reduced-motion:reduce){
+      html.ipcdj-performance-lite .ambient-blob{
+        filter:blur(12px);
+      }
+    }
   </style>
 </head>
 <body>
@@ -6378,6 +6397,325 @@
     }else{
       revealItems.forEach(item=>item.classList.add("visible"));
     }
+  </script>
+  <script id="ipcdj-health-monitor">
+    (() => {
+      "use strict";
+
+      const root=document.documentElement;
+      const buildMeta=document.querySelector('meta[name="ipcdj-build"]');
+      const BUILD=buildMeta?buildMeta.content:"unknown";
+      const STORAGE_KEY="ipcdj-health-v1";
+      const MAX_EVENTS=24;
+      const MAX_SAMPLES=12;
+
+      const health={
+        version:1,
+        build:BUILD,
+        startedAt:Date.now(),
+        mode:"full",
+        badStreak:0,
+        goodStreak:0,
+        cls:0,
+        lcp:0,
+        longTasks:[],
+        longAnimationFrames:[],
+        errors:[],
+        rejections:[],
+        resourceErrors:[],
+        frameSamples:[],
+        lastCheck:null
+      };
+
+      const trim=(list,max=MAX_EVENTS)=>{
+        if(list.length>max)list.splice(0,list.length-max);
+      };
+
+      const serializeReason=value=>{
+        try{
+          if(value instanceof Error)return value.name+": "+value.message;
+          if(typeof value==="string")return value;
+          return JSON.stringify(value);
+        }catch(_){
+          return String(value);
+        }
+      };
+
+      const record=(bucket,payload)=>{
+        bucket.push({time:Date.now(),...payload});
+        trim(bucket);
+      };
+
+      const sameOrigin=url=>{
+        try{return new URL(url,location.href).origin===location.origin}catch(_){return false}
+      };
+
+      window.addEventListener("error",event=>{
+        const target=event.target;
+        if(target&&target!==window){
+          const url=target.currentSrc||target.src||target.href||"";
+          record(health.resourceErrors,{
+            url:String(url||""),
+            sameOrigin:sameOrigin(url),
+            tag:String(target.tagName||"").toLowerCase()
+          });
+          return;
+        }
+
+        const message=String(event.message||"");
+        if(/ResizeObserver loop/i.test(message))return;
+        record(health.errors,{
+          message,
+          source:String(event.filename||""),
+          line:Number(event.lineno)||0,
+          column:Number(event.colno)||0
+        });
+      },true);
+
+      window.addEventListener("unhandledrejection",event=>{
+        record(health.rejections,{reason:serializeReason(event.reason)});
+      });
+
+      const supported=(
+        typeof PerformanceObserver!=="undefined"&&
+        Array.isArray(PerformanceObserver.supportedEntryTypes)
+      )?PerformanceObserver.supportedEntryTypes:[];
+
+      const observe=(type,callback,options={})=>{
+        if(typeof PerformanceObserver==="undefined"||!supported.includes(type))return;
+        try{
+          const observer=new PerformanceObserver(list=>callback(list.getEntries()));
+          observer.observe({type,buffered:true,...options});
+        }catch(_){}
+      };
+
+      observe("long-animation-frame",entries=>{
+        entries.forEach(entry=>{
+          if(entry.duration<50)return;
+          record(health.longAnimationFrames,{
+            duration:Math.round(entry.duration*10)/10,
+            blockingDuration:Math.round((entry.blockingDuration||0)*10)/10
+          });
+        });
+      });
+
+      observe("longtask",entries=>{
+        entries.forEach(entry=>{
+          if(entry.duration<50)return;
+          record(health.longTasks,{duration:Math.round(entry.duration*10)/10});
+        });
+      });
+
+      observe("layout-shift",entries=>{
+        entries.forEach(entry=>{
+          if(entry.hadRecentInput)return;
+          health.cls+=Number(entry.value)||0;
+        });
+      });
+
+      observe("largest-contentful-paint",entries=>{
+        const last=entries[entries.length-1];
+        if(last)health.lcp=Math.round(last.startTime||0);
+      });
+
+      const percentile=(sorted,p)=>{
+        if(!sorted.length)return 0;
+        const index=Math.min(sorted.length-1,Math.max(0,Math.ceil(sorted.length*p)-1));
+        return sorted[index];
+      };
+
+      const documentOverflow=()=>Math.max(
+        0,
+        document.documentElement.scrollWidth-document.documentElement.clientWidth
+      );
+
+      const coreState=()=>{
+        const launch=document.getElementById("ipcdj-launch");
+        const cards=[...document.querySelectorAll("[data-current-song-card]")];
+        const previews=[...document.querySelectorAll("[data-preview-song-id]")];
+        const sameOriginFailures=health.resourceErrors.filter(item=>item.sameOrigin).length;
+
+        return {
+          build:BUILD,
+          mode:health.mode,
+          documentVisibility:document.visibilityState,
+          launchClass:launch?launch.className:"",
+          currentCards:cards.length,
+          previewRows:previews.length,
+          disabledPreviewButtons:previews.filter(row=>{
+            const button=row.querySelector(".preview-button");
+            return !!(button&&button.disabled);
+          }).length,
+          horizontalOverflow:Math.round(documentOverflow()*10)/10,
+          sameOriginResourceErrors:sameOriginFailures,
+          serviceWorkerControlled:!!navigator.serviceWorker?.controller,
+          cls:Math.round(health.cls*10000)/10000,
+          lcp:health.lcp,
+          errors:health.errors.length,
+          rejections:health.rejections.length,
+          longTasks:health.longTasks.length,
+          longAnimationFrames:health.longAnimationFrames.length
+        };
+      };
+
+      const persist=()=>{
+        try{
+          localStorage.setItem(STORAGE_KEY,JSON.stringify({
+            time:Date.now(),
+            build:BUILD,
+            mode:health.mode,
+            state:coreState(),
+            latestFrameSample:health.frameSamples[health.frameSamples.length-1]||null,
+            recentErrors:health.errors.slice(-5),
+            recentRejections:health.rejections.slice(-5),
+            recentResourceErrors:health.resourceErrors.slice(-5)
+          }));
+        }catch(_){}
+      };
+
+      const applyAdaptiveMode=sample=>{
+        if(!sample)return;
+        const severe=(
+          sample.p95>55||
+          sample.over50Ratio>.15||
+          sample.max>180
+        );
+        const healthy=(
+          sample.p95<34&&
+          sample.over50Ratio<.05&&
+          sample.max<120
+        );
+
+        if(severe){
+          health.badStreak++;
+          health.goodStreak=0;
+        }else if(healthy){
+          health.goodStreak++;
+          health.badStreak=Math.max(0,health.badStreak-1);
+        }else{
+          health.badStreak=Math.max(0,health.badStreak-1);
+          health.goodStreak=0;
+        }
+
+        if(health.mode!=="lite"&&health.badStreak>=2){
+          health.mode="lite";
+          root.classList.add("ipcdj-performance-lite");
+        }else if(health.mode==="lite"&&health.goodStreak>=3){
+          health.mode="full";
+          health.badStreak=0;
+          root.classList.remove("ipcdj-performance-lite");
+        }
+      };
+
+      const sampleFrames=(duration=1500)=>new Promise(resolve=>{
+        if(document.hidden||typeof requestAnimationFrame!=="function"){
+          resolve(null);
+          return;
+        }
+
+        const target=Math.max(700,Math.min(3000,Number(duration)||1500));
+        const deltas=[];
+        let start=0;
+        let last=0;
+
+        const finish=()=>{
+          if(!deltas.length){
+            resolve(null);
+            return;
+          }
+
+          const sorted=deltas.slice().sort((a,b)=>a-b);
+          const over50=deltas.filter(value=>value>50).length;
+          const sample={
+            time:Date.now(),
+            duration:Math.round(deltas.reduce((sum,value)=>sum+value,0)),
+            frames:deltas.length,
+            median:Math.round(percentile(sorted,.5)*10)/10,
+            p95:Math.round(percentile(sorted,.95)*10)/10,
+            max:Math.round(sorted[sorted.length-1]*10)/10,
+            over50Ratio:Math.round((over50/deltas.length)*1000)/1000
+          };
+
+          health.frameSamples.push(sample);
+          trim(health.frameSamples,MAX_SAMPLES);
+          applyAdaptiveMode(sample);
+          persist();
+          resolve(sample);
+        };
+
+        const tick=now=>{
+          if(!start){
+            start=now;
+            last=now;
+          }else{
+            deltas.push(now-last);
+            last=now;
+          }
+
+          if(now-start>=target){
+            finish();
+            return;
+          }
+          requestAnimationFrame(tick);
+        };
+
+        requestAnimationFrame(tick);
+      });
+
+      const checkNow=()=>{
+        const snapshot={
+          ...coreState(),
+          latestFrameSample:health.frameSamples[health.frameSamples.length-1]||null,
+          recentErrors:health.errors.slice(-5),
+          recentRejections:health.rejections.slice(-5),
+          recentResourceErrors:health.resourceErrors.slice(-5)
+        };
+        health.lastCheck={time:Date.now(),snapshot};
+        persist();
+        return snapshot;
+      };
+
+      let scrollSamplePending=false;
+      let lastScrollSample=0;
+
+      window.addEventListener("scroll",()=>{
+        const now=Date.now();
+        if(scrollSamplePending||now-lastScrollSample<30000)return;
+        scrollSamplePending=true;
+        setTimeout(()=>{
+          lastScrollSample=Date.now();
+          scrollSamplePending=false;
+          sampleFrames(1200);
+        },280);
+      },{passive:true});
+
+      document.addEventListener("visibilitychange",()=>{
+        if(document.hidden){
+          persist();
+        }else{
+          setTimeout(()=>sampleFrames(1200),900);
+        }
+      },{passive:true});
+
+      window.addEventListener("pagehide",persist,{passive:true});
+      window.addEventListener("online",()=>setTimeout(checkNow,250),{passive:true});
+
+      // One startup sample after the launch has had time to settle, then sparse
+      // periodic integrity snapshots. The monitor is intentionally low overhead.
+      setTimeout(()=>sampleFrames(1800),5200);
+      setInterval(checkNow,30000);
+
+      window.IPCDJ_HEALTH=Object.freeze({
+        version:1,
+        build:BUILD,
+        getSnapshot:checkNow,
+        sampleFrames,
+        checkNow,
+        clearStored:()=>{
+          try{localStorage.removeItem(STORAGE_KEY)}catch(_){}
+        }
+      });
+    })();
   </script>
 </body>
 </html>
