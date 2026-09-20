@@ -1297,3 +1297,32 @@ Cross-platform requirements:
 - For prefers-reduced-motion, disable component motion and shorten the exit while retaining a brief static branded launch state.
 - The existing v106 zero-flash content rules remain: underlying initial content is already laid out and visible beneath the launch layer.
 - The existing v105 first-load cover fallback and platform hardening remain unchanged.
+
+
+## Exact one-piece logo splash v108
+
+v108 supersedes the component-level SVG animation strategy from v107.
+
+Logo construction:
+- Build launch-logo-white.svg directly from the canonical repository favicon.svg geometry.
+- Preserve the original visible black logo shapes and convert them to white.
+- Preserve the original final white donut as a transparent cutout using an SVG luminance/alpha mask rather than displaying it as a second white circle.
+- The resulting logo has a transparent canvas and exact IPCDJ geometry.
+- The exact same SVG is also embedded inline in the initial HTML so launch rendering has zero network dependency.
+
+Animation:
+- Treat the finished logo as one visual unit. Do not animate individual clipped SVG groups, rings, letters, or internal transforms.
+- Animate only the outer .launch-logo-stage with opacity plus a very small translate/scale settle.
+- Use a pure #000000 launch canvas for clean native-style continuity.
+- Normal reveal is approximately .92 seconds followed by a short stable hold.
+- Exit dissolves the full black launch layer over approximately .72 seconds into the already-rendered website.
+- Do not use circles, particles, spinner motion, SVG filters, internal clip-path transforms, or element-by-element logo drawing effects.
+- The logo must remain centered and fully recognizable throughout the entire visible portion of the animation.
+
+Reliability:
+- Launch layer exists in initial HTML and critical CSS.
+- Inline exact vector means no logo network fetch can delay the splash.
+- Minimum normal visibility is approximately 1.26 seconds and hard maximum is approximately 2.6 seconds.
+- Wait for the current prep card/eager cover where practical, but never exceed the hard maximum.
+- Reduced-motion users see the exact static logo with a short crossfade.
+- Preserve v106 zero-flash startup rules, v105 resource hardening, v104 mobile audio lifecycle stop, desktop tab preview continuation, and the full Spotify Adelanto.
