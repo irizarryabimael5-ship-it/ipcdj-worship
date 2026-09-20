@@ -1074,3 +1074,27 @@ Dios De Milagros:
 - previewClipStart 79 remains historical/full-song chorus reference only and is not used as an offset into the 30-second Apple preview.
 - Do not run strongestPreviewWindow() when previewCatalogOffset is explicitly configured.
 - The universal Web Audio engine, pause/resume behavior, background-stop behavior, and cross-platform parity from v95 remain unchanged.
+
+
+## Spotify chorus preview source v97
+
+Dios De Milagros uses the official Spotify-hosted 30-second preview asset for the exact track as its Web Audio source.
+
+Track:
+- Dios De Milagros - En Vivo Desde México
+- Miel San Marcos & Kim Richards
+- Spotify track URI: spotify:track:1v2lsV9SYQc0KbRkOLEJzk
+
+Preview source:
+- previewAudioProvider: spotify
+- previewAudioUrl: https://p.scdn.co/mp3-preview/7885aca093c7465af5cb0c4696094db59d167c3f.mp3
+- previewCatalogOffset: 0
+- previewClipDuration: 19.4 seconds
+- previewFadeIn: .70 seconds
+- previewFadeOut: 1.60 seconds
+
+Required behavior:
+- A configured previewAudioUrl takes priority over Apple/iTunes preview lookup.
+- The direct preview still plays only through the universal Web Audio engine.
+- Do not re-enable Spotify's full player, YouTube iframe playback, Media Session transport, or background playback for the Adelanto.
+- Pause/resume, visibility/background stop, exact duration, and gain-envelope behavior from v95 remain unchanged.
