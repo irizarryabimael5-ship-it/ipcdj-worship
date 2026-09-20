@@ -1436,3 +1436,26 @@ Opacity sequence:
 iOS native bridge remains pure black so the visible IPCDJ logo belongs to the web animation rather than a competing static startup image.
 
 Preserve v112 seamless handoff, v111 repository hygiene, v110 fixed-position design intent, v109 persistent launch lifecycle, and all existing audio/visual reliability invariants.
+
+
+## Stable fixed launch fade v114
+
+v114 removes the iOS-only dynamic launch-position correction from v113.
+
+Position:
+- The launch logo has no translate, scale, or runtime viewport correction.
+- Do not use --ipcdj-launch-y, screen.height / innerHeight corrections, or any other JavaScript positioning adjustment.
+- The logo remains centered by the fixed full-screen #ipcdj-launch grid for its entire visible lifetime.
+- Initial launch and warm PWA resume use the exact same centered coordinate system.
+
+Fade lifecycle:
+- Do not restart a CSS keyframe animation to reveal the logo.
+- launch-armed establishes the opaque black overlay with logo opacity 0.
+- After one requestAnimationFrame, launch-playing transitions logo opacity from 0 to 1 over approximately .72 seconds.
+- The logo remains fully visible through the hold period.
+- launch-exit transitions logo opacity back to 0 over approximately .62 seconds while the black layer begins its approximately .68 second dissolve after a short overlap delay.
+- No transform may be animated or changed during reveal, hold, or exit.
+- The initial HTML launch state is launch-armed, not launch-playing, so WebKit gets a real opacity-0 frame before the fade begins.
+- Warm PWA resume follows the same armed -> playing transition and remains covered by black while the transition is prepared.
+
+Preserve v112 pure-black iOS native startup bridge, v111 repository hygiene, v109 persistent launch lifecycle, and all approved reliability/audio behavior.
