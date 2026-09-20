@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v120" />
+  <meta name="ipcdj-build" content="persistent-launch-v121" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -1422,6 +1422,17 @@
       transform:none;
     }
 
+    .future-inline-preview{
+      margin-top:12px;
+      padding-top:12px;
+      border-top:1px solid rgba(255,255,255,.07);
+    }
+
+    .future-inline-preview .preview-button{
+      width:40px;
+      height:40px;
+    }
+
     .inline-preview-label{
       margin:0;
       color:#dfe5f1;
@@ -2739,7 +2750,13 @@
         title:"Glorioso Día",
         artist:"Passion Music",
         artworkQuery:"Glorioso Día Passion Kristian Stanfill 2017",
-        previewClipDuration:15,
+        spotifyTrackUri:"spotify:track:0ksqrKoeNvywkfeqltzVQ3",
+        previewClipDuration:30,
+        previewUseFullAsset:true,
+        previewAudioProvider:"spotify",
+        previewAudioUrl:"https://p.scdn.co/mp3-preview/4e7b800000c5620569348f794ae143844334b14c.mp3",
+        previewFadeIn:.70,
+        previewFadeOut:1.60,
         activeFrom:"2026-09-28T06:00:00-04:00",
         learningStart:"2026-10-12T00:00:00-04:00",
         learningEnd:"2026-10-18T23:59:59-04:00",
@@ -2757,7 +2774,13 @@
         artist:"Saddleback Worship",
         artworkQuery:"No Fallarás En Vivo Saddleback Worship 2024",
         itunesCollectionId:"1760002960",
-        previewClipDuration:15,
+        spotifyTrackUri:"spotify:track:04IkHz1UynmZ48Imgkla2J",
+        previewClipDuration:30,
+        previewUseFullAsset:true,
+        previewAudioProvider:"spotify",
+        previewAudioUrl:"https://p.scdn.co/mp3-preview/8a7c082277138d69b52b8a0ee1d490b0891365e2.mp3",
+        previewFadeIn:.70,
+        previewFadeOut:1.60,
         activeFrom:"2026-10-26T06:00:00-04:00",
         learningStart:"2026-10-26T00:00:00-04:00",
         learningEnd:"2026-11-01T23:59:59-05:00",
@@ -3526,6 +3549,8 @@
     let webPreviewStartedAt=0;
     let webPreviewPlaying=false;
     let webPreviewRunToken=0;
+    let previewSwitchToken=0;
+    let webPreviewSwitchPromise=null;
 
     function ensureWebPreviewContext(){
       if(webPreviewContext&&webPreviewContext.state!=="closed")return webPreviewContext;
@@ -3821,6 +3846,65 @@
       stopWebAudioSource();
       setPreviewButtonState(songId,"play");
       clearNativePreviewMediaSession();
+    }
+
+    async function fadeOutWebAudioPreviewForSwitch(songId,duration=.44){
+      if(webPreviewSwitchPromise)return webPreviewSwitchPromise;
+      if(
+        !webPreviewPlaying||
+        webPreviewSongId!==songId||
+        !webPreviewContext||
+        webPreviewContext.state==="closed"||
+        !webPreviewSource||
+        !webPreviewGain
+      )return;
+
+      const ctx=webPreviewContext;
+      const source=webPreviewSource;
+      const gainNode=webPreviewGain;
+      const oldSongId=webPreviewSongId;
+      const fadeSeconds=Math.max(.18,Number(duration)||.44);
+      const token=++webPreviewRunToken;
+
+      webPreviewPlaying=false;
+      setPreviewButtonState(oldSongId,"play");
+      clearNativePreviewMediaSession();
+
+      webPreviewSwitchPromise=(async()=>{
+        try{
+          const now=ctx.currentTime;
+          const gain=gainNode.gain;
+          if(typeof gain.cancelAndHoldAtTime==="function"){
+            gain.cancelAndHoldAtTime(now);
+          }else{
+            const current=Math.max(0,Math.min(1,Number(gain.value)||1));
+            gain.cancelScheduledValues(now);
+            gain.setValueAtTime(current,now);
+          }
+          gain.linearRampToValueAtTime(0,now+fadeSeconds);
+        }catch(_){}
+
+        await new Promise(resolve=>setTimeout(resolve,Math.ceil(fadeSeconds*1000)+24));
+
+        // Do not touch a newer graph if another request has already replaced it.
+        if(token===webPreviewRunToken||webPreviewSource===source){
+          try{source.onended=null}catch(_){}
+          try{source.stop(0)}catch(_){}
+          try{source.disconnect()}catch(_){}
+          try{gainNode.disconnect()}catch(_){}
+
+          if(webPreviewSource===source)webPreviewSource=null;
+          if(webPreviewGain===gainNode)webPreviewGain=null;
+          if(webPreviewSongId===oldSongId)webPreviewSongId="";
+          if(activePreviewSongId===oldSongId)activePreviewSongId="";
+          webPreviewElapsed=0;
+          webPreviewStartedAt=0;
+        }
+      })().finally(()=>{
+        webPreviewSwitchPromise=null;
+      });
+
+      return webPreviewSwitchPromise;
     }
 
     function silenceWebAudioPreviewForBackground(songId){
@@ -4521,11 +4605,33 @@
         stopPreviewTracking();
         cancelAnimationFrame(previewManualFadeFrame);
 
-        if(activePreviewSongId&&activePreviewSongId!==song.id){
-          if(webPreviewPlaying&&webPreviewSongId===activePreviewSongId){
-            pauseWebAudioPreview(activePreviewSongId);
+        // Same-song taps retain the normal immediate pause/resume behavior.
+        if(webPreviewPlaying&&webPreviewSongId===song.id){
+          pauseWebAudioPreview(song.id);
+          return;
+        }
+
+        const requestToken=++previewSwitchToken;
+        const previousId=activePreviewSongId||webPreviewSongId;
+
+        if(previousId&&previousId!==song.id){
+          setPreviewButtonState(song.id,"starting");
+
+          if(
+            (webPreviewPlaying&&webPreviewSongId===previousId)||
+            webPreviewSwitchPromise
+          ){
+            await fadeOutWebAudioPreviewForSwitch(previousId,.44);
           }
-          stopYouTubePreview(activePreviewSongId,{reset:true});
+
+          stopYouTubePreview(previousId,{reset:true});
+
+          // If the user selected yet another song during the handoff, this
+          // superseded request must not start after the newer choice.
+          if(requestToken!==previewSwitchToken){
+            setPreviewButtonState(song.id,"play");
+            return;
+          }
         }
 
         try{
@@ -5282,8 +5388,24 @@
             <div class="meta-line"><span class="meta-label">Aprendizaje:</span><span>${escapeHtml(song.learningLabel)}</span></div>
             <div class="meta-line"><span class="meta-label">Preparación final:</span><span>${escapeHtml(song.finalLabel)}</span></div>
           </div>
+          <div class="inline-preview future-inline-preview preview-ready" data-role="inline-preview">
+            <div class="inline-preview-label">Adelanto</div>
+            <div class="preview-queue">
+              ${previewRowMarkup(song)}
+            </div>
+          </div>
         </div>
       `).join("");
+
+      future.forEach(song=>{
+        const row=container.querySelector('[data-preview-song-id="'+CSS.escape(song.id)+'"]');
+        if(row&&!row.dataset.hydrating&&!row._previewData){
+          row.dataset.hydrating="true";
+          hydratePreviewRow(song).finally(()=>{
+            if(row.isConnected)delete row.dataset.hydrating;
+          });
+        }
+      });
 
       if(!future.length){
         container.innerHTML='<div class="song-row"><div class="song-top"><div><h3>Próxima canción por definir</h3><p>Se añadirá aquí cuando quede programada.</p></div></div></div>';
@@ -5384,14 +5506,15 @@
         ){
           ensureCoverTheme(song,card);
         }
+      });
 
-        const row=card.querySelector('[data-preview-song-id="'+CSS.escape(song.id)+'"]');
-        if(row&&!row._previewData&&!row.dataset.hydrating){
-          row.dataset.hydrating="true";
-          hydratePreviewRow(song).finally(()=>{
-            if(row.isConnected)delete row.dataset.hydrating;
-          });
-        }
+      document.querySelectorAll("[data-preview-song-id]").forEach(row=>{
+        const song=songPipeline.find(item=>item.id===row.dataset.previewSongId);
+        if(!song||row._previewData||row.dataset.hydrating)return;
+        row.dataset.hydrating="true";
+        hydratePreviewRow(song).finally(()=>{
+          if(row.isConnected)delete row.dataset.hydrating;
+        });
       });
     }
 
