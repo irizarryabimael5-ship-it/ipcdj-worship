@@ -1060,3 +1060,17 @@ Required behavior:
 - Clear top-level Media Session metadata/state/action handlers for the preview. The preview must not intentionally expose seek/skip/full-song transport controls on the OS lock screen.
 - Keep decoded preview buffers cached in-memory for low-latency replay during the page session.
 - If the catalog preview cannot be fetched/decoded, disable the preview control rather than silently falling back to a platform-inconsistent full YouTube media session.
+
+
+## Catalog chorus lock v96
+
+For songs whose Apple/iTunes preview asset already begins at the desired musical highlight, use an explicit offset within the catalog preview instead of energy-based window selection.
+
+Dios De Milagros:
+- previewCatalogOffset: 0 seconds relative to the Apple/iTunes 30-second preview asset.
+- previewClipDuration remains 19.4 seconds.
+- previewFadeIn remains .70 seconds.
+- previewFadeOut remains 1.60 seconds.
+- previewClipStart 79 remains historical/full-song chorus reference only and is not used as an offset into the 30-second Apple preview.
+- Do not run strongestPreviewWindow() when previewCatalogOffset is explicitly configured.
+- The universal Web Audio engine, pause/resume behavior, background-stop behavior, and cross-platform parity from v95 remain unchanged.
