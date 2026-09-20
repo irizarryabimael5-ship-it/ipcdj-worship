@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="mobile-cover-tiny-fix-v90" />
+  <meta name="ipcdj-build" content="cross-platform-experience-lock-v91" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -1155,6 +1155,10 @@
       background:rgba(255,255,255,.045);
       color:#fff;
       cursor:pointer;
+      appearance:none;
+      -webkit-appearance:none;
+      font:inherit;
+      line-height:1;
       -webkit-tap-highlight-color:transparent;
       touch-action:manipulation;
       box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
@@ -1668,6 +1672,34 @@
       .reveal{opacity:1;transform:none;transition:none}
       .pull-refresh{transition:none}
     }
+    /* Cross-platform invariants: browser engines may differ in native controls,
+       image compositing and text scaling, but the IPCDJ visual system should not. */
+    html{
+      -webkit-text-size-adjust:100%;
+      text-size-adjust:100%;
+    }
+
+    .current::before,
+    .current .cover-detail,
+    .current .cover-edge-detail{
+      background-repeat:no-repeat;
+      background-position:var(--cover-pos-x) var(--cover-pos-y);
+      transform-origin:center center;
+    }
+
+    .preview-button{
+      appearance:none;
+      -webkit-appearance:none;
+      border-style:solid;
+      font-family:inherit;
+      -webkit-user-select:none;
+      user-select:none;
+    }
+
+    .preview-button svg{
+      pointer-events:none;
+    }
+
   </style>
 </head>
 <body>
@@ -3088,13 +3120,17 @@
         const remaining=Math.max(0,youtubePreviewEnd-current);
         const fadeElapsed=Math.max(0,(performance.now()-youtubePreviewFadeStartedAt)/1000);
 
-        let volume=Math.round(
-          100*Math.min(1,fadeElapsed/Math.max(.05,youtubePreviewFadeIn))
-        );
+        const smoothstep=t=>{
+          const x=Math.max(0,Math.min(1,t));
+          return x*x*(3-(2*x));
+        };
+        const fadeInProgress=fadeElapsed/Math.max(.05,youtubePreviewFadeIn);
+        let volume=Math.round(100*smoothstep(fadeInProgress));
         if(remaining<youtubePreviewFadeOut){
+          const fadeOutProgress=remaining/Math.max(.05,youtubePreviewFadeOut);
           volume=Math.min(
             volume,
-            Math.round(100*(remaining/Math.max(.05,youtubePreviewFadeOut)))
+            Math.round(100*smoothstep(fadeOutProgress))
           );
         }
         volume=Math.max(0,Math.min(100,volume));
