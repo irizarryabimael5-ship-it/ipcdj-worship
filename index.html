@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="ios-webaudio-unlock-v101" />
+  <meta name="ipcdj-build" content="stability-polish-v102" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -452,6 +452,40 @@
       object-fit:contain;
       flex:0 0 auto;
       display:block;
+    }
+
+    .playlist-card{
+      padding:14px 16px;
+      margin-bottom:12px;
+      background:linear-gradient(180deg, rgba(13,18,28,.36), rgba(8,12,19,.42));
+    }
+
+    .playlist-card .section-title{
+      margin-bottom:3px;
+      font-size:.94rem;
+    }
+
+    .playlist-card .section-note{
+      margin-bottom:10px;
+      font-size:.80rem;
+      line-height:1.35;
+    }
+
+    .playlist-card .platforms{
+      gap:7px;
+    }
+
+    .playlist-card .platform{
+      min-height:44px;
+      padding:8px 10px;
+      gap:8px;
+      border-radius:13px;
+      font-size:.86rem;
+    }
+
+    .playlist-card .platform img{
+      width:20px;
+      height:20px;
     }
 
     .current{
@@ -1472,6 +1506,14 @@
       .brand-sub{display:block;margin:.12em 0 0}
       .eyebrow{font-size:.66rem;padding:6px 8px}
       .platform{padding:10px 11px;gap:9px}
+      .playlist-card .platform{
+        padding:7px 5px;
+        gap:4px;
+        font-size:.68rem;
+        flex-direction:column;
+        line-height:1.05;
+        text-align:center;
+      }
       .countdown-wrap,.progress-wrap{padding:10px}
       .timeline-item{padding:10px 11px}
       .song-row{padding:10px}
@@ -1521,6 +1563,24 @@
         justify-content:flex-start;
         padding-left:16px;
         min-height:58px;
+      }
+      .playlist-card{
+        padding:12px 14px;
+      }
+      .playlist-card .platforms{
+        grid-template-columns:repeat(3,minmax(0,1fr));
+        gap:6px;
+      }
+      .playlist-card .platform{
+        min-height:44px;
+        padding:7px 8px;
+        justify-content:center;
+        gap:6px;
+        font-size:.76rem;
+      }
+      .playlist-card .platform img{
+        width:18px;
+        height:18px;
       }
       .song-name{max-width:100%}
       .countdown-heading{align-items:flex-start;flex-direction:column;gap:4px}
@@ -1728,9 +1788,9 @@
       </p>
     </header>
 
-    <section class="card reveal">
+    <section class="card reveal playlist-card">
       <h2 class="section-title">Próximas canciones</h2>
-      <p class="section-note">Escucha y guarda la playlist completa en tu plataforma.</p>
+      <p class="section-note">Playlist completa · acceso rápido si la necesitas.</p>
 
       <div class="platforms">
         <a class="platform" href="https://open.spotify.com/playlist/6j6ePmuQQOKZpbeG0SeG1y?si=idXk7HCHSBu6Hc7103HjXA" target="_blank" rel="noopener">
@@ -2396,6 +2456,12 @@
       image.onerror=reveal;
       image.src=url;
       if(image.complete&&image.naturalWidth)reveal();
+
+      // Some mobile/WebView image requests can remain pending without firing
+      // load/error promptly. Never leave the prepared card permanently hidden.
+      setTimeout(()=>{
+        if(!revealed&&card.isConnected)reveal();
+      },1800);
     }
 
     function resetCoverSubject(card){
@@ -2414,6 +2480,20 @@
       card.style.setProperty("--subject-opacity","0");
       card.classList.remove("subject-ready");
       delete card.dataset.coverSubject;
+    }
+
+    function getBootCover(song){
+      if(!song)return "";
+      try{
+        const records=JSON.parse(localStorage.getItem(COVER_BOOT_CACHE_KEY)||"[]");
+        if(!Array.isArray(records))return "";
+        const record=records
+          .filter(item=>item&&item.songId===song.id&&item.url)
+          .sort((a,b)=>(b.savedAt||0)-(a.savedAt||0))[0];
+        return record ? highResolutionArtworkUrl(record.url) : "";
+      }catch(_){
+        return "";
+      }
     }
 
     function rememberBootCover(song,url){
@@ -3237,6 +3317,53 @@
       clearNativePreviewMediaSession();
     }
 
+    function silenceWebAudioPreviewForBackground(songId){
+      if(!webPreviewPlaying||webPreviewSongId!==songId)return;
+
+      const elapsed=Math.max(0,(performance.now()-webPreviewStartedAt)/1000);
+      webPreviewElapsed=Math.min(webPreviewClipDuration,elapsed);
+      const token=++webPreviewRunToken;
+      webPreviewPlaying=false;
+
+      const ctx=webPreviewContext;
+      const gain=webPreviewGain;
+      const source=webPreviewSource;
+
+      if(ctx&&gain&&ctx.state!=="closed"){
+        try{
+          const now=ctx.currentTime;
+          const current=Math.max(.0001,Number(gain.gain.value)||webPreviewGainAt(webPreviewElapsed)||.0001);
+          gain.gain.cancelScheduledValues(now);
+          gain.gain.setValueAtTime(current,now);
+          gain.gain.exponentialRampToValueAtTime(.0001,now+.08);
+        }catch(_){}
+      }
+
+      // Let the gain reach silence before disconnecting/stopping the source.
+      // This prevents the short click/whine that some iOS audio routes produce
+      // when an active Web Audio graph is torn down at lock/background time.
+      setTimeout(()=>{
+        if(token!==webPreviewRunToken)return;
+        if(source){
+          try{source.onended=null}catch(_){}
+          try{source.stop()}catch(_){}
+          try{source.disconnect()}catch(_){}
+        }
+        if(gain){
+          try{gain.disconnect()}catch(_){}
+        }
+        if(webPreviewSource===source)webPreviewSource=null;
+        if(webPreviewGain===gain)webPreviewGain=null;
+
+        if(ctx&&isMobilePreviewEnvironment()&&ctx.state==="running"){
+          ctx.suspend().catch(()=>{});
+        }
+      },95);
+
+      setPreviewButtonState(songId,"play");
+      clearNativePreviewMediaSession();
+    }
+
     async function toggleWebAudioPreview(song,data){
       if(webPreviewPlaying&&webPreviewSongId===song.id){
         pauseWebAudioPreview(song.id);
@@ -3288,7 +3415,7 @@
       }
 
       if(webPreviewPlaying&&webPreviewSongId){
-        pauseWebAudioPreview(webPreviewSongId);
+        silenceWebAudioPreviewForBackground(webPreviewSongId);
       }
       if(youtubePreviewPlaying&&youtubePreviewPlayerSongId){
         try{youtubePreviewPlayer.pauseVideo()}catch(_){}
@@ -3299,7 +3426,9 @@
 
     document.addEventListener("visibilitychange",pausePreviewWhenBackgrounded,{passive:true});
     window.addEventListener("pagehide",()=>{
-      if(webPreviewPlaying&&webPreviewSongId)pauseWebAudioPreview(webPreviewSongId);
+      if(webPreviewPlaying&&webPreviewSongId){
+        silenceWebAudioPreviewForBackground(webPreviewSongId);
+      }
       if(youtubePreviewPlayer){
         try{youtubePreviewPlayer.pauseVideo()}catch(_){}
       }
@@ -4200,6 +4329,15 @@
       const fallback=COVER_THEME_FALLBACKS[song.id]||[[82,74,68],[116,92,70],[58,68,78]];
       applyCoverTheme(song,fallback,card);
 
+      // A previously resolved active cover is the fastest and most reliable
+      // startup path. Apply it before any provider network request.
+      const bootArtwork=getBootCover(song);
+      if(bootArtwork){
+        warmCoverImage(bootArtwork,"high");
+        applyCoverArtwork(song,bootArtwork,card);
+        applyCurrentSongSubjectArt(song,bootArtwork,card);
+      }
+
       let cachedPalette=null;
       try{
         const cached=localStorage.getItem(COVER_THEME_CACHE_PREFIX+song.id);
@@ -4213,14 +4351,34 @@
       }catch(_){}
 
       try{
-        const artworkUrl=await resolveArtworkUrl(song);
+        let artworkUrl="";
+        for(let attempt=0;attempt<3&&!artworkUrl;attempt++){
+          if(attempt>0){
+            await new Promise(resolve=>setTimeout(resolve,attempt*450));
+          }
+          artworkUrl=await resolveArtworkUrl(song).catch(()=>"");
+        }
+
         if(coverThemeRequestTokens.get(song.id)!==token)return;
-        if(!artworkUrl)return;
+
+        // If providers temporarily fail, retain the already-applied boot cover.
+        if(!artworkUrl){
+          if(bootArtwork){
+            card.classList.add("cover-ready");
+            if(card.dataset.coverSubject)card.classList.add("subject-ready");
+          }
+          return;
+        }
 
         rememberBootCover(song,artworkUrl);
         warmCoverImage(artworkUrl,"high");
-        applyCoverArtwork(song,artworkUrl,card);
-        applyCurrentSongSubjectArt(song,artworkUrl,card);
+
+        // Avoid restarting a perfectly good reveal when the network resolves to
+        // the exact same cached URL already on the card.
+        if(card.dataset.coverArtworkUrl!==highResolutionArtworkUrl(artworkUrl)){
+          applyCoverArtwork(song,artworkUrl,card);
+          applyCurrentSongSubjectArt(song,artworkUrl,card);
+        }
 
         if(cachedPalette)return;
 
