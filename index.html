@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="wallclock-preview-envelope-v92" />
+  <meta name="ipcdj-build" content="true-pause-resume-v93" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -2923,6 +2923,9 @@
     let youtubePreviewPrebufferedSongId="";
     let youtubePreviewHotStandbySongId="";
     let youtubePreviewHotStandbyFrame=0;
+    let youtubePreviewPausedSongId="";
+    let youtubePreviewPausedMediaTime=0;
+    let youtubePreviewPausedElapsed=0;
 
     function warmYouTubePreviewNetwork(){
       if(document.querySelector('link[data-ipcdj-youtube-preconnect]'))return;
@@ -2995,6 +2998,9 @@
       youtubePreviewPreparedSongId="";
       youtubePreviewPrebufferedSongId="";
       youtubePreviewHotStandbySongId="";
+      youtubePreviewPausedSongId="";
+      youtubePreviewPausedMediaTime=0;
+      youtubePreviewPausedElapsed=0;
       cancelAnimationFrame(youtubePreviewHotStandbyFrame);
       youtubePreviewHotStandbyFrame=0;
       const host=document.getElementById("youtube-preview-host");
@@ -3069,6 +3075,9 @@
       cancelAnimationFrame(youtubePreviewMonitorFrame);
       youtubePreviewMonitorFrame=0;
       youtubePreviewPlaying=false;
+      youtubePreviewPausedSongId="";
+      youtubePreviewPausedMediaTime=0;
+      youtubePreviewPausedElapsed=0;
 
       if(youtubePreviewPlayer){
         try{
@@ -3092,21 +3101,91 @@
     }
 
     function pauseYouTubePreview(songId){
-      stopYouTubePreview(songId,{reset:false});
-      const song=songPipeline.find(item=>item.id===songId);
-      if(song&&youtubePreviewPlayer&&youtubePreviewPlayerSongId===songId){
-        const start=Math.max(0,Number(song.previewClipStart)||0);
-        try{
-          youtubePreviewPlayer.mute();
-          youtubePreviewPlayer.setVolume(0);
-          youtubePreviewPlayer.seekTo(start,true);
-          youtubePreviewPlayer.playVideo();
-          youtubePreviewPreparedSongId=song.id;
-          youtubePreviewPrebufferedSongId=song.id;
-          activePreviewSongId="";
-          holdYouTubePreviewHot(song,youtubePreviewPlayer,start);
-        }catch(_){}
+      if(!youtubePreviewPlayer||youtubePreviewPlayerSongId!==songId)return;
+
+      youtubePreviewRequestToken++;
+      cancelAnimationFrame(youtubePreviewMonitorFrame);
+      youtubePreviewMonitorFrame=0;
+      cancelAnimationFrame(youtubePreviewHotStandbyFrame);
+      youtubePreviewHotStandbyFrame=0;
+      youtubePreviewHotStandbySongId="";
+
+      const elapsed=Math.max(0,(performance.now()-youtubePreviewFadeStartedAt)/1000);
+      let mediaTime=youtubePreviewStart;
+      try{mediaTime=Number(youtubePreviewPlayer.getCurrentTime())||youtubePreviewStart}catch(_){}
+
+      youtubePreviewPausedSongId=songId;
+      youtubePreviewPausedMediaTime=mediaTime;
+      youtubePreviewPausedElapsed=elapsed;
+      youtubePreviewPlaying=false;
+
+      try{
+        youtubePreviewPlayer.pauseVideo();
+      }catch(_){}
+
+      activePreviewSongId=songId;
+      setPreviewButtonState(songId,"play");
+    }
+
+    async function resumeYouTubePreview(song){
+      if(
+        youtubePreviewPausedSongId!==song.id||
+        !youtubePreviewPlayer||
+        youtubePreviewPlayerSongId!==song.id
+      )return false;
+
+      const token=++youtubePreviewRequestToken;
+      const player=youtubePreviewPlayer;
+      activePreviewSongId=song.id;
+      setPreviewButtonState(song.id,"starting");
+
+      try{
+        player.setVolume(0);
+        player.unMute();
+
+        const current=Number(player.getCurrentTime())||youtubePreviewPausedMediaTime;
+        if(Math.abs(current-youtubePreviewPausedMediaTime)>.18){
+          player.seekTo(youtubePreviewPausedMediaTime,true);
+        }
+        player.playVideo();
+      }catch(_){
+        setPreviewButtonState(song.id,"play");
+        return false;
       }
+
+      const waitStarted=performance.now();
+      return await new Promise(resolve=>{
+        const wait=()=>{
+          if(token!==youtubePreviewRequestToken){
+            resolve(false);
+            return;
+          }
+
+          let state=-1;
+          try{state=player.getPlayerState()}catch(_){}
+
+          if(state===1){
+            youtubePreviewPlaying=true;
+            youtubePreviewFadeStartedAt=performance.now()-(youtubePreviewPausedElapsed*1000);
+            youtubePreviewPausedSongId="";
+            youtubePreviewPausedMediaTime=0;
+            youtubePreviewPausedElapsed=0;
+            setPreviewButtonState(song.id,"pause");
+            monitorYouTubePreview(song);
+            resolve(true);
+            return;
+          }
+
+          if(performance.now()-waitStarted>4500){
+            setPreviewButtonState(song.id,"play");
+            resolve(false);
+            return;
+          }
+
+          requestAnimationFrame(wait);
+        };
+        requestAnimationFrame(wait);
+      });
     }
 
     function monitorYouTubePreview(song){
@@ -3158,6 +3237,9 @@
             holdYouTubePreviewHot(song,youtubePreviewPlayer,youtubePreviewStart);
           }catch(_){}
           youtubePreviewPlaying=false;
+          youtubePreviewPausedSongId="";
+          youtubePreviewPausedMediaTime=0;
+          youtubePreviewPausedElapsed=0;
           setPreviewButtonState(song.id,"play");
           return;
         }
@@ -3244,6 +3326,9 @@
       youtubePreviewFadeIn=Math.max(.25,Number(song.previewFadeIn)||1);
       youtubePreviewFadeOut=Math.max(.5,Number(song.previewFadeOut)||1.8);
 
+      youtubePreviewPausedSongId="";
+      youtubePreviewPausedMediaTime=0;
+      youtubePreviewPausedElapsed=0;
       activePreviewSongId=song.id;
       youtubePreviewFadeStartedAt=performance.now();
 
@@ -3373,10 +3458,20 @@
         const isStarting=!!row?.classList.contains("is-starting");
 
         if(sameSong&&(youtubePreviewPlaying||isStarting)){
-          // One tap always stops immediately, even while the player is still starting.
           stopPreviewTracking();
           cancelAnimationFrame(previewManualFadeFrame);
           pauseYouTubePreview(song.id);
+          return;
+        }
+
+        if(youtubePreviewPausedSongId===song.id){
+          stopPreviewTracking();
+          cancelAnimationFrame(previewManualFadeFrame);
+          try{
+            await resumeYouTubePreview(song);
+          }catch(_){
+            setPreviewButtonState(song.id,"play");
+          }
           return;
         }
 
