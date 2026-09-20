@@ -1845,3 +1845,29 @@ Revert:
 - backup-before-player-contrast-fade-v125 preserves the complete v124 state.
 
 Preserve v122 true overlapping Web Audio crossfade, analyser meter, timer, future top-right controls, and all v119-v120 masking/readiness protections.
+
+
+## Preview completion dissolve v126
+
+v126 changes only the natural-end visual reset of the active preparation preview pill.
+
+Completion behavior:
+- Do not visibly animate the playback fill width backward from 100% to 0%.
+- When the preview reaches its natural end:
+  - keep the progress fill visually at 100%;
+  - show 0:00 momentarily;
+  - fade the completed accent fill layer out over approximately .78 seconds using cubic-bezier(.4,0,.2,1);
+  - reveal the existing idle/base gradient underneath.
+- After the accent layer has fully dissolved, reset --preview-progress to 0% while that fill layer is still invisible.
+- Restore the normal idle fill opacity only after the hidden reset has been committed across animation frames.
+- Reset the displayed remaining time to the full preview duration after the dissolve/reset completes.
+
+Interaction safety:
+- If playback is restarted while a completion dissolve is pending, cancel the pending end timer and clear preview-ending / preview-resetting classes before playback begins.
+- Manual pause behavior remains unchanged; this completion dissolve is for natural preview end only.
+- Future-song circular controls are unaffected.
+
+Revert:
+- backup-before-preview-end-fade-v126 preserves the complete v125 state.
+
+Preserve v125 gold/coral player contrast, v124/v125 launch behavior, v122 overlapping Web Audio crossfade, analyser meter, and all mobile hard-stop protections.
