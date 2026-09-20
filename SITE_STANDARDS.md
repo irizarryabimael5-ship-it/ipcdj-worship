@@ -963,3 +963,8 @@ Required behavior:
 - Do not add tiny-width opacity overrides beneath 640px; tiny phones inherit the same explicit mobile visibility.
 - Desktop/tablet shared composition variables remain valid.
 - Preserve v84/v88 center-detail and left-side blend geometry plus all approved subject masks.
+
+
+## Tiny-mobile cover inheritance v90
+
+Phones <=340px must inherit the explicit <=640px current-cover ready-state visibility without any additional cover opacity overrides.
