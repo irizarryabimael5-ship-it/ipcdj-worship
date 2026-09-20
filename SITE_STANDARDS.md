@@ -1521,3 +1521,33 @@ Repository hygiene:
 - Startup assets are functional compatibility files and are not repository clutter.
 
 Preserve v115 idempotent standalone lifecycle, v114 fixed-position opacity transitions, all audio behavior, and all other site invariants.
+
+
+## iOS standalone light-launch experiment v117
+
+v117 is a deliberately reversible experiment targeting only installed iPhone/iPad standalone web apps.
+
+Scope:
+- Desktop browsers remain on the established black launch canvas with white IPCDJ logo.
+- Normal mobile Safari/Chrome browser tabs remain on the established black launch canvas with white IPCDJ logo.
+- Android/PWA behavior remains unchanged.
+- Only iOS/iPadOS standalone/fullscreen Home Screen mode receives the light launch treatment.
+
+Native startup:
+- The 13 exact-size ios-launch PNGs are solid #ffffff in v117.
+- Their filenames and device media-query mappings remain unchanged; query version is v117.
+- This intentionally absorbs WebKit's unavoidable white intermediate frame into the expected startup appearance.
+
+Web launch:
+- An early head detector adds html.ipcdj-ios-light-launch only when the environment is both iOS/iPadOS and installed standalone/fullscreen.
+- In that mode, #ipcdj-launch uses #ffffff.
+- The existing exact inline IPCDJ logo is rendered black via a static brightness(0) filter.
+- Logo position, opacity timings, lifecycle guards, and fade architecture remain unchanged from v115/v116.
+- The white overlay fades away over the already-rendered dark website, creating a light-to-dark crossfade rather than an abrupt cut.
+
+Revert:
+- backup-before-mobile-light-launch-v117 preserves the complete pre-experiment v116 state, including solid-black iOS startup PNGs.
+- If the light launch is rejected, revert to that branch/state rather than manually reconstructing the previous assets.
+
+Repository hygiene:
+- The temporary PNG generator workflow is removed after successful asset generation.
