@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "status": "draft",
+  "enabled": false,
+  "timezone": "America/New_York",
+  "categories": {
+    "song_phases": {
+      "defaultEnabled": false,
+      "eventTypes": ["song.phase.entered"]
+    },
+    "estreno": {
+      "defaultEnabled": false,
+      "eventTypes": ["song.release.reminder", "song.release.today"]
+    },
+    "live_set": {
+      "defaultEnabled": false,
+      "eventTypes": ["live_set.published", "live_set.updated"]
+    },
+    "announcements": {
+      "defaultEnabled": false,
+      "eventTypes": ["system.announcement"]
+    }
+  },
+  "events": {
+    "song.phase.entered": {
+      "automatic": true,
+      "dedupeKeyTemplate": "song.phase.entered:{songId}:{phase}:{effectiveAt}",
+      "trigger": "A canonical song schedule crosses into a configured phase boundary.",
+      "pendingDecisions": ["Which phases generate pushes", "Notification wording", "Quiet-hour behavior"]
+    },
+    "song.release.reminder": {
+      "automatic": true,
+      "dedupeKeyTemplate": "song.release.reminder:{songId}:{releaseAt}:{lead}",
+      "trigger": "Server-side reminder lead time before estreno.",
+      "pendingDecisions": ["Lead times", "Maximum reminders per song", "Quiet-hour behavior"]
+    },
+    "song.release.today": {
+      "automatic": true,
+      "dedupeKeyTemplate": "song.release.today:{songId}:{releaseDay}",
+      "trigger": "Configured estreno calendar day begins.",
+      "pendingDecisions": ["Send at midnight vs morning", "Whether service-time reminder is separate"]
+    },
+    "live_set.published": {
+      "automatic": true,
+      "dedupeKeyTemplate": "live_set.published:{liveSetId}:{publishedRevision}",
+      "trigger": "A weekly Live Set changes from draft/unpublished to published/live.",
+      "pendingDecisions": ["Publication workflow", "Default deep link", "Badge rules"]
+    },
+    "live_set.updated": {
+      "automatic": true,
+      "dedupeKeyTemplate": "live_set.updated:{liveSetId}:{publishedRevision}",
+      "trigger": "A previously published weekly Live Set receives a material update.",
+      "pendingDecisions": ["What counts as material", "Whether updates push automatically"]
+    },
+    "system.announcement": {
+      "automatic": false,
+      "dedupeKeyTemplate": "system.announcement:{announcementId}",
+      "trigger": "Future administrator/manual announcement.",
+      "pendingDecisions": ["Who can send", "Approval/authentication flow"]
+    }
+  }
+}
