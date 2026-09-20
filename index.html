@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="desktop-audio-context-keepalive-v100" />
+  <meta name="ipcdj-build" content="ios-webaudio-unlock-v101" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -2964,6 +2964,43 @@
       return webPreviewContext;
     }
 
+    async function decodeWebPreviewBytes(bytes){
+      const OfflineCtx=window.OfflineAudioContext||window.webkitOfflineAudioContext;
+      if(OfflineCtx){
+        const decoder=new OfflineCtx(1,1,44100);
+        return await decoder.decodeAudioData(bytes.slice(0));
+      }
+
+      // Older desktop fallback only. Mobile/iOS should use OfflineAudioContext
+      // so the live playback context is never created outside a user gesture.
+      if(!isMobilePreviewEnvironment()){
+        const ctx=ensureWebPreviewContext();
+        return await ctx.decodeAudioData(bytes.slice(0));
+      }
+
+      throw new Error("Offline Web Audio decode unavailable");
+    }
+
+    function unlockWebPreviewContextFromGesture(){
+      try{
+        const ctx=ensureWebPreviewContext();
+
+        // iOS Safari/PWA can require an actual source start inside the user
+        // gesture in addition to resume(). A one-sample silent buffer performs
+        // that unlock without creating persistent media playback.
+        const silent=ctx.createBuffer(1,1,22050);
+        const source=ctx.createBufferSource();
+        source.buffer=silent;
+        source.connect(ctx.destination);
+        source.start(0);
+
+        if(ctx.state==="suspended")ctx.resume().catch(()=>{});
+        return ctx;
+      }catch(_){
+        return null;
+      }
+    }
+
     function webPreviewSmoothstep(t){
       const x=Math.max(0,Math.min(1,t));
       return x*x*(3-(2*x));
@@ -3016,8 +3053,7 @@
           const response=await fetch(data.previewUrl,{cache:"force-cache"});
           if(!response.ok)throw new Error("Preview audio fetch failed");
           const bytes=await response.arrayBuffer();
-          const ctx=ensureWebPreviewContext();
-          const buffer=await ctx.decodeAudioData(bytes.slice(0));
+          const buffer=await decodeWebPreviewBytes(bytes);
           const requestedDuration=Math.max(1,Number(song.previewClipDuration)||15);
 
           let clip;
@@ -3988,15 +4024,20 @@
           button.setAttribute("aria-label","Reproducir adelanto de "+song.title);
           button.dataset.bound="true";
 
-          // Resume the AudioContext on the earliest user gesture for iOS/PWA.
+          // Create + unlock the live AudioContext inside the earliest user
+          // gesture. This is required for reliable iPhone/iPad Safari/PWA playback.
           button.addEventListener("pointerdown",()=>{
-            try{
-              const ctx=ensureWebPreviewContext();
-              if(ctx.state==="suspended")ctx.resume().catch(()=>{});
-            }catch(_){}
+            unlockWebPreviewContextFromGesture();
           },{passive:true});
 
-          button.addEventListener("click",()=>playPreviewSong(song,row._previewData));
+          button.addEventListener("touchstart",()=>{
+            unlockWebPreviewContextFromGesture();
+          },{passive:true});
+
+          button.addEventListener("click",()=>{
+            unlockWebPreviewContextFromGesture();
+            playPreviewSong(song,row._previewData);
+          });
         }
       }catch(_){
         if(button){
