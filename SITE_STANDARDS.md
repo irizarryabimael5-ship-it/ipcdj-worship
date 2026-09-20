@@ -950,3 +950,16 @@ Required behavior:
 - The left/title-side dark blend remains shared across all sizes.
 - Person/subject placement and size may remain responsive; do not alter the approved subject masks or their responsive positioning as part of background consistency work.
 - Reduced-transparency/forced-colors accessibility modes may intentionally reduce artwork visibility and are exempt from visual parity.
+
+
+## Mobile cover visibility safeguard v89
+
+Mobile browsers must not depend solely on inherited custom-property opacity targets for current-song cover layers.
+
+Required behavior:
+- At <=640px, explicitly set the ready-state opacities for blurred base, cover-detail, and cover-edge-detail.
+- Mobile ready-state targets: base .76, detail .40, edge .48.
+- Mobile may still use slightly softer blur values (detail 2.8px, edge 1.7px).
+- Do not add tiny-width opacity overrides beneath 640px; tiny phones inherit the same explicit mobile visibility.
+- Desktop/tablet shared composition variables remain valid.
+- Preserve v84/v88 center-detail and left-side blend geometry plus all approved subject masks.
