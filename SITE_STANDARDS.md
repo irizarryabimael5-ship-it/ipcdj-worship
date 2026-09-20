@@ -1272,3 +1272,28 @@ Required behavior:
 - Explicit user pull-to-refresh may still perform a navigation because the user intentionally requested refresh.
 - Preserve the v105 fast-network-first service-worker navigation behavior and cached offline fallback.
 - Preserve the current-cover native fail-safe layer and all approved cover/detail/person transitions.
+
+
+## IPCDJ logo launch sequence v107
+
+Startup presentation:
+- Every true document launch begins with a fixed, full-viewport IPCDJ launch layer already present in the initial HTML.
+- The launch layer background is #05070b with only a subtle radial blue ambient field; never use a white intermediate canvas.
+- The launch logo is an inline vector derived from the repository's highest-quality IPCDJ favicon/logo SVG, with background rectangles removed and logo geometry rendered white.
+- The exact logo geometry is separated into left ring, central CDJ/Worship mark, and right ring for coordinated motion.
+- Animate only opacity and transform on SVG groups. Do not animate SVG filters, blur, or expensive paint effects.
+- Ring A enters from a very small left/down offset; ring B mirrors from right/up; the central mark follows with a restrained vertical/scale resolve.
+- Motion must remain subtle, premium, centered, and church-brand appropriate; no bouncing, spinning, flashy particles, or gamified loading indicators.
+- Normal launch minimum visibility is approximately 1.22 seconds; hard maximum is approximately 2.45 seconds.
+- Exit uses a ~.68 second whole-layer opacity dissolve into the already-rendered website.
+- The launch layer waits for the current-song card and, when present, its eager native cover image, but the hard maximum guarantees it can never trap the user behind a loader.
+- Remove the launch node from the DOM after exit; it must not remain as an invisible interaction layer.
+- Lock page scrolling only while the launch layer exists.
+
+Cross-platform requirements:
+- Use inline SVG so logo display has no network dependency.
+- Use CSS keyframes/opacity/transform only; no JavaScript frame-by-frame animation loop for logo motion.
+- Support iOS Safari/PWA, Android Chrome/PWA, macOS Safari/Chrome, Windows Chrome/Edge, tablet, portrait and landscape.
+- For prefers-reduced-motion, disable component motion and shorten the exit while retaining a brief static branded launch state.
+- The existing v106 zero-flash content rules remain: underlying initial content is already laid out and visible beneath the launch layer.
+- The existing v105 first-load cover fallback and platform hardening remain unchanged.
