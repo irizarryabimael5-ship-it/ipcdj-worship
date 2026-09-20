@@ -1605,3 +1605,42 @@ Lifecycle:
 Revert:
 - backup-before-white-to-black-v119 preserves the complete v118 state.
 - backup-before-mobile-light-launch-v117 still preserves the complete pre-light v116 state.
+
+
+## Professional launch/readiness polish v120
+
+v120 keeps the working v119 bottom-glitch fix and tightens the remaining iOS standalone handoff plus first-view readiness.
+
+Top handoff synchronization:
+- Keep apple-mobile-web-app-status-bar-style=black-translucent because current WebKit standalone viewport sizing can depend on it at install time.
+- Do not attempt to solve the top transition by removing that meta tag.
+- When the iOS light launch begins its white-to-black stage, switch the root black-stage state and theme-color to #000000 immediately at the start of that same transition.
+- The launch surface transitions white -> black over approximately .48 seconds and the black logo fades over approximately .42 seconds.
+- After reaching black, restore underlying website visibility while it remains fully covered, hold pure black for approximately 90ms, then fade the black launch surface away over approximately .74 seconds.
+- This minimizes the system/status-area lag that was visible when theme-color changed only after the white surface had already become black.
+
+First-view readiness:
+- The installed-iOS site remains physically hidden under the launch surface until the current card is genuinely populated.
+- appFrameReady requires current-song content, countdown text, an enabled preview Play control, loaded native cover, cover-ready state, and subject-ready when a subject layer exists.
+- First-view cover/detail/subject transitions are disabled while the site is masked so those layers settle underneath the launch rather than visibly assembling after reveal.
+- Explicit curated cover art may enter cover-ready synchronously while the iOS launch mask is active.
+- The current card still obeys the bounded launch hard maximum; readiness cannot create an indefinite launch screen.
+
+Preview control:
+- The preview row is visible immediately and does not boot from opacity:0 or translateY.
+- The first visible icon is always the Play triangle. Never show the circular loading/restart-looking glyph during page boot.
+- The Play button is enabled and bound immediately; audio fetch/decode continues invisibly in the background.
+- If the user taps before preparation completes, the user gesture unlocks Web Audio immediately and playback waits for the already-running preparation promise.
+- Only a confirmed preview failure after interaction may disable the control.
+
+Clock/render startup:
+- Server clock calibration starts immediately but no longer triggers the first current-card render.
+- First current-card render uses the restored session clock/device time immediately after definitions are available.
+- The server calibration updates the absolute clock silently in the background.
+- Do not make visible first-view content wait on the 2.5-second server-clock request.
+
+Network readiness:
+- Preconnect and DNS-prefetch p.scdn.co so the configured Spotify preview can begin preparation earlier.
+- Keep the active cover eager/high-priority behavior and existing i.scdn.co preload.
+
+Preserve v119 masked site architecture, v118 safe-area overscan, v117 iOS-only white-launch scope, and all existing audio stop/background invariants.
