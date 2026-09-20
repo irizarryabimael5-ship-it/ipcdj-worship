@@ -1,0 +1,73 @@
+name: Generate iOS black startup PNGs
+
+on:
+  push:
+    paths:
+      - ".github/workflows/generate-ios-black-startup.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate exact-size solid-black PNGs
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import struct, zlib, binascii
+
+          sizes = [
+              (1320, 2868),
+              (1260, 2736),
+              (1206, 2622),
+              (1290, 2796),
+              (1179, 2556),
+              (1284, 2778),
+              (1170, 2532),
+              (1125, 2436),
+              (1242, 2688),
+              (828, 1792),
+              (1242, 2208),
+              (750, 1334),
+              (640, 1136),
+          ]
+
+          out = Path("ios-launch")
+          out.mkdir(exist_ok=True)
+
+          def chunk(kind, data):
+              return (
+                  struct.pack(">I", len(data))
+                  + kind
+                  + data
+                  + struct.pack(">I", binascii.crc32(kind + data) & 0xffffffff)
+              )
+
+          for width, height in sizes:
+              # RGB, 8-bit, no interlace. Every row is filter byte 0 + black pixels.
+              row = b"\x00" + (b"\x00\x00\x00" * width)
+              raw = row * height
+              png = (
+                  b"\x89PNG\r\n\x1a\n"
+                  + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
+                  + chunk(b"IDAT", zlib.compress(raw, 9))
+                  + chunk(b"IEND", b"")
+              )
+              (out / f"apple-launch-{width}x{height}.png").write_bytes(png)
+          PY
+
+      - name: Commit generated startup assets
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ios-launch/*.png
+          if git diff --cached --quiet; then
+            echo "No generated changes."
+          else
+            git commit -m "Add exact black iOS startup PNGs"
+            git push
+          fi
