@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="full-spotify-preview-v98" />
+  <meta name="ipcdj-build" content="desktop-background-preview-v99" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -3201,11 +3201,27 @@
       await startWebAudioPreview(song,data,{resume:isResume});
     }
 
+    function desktopPreviewMayContinueInBackground(){
+      const mobileUa=/iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent||"");
+      const fineDesktopPointer=window.matchMedia("(hover:hover) and (pointer:fine)").matches;
+      return !mobileUa&&fineDesktopPointer;
+    }
+
     function pausePreviewWhenBackgrounded(){
-      if(document.hidden&&webPreviewPlaying&&webPreviewSongId){
+      if(!document.hidden)return;
+
+      // Desktop browsers may let the short Adelanto finish when the user simply
+      // changes tabs. Mobile/tablet devices still pause immediately so locking
+      // or backgrounding the app never turns the preview into background media.
+      if(desktopPreviewMayContinueInBackground()){
+        clearNativePreviewMediaSession();
+        return;
+      }
+
+      if(webPreviewPlaying&&webPreviewSongId){
         pauseWebAudioPreview(webPreviewSongId);
       }
-      if(document.hidden&&youtubePreviewPlaying&&youtubePreviewPlayerSongId){
+      if(youtubePreviewPlaying&&youtubePreviewPlayerSongId){
         try{youtubePreviewPlayer.pauseVideo()}catch(_){}
         youtubePreviewPlaying=false;
       }
