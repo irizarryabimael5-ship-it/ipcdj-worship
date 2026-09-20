@@ -1021,3 +1021,18 @@ Required behavior:
 - When the preview reaches its natural end, clear all pause state, fade out normally, stop audibly, and return the hidden player to the beginning/hot standby.
 - The next Play after natural completion is a brand-new play from the beginning with the normal smooth fade-in.
 - Behavior must be identical across mobile Safari/PWA, Android Chromium/PWA, and desktop browsers.
+
+
+## Coordinated preparation-cover reveal v94
+
+The current preparation-song artwork must reveal as one intentional visual composition rather than as separately loading image pieces.
+
+Required behavior:
+- Blurred base, strategic detail layer, perimeter-detail layer, and isolated subject all use the same 1.65-second opacity transition and the same cubic-bezier(.22,.65,.25,1) easing.
+- Do not intentionally stagger the person behind the background artwork.
+- For manual/ready subject placement, add cover-ready and subject-ready in the same animation frame after the artwork image has loaded and decoded.
+- When Image.decode() is available, wait for decode before beginning the reveal so CSS background layers are painting from the same decoded resource.
+- Use a double requestAnimationFrame only to establish the initial opacity-zero frame before applying ready classes; do not add arbitrary visual delays.
+- If automatic subject detection genuinely completes later, the subject may reveal later, but it must use the same 1.65-second transition so it never pops in.
+- Preserve v90 mobile cover visibility, v91 cross-platform composition invariants, and all approved subject masks/positioning.
+- Reduced-motion mode remains exempt and may reveal immediately.
