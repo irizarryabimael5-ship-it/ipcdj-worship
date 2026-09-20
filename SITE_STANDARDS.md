@@ -1644,3 +1644,35 @@ Network readiness:
 - Keep the active cover eager/high-priority behavior and existing i.scdn.co preload.
 
 Preserve v119 masked site architecture, v118 safe-area overscan, v117 iOS-only white-launch scope, and all existing audio stop/background invariants.
+
+
+## Future-song Spotify previews v121
+
+v121 extends the established Adelanto/Web Audio system to every song rendered in the future "Después" phase.
+
+Sources:
+- Glorioso Día uses the verified Spotify track spotify:track:0ksqrKoeNvywkfeqltzVQ3 and Spotify preview stream https://p.scdn.co/mp3-preview/4e7b800000c5620569348f794ae143844334b14c.mp3.
+- No Fallarás - En Vivo uses the verified Spotify track spotify:track:04IkHz1UynmZ48Imgkla2J and Spotify preview stream https://p.scdn.co/mp3-preview/8a7c082277138d69b52b8a0ee1d490b0891365e2.mp3.
+- Both future entries use the full Spotify-provided preview asset with the existing smooth .70s fade-in and 1.60s natural end fade-out.
+
+Future-card UI:
+- Every dynamically rendered future song card includes a compact Adelanto row inside its own box, beneath the learning/final-preparation metadata.
+- The control uses the exact same Play/Pause SVG system and Web Audio path as the active song.
+- The first visible state is always Play; there is no boot-time loading/restart glyph.
+- Future preview rows hydrate in the background immediately after their cards render.
+- pageshow/online recovery hydrates all preview rows, current and future.
+
+One-at-a-time playback:
+- Only one preview may actively play at a time.
+- Tapping the same song retains the existing pause/resume behavior.
+- Tapping a different song fades the currently playing Web Audio preview down over approximately .44 seconds before handing off to the newly selected preview.
+- The new preview then enters with that song's configured fade-in.
+- Switching does not close the AudioContext; the same live context is reused for a clean foreground handoff.
+- Mobile background/lock remains an immediate hard stop and must never use this foreground crossfade path.
+
+Rapid selection:
+- Preview changes use a last-selection-wins token.
+- If A is playing and the user taps B then C before the A->B handoff finishes, B must never begin after C has been selected.
+- An in-progress fade-down promise is shared by later selection requests rather than creating competing gain ramps.
+
+Preserve all v120 startup/readiness behavior and existing preview background-stop/audio safety invariants.
