@@ -1575,3 +1575,33 @@ Known status-bar tradeoff:
 - If that visual tradeoff is unacceptable, revert the entire light-launch experiment to backup-before-mobile-light-launch-v117 (v116 black launch), rather than changing the status-bar meta and risking standalone viewport regressions.
 
 Preserve v117 iOS-only scope and v115/v114 fixed opacity/lifecycle behavior.
+
+
+## iOS masked white-to-black launch v119
+
+v119 tightens the reversible iOS light-launch experiment in two ways: underlying-site masking and a staged white-to-black exit.
+
+Initial/active masking:
+- The initial html element ships with ipcdj-launch-site-hidden in addition to ipcdj-launch-active.
+- The masking rule applies only when ipcdj-ios-light-launch is also present, so desktop, Android, and ordinary mobile-browser behavior is unaffected.
+- During the iOS standalone launch cycle, every direct body child except #ipcdj-launch is visibility:hidden.
+- This prevents underlying website content from appearing through a transient bottom safe-area/compositor hole while the launch surface is active.
+- Hidden page content still lays out and loads in the background, so appFrameReady() and resource loading continue to work.
+
+White-to-black exit:
+- The iOS light launch must not fade directly from white into the website.
+- Stage 1: black logo fades away while the launch surface transitions from pure white to pure black over approximately .68 seconds.
+- Throughout Stage 1, the website remains visibility:hidden.
+- Once the launch surface is fully black, theme-color becomes #000000 and the root enters ipcdj-launch-black-stage.
+- Stage 2: underlying website visibility is restored while still completely covered by the opaque black launch surface.
+- The black launch surface then fades out over approximately .82 seconds, revealing the already-rendered dark website smoothly.
+- The result should read visually as white -> black -> website, with no direct white-to-site cut.
+
+Lifecycle:
+- lockPage(true) always restores the iOS light launch to white, removes any prior black-stage state, and masks underlying site content.
+- lockPage(false) clears active, site-hidden, and black-stage classes and leaves theme-color at #000000.
+- Warm standalone resumes use the same masking and staged exit path.
+
+Revert:
+- backup-before-white-to-black-v119 preserves the complete v118 state.
+- backup-before-mobile-light-launch-v117 still preserves the complete pre-light v116 state.
