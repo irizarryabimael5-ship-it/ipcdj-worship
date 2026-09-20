@@ -1934,3 +1934,90 @@ Google/page-translation compatibility:
 
 Revert:
 - backup-before-dynamic-palette-states-v127 preserves the complete v126 state.
+
+
+## Continuous cross-platform health monitoring v128
+
+v128 adds a low-overhead in-page integrity monitor plus an external Playwright synthetic browser matrix.
+
+In-page health monitor:
+- Exposed as window.IPCDJ_HEALTH.
+- getSnapshot()/checkNow() reports:
+  - build identifier;
+  - adaptive performance mode;
+  - launch state;
+  - current-card and preview-row counts;
+  - disabled preview controls;
+  - horizontal overflow;
+  - same-origin resource failures;
+  - service-worker control;
+  - cumulative layout shift when supported;
+  - latest Largest Contentful Paint when supported;
+  - JavaScript error/unhandled-rejection counts;
+  - Long Task and Long Animation Frame counts when the browser supports those entry types;
+  - most recent sampled frame-time metrics.
+- Global window error and unhandledrejection listeners record recent failures.
+- Capturing resource-error listener distinguishes same-origin from optional external resources.
+- ResizeObserver loop notifications are ignored because browsers can emit them without a site regression.
+- PerformanceObserver entry types are feature-detected; unsupported metrics must never break or downgrade the site.
+
+Sparse frame sampling:
+- Monitoring must not itself create continuous requestAnimationFrame overhead.
+- One startup sample runs after launch settles.
+- Additional short samples occur after scrolling no more frequently than once every 30 seconds and after returning from background.
+- Frame samples record median, p95, maximum frame interval, and ratio of frames over 50ms.
+- A single slow sample does not alter the site.
+
+Adaptive performance guard:
+- Two consecutive severe samples may activate html.ipcdj-performance-lite.
+- Lite mode changes only decorative ambient rendering:
+  - reduce ambient blur cost;
+  - pause b3/b4;
+  - keep content, scrolling, countdowns, cards, controls and audio fully functional.
+- Three healthy samples restore full ambient rendering.
+- This guard is intentionally conservative to avoid reacting to momentary OS/browser scheduling noise.
+
+Persistence:
+- The latest health snapshot is stored locally under ipcdj-health-v1 for troubleshooting.
+- No personal content, account data, location, or externally transmitted telemetry is collected by the in-page monitor.
+- The site remains fully functional if localStorage, PerformanceObserver, or any optional performance API is unavailable.
+
+Synthetic cross-platform health matrix:
+- Monitoring package lives under monitoring/.
+- @playwright/test is pinned to 1.63.0.
+- Projects:
+  - Chromium desktop;
+  - Firefox desktop;
+  - WebKit desktop;
+  - Pixel 7 / Chromium mobile profile;
+  - iPhone 15 / WebKit mobile profile;
+  - WebKit touch/tablet profile at 1024x1366.
+- Tests verify:
+  - live document responds successfully;
+  - build marker exists;
+  - launch settles;
+  - current song renders;
+  - no same-origin resource errors, page errors or unhandled rejections;
+  - no meaningful horizontal overflow;
+  - scrolling remains within conservative frame-time thresholds;
+  - preview playback can start;
+  - a future preview can take ownership from the current preview;
+  - translation-style text replacement is not overwritten by the one-second live renderer;
+  - translated/expanded UI text does not create horizontal overflow.
+- CI captures Playwright traces, screenshots, videos, console diagnostics and IPCDJ health snapshots on failures.
+
+Automation:
+- .github/workflows/site-health.yml runs on every push to main, manual dispatch, and every two hours at minute 23.
+- Workflow installs Chromium, Firefox and WebKit and executes the complete project matrix against https://worship.ipcdj.org.
+- Failed runs upload diagnostic artifacts for 14 days.
+- A failed matrix creates or updates one open GitHub issue titled "IPCDJ Website Health Alert".
+- A later fully passing matrix comments with recovery information and closes that issue.
+- Concurrency cancels superseded health runs so rapid repository updates do not create overlapping test storms.
+
+Limits:
+- Synthetic WebKit/mobile emulation is a strong regression detector but is not identical to every physical iPhone/iPad hardware/OS combination.
+- CI timing is noisier than real hardware; performance thresholds are intentionally conservative to detect severe regressions without turning normal runner variance into false alarms.
+- The monitoring system increases confidence and catches regressions automatically; it does not constitute a literal guarantee that no browser/vendor bug can ever occur.
+
+Revert:
+- backup-before-health-monitor-v128 preserves the complete v127 state.
