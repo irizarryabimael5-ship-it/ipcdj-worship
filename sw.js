@@ -1,4 +1,4 @@
-const CACHE_NAME = "ipcdj-worship-v104";
+const CACHE_NAME = "ipcdj-worship-v105";
 const OFFLINE_PAGE = "./__offline_index__";
 const STATIC_ASSETS = [
   "./favicon.svg",
@@ -11,13 +11,23 @@ const STATIC_ASSETS = [
   "./icon-maskable-512.png",
   "./spotify.svg",
   "./apple-music.svg",
-  "./youtube-music.svg"
+  "./youtube-music.svg",
+  "./manifest-v9.webmanifest"
 ];
 
 self.addEventListener("install",event=>{
   event.waitUntil((async()=>{
     const cache=await caches.open(CACHE_NAME);
-    await cache.addAll(STATIC_ASSETS);
+
+    await Promise.allSettled(
+      STATIC_ASSETS.map(async asset=>{
+        try{
+          const response=await fetch(asset,{cache:"reload"});
+          if(response&&response.ok)await cache.put(asset,response.clone());
+        }catch(_){}
+      })
+    );
+
     try{
       const controller=new AbortController();
       const timeout=setTimeout(()=>controller.abort(),4500);
@@ -97,25 +107,33 @@ self.addEventListener("fetch", event => {
         }
       };
 
-      // Normal opens prioritize instant startup from the last verified shell.
-      // Refresh/freshness navigations prioritize network, but are still bounded.
+      const networkAndCache=async()=>{
+        const response=await networkFetch();
+        if(response&&response.ok){
+          await cache.put(OFFLINE_PAGE,response.clone());
+        }
+        return response;
+      };
+
+      // On a healthy connection prefer the currently deployed shell, which avoids
+      // showing one stale app version first and correcting it only after launch.
+      // The wait is short and bounded; slow/offline launches still get the cached shell.
       if(!isExplicitFreshNavigation&&cached){
-        event.waitUntil(
-          networkFetch().then(async response=>{
-            if(response&&response.ok){
-              await cache.put(OFFLINE_PAGE,response.clone());
-            }
-          }).catch(()=>{})
-        );
+        const networkPromise=networkAndCache().catch(()=>null);
+        const fastNetwork=await Promise.race([
+          networkPromise,
+          new Promise(resolve=>setTimeout(()=>resolve(null),1400))
+        ]);
+
+        if(fastNetwork&&fastNetwork.ok)return fastNetwork;
+
+        event.waitUntil(networkPromise.catch(()=>{}));
         return cached;
       }
 
       try{
-        const response=await networkFetch();
-        if(response&&response.ok){
-          await cache.put(OFFLINE_PAGE,response.clone());
-          return response;
-        }
+        const response=await networkAndCache();
+        if(response&&response.ok)return response;
         if(cached)return cached;
         return response;
       }catch(_){
@@ -132,7 +150,7 @@ self.addEventListener("fetch", event => {
   // Static assets: return cached copy immediately, while refreshing it in the background.
   event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
-    const cached = await cache.match(request);
+    const cached = await cache.match(request,{ignoreSearch:true});
 
     const networkPromise = fetch(request, { cache:"no-store" })
       .then(response => {
