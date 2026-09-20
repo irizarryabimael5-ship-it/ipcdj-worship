@@ -1128,3 +1128,20 @@ Required behavior:
 - document freeze still stops playback because the browser is suspending the page.
 - Media Session state remains cleared; desktop tab continuation must not create OS-level full-song controls.
 - Full Spotify preview duration, fades, pause/resume behavior, and Web Audio engine from v98 remain unchanged.
+
+
+## Desktop AudioContext keepalive v100
+
+Desktop Chrome/Safari/Edge must allow an actively playing Adelanto to continue when the user switches tabs.
+
+Required behavior:
+- Desktop classification must not depend on hover/pointer media queries.
+- Use navigator.userAgentData.mobile when available; otherwise treat iPhone/iPod/Android as mobile.
+- Detect iPadOS separately because it may identify as Macintosh when maxTouchPoints > 1.
+- Macintosh without the iPadOS touch signature is desktop, including Chrome on Mac.
+- While an Adelanto is playing on desktop and the document is hidden, do not pause it on visibilitychange.
+- If the Web Audio AudioContext enters suspended state while desktop playback is active in a hidden tab, immediately call resume().
+- Attach an AudioContext statechange listener for this keepalive behavior.
+- Desktop freeze events must not proactively invoke the mobile pause path.
+- Mobile/tablet background and lock behavior remains unchanged.
+- pagehide still stops playback everywhere when leaving/closing the page.
