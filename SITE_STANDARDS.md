@@ -1145,3 +1145,19 @@ Required behavior:
 - Desktop freeze events must not proactively invoke the mobile pause path.
 - Mobile/tablet background and lock behavior remains unchanged.
 - pagehide still stops playback everywhere when leaving/closing the page.
+
+
+## iOS Web Audio gesture unlock v101
+
+The live Web Audio playback context must never be created merely to decode/preload preview audio on mobile.
+
+Required behavior:
+- Download and decode preview assets during hydration using OfflineAudioContext when available.
+- Do not create the live AudioContext during mobile preview preparation.
+- On pointerdown/touchstart/click of the Adelanto control, synchronously create or retrieve the live AudioContext.
+- On that same user gesture, start a one-sample silent AudioBufferSourceNode and call resume() when suspended. This is the iOS Safari/PWA playback unlock.
+- Then start the already-decoded Spotify preview through the normal AudioBufferSourceNode -> GainNode path.
+- The silent unlock source must be ephemeral and must not establish background media or Media Session controls.
+- Desktop AudioContext keepalive behavior from v100 remains unchanged.
+- Mobile background/lock pause behavior remains unchanged.
+- Full Spotify preview playback and .70 / 1.60 second fades remain unchanged.
