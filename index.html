@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="desktop-background-preview-v99" />
+  <meta name="ipcdj-build" content="desktop-audio-context-keepalive-v100" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -2945,7 +2945,22 @@
       if(webPreviewContext&&webPreviewContext.state!=="closed")return webPreviewContext;
       const AudioCtx=window.AudioContext||window.webkitAudioContext;
       if(!AudioCtx)throw new Error("Web Audio unavailable");
+
       webPreviewContext=new AudioCtx();
+
+      webPreviewContext.addEventListener("statechange",()=>{
+        if(
+          !webPreviewContext||
+          !webPreviewPlaying||
+          !document.hidden||
+          !desktopPreviewMayContinueInBackground()
+        )return;
+
+        if(webPreviewContext.state==="suspended"){
+          webPreviewContext.resume().catch(()=>{});
+        }
+      });
+
       return webPreviewContext;
     }
 
@@ -3201,10 +3216,25 @@
       await startWebAudioPreview(song,data,{resume:isResume});
     }
 
+    function isMobilePreviewEnvironment(){
+      try{
+        if(navigator.userAgentData&&typeof navigator.userAgentData.mobile==="boolean"){
+          if(navigator.userAgentData.mobile)return true;
+        }
+      }catch(_){}
+
+      const ua=navigator.userAgent||"";
+      if(/iPhone|iPod|Android/i.test(ua))return true;
+
+      // iPadOS may report itself as Macintosh. Touch-point detection keeps the
+      // mobile lock/background policy on iPad without misclassifying Mac Chrome.
+      if(/Macintosh/i.test(ua)&&Number(navigator.maxTouchPoints||0)>1)return true;
+
+      return false;
+    }
+
     function desktopPreviewMayContinueInBackground(){
-      const mobileUa=/iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent||"");
-      const fineDesktopPointer=window.matchMedia("(hover:hover) and (pointer:fine)").matches;
-      return !mobileUa&&fineDesktopPointer;
+      return !isMobilePreviewEnvironment();
     }
 
     function pausePreviewWhenBackgrounded(){
@@ -3214,6 +3244,9 @@
       // changes tabs. Mobile/tablet devices still pause immediately so locking
       // or backgrounding the app never turns the preview into background media.
       if(desktopPreviewMayContinueInBackground()){
+        if(webPreviewPlaying&&webPreviewContext&&webPreviewContext.state==="suspended"){
+          webPreviewContext.resume().catch(()=>{});
+        }
         clearNativePreviewMediaSession();
         return;
       }
@@ -3236,7 +3269,15 @@
       }
       clearNativePreviewMediaSession();
     },{passive:true});
-    document.addEventListener("freeze",pausePreviewWhenBackgrounded,{passive:true});
+    document.addEventListener("freeze",()=>{
+      if(desktopPreviewMayContinueInBackground()){
+        if(webPreviewPlaying&&webPreviewContext&&webPreviewContext.state==="suspended"){
+          webPreviewContext.resume().catch(()=>{});
+        }
+        return;
+      }
+      pausePreviewWhenBackgrounded();
+    },{passive:true});
     clearNativePreviewMediaSession();
 
     let youtubeApiPromise=null;
