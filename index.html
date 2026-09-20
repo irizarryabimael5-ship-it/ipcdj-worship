@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="exact-logo-splash-v108" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="ipcdj-build" content="persistent-launch-v109" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -14,6 +14,7 @@
   <link rel="icon" type="image/x-icon" href="./favicon.ico?v=8" />
   <link rel="shortcut icon" href="./favicon.ico?v=8" />
   <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png?v=9" />
+  <link rel="apple-touch-startup-image" href="./ios-startup-universal.svg?v=109" />
   <link rel="manifest" href="./manifest-v9.webmanifest?v=9" />
   <meta name="application-name" content="IPCDJ Worship" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -67,9 +68,6 @@
       touch-action:none;
       -webkit-tap-highlight-color:transparent;
       contain:layout paint style;
-      transition:
-        opacity .72s cubic-bezier(.22,.68,.22,1),
-        visibility 0s linear .72s;
     }
 
     .launch-logo-stage{
@@ -80,7 +78,6 @@
       opacity:0;
       transform:translate3d(0,5px,0) scale(.985);
       transform-origin:center;
-      animation:ipcdjLogoReveal .92s cubic-bezier(.2,.72,.2,1) .10s forwards;
       will-change:opacity,transform;
     }
 
@@ -91,10 +88,38 @@
       overflow:visible;
     }
 
+    #ipcdj-launch.launch-playing{
+      opacity:1;
+      visibility:visible;
+      pointer-events:auto;
+      transition:none;
+    }
+
+    #ipcdj-launch.launch-playing .launch-logo-stage{
+      animation:ipcdjLogoReveal .92s cubic-bezier(.2,.72,.2,1) .10s forwards;
+    }
+
+    #ipcdj-launch.launch-armed{
+      opacity:1;
+      visibility:visible;
+      pointer-events:none;
+      transition:none;
+    }
+
+    #ipcdj-launch.launch-armed .launch-logo-stage{
+      opacity:0;
+      transform:translate3d(0,5px,0) scale(.985);
+      animation:none;
+      transition:none;
+    }
+
     #ipcdj-launch.launch-exit{
       opacity:0;
       visibility:hidden;
       pointer-events:none;
+      transition:
+        opacity .72s cubic-bezier(.22,.68,.22,1),
+        visibility 0s linear .72s;
     }
 
     #ipcdj-launch.launch-exit .launch-logo-stage{
@@ -104,6 +129,19 @@
         opacity .34s ease,
         transform .52s cubic-bezier(.22,.68,.22,1);
       animation:none;
+    }
+
+    #ipcdj-launch.launch-idle{
+      opacity:0;
+      visibility:hidden;
+      pointer-events:none;
+      transition:none;
+    }
+
+    #ipcdj-launch.launch-idle .launch-logo-stage{
+      opacity:0;
+      animation:none;
+      transition:none;
     }
 
     @keyframes ipcdjLogoReveal{
@@ -133,15 +171,15 @@
     }
 
     @media (prefers-reduced-motion:reduce){
-      #ipcdj-launch{
-        transition:opacity .24s linear,visibility 0s linear .24s;
-      }
-
-      .launch-logo-stage{
+      #ipcdj-launch.launch-playing .launch-logo-stage{
         opacity:1;
         transform:none;
         animation:none;
         will-change:auto;
+      }
+
+      #ipcdj-launch.launch-exit{
+        transition:opacity .24s linear,visibility 0s linear .24s;
       }
 
       #ipcdj-launch.launch-exit .launch-logo-stage{
@@ -1916,7 +1954,7 @@
   </style>
 </head>
 <body>
-  <div id="ipcdj-launch" role="status" aria-label="Abriendo IPCDJ Worship">
+  <div id="ipcdj-launch" class="launch-playing" role="status" aria-label="Abriendo IPCDJ Worship">
     <div class="launch-logo-stage" aria-hidden="true">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 1500" preserveAspectRatio="xMidYMid meet" role="img" aria-label="IPCDJ Worship">
   <defs>
@@ -1938,25 +1976,21 @@
       const launch=document.getElementById("ipcdj-launch");
       if(!launch)return;
 
+      const stage=launch.querySelector(".launch-logo-stage");
       const reduced=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      const started=performance.now();
-      const minimumVisible=reduced ? 280 : 1260;
-      const hardMaximum=reduced ? 800 : 2600;
+      const standalone=(
+        navigator.standalone===true ||
+        (window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches) ||
+        (window.matchMedia&&window.matchMedia("(display-mode: fullscreen)").matches)
+      );
+
+      let cycleStarted=performance.now();
       let exiting=false;
+      let armed=false;
+      let cycleToken=0;
 
-      document.documentElement.classList.add("ipcdj-launch-active");
-
-      const removeLaunch=()=>{
-        if(!launch.isConnected)return;
-        launch.remove();
-        document.documentElement.classList.remove("ipcdj-launch-active");
-      };
-
-      const exitLaunch=()=>{
-        if(exiting||!launch.isConnected)return;
-        exiting=true;
-        launch.classList.add("launch-exit");
-        setTimeout(removeLaunch,reduced ? 280 : 780);
+      const lockPage=enabled=>{
+        document.documentElement.classList.toggle("ipcdj-launch-active",!!enabled);
       };
 
       const appFrameReady=()=>{
@@ -1968,25 +2002,105 @@
         return !!(cover.complete&&cover.naturalWidth>0);
       };
 
-      const check=()=>{
+      const settleIdle=token=>{
+        if(token!==cycleToken)return;
+        launch.className="launch-idle";
+        exiting=false;
+        armed=false;
+        lockPage(false);
+      };
+
+      const exitLaunch=()=>{
         if(exiting)return;
-        const elapsed=performance.now()-started;
+        exiting=true;
+        const token=++cycleToken;
+        launch.className="launch-exit";
+        setTimeout(()=>settleIdle(token),reduced?280:780);
+      };
+
+      const checkCycle=token=>{
+        if(token!==cycleToken||exiting||armed)return;
+
+        const elapsed=performance.now()-cycleStarted;
+        const minimumVisible=reduced?280:1260;
+        const hardMaximum=reduced?800:2600;
 
         if((elapsed>=minimumVisible&&appFrameReady())||elapsed>=hardMaximum){
-          requestAnimationFrame(()=>requestAnimationFrame(exitLaunch));
+          requestAnimationFrame(()=>requestAnimationFrame(()=>{
+            if(token===cycleToken)exitLaunch();
+          }));
           return;
         }
 
-        requestAnimationFrame(check);
+        requestAnimationFrame(()=>checkCycle(token));
       };
 
-      if(document.readyState==="loading"){
-        document.addEventListener("DOMContentLoaded",()=>requestAnimationFrame(check),{once:true});
-      }else{
-        requestAnimationFrame(check);
-      }
+      const playLaunch=()=>{
+        const token=++cycleToken;
+        exiting=false;
+        armed=false;
+        cycleStarted=performance.now();
+        lockPage(true);
 
-      window.addEventListener("pagehide",removeLaunch,{once:true});
+        launch.className="launch-playing";
+
+        // Force a fresh animation timeline after a warm PWA resume.
+        if(stage){
+          stage.style.animation="none";
+          void stage.offsetWidth;
+          stage.style.animation="";
+        }
+
+        requestAnimationFrame(()=>checkCycle(token));
+      };
+
+      const armLaunch=()=>{
+        if(!standalone)return;
+        cycleToken++;
+        exiting=false;
+        armed=true;
+        lockPage(true);
+        launch.className="launch-armed";
+        if(stage)stage.style.animation="";
+      };
+
+      // Initial document launch.
+      lockPage(true);
+      const initialToken=++cycleToken;
+      requestAnimationFrame(()=>checkCycle(initialToken));
+
+      // Installed PWAs are often resumed rather than reloaded. Arm the black
+      // launch canvas while hidden so the first returning frame can never expose
+      // a stale/suspended website frame before the logo sequence begins.
+      document.addEventListener("visibilitychange",()=>{
+        if(!standalone)return;
+        if(document.hidden){
+          armLaunch();
+        }else if(armed){
+          requestAnimationFrame(playLaunch);
+        }
+      },{passive:true,capture:true});
+
+      document.addEventListener("webkitvisibilitychange",()=>{
+        if(!standalone)return;
+        if(document.hidden){
+          armLaunch();
+        }else if(armed){
+          requestAnimationFrame(playLaunch);
+        }
+      },{passive:true,capture:true});
+
+      window.addEventListener("pagehide",()=>{
+        if(standalone)armLaunch();
+      },{passive:true,capture:true});
+
+      window.addEventListener("pageshow",()=>{
+        if(standalone&&armed)requestAnimationFrame(playLaunch);
+      },{passive:true,capture:true});
+
+      window.addEventListener("focus",()=>{
+        if(standalone&&armed&&!document.hidden)requestAnimationFrame(playLaunch);
+      },{passive:true});
     })();
   </script>
   <div class="ambient-bg" aria-hidden="true">
