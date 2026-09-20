@@ -1378,3 +1378,13 @@ Installed PWA lifecycle:
 - Ordinary browser tabs still do not replay the splash merely from tab visibility changes.
 
 Preserve v109 persistent launch states, v106 zero-flash content behavior, v105 reliability hardening, v104 mobile audio shutdown, exact launch logo geometry, and all approved visual/audio invariants.
+
+
+## Repository hygiene v111
+
+Repository files must have a concrete runtime, compatibility, deployment, documentation, or canonical-source role.
+
+- icon-maskable-512.png was removed because the active manifest no longer referenced it; app-icon-safe.svg is the current maskable install asset.
+- Do not retain obsolete duplicate assets merely because an older manifest or service-worker version once used them.
+- Before deleting an asset, verify index.html, the active manifest, sw.js, CNAME/GitHub Pages behavior, platform-specific startup/icon requirements, and SITE_STANDARDS.md.
+- Canonical source assets and compatibility fallbacks are not considered clutter even when they are not directly visible in the main UI.
