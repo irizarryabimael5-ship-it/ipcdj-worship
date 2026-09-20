@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="instant-mobile-stop-direct-cover-v103" />
+  <meta name="ipcdj-build" content="earliest-mobile-background-stop-v104" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -3404,19 +3404,8 @@
       return !isMobilePreviewEnvironment();
     }
 
-    function pausePreviewWhenBackgrounded(){
-      if(!document.hidden)return;
-
-      // Desktop browsers may let the short Adelanto finish when the user simply
-      // changes tabs. Mobile/tablet devices still pause immediately so locking
-      // or backgrounding the app never turns the preview into background media.
-      if(desktopPreviewMayContinueInBackground()){
-        if(webPreviewPlaying&&webPreviewContext&&webPreviewContext.state==="suspended"){
-          webPreviewContext.resume().catch(()=>{});
-        }
-        clearNativePreviewMediaSession();
-        return;
-      }
+    function stopPreviewForMobileBackground(){
+      if(!isMobilePreviewEnvironment())return false;
 
       if(webPreviewPlaying&&webPreviewSongId){
         silenceWebAudioPreviewForBackground(webPreviewSongId);
@@ -3426,18 +3415,50 @@
         youtubePreviewPlaying=false;
       }
       clearNativePreviewMediaSession();
+      return true;
     }
 
-    document.addEventListener("visibilitychange",pausePreviewWhenBackgrounded,{passive:true});
+    function pausePreviewWhenBackgrounded(){
+      if(!document.hidden)return;
+
+      // Desktop browsers may let the Adelanto finish when the user simply
+      // changes tabs. Mobile/tablet devices stop at the earliest lifecycle signal.
+      if(desktopPreviewMayContinueInBackground()){
+        if(webPreviewPlaying&&webPreviewContext&&webPreviewContext.state==="suspended"){
+          webPreviewContext.resume().catch(()=>{});
+        }
+        clearNativePreviewMediaSession();
+        return;
+      }
+
+      stopPreviewForMobileBackground();
+    }
+
+    // iOS standalone web apps can report document.hidden later than window blur
+    // during lock/app-switch. Blur is therefore the first-line mobile stop event.
+    window.addEventListener("blur",()=>{
+      stopPreviewForMobileBackground();
+    },{passive:true,capture:true});
+
+    // Keep both standard and WebKit visibility notifications because standalone
+    // Safari/PWA lifecycle delivery has varied across iOS versions.
+    document.addEventListener("visibilitychange",pausePreviewWhenBackgrounded,{passive:true,capture:true});
+    document.addEventListener("webkitvisibilitychange",pausePreviewWhenBackgrounded,{passive:true,capture:true});
+
     window.addEventListener("pagehide",()=>{
+      if(isMobilePreviewEnvironment()){
+        stopPreviewForMobileBackground();
+        return;
+      }
       if(webPreviewPlaying&&webPreviewSongId){
-        silenceWebAudioPreviewForBackground(webPreviewSongId);
+        pauseWebAudioPreview(webPreviewSongId);
       }
       if(youtubePreviewPlayer){
         try{youtubePreviewPlayer.pauseVideo()}catch(_){}
       }
       clearNativePreviewMediaSession();
-    },{passive:true});
+    },{passive:true,capture:true});
+
     document.addEventListener("freeze",()=>{
       if(desktopPreviewMayContinueInBackground()){
         if(webPreviewPlaying&&webPreviewContext&&webPreviewContext.state==="suspended"){
@@ -3445,8 +3466,9 @@
         }
         return;
       }
-      pausePreviewWhenBackgrounded();
-    },{passive:true});
+      stopPreviewForMobileBackground();
+    },{passive:true,capture:true});
+
     clearNativePreviewMediaSession();
 
     let youtubeApiPromise=null;
