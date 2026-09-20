@@ -1036,3 +1036,27 @@ Required behavior:
 - If automatic subject detection genuinely completes later, the subject may reveal later, but it must use the same 1.65-second transition so it never pops in.
 - Preserve v90 mobile cover visibility, v91 cross-platform composition invariants, and all approved subject masks/positioning.
 - Reduced-motion mode remains exempt and may reveal immediately.
+
+
+## Universal Web Audio Adelanto engine v95
+
+The preparation-song Adelanto must use one audio engine across supported platforms.
+
+Reason:
+- iOS does not provide reliable JavaScript software-volume control for ordinary HTML media / embedded media in the same way desktop browsers do.
+- YouTube iframe playback can surface as a full OS media session on iOS, including lock-screen playback and seeking, which is inappropriate for a short in-site preview.
+- Web Audio GainNode / AudioBufferSourceNode provides platform-independent gain automation and precise clip control.
+
+Required behavior:
+- Resolve the song's Apple/iTunes catalog preview URL, fetch and decode it into an AudioBuffer, and play it through AudioBufferSourceNode -> GainNode -> destination on ALL platforms.
+- Do not select the YouTube iframe path for configured preparation-song previews.
+- Use one canonical clip duration per song on every platform. Dios De Milagros remains 19.4 seconds.
+- Use previewFadeIn .70 seconds and previewFadeOut 1.60 seconds for Dios De Milagros.
+- Select a clip window from the catalog preview using the requested preview duration; do not hard-code a 15-second analysis window.
+- Schedule gain ramps on the Web Audio AudioParam so iOS, Android, macOS, Windows, Safari, Chrome, Edge, and installed PWAs hear the same fades.
+- Pause stops the current AudioBufferSourceNode and stores elapsed preview time. Resume creates a new source at clipStart + elapsed and continues the original envelope/timeline.
+- Natural completion resets elapsed time so the next Play starts from the preview beginning with the full fade-in.
+- When the document becomes hidden, pagehide fires, or the document freezes, pause preview playback. A locked phone must not continue the preview in the background.
+- Clear top-level Media Session metadata/state/action handlers for the preview. The preview must not intentionally expose seek/skip/full-song transport controls on the OS lock screen.
+- Keep decoded preview buffers cached in-memory for low-latency replay during the page session.
+- If the catalog preview cannot be fetched/decoded, disable the preview control rather than silently falling back to a platform-inconsistent full YouTube media session.
