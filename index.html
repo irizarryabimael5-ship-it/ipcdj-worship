@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v117" />
+  <meta name="ipcdj-build" content="persistent-launch-v118" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -72,6 +72,8 @@
         );
         if(standalone&&ios){
           document.documentElement.classList.add("ipcdj-ios-light-launch");
+          const themeMeta=document.querySelector('meta[name="theme-color"]');
+          if(themeMeta)themeMeta.setAttribute("content","#ffffff");
         }
       }catch(_){}
     })();
@@ -101,8 +103,23 @@
       contain:layout paint style;
     }
 
+    html.ipcdj-ios-light-launch.ipcdj-launch-active{
+      color-scheme:light;
+      background:#ffffff;
+    }
+
+    html.ipcdj-ios-light-launch.ipcdj-launch-active body{
+      background:#ffffff;
+      overflow:hidden;
+      overscroll-behavior:none;
+    }
+
     html.ipcdj-ios-light-launch #ipcdj-launch{
       background:#ffffff;
+      inset:-160px;
+      width:auto;
+      height:auto;
+      min-height:calc(100lvh + 320px);
     }
 
     html.ipcdj-ios-light-launch #ipcdj-launch .launch-logo-stage svg{
@@ -2005,6 +2022,11 @@
 
       const lockPage=enabled=>{
         document.documentElement.classList.toggle("ipcdj-launch-active",!!enabled);
+
+        if(document.documentElement.classList.contains("ipcdj-ios-light-launch")){
+          const themeMeta=document.querySelector('meta[name="theme-color"]');
+          if(themeMeta)themeMeta.setAttribute("content",enabled?"#ffffff":"#000000");
+        }
       };
 
       const appFrameReady=()=>{
