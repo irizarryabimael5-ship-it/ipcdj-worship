@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="cross-platform-experience-lock-v91" />
+  <meta name="ipcdj-build" content="wallclock-preview-envelope-v92" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -2153,8 +2153,8 @@
         itunesCollectionId:"6799307691",
         previewClipDuration:19.4,
         previewClipStart:79,
-        previewFadeIn:.35,
-        previewFadeOut:.9,
+        previewFadeIn:.70,
+        previewFadeOut:1.0,
         previewClipSection:"chorus",
         previewSource:"youtube",
         previewYouTubeId:"0_Wgv6_Dj8U",
@@ -3112,20 +3112,22 @@
     function monitorYouTubePreview(song){
       cancelAnimationFrame(youtubePreviewMonitorFrame);
 
+      const totalDuration=Math.max(1,Number(song.previewClipDuration)||15);
+
       const step=()=>{
         if(!youtubePreviewPlayer||!youtubePreviewPlaying||activePreviewSongId!==song.id)return;
 
-        let current=youtubePreviewStart;
-        try{current=Number(youtubePreviewPlayer.getCurrentTime())||youtubePreviewStart}catch(_){}
-        const remaining=Math.max(0,youtubePreviewEnd-current);
-        const fadeElapsed=Math.max(0,(performance.now()-youtubePreviewFadeStartedAt)/1000);
+        const elapsed=Math.max(0,(performance.now()-youtubePreviewFadeStartedAt)/1000);
+        const remaining=Math.max(0,totalDuration-elapsed);
 
         const smoothstep=t=>{
           const x=Math.max(0,Math.min(1,t));
           return x*x*(3-(2*x));
         };
-        const fadeInProgress=fadeElapsed/Math.max(.05,youtubePreviewFadeIn);
+
+        const fadeInProgress=elapsed/Math.max(.05,youtubePreviewFadeIn);
         let volume=Math.round(100*smoothstep(fadeInProgress));
+
         if(remaining<youtubePreviewFadeOut){
           const fadeOutProgress=remaining/Math.max(.05,youtubePreviewFadeOut);
           volume=Math.min(
@@ -3133,6 +3135,7 @@
             Math.round(100*smoothstep(fadeOutProgress))
           );
         }
+
         volume=Math.max(0,Math.min(100,volume));
 
         try{
@@ -3140,9 +3143,10 @@
           youtubePreviewPlayer.setVolume(volume);
         }catch(_){}
 
-        // Stop only after the programmed fade has reached silence at the exact
-        // configured chorus boundary.
-        if(current>=youtubePreviewEnd-.035){
+        // Wall-clock timing keeps fade behavior identical across mobile Safari,
+        // Android Chromium, desktop browsers and installed PWAs, even if the
+        // YouTube media clock reports slightly different seek/start positions.
+        if(elapsed>=totalDuration){
           try{
             youtubePreviewPlayer.setVolume(0);
             youtubePreviewPlayer.mute();
@@ -3241,6 +3245,7 @@
       youtubePreviewFadeOut=Math.max(.5,Number(song.previewFadeOut)||1.8);
 
       activePreviewSongId=song.id;
+      youtubePreviewFadeStartedAt=performance.now();
 
       try{
         releaseYouTubeHotStandby(song.id);
@@ -3272,7 +3277,9 @@
         try{state=player.getPlayerState()}catch(_){}
         if(state===1){
           youtubePreviewPlaying=true;
-          youtubePreviewFadeStartedAt=performance.now();
+          if(youtubePreviewPreparedSongId!==song.id){
+            youtubePreviewFadeStartedAt=performance.now();
+          }
           try{
             player.unMute();
             player.setVolume(0);
