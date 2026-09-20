@@ -1188,3 +1188,22 @@ Playlist hierarchy:
 - Use tighter card padding, smaller title/note, smaller icons, 44px minimum controls, and reduced gaps.
 - On normal mobile widths, keep the three playlist services in one compact row when practical.
 - On extremely narrow screens, allow labels to stack/wrap without horizontal overflow.
+
+
+## Direct current-cover and hard mobile stop v103
+
+Dios De Milagros current-song artwork:
+- Use the exact official Spotify artwork URL directly in song metadata.
+- Preconnect/dns-prefetch i.scdn.co and preload the artwork at high priority in <head>.
+- Explicit artworkUrl bypasses COV/iTunes provider lookup for the current song's first paint.
+- Provider retries remain available for future songs without explicit artwork.
+- Existing coordinated 1.65 second visual fade and subject composition remain unchanged.
+
+Mobile background/lock audio:
+- Do not use a delayed gain ramp, setTimeout teardown, or AudioContext suspend when the app becomes hidden/locked.
+- Immediately cancel GainNode automation and set gain to exactly 0.
+- Immediately stop and disconnect the AudioBufferSourceNode and GainNode.
+- Close the mobile AudioContext after the graph is already muted/disconnected, then clear the stored context reference.
+- The next user Play gesture creates/unlocks a fresh AudioContext.
+- This path is intentionally different from manual Pause; manual Pause continues to preserve exact resume position.
+- Desktop hidden-tab continuation remains unchanged.
