@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="earliest-mobile-background-stop-v104" />
+  <meta name="ipcdj-build" content="platform-hardening-v105" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -32,7 +32,7 @@
   <link rel="dns-prefetch" href="//covers.musichoarders.xyz" />
   <link rel="dns-prefetch" href="//itunes.apple.com" />
   <link rel="dns-prefetch" href="//i.scdn.co" />
-  <link rel="preload" as="image" href="https://i.scdn.co/image/ab67616d0000b27341b7ffdb9e0bde66a24425c4" fetchpriority="high" crossorigin />
+  <link rel="preload" as="image" href="https://i.scdn.co/image/ab67616d0000b27341b7ffdb9e0bde66a24425c4" fetchpriority="high" />
   <meta property="og:type" content="website" />
   <meta property="og:locale" content="es_US" />
   <meta property="og:title" content="IPCDJ Worship | Ministerio de Alabanza" />
@@ -536,6 +536,27 @@
       width:100%;
     }
 
+    .current .cover-native-fallback{
+      position:absolute;
+      inset:-34px;
+      z-index:0;
+      width:calc(100% + 68px);
+      height:calc(100% + 68px);
+      max-width:none;
+      object-fit:cover;
+      object-position:var(--cover-pos-x) var(--cover-pos-y);
+      filter:blur(30px) saturate(1.18) contrast(1.04);
+      -webkit-filter:blur(30px) saturate(1.18) contrast(1.04);
+      transform:scale(1.10);
+      opacity:var(--cover-base-opacity);
+      pointer-events:none;
+      user-select:none;
+    }
+
+    .current.has-native-cover::before{
+      display:none;
+    }
+
     .current::before{
       content:"";
       position:absolute;
@@ -564,7 +585,7 @@
       z-index:1;
     }
 
-    .current > :not(.cover-detail):not(.cover-edge-detail):not(.cover-subject-detail){
+    .current > :not(.cover-native-fallback):not(.cover-detail):not(.cover-edge-detail):not(.cover-subject-detail){
       z-index:3;
     }
 
@@ -1891,24 +1912,22 @@
     })();
 
     if("serviceWorker" in navigator){
-      window.addEventListener("load",()=>{
-        navigator.serviceWorker.register("./sw.js",{updateViaCache:"none"})
-          .then(registration=>{
-            const updateWorker=()=>{
-              registration.update().then(()=>{
-                if(registration.waiting){
-                  registration.waiting.postMessage({type:"SKIP_WAITING"});
-                }
-              }).catch(()=>{});
-            };
-            if("requestIdleCallback" in window){
-              requestIdleCallback(updateWorker,{timeout:1800});
-            }else{
-              setTimeout(updateWorker,700);
-            }
-          })
-          .catch(()=>{});
-      },{once:true});
+      navigator.serviceWorker.register("./sw.js",{updateViaCache:"none"})
+        .then(registration=>{
+          const updateWorker=()=>{
+            registration.update().then(()=>{
+              if(registration.waiting){
+                registration.waiting.postMessage({type:"SKIP_WAITING"});
+              }
+            }).catch(()=>{});
+          };
+          if("requestIdleCallback" in window){
+            requestIdleCallback(updateWorker,{timeout:1800});
+          }else{
+            setTimeout(updateWorker,700);
+          }
+        })
+        .catch(()=>{});
 
       navigator.serviceWorker.addEventListener("controllerchange",()=>{
         // New worker takes control without forcing an extra reload loop.
@@ -2167,15 +2186,29 @@
 
     restoreClockSeed();
 
+    async function fetchWithTimeout(url,options={},timeoutMs=6500){
+      if(!("AbortController" in window)){
+        return await fetch(url,options);
+      }
+
+      const controller=new AbortController();
+      const timeout=setTimeout(()=>controller.abort(),Math.max(250,timeoutMs));
+      try{
+        return await fetch(url,{...options,signal:controller.signal});
+      }finally{
+        clearTimeout(timeout);
+      }
+    }
+
     async function syncServerClock(){
       const clientStart=Date.now();
       const beforeSync=calibratedNow();
       try{
-        const response=await fetch("./favicon.svg?clock-sync="+clientStart,{
+        const response=await fetchWithTimeout("./favicon.svg?clock-sync="+clientStart,{
           method:"HEAD",
           cache:"no-store",
           credentials:"same-origin"
-        });
+        },2500);
         const clientEnd=Date.now();
         const serverDate=response.headers.get("date");
         if(!serverDate)return false;
@@ -2549,8 +2582,9 @@
         const image=new Image();
         if(crossOrigin)image.crossOrigin="anonymous";
         image.decoding="async";
-        image.onload=()=>resolve(image);
-        image.onerror=reject;
+        const timeout=setTimeout(()=>reject(new Error("Cover subject image timeout")),6500);
+        image.onload=()=>{clearTimeout(timeout);resolve(image)};
+        image.onerror=error=>{clearTimeout(timeout);reject(error)};
         image.src=url;
       });
     }
@@ -2793,10 +2827,12 @@
         const image=new Image();
         image.crossOrigin="anonymous";
         image.decoding="async";
+        const timeout=setTimeout(()=>reject(new Error("Cover palette image timeout")),6500);
         image.onload=()=>{
+          clearTimeout(timeout);
           try{resolve(extractCoverPalette(image))}catch(error){reject(error)}
         };
-        image.onerror=reject;
+        image.onerror=error=>{clearTimeout(timeout);reject(error)};
         image.src=url;
       });
     }
@@ -2860,9 +2896,10 @@
       let candidates=[];
       if(song.itunesCollectionId){
         try{
-          const response=await fetch(
+          const response=await fetchWithTimeout(
             "https://itunes.apple.com/lookup?id="+encodeURIComponent(song.itunesCollectionId)+"&entity=song&limit=30",
-            {cache:"force-cache"}
+            {cache:"force-cache"},
+            6500
           );
           if(response.ok){
             const data=await response.json();
@@ -2874,9 +2911,10 @@
       if(!candidates.length){
         try{
           const query=encodeURIComponent(song.artworkQuery||song.title+" "+song.artist);
-          const response=await fetch(
+          const response=await fetchWithTimeout(
             "https://itunes.apple.com/search?term="+query+"&country=US&media=music&entity=song&limit=20",
-            {cache:"force-cache"}
+            {cache:"force-cache"},
+            6500
           );
           if(response.ok){
             const data=await response.json();
@@ -3134,7 +3172,7 @@
       const key=song.id+"|"+data.previewUrl;
       if(!webPreviewBufferPromises.has(key)){
         webPreviewBufferPromises.set(key,(async()=>{
-          const response=await fetch(data.previewUrl,{cache:"force-cache"});
+          const response=await fetchWithTimeout(data.previewUrl,{cache:"force-cache"},8000);
           if(!response.ok)throw new Error("Preview audio fetch failed");
           const bytes=await response.arrayBuffer();
           const buffer=await decodeWebPreviewBytes(bytes);
@@ -4307,7 +4345,7 @@
     async function resolveItunesArtworkUrl(song){
       if(song.itunesCollectionId){
         try{
-          const response=await fetch("https://itunes.apple.com/lookup?id="+encodeURIComponent(song.itunesCollectionId)+"&entity=song&limit=10",{cache:"force-cache"});
+          const response=await fetchWithTimeout("https://itunes.apple.com/lookup?id="+encodeURIComponent(song.itunesCollectionId)+"&entity=song&limit=10",{cache:"force-cache"},6500);
           if(response.ok){
             const data=await response.json();
             const candidate=(data.results||[]).filter(r=>r.artworkUrl100).sort((a,b)=>scoreCatalogResult(song,b)-scoreCatalogResult(song,a))[0];
@@ -4317,7 +4355,7 @@
       }
 
       const query=encodeURIComponent(song.artworkQuery||song.title+" "+song.artist);
-      const response=await fetch("https://itunes.apple.com/search?term="+query+"&country=US&media=music&entity=song&limit=12",{cache:"force-cache"});
+      const response=await fetchWithTimeout("https://itunes.apple.com/search?term="+query+"&country=US&media=music&entity=song&limit=12",{cache:"force-cache"},6500);
       if(!response.ok)throw new Error("Catalog lookup failed");
       const data=await response.json();
       const candidate=(data.results||[]).filter(r=>r.artworkUrl100).sort((a,b)=>scoreCatalogResult(song,b)-scoreCatalogResult(song,a))[0];
@@ -4405,6 +4443,8 @@
         // the exact same cached URL already on the card.
         if(card.dataset.coverArtworkUrl!==highResolutionArtworkUrl(artworkUrl)){
           applyCoverArtwork(song,artworkUrl,card);
+          applyCurrentSongSubjectArt(song,artworkUrl,card);
+        }else if(!card.dataset.coverSubject){
           applyCurrentSongSubjectArt(song,artworkUrl,card);
         }
 
@@ -4534,8 +4574,20 @@
     let renderedCurrentSongKey="";
 
     function currentSongCardMarkup(song){
+      const explicitCover=song.artworkUrl ? highResolutionArtworkUrl(song.artworkUrl) : "";
+      const explicitCoverAttr=explicitCover ? escapeHtml(explicitCover) : "";
+      const explicitCoverCss=explicitCover
+        ? explicitCover.replace(/["'\\()]/g,m=>"\\\\"+m)
+        : "";
+      const nativeCover=explicitCover
+        ? `<img class="cover-native-fallback" src="${explicitCoverAttr}" alt="" aria-hidden="true" loading="eager" decoding="async" fetchpriority="high" />`
+        : "";
+      const nativeClass=explicitCover ? " has-native-cover" : "";
+      const nativeStyle=explicitCover ? ` style="--cover-image:url(&quot;${escapeHtml(explicitCoverCss)}&quot;)" data-cover-artwork="${escapeHtml(song.id)}" data-cover-artwork-url="${explicitCoverAttr}"` : "";
+
       return `
-        <section class="card current reveal visible" data-current-song-card data-song-id="${escapeHtml(song.id)}" data-cover-transition="staged">
+        <section class="card current reveal visible${nativeClass}" data-current-song-card data-song-id="${escapeHtml(song.id)}" data-cover-transition="staged"${nativeStyle}>
+          ${nativeCover}
           <div class="cover-detail" aria-hidden="true"></div>
           <div class="cover-edge-detail" aria-hidden="true"></div>
           <div class="cover-subject-detail" aria-hidden="true"></div>
@@ -4626,6 +4678,13 @@
       setCardText(card,"status",phase.key==="release"?"HOY · ESTRENO":(phase.key==="upcoming"?"PRÓXIMA CANCIÓN":"AHORA EN PREPARACIÓN"));
       setCardText(card,"song-name",song.title);
       setCardText(card,"artist",song.artist);
+
+      if(song.artworkUrl&&card.classList.contains("has-native-cover")&&!card.classList.contains("cover-ready")){
+        requestAnimationFrame(()=>{
+          if(!card.isConnected)return;
+          card.classList.add("cover-ready");
+        });
+      }
 
       if(
         (card.dataset.coverTheme!==song.id||card.dataset.coverArtwork!==song.id)&&
@@ -4823,10 +4882,43 @@
       }
     });
 
-    window.addEventListener("pageshow",()=>{
+    function recoverTransientResources(){
       renderCurrent(calibratedNow());
+
+      document.querySelectorAll("[data-current-song-card][data-song-id]").forEach(card=>{
+        const song=songPipeline.find(item=>item.id===card.dataset.songId);
+        if(!song)return;
+
+        if(song.artworkUrl&&card.classList.contains("has-native-cover")){
+          card.classList.add("cover-ready");
+        }
+
+        if(
+          card.dataset.coverLoading!==song.id&&
+          (card.dataset.coverTheme!==song.id||!card.dataset.coverArtworkUrl)
+        ){
+          ensureCoverTheme(song,card);
+        }
+
+        const row=card.querySelector('[data-preview-song-id="'+CSS.escape(song.id)+'"]');
+        if(row&&!row._previewData&&!row.dataset.hydrating){
+          row.dataset.hydrating="true";
+          hydratePreviewRow(song).finally(()=>{
+            if(row.isConnected)delete row.dataset.hydrating;
+          });
+        }
+      });
+    }
+
+    window.addEventListener("pageshow",()=>{
+      recoverTransientResources();
       scheduleLiveClock();
     });
+
+    window.addEventListener("online",()=>{
+      recoverTransientResources();
+      syncServerClock().then(()=>renderCurrent(calibratedNow())).catch(()=>{});
+    },{passive:true});
 
     let responsiveSubjectTimer=null;
     function refreshResponsiveSubjectFocus(){
