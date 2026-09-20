@@ -1,0 +1,12 @@
+{
+  "name": "ipcdj-site-health",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
+  },
+  "scripts": {
+    "test": "playwright test",
+    "test:health": "playwright test tests/site-health.spec.js"
+  }
+}
