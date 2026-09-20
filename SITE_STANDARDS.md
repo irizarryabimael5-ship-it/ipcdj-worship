@@ -1810,3 +1810,38 @@ Revert:
 - backup-before-cold-fade-accent-v124 preserves the complete v123 state.
 
 Preserve v122 true overlapping preview crossfade, analyser-driven live meter, remaining-time display, future top-right controls, and v119-v120 launch masking/readiness architecture.
+
+
+## Strong preview contrast and fully-settled launch v125
+
+v125 makes the active preparation player accent unmistakable and prevents the launch exit from interrupting the longer logo entrance.
+
+Active preview contrast:
+- Curated previewAccent1 and previewAccent2 values are written directly onto the current preview-pill element as --preview-accent-1 and --preview-accent-2.
+- This avoids any ambiguity from card-level custom-property inheritance.
+- For Dios De Milagros:
+  - idle/base player color is warm gold rgb(242,184,75);
+  - playback-progress fill color is coral rgb(255,118,87).
+- Idle pill must visibly read as gold, not gray or blue:
+  - stronger gold background opacity;
+  - gold border;
+  - gold-tinted Play/Pause circle.
+- Played/filling portion must visibly read as coral and remain clearly distinguishable from the unplayed gold area.
+- During playback the outer border shifts toward the coral accent.
+- White label, timer, icon and meter remain legible above both accents.
+- For songs without curated accents, album-derived cover colors remain the fallback.
+
+Logo fade timing:
+- Preserve the v124 double-animation-frame cold-start paint guarantee.
+- Fade-in uses a slower, more gradual ease-in-out curve: cubic-bezier(.42,0,.58,1).
+- Base fade duration is approximately 1.75 seconds with a .12-second delay.
+- Mobile fade duration is approximately 1.90 seconds with the same .12-second delay.
+- Minimum visible launch duration is increased to approximately 2.30 seconds so the fade-in can fully complete and briefly settle before exit.
+- Hard maximum is approximately 3.90 seconds to keep launch bounded.
+- The site transition must never begin simply because app content becomes ready before the logo entrance has completed.
+- Preserve fixed-position, opacity-only logo behavior.
+
+Revert:
+- backup-before-player-contrast-fade-v125 preserves the complete v124 state.
+
+Preserve v122 true overlapping Web Audio crossfade, analyser meter, timer, future top-right controls, and all v119-v120 masking/readiness protections.
