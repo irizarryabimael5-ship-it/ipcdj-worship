@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v121" />
+  <meta name="ipcdj-build" content="persistent-launch-v122" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -194,7 +194,7 @@
 
     #ipcdj-launch.launch-playing .launch-logo-stage{
       opacity:1;
-      transition:opacity .88s cubic-bezier(.22,.61,.36,1);
+      transition:opacity 1.04s cubic-bezier(.4,0,.2,1);
     }
 
     #ipcdj-launch.launch-armed{
@@ -238,6 +238,10 @@
     @media (max-width:640px){
       .launch-logo-stage{
         width:clamp(166px,50vw,214px);
+      }
+
+      #ipcdj-launch.launch-playing .launch-logo-stage{
+        transition-duration:1.12s;
       }
     }
 
@@ -1410,7 +1414,6 @@
       display:flex;
       align-items:center;
       justify-content:flex-start;
-      gap:10px;
       min-height:46px;
       opacity:1;
       transform:none;
@@ -1422,43 +1425,16 @@
       transform:none;
     }
 
-    .future-inline-preview{
-      margin-top:12px;
-      padding-top:12px;
-      border-top:1px solid rgba(255,255,255,.07);
-    }
-
-    .future-inline-preview .preview-button{
-      width:40px;
-      height:40px;
-    }
-
-    .inline-preview-label{
-      margin:0;
-      color:#dfe5f1;
-      font-size:.78rem;
-      font-weight:800;
-      letter-spacing:.055em;
-      text-transform:uppercase;
-    }
-
     .preview-queue{display:contents}
 
     .preview-row{
-      display:contents;
+      min-width:0;
     }
 
     .preview-copy{display:none}
 
     .preview-button{
-      width:42px;
-      height:42px;
-      display:grid;
-      place-items:center;
-      flex:0 0 auto;
-      border-radius:50%;
-      border:1px solid rgba(255,255,255,.14);
-      background:rgba(255,255,255,.045);
+      border:0;
       color:#fff;
       cursor:pointer;
       appearance:none;
@@ -1467,19 +1443,164 @@
       line-height:1;
       -webkit-tap-highlight-color:transparent;
       touch-action:manipulation;
-      box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
-      transition:transform .14s ease,background .14s ease,border-color .14s ease;
       padding:0;
     }
 
-    .preview-button:active{transform:scale(.94)}
+    .preview-button:active{transform:scale(.97)}
     .preview-button[disabled]{opacity:.45;cursor:default}
     .preview-button svg{width:17px;height:17px;display:block;fill:currentColor}
-    .preview-row.is-playing .preview-button,
-    .preview-row.is-starting .preview-button{
-      background:var(--stage-soft,rgba(137,169,255,.10));
-      border-color:var(--stage-border,rgba(137,169,255,.28));
-      color:var(--stage-text,#e6edff);
+
+    .preview-pill{
+      --preview-progress:0%;
+      position:relative;
+      isolation:isolate;
+      min-width:196px;
+      height:44px;
+      display:inline-flex;
+      align-items:center;
+      gap:9px;
+      padding:0 12px 0 9px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.13);
+      background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.035));
+      color:#f7f8fb;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.055),
+        0 8px 24px rgba(0,0,0,.16);
+      overflow:hidden;
+      transition:
+        transform .14s ease,
+        border-color .22s ease,
+        background .22s ease,
+        box-shadow .22s ease;
+    }
+
+    .preview-pill::before{
+      content:"";
+      position:absolute;
+      z-index:-1;
+      left:0;
+      top:0;
+      bottom:0;
+      width:var(--preview-progress);
+      background:linear-gradient(90deg,var(--stage-soft,rgba(137,169,255,.10)),rgba(255,255,255,.018));
+      pointer-events:none;
+    }
+
+    .preview-pill-icon{
+      width:26px;
+      height:26px;
+      flex:0 0 26px;
+      display:grid;
+      place-items:center;
+      border-radius:50%;
+      background:rgba(255,255,255,.10);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+    }
+
+    .preview-pill-icon svg{
+      width:14px;
+      height:14px;
+    }
+
+    .preview-pill-label{
+      font-size:.78rem;
+      font-weight:800;
+      letter-spacing:.045em;
+      text-transform:uppercase;
+      white-space:nowrap;
+    }
+
+    .preview-eq{
+      width:28px;
+      height:18px;
+      display:flex;
+      align-items:flex-end;
+      justify-content:center;
+      gap:2px;
+      margin-left:auto;
+      opacity:.46;
+      transition:opacity .18s ease;
+    }
+
+    .preview-eq-bar{
+      --preview-level:.20;
+      width:3px;
+      height:100%;
+      border-radius:999px;
+      background:currentColor;
+      transform-origin:50% 100%;
+      transform:scaleY(var(--preview-level));
+      transition:transform 70ms linear;
+    }
+
+    .preview-time{
+      min-width:34px;
+      text-align:right;
+      color:#cbd3e1;
+      font-size:.74rem;
+      font-weight:750;
+      font-variant-numeric:tabular-nums;
+      letter-spacing:.01em;
+      white-space:nowrap;
+    }
+
+    .preview-row.is-playing .preview-pill{
+      border-color:var(--stage-border,rgba(137,169,255,.30));
+      background:linear-gradient(180deg,rgba(255,255,255,.095),rgba(255,255,255,.045));
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.07),
+        0 8px 26px rgba(0,0,0,.18);
+    }
+
+    .preview-row.is-playing .preview-eq{
+      opacity:1;
+    }
+
+    .future-preview-corner{
+      position:absolute;
+      top:14px;
+      right:14px;
+      z-index:4;
+    }
+
+    .future-preview-corner .preview-row{
+      display:block;
+    }
+
+    .future-preview-button{
+      width:44px;
+      height:44px;
+      display:grid;
+      place-items:center;
+      border-radius:50%;
+      border:1px solid rgba(255,255,255,.80);
+      background:#f7f8fb;
+      color:#090b10;
+      box-shadow:
+        0 9px 24px rgba(0,0,0,.23),
+        inset 0 1px 0 rgba(255,255,255,.86);
+      transition:
+        transform .14s ease,
+        box-shadow .18s ease,
+        background .18s ease;
+    }
+
+    .future-preview-button:hover{
+      box-shadow:
+        0 11px 28px rgba(0,0,0,.26),
+        inset 0 1px 0 rgba(255,255,255,.90);
+    }
+
+    .preview-row.is-playing .future-preview-button,
+    .preview-row.is-starting .future-preview-button{
+      background:#ffffff;
+      color:#080a0f;
+    }
+
+    .future-preview-button svg{
+      width:18px;
+      height:18px;
     }
 
     .youtube-preview-host{
@@ -1494,7 +1615,8 @@
     }
 
     @media (prefers-reduced-motion: reduce){
-      .inline-preview,.preview-button{transition:none!important}
+      .inline-preview,.preview-button,.preview-eq-bar{transition:none!important}
+      .preview-eq-bar{transform:scaleY(.42)!important}
     }
 
     .songs{
@@ -1511,11 +1633,12 @@
     }
 
     .song-row{
+      position:relative;
       min-width:0;
       border:1px solid var(--line);
       border-radius:18px;
       background:rgba(255,255,255,.018);
-      padding:15px 16px;
+      padding:15px 72px 15px 16px;
     }
 
     .song-top{
@@ -1539,6 +1662,10 @@
     }
 
     .song-date{
+      display:inline-flex;
+      align-items:center;
+      width:fit-content;
+      margin-top:10px;
       white-space:nowrap;
       color:#ffffff;
       font-size:.82rem;
@@ -1876,7 +2003,10 @@
         padding-left:max(10px, env(safe-area-inset-left, 0px));
       }
       .card{border-radius:22px;padding:16px}
-      .song-row{padding:14px}
+      .song-row{padding:14px 64px 14px 14px}
+      .future-preview-corner{top:12px;right:12px}
+      .future-preview-button{width:42px;height:42px}
+      .preview-pill{min-width:188px;max-width:100%}
     }
 
     @media (max-height:520px) and (orientation:landscape){
@@ -3361,13 +3491,21 @@
       if(!row)return;
       const button=row.querySelector(".preview-button");
       if(!button)return;
-      const visualState=state==="starting"?"pause":state;
-      button.innerHTML=previewIcon(visualState);
+
+      const visualState=state==="pause"?"pause":"play";
+      const iconSlot=button.querySelector(".preview-icon-slot");
+      if(iconSlot){
+        iconSlot.innerHTML=previewIcon(visualState);
+      }else{
+        button.innerHTML=previewIcon(visualState);
+      }
+
       button.setAttribute(
         "aria-label",
-        state==="pause"||state==="starting"?"Pausar adelanto":"Reproducir adelanto"
+        state==="pause"?"Pausar adelanto":"Reproducir adelanto"
       );
       button.setAttribute("aria-busy",state==="starting"?"true":"false");
+      row.dataset.previewState=state;
       row.classList.toggle("is-playing",state==="pause");
       row.classList.toggle("is-starting",state==="starting");
       row.classList.remove("is-loading");
@@ -3550,14 +3688,36 @@
     let webPreviewPlaying=false;
     let webPreviewRunToken=0;
     let previewSwitchToken=0;
-    let webPreviewSwitchPromise=null;
+    let webPreviewAnalyser=null;
+    let webPreviewAnalyserData=null;
+    let previewVisualFrame=0;
+    const webPreviewOutgoingVoices=new Set();
 
     function ensureWebPreviewContext(){
-      if(webPreviewContext&&webPreviewContext.state!=="closed")return webPreviewContext;
+      if(webPreviewContext&&webPreviewContext.state!=="closed"){
+        if(!webPreviewAnalyser){
+          webPreviewAnalyser=webPreviewContext.createAnalyser();
+          webPreviewAnalyser.fftSize=64;
+          webPreviewAnalyser.smoothingTimeConstant=.72;
+          webPreviewAnalyser.minDecibels=-90;
+          webPreviewAnalyser.maxDecibels=-10;
+          webPreviewAnalyser.connect(webPreviewContext.destination);
+          webPreviewAnalyserData=new Uint8Array(webPreviewAnalyser.frequencyBinCount);
+        }
+        return webPreviewContext;
+      }
+
       const AudioCtx=window.AudioContext||window.webkitAudioContext;
       if(!AudioCtx)throw new Error("Web Audio unavailable");
 
       webPreviewContext=new AudioCtx();
+      webPreviewAnalyser=webPreviewContext.createAnalyser();
+      webPreviewAnalyser.fftSize=64;
+      webPreviewAnalyser.smoothingTimeConstant=.72;
+      webPreviewAnalyser.minDecibels=-90;
+      webPreviewAnalyser.maxDecibels=-10;
+      webPreviewAnalyser.connect(webPreviewContext.destination);
+      webPreviewAnalyserData=new Uint8Array(webPreviewAnalyser.frequencyBinCount);
 
       webPreviewContext.addEventListener("statechange",()=>{
         if(
@@ -3626,6 +3786,98 @@
         curve[i]=reverse?1-value:value;
       }
       return curve;
+    }
+
+    function webPreviewEqualPowerCurve(direction="in",startLevel=1,steps=128){
+      const curve=new Float32Array(steps);
+      const base=Math.max(0,Math.min(1,Number(startLevel)||0));
+      for(let i=0;i<steps;i++){
+        const t=steps===1?1:i/(steps-1);
+        const angle=t*(Math.PI/2);
+        curve[i]=direction==="out"
+          ? base*Math.cos(angle)
+          : Math.sin(angle);
+      }
+      return curve;
+    }
+
+    function formatPreviewRemaining(seconds){
+      const total=Math.max(0,Math.ceil(Number(seconds)||0));
+      const minutes=Math.floor(total/60);
+      const secs=String(total%60).padStart(2,"0");
+      return minutes+":"+secs;
+    }
+
+    function setPreviewDuration(songId,duration){
+      const seconds=Math.max(.01,Number(duration)||0);
+      document.querySelectorAll('[data-preview-song-id="'+CSS.escape(songId)+'"]').forEach(row=>{
+        row.dataset.previewDuration=String(seconds);
+        const time=row.querySelector(".preview-time");
+        if(time&&!row.classList.contains("is-playing")){
+          time.textContent=formatPreviewRemaining(seconds);
+        }
+      });
+    }
+
+    function setPreviewRemaining(songId,remaining,progress=null){
+      document.querySelectorAll('[data-preview-song-id="'+CSS.escape(songId)+'"]').forEach(row=>{
+        const time=row.querySelector(".preview-time");
+        if(time)time.textContent=formatPreviewRemaining(remaining);
+
+        const button=row.querySelector(".preview-pill");
+        if(button&&Number.isFinite(progress)){
+          button.style.setProperty("--preview-progress",Math.max(0,Math.min(100,progress))+"%");
+        }
+      });
+    }
+
+    function resetPreviewMeter(songId){
+      document.querySelectorAll('[data-preview-song-id="'+CSS.escape(songId)+'"] .preview-eq-bar').forEach(bar=>{
+        bar.style.setProperty("--preview-level",".20");
+      });
+    }
+
+    function startPreviewVisualTracking(){
+      cancelAnimationFrame(previewVisualFrame);
+
+      const draw=()=>{
+        if(!webPreviewPlaying||!webPreviewSongId){
+          previewVisualFrame=0;
+          return;
+        }
+
+        const elapsed=Math.max(0,(performance.now()-webPreviewStartedAt)/1000);
+        const duration=Math.max(.01,webPreviewClipDuration);
+        const remaining=Math.max(0,duration-elapsed);
+        const progress=Math.max(0,Math.min(100,(elapsed/duration)*100));
+        setPreviewRemaining(webPreviewSongId,remaining,progress);
+
+        const bars=[...document.querySelectorAll(
+          '[data-preview-song-id="'+CSS.escape(webPreviewSongId)+'"] .preview-eq-bar'
+        )];
+
+        const reduced=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if(!reduced&&bars.length&&webPreviewAnalyser&&webPreviewAnalyserData){
+          try{
+            webPreviewAnalyser.getByteFrequencyData(webPreviewAnalyserData);
+            const bins=webPreviewAnalyserData;
+            const points=[1,3,6,10,15];
+            bars.forEach((bar,index)=>{
+              const center=Math.min(bins.length-1,points[index]||index+1);
+              const a=bins[Math.max(0,center-1)]||0;
+              const b=bins[center]||0;
+              const c=bins[Math.min(bins.length-1,center+1)]||0;
+              const energy=(a+b+c)/(3*255);
+              const level=Math.max(.18,Math.min(1,.14+(energy*1.20)));
+              bar.style.setProperty("--preview-level",level.toFixed(3));
+            });
+          }catch(_){}
+        }
+
+        previewVisualFrame=requestAnimationFrame(draw);
+      };
+
+      previewVisualFrame=requestAnimationFrame(draw);
     }
 
     function webPreviewGainAt(elapsed){
@@ -3710,18 +3962,33 @@
       return webPreviewBufferPromises.get(key);
     }
 
+    function disposeWebPreviewVoice(voice){
+      if(!voice)return;
+      try{voice.source.onended=null}catch(_){}
+      try{voice.source.stop(0)}catch(_){}
+      try{voice.source.disconnect()}catch(_){}
+      try{voice.gain.disconnect()}catch(_){}
+      webPreviewOutgoingVoices.delete(voice);
+    }
+
     function stopWebAudioSource(){
       const source=webPreviewSource;
+      const gain=webPreviewGain;
       webPreviewSource=null;
+      webPreviewGain=null;
+
       if(source){
         try{source.onended=null}catch(_){}
-        try{source.stop()}catch(_){}
+        try{source.stop(0)}catch(_){}
         try{source.disconnect()}catch(_){}
       }
-      if(webPreviewGain){
-        try{webPreviewGain.disconnect()}catch(_){}
+      if(gain){
+        try{gain.disconnect()}catch(_){}
       }
-      webPreviewGain=null;
+
+      [...webPreviewOutgoingVoices].forEach(disposeWebPreviewVoice);
+      cancelAnimationFrame(previewVisualFrame);
+      previewVisualFrame=0;
     }
 
     function resetWebAudioPreview(songId="",updateButton=true){
@@ -3776,11 +4043,32 @@
       }
     }
 
-    async function startWebAudioPreview(song,data,{resume=false}={}){
+    async function startWebAudioPreview(song,data,{resume=false,crossfadeFrom=""}={}){
       const ctx=ensureWebPreviewContext();
       try{await ctx.resume()}catch(_){}
 
-      stopWebAudioSource();
+      const canCrossfade=(
+        !!crossfadeFrom&&
+        webPreviewPlaying&&
+        webPreviewSongId===crossfadeFrom&&
+        !!webPreviewSource&&
+        !!webPreviewGain
+      );
+
+      let outgoing=null;
+      if(canCrossfade){
+        const outgoingElapsed=Math.max(0,(performance.now()-webPreviewStartedAt)/1000);
+        outgoing={
+          songId:webPreviewSongId,
+          source:webPreviewSource,
+          gain:webPreviewGain,
+          level:webPreviewGainAt(outgoingElapsed)
+        };
+        webPreviewOutgoingVoices.add(outgoing);
+      }else{
+        stopWebAudioSource();
+      }
+
       clearNativePreviewMediaSession();
 
       webPreviewSongId=song.id;
@@ -3803,11 +4091,11 @@
       const gain=ctx.createGain();
       source.buffer=data.buffer;
       source.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(webPreviewAnalyser||ctx.destination);
+
       webPreviewSource=source;
       webPreviewGain=gain;
-
-      scheduleWebPreviewGain(ctx,gain,webPreviewElapsed);
+      setPreviewDuration(song.id,webPreviewClipDuration);
 
       const token=++webPreviewRunToken;
       const offset=Math.min(
@@ -3815,26 +4103,97 @@
         webPreviewClipStart+webPreviewElapsed
       );
 
+      const startAt=ctx.currentTime+.012;
+
+      if(outgoing){
+        const crossfadeSeconds=.68;
+        const outgoingParam=outgoing.gain.gain;
+        const incomingParam=gain.gain;
+
+        try{
+          if(typeof outgoingParam.cancelAndHoldAtTime==="function"){
+            outgoingParam.cancelAndHoldAtTime(startAt);
+          }else{
+            outgoingParam.cancelScheduledValues(startAt);
+            outgoingParam.setValueAtTime(
+              Math.max(0,Math.min(1,outgoing.level)),
+              startAt
+            );
+          }
+          outgoingParam.setValueCurveAtTime(
+            webPreviewEqualPowerCurve("out",outgoing.level),
+            startAt,
+            crossfadeSeconds
+          );
+        }catch(_){}
+
+        try{
+          incomingParam.cancelScheduledValues(startAt);
+          incomingParam.setValueAtTime(0,startAt);
+          incomingParam.setValueCurveAtTime(
+            webPreviewEqualPowerCurve("in",1),
+            startAt,
+            crossfadeSeconds
+          );
+
+          const fadeOutStart=Math.max(
+            crossfadeSeconds+.02,
+            webPreviewClipDuration-webPreviewFadeOut
+          );
+          if(fadeOutStart>crossfadeSeconds+.02){
+            incomingParam.setValueAtTime(1,startAt+fadeOutStart-.002);
+          }
+
+          const naturalOutDuration=Math.max(.05,webPreviewClipDuration-fadeOutStart);
+          incomingParam.setValueCurveAtTime(
+            webPreviewCurve(0,1,true),
+            startAt+fadeOutStart,
+            naturalOutDuration
+          );
+        }catch(_){}
+
+        setPreviewButtonState(outgoing.songId,"play");
+        setPreviewButtonState(song.id,"pause");
+        resetPreviewMeter(outgoing.songId);
+
+        setTimeout(()=>{
+          disposeWebPreviewVoice(outgoing);
+          const oldDuration=Number(
+            document.querySelector('[data-preview-song-id="'+CSS.escape(outgoing.songId)+'"]')?.dataset.previewDuration
+          )||0;
+          if(oldDuration>0)setPreviewRemaining(outgoing.songId,oldDuration,0);
+        },Math.ceil(crossfadeSeconds*1000)+70);
+      }else{
+        scheduleWebPreviewGain(ctx,gain,webPreviewElapsed);
+        setPreviewButtonState(song.id,"pause");
+      }
+
       source.onended=()=>{
-        if(token!==webPreviewRunToken||!webPreviewPlaying)return;
+        if(token!==webPreviewRunToken||webPreviewSource!==source)return;
         webPreviewPlaying=false;
         webPreviewElapsed=0;
         webPreviewStartedAt=0;
         webPreviewSource=null;
-        if(webPreviewGain){
-          try{webPreviewGain.disconnect()}catch(_){}
+
+        if(webPreviewGain===gain){
+          try{gain.disconnect()}catch(_){}
+          webPreviewGain=null;
         }
-        webPreviewGain=null;
+
         setPreviewButtonState(song.id,"play");
+        setPreviewRemaining(song.id,webPreviewClipDuration,0);
+        resetPreviewMeter(song.id);
+        cancelAnimationFrame(previewVisualFrame);
+        previewVisualFrame=0;
         clearNativePreviewMediaSession();
       };
 
       webPreviewStartedAt=performance.now()-(webPreviewElapsed*1000);
       webPreviewPlaying=true;
       activePreviewSongId=song.id;
-      setPreviewButtonState(song.id,"pause");
 
-      source.start(ctx.currentTime,offset,remaining);
+      source.start(startAt,offset,remaining);
+      startPreviewVisualTracking();
     }
 
     function pauseWebAudioPreview(songId){
@@ -3845,66 +4204,13 @@
       webPreviewPlaying=false;
       stopWebAudioSource();
       setPreviewButtonState(songId,"play");
+      setPreviewRemaining(
+        songId,
+        Math.max(0,webPreviewClipDuration-webPreviewElapsed),
+        Math.max(0,Math.min(100,(webPreviewElapsed/Math.max(.01,webPreviewClipDuration))*100))
+      );
+      resetPreviewMeter(songId);
       clearNativePreviewMediaSession();
-    }
-
-    async function fadeOutWebAudioPreviewForSwitch(songId,duration=.44){
-      if(webPreviewSwitchPromise)return webPreviewSwitchPromise;
-      if(
-        !webPreviewPlaying||
-        webPreviewSongId!==songId||
-        !webPreviewContext||
-        webPreviewContext.state==="closed"||
-        !webPreviewSource||
-        !webPreviewGain
-      )return;
-
-      const ctx=webPreviewContext;
-      const source=webPreviewSource;
-      const gainNode=webPreviewGain;
-      const oldSongId=webPreviewSongId;
-      const fadeSeconds=Math.max(.18,Number(duration)||.44);
-      const token=++webPreviewRunToken;
-
-      webPreviewPlaying=false;
-      setPreviewButtonState(oldSongId,"play");
-      clearNativePreviewMediaSession();
-
-      webPreviewSwitchPromise=(async()=>{
-        try{
-          const now=ctx.currentTime;
-          const gain=gainNode.gain;
-          if(typeof gain.cancelAndHoldAtTime==="function"){
-            gain.cancelAndHoldAtTime(now);
-          }else{
-            const current=Math.max(0,Math.min(1,Number(gain.value)||1));
-            gain.cancelScheduledValues(now);
-            gain.setValueAtTime(current,now);
-          }
-          gain.linearRampToValueAtTime(0,now+fadeSeconds);
-        }catch(_){}
-
-        await new Promise(resolve=>setTimeout(resolve,Math.ceil(fadeSeconds*1000)+24));
-
-        // Do not touch a newer graph if another request has already replaced it.
-        if(token===webPreviewRunToken||webPreviewSource===source){
-          try{source.onended=null}catch(_){}
-          try{source.stop(0)}catch(_){}
-          try{source.disconnect()}catch(_){}
-          try{gainNode.disconnect()}catch(_){}
-
-          if(webPreviewSource===source)webPreviewSource=null;
-          if(webPreviewGain===gainNode)webPreviewGain=null;
-          if(webPreviewSongId===oldSongId)webPreviewSongId="";
-          if(activePreviewSongId===oldSongId)activePreviewSongId="";
-          webPreviewElapsed=0;
-          webPreviewStartedAt=0;
-        }
-      })().finally(()=>{
-        webPreviewSwitchPromise=null;
-      });
-
-      return webPreviewSwitchPromise;
     }
 
     function silenceWebAudioPreviewForBackground(songId){
@@ -3942,12 +4248,20 @@
 
       webPreviewSource=null;
       webPreviewGain=null;
+      [...webPreviewOutgoingVoices].forEach(disposeWebPreviewVoice);
+      cancelAnimationFrame(previewVisualFrame);
+      previewVisualFrame=0;
+      resetPreviewMeter(songId);
 
       // Destroy the mobile playback context entirely after the graph is already
       // muted/disconnected. The next user tap creates and unlocks a clean context.
       if(ctx&&isMobilePreviewEnvironment()&&ctx.state!=="closed"){
         try{ctx.close().catch(()=>{})}catch(_){}
-        if(webPreviewContext===ctx)webPreviewContext=null;
+        if(webPreviewContext===ctx){
+          webPreviewContext=null;
+          webPreviewAnalyser=null;
+          webPreviewAnalyserData=null;
+        }
       }
 
       setPreviewButtonState(songId,"play");
@@ -3960,13 +4274,30 @@
         return;
       }
 
-      if(webPreviewSongId!==song.id){
+      const switching=(
+        webPreviewPlaying&&
+        !!webPreviewSongId&&
+        webPreviewSongId!==song.id&&
+        !!webPreviewSource&&
+        !!webPreviewGain
+      );
+
+      if(!switching&&webPreviewSongId!==song.id){
         resetWebAudioPreview(song.id,false);
         webPreviewElapsed=0;
       }
 
-      const isResume=webPreviewElapsed>0&&webPreviewElapsed<webPreviewClipDuration;
-      await startWebAudioPreview(song,data,{resume:isResume});
+      const isResume=(
+        !switching&&
+        webPreviewSongId===song.id&&
+        webPreviewElapsed>0&&
+        webPreviewElapsed<webPreviewClipDuration
+      );
+
+      await startWebAudioPreview(song,data,{
+        resume:isResume,
+        crossfadeFrom:switching?webPreviewSongId:""
+      });
     }
 
     function isMobilePreviewEnvironment(){
@@ -4605,33 +4936,14 @@
         stopPreviewTracking();
         cancelAnimationFrame(previewManualFadeFrame);
 
-        // Same-song taps retain the normal immediate pause/resume behavior.
         if(webPreviewPlaying&&webPreviewSongId===song.id){
           pauseWebAudioPreview(song.id);
           return;
         }
 
-        const requestToken=++previewSwitchToken;
         const previousId=activePreviewSongId||webPreviewSongId;
-
         if(previousId&&previousId!==song.id){
-          setPreviewButtonState(song.id,"starting");
-
-          if(
-            (webPreviewPlaying&&webPreviewSongId===previousId)||
-            webPreviewSwitchPromise
-          ){
-            await fadeOutWebAudioPreviewForSwitch(previousId,.44);
-          }
-
           stopYouTubePreview(previousId,{reset:true});
-
-          // If the user selected yet another song during the handoff, this
-          // superseded request must not start after the newer choice.
-          if(requestToken!==previewSwitchToken){
-            setPreviewButtonState(song.id,"play");
-            return;
-          }
         }
 
         try{
@@ -4761,11 +5073,33 @@
       }
     }
 
-    function previewRowMarkup(song){
+    function previewRowMarkup(song,variant="current"){
+      const duration=Math.max(1,Number(song.previewClipDuration)||15);
+      const common='data-preview-song-id="'+escapeHtml(song.id)+'" data-preview-state="play" data-preview-duration="'+duration+'"';
+
+      if(variant==="future"){
+        return `
+          <div class="preview-row preview-row-future" ${common}>
+            <button class="preview-button future-preview-button" type="button" aria-label="Reproducir adelanto de ${escapeHtml(song.title)}">
+              <span class="preview-icon-slot">${previewIcon("play")}</span>
+            </button>
+          </div>
+        `;
+      }
+
       return `
-        <div class="preview-row" data-preview-song-id="${escapeHtml(song.id)}" data-preview-state="play">
-          <button class="preview-button" type="button" aria-label="Reproducir adelanto de ${escapeHtml(song.title)}">
-            ${previewIcon("play")}
+        <div class="preview-row preview-row-current" ${common}>
+          <button class="preview-button preview-pill" type="button" aria-label="Reproducir adelanto de ${escapeHtml(song.title)}">
+            <span class="preview-pill-icon preview-icon-slot">${previewIcon("play")}</span>
+            <span class="preview-pill-label">Adelanto</span>
+            <span class="preview-eq" aria-hidden="true">
+              <span class="preview-eq-bar"></span>
+              <span class="preview-eq-bar"></span>
+              <span class="preview-eq-bar"></span>
+              <span class="preview-eq-bar"></span>
+              <span class="preview-eq-bar"></span>
+            </span>
+            <span class="preview-time" aria-hidden="true">${formatPreviewRemaining(duration)}</span>
           </button>
         </div>
       `;
@@ -4782,7 +5116,10 @@
         if(row._previewData)return Promise.resolve(row._previewData);
         if(!row._previewPromise){
           row._previewPromise=prepareWebAudioPreview(song).then(data=>{
-            if(row.isConnected)row._previewData=data;
+            if(row.isConnected){
+              row._previewData=data;
+              setPreviewDuration(song.id,data.clipDuration);
+            }
             return data;
           });
         }
@@ -4810,26 +5147,16 @@
 
           const selectionToken=++previewSwitchToken;
           const previousId=activePreviewSongId||webPreviewSongId;
-          let handoffPromise=Promise.resolve();
 
           if(previousId&&previousId!==song.id){
             setPreviewButtonState(song.id,"starting");
-
-            if(
-              (webPreviewPlaying&&webPreviewSongId===previousId)||
-              webPreviewSwitchPromise
-            ){
-              handoffPromise=fadeOutWebAudioPreviewForSwitch(previousId,.44);
-            }else{
-              stopYouTubePreview(previousId,{reset:true});
-            }
           }
 
           try{
-            const [data]=await Promise.all([prepare(),handoffPromise]);
+            const data=await prepare();
 
-            // Rapid taps are last-selection-wins. A superseded song never begins
-            // after the user has already chosen a different preview.
+            // Keep the currently playing song audible until the incoming buffer
+            // is genuinely ready. Rapid taps are last-selection-wins.
             if(selectionToken!==previewSwitchToken){
               if(row.isConnected)setPreviewButtonState(song.id,"play");
               return;
@@ -4839,7 +5166,9 @@
           }catch(_){
             if(row.isConnected){
               button.disabled=true;
-              button.innerHTML=previewIcon("play");
+              const iconSlot=button.querySelector(".preview-icon-slot");
+              if(iconSlot)iconSlot.innerHTML=previewIcon("play");
+              else button.innerHTML=previewIcon("play");
               button.setAttribute("aria-label","Adelanto no disponible");
             }
           }
@@ -5209,9 +5538,8 @@
           <p class="artist" data-role="artist">${escapeHtml(song.artist)}</p>
 
           <div class="inline-preview" data-role="inline-preview">
-            <div class="inline-preview-label">Adelanto</div>
             <div class="preview-queue">
-              ${previewRowMarkup(song)}
+              ${previewRowMarkup(song,"current")}
             </div>
           </div>
 
@@ -5403,22 +5731,19 @@
 
       container.innerHTML=future.map(song=>`
         <div class="song-row" data-song-id="${escapeHtml(song.id)}">
+          <div class="future-preview-corner">
+            ${previewRowMarkup(song,"future")}
+          </div>
           <div class="song-top">
             <div>
               <h3>${escapeHtml(song.title)}</h3>
               <p>${escapeHtml(song.artist)}</p>
+              <div class="song-date">Estreno: ${escapeHtml(song.releaseLabel.replace("Dom. ",""))}</div>
             </div>
-            <div class="song-date">Estreno: ${escapeHtml(song.releaseLabel.replace("Dom. ",""))}</div>
           </div>
           <div class="song-meta">
             <div class="meta-line"><span class="meta-label">Aprendizaje:</span><span>${escapeHtml(song.learningLabel)}</span></div>
             <div class="meta-line"><span class="meta-label">Preparación final:</span><span>${escapeHtml(song.finalLabel)}</span></div>
-          </div>
-          <div class="inline-preview future-inline-preview preview-ready" data-role="inline-preview">
-            <div class="inline-preview-label">Adelanto</div>
-            <div class="preview-queue">
-              ${previewRowMarkup(song)}
-            </div>
           </div>
         </div>
       `).join("");
