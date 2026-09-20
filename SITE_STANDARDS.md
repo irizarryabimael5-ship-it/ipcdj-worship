@@ -1115,3 +1115,16 @@ Required behavior:
 - Web Audio remains the only active playback engine for the Adelanto.
 - Background/lock-screen stopping and Media Session clearing remain unchanged.
 - previewClipDuration may remain in song metadata for historical/fallback compatibility but must not limit playback when previewUseFullAsset is true.
+
+
+## Desktop background preview continuation v99
+
+Desktop browser tab changes may allow the short Adelanto to continue and finish normally.
+
+Required behavior:
+- On desktop-class environments (fine pointer + hover capability and not a mobile user agent), visibilitychange to hidden does not pause the Web Audio preview.
+- Mobile and tablet environments still pause immediately when hidden so iPhone/iPad/Android lock/background behavior remains contained to the website.
+- pagehide still stops playback everywhere when the page is actually navigated away from or closed.
+- document freeze still stops playback because the browser is suspending the page.
+- Media Session state remains cleared; desktop tab continuation must not create OS-level full-song controls.
+- Full Spotify preview duration, fades, pause/resume behavior, and Web Audio engine from v98 remain unchanged.
