@@ -57,25 +57,25 @@ async function openHealthyPage(page) {
 }
 
 async function scrollSweep(page) {
-  await page.evaluate(async () => {
-    const max = Math.max(
-      0,
-      document.documentElement.scrollHeight - window.innerHeight
-    );
+  const max = await page.evaluate(() => Math.max(
+    0,
+    document.documentElement.scrollHeight - window.innerHeight
+  ));
 
-    if (!max) return;
+  if (!max) return;
 
-    const steps = 18;
-    for (let i = 0; i <= steps; i++) {
-      window.scrollTo(0, Math.round(max * (i / steps)));
-      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    }
+  // Drive scrolling from Playwright instead of waiting on in-page rAF. Headless
+  // WebKit can throttle rAF aggressively even when scrolling itself is healthy.
+  const steps = 18;
+  for (let i = 0; i <= steps; i++) {
+    await page.evaluate(y => window.scrollTo(0, y), Math.round(max * (i / steps)));
+    await page.waitForTimeout(35);
+  }
 
-    for (let i = steps; i >= 0; i--) {
-      window.scrollTo(0, Math.round(max * (i / steps)));
-      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    }
-  });
+  for (let i = steps; i >= 0; i--) {
+    await page.evaluate(y => window.scrollTo(0, y), Math.round(max * (i / steps)));
+    await page.waitForTimeout(35);
+  }
 }
 
 test('integrity, launch, layout and scrolling remain healthy', async ({ page }, testInfo) => {
@@ -153,7 +153,19 @@ test('preview playback and song-to-song handoff stay functional', async ({ page 
   const futureRow = page.locator('.preview-row-future').first();
   if (await futureRow.count()) {
     const futureButton = futureRow.locator('.preview-button');
+    const futureCountdown = futureRow.locator('.future-preview-countdown');
+    const futureRing = futureRow.locator('.future-preview-ring-progress');
+
     await expect(futureButton).toBeEnabled();
+    await expect(futureCountdown).toHaveCount(1);
+    await expect(futureRing).toHaveCount(1);
+
+    const initialOffset = await futureRing.evaluate(circle => {
+      const value = Number.parseFloat(circle.style.strokeDashoffset || getComputedStyle(circle).strokeDashoffset);
+      return Number.isFinite(value) ? value : 100;
+    });
+    expect(initialOffset).toBeGreaterThanOrEqual(99);
+
     await futureButton.click();
 
     await expect.poll(
@@ -165,6 +177,19 @@ test('preview playback and song-to-song handoff stay functional', async ({ page 
       () => currentRow.evaluate(row => row.classList.contains('is-playing')),
       { timeout: 5000, message: 'previous preview should release playing state' }
     ).toBe(false);
+
+    await expect.poll(
+      () => futureRing.evaluate(circle => {
+        const value = Number.parseFloat(circle.style.strokeDashoffset || getComputedStyle(circle).strokeDashoffset);
+        return Number.isFinite(value) ? value : 100;
+      }),
+      { timeout: 5000, message: 'future preview ring should advance clockwise with playback' }
+    ).toBeLessThan(99);
+
+    await expect.poll(
+      () => futureCountdown.textContent(),
+      { timeout: 5000, message: 'future preview countdown should show remaining time' }
+    ).toMatch(/^\d+:\d{2}$/);
   }
 
   const snapshot = await page.evaluate(() => window.IPCDJ_HEALTH.checkNow());
