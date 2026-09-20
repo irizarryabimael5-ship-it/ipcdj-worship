@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="spotify-chorus-preview-v97" />
+  <meta name="ipcdj-build" content="full-spotify-preview-v98" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -2152,6 +2152,7 @@
         artworkQuery:"Dios De Milagros En Vivo Desde México Miel San Marcos Kim Richards",
         itunesCollectionId:"6799307691",
         previewClipDuration:19.4,
+        previewUseFullAsset:true,
         previewClipStart:79,
         previewCatalogOffset:0,
         previewAudioProvider:"spotify",
@@ -3005,7 +3006,13 @@
           const requestedDuration=Math.max(1,Number(song.previewClipDuration)||15);
 
           let clip;
-          if(Number.isFinite(song.previewCatalogOffset)){
+          if(song.previewUseFullAsset){
+            clip={
+              start:0,
+              duration:Math.max(.01,buffer.duration),
+              source:"full-provider-preview"
+            };
+          }else if(Number.isFinite(song.previewCatalogOffset)){
             const start=Math.max(
               0,
               Math.min(
@@ -3117,10 +3124,12 @@
       webPreviewSongId=song.id;
       webPreviewBuffer=data.buffer;
       webPreviewClipStart=Math.max(0,Number(data.clipStart)||0);
-      webPreviewClipDuration=Math.min(
-        Math.max(1,Number(song.previewClipDuration)||Number(data.clipDuration)||15),
-        Math.max(1,data.buffer.duration-webPreviewClipStart)
-      );
+      webPreviewClipDuration=song.previewUseFullAsset
+        ? Math.max(.01,Number(data.clipDuration)||Math.max(.01,data.buffer.duration-webPreviewClipStart))
+        : Math.min(
+            Math.max(1,Number(song.previewClipDuration)||Number(data.clipDuration)||15),
+            Math.max(1,data.buffer.duration-webPreviewClipStart)
+          );
       webPreviewFadeIn=Math.max(.05,Number(song.previewFadeIn)||.7);
       webPreviewFadeOut=Math.max(.15,Number(song.previewFadeOut)||1.6);
 
