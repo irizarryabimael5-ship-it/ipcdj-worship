@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v128" />
+  <meta name="ipcdj-build" content="persistent-launch-v129" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -4345,35 +4345,61 @@
       const fadeOutStart=Math.max(0,duration-fadeOut);
       const gain=gainNode.gain;
 
-      gain.cancelScheduledValues(now);
-      gain.setValueAtTime(webPreviewGainAt(e),now);
+      const scheduleLinearFallback=()=>{
+        const current=Math.max(0,Math.min(1,webPreviewGainAt(e)));
+        gain.cancelScheduledValues(now);
+        gain.setValueAtTime(current,now);
 
-      if(e<fadeIn){
-        const p=Math.max(0,Math.min(1,e/fadeIn));
-        const remainingIn=fadeIn-e;
-        if(remainingIn>.01){
-          gain.setValueCurveAtTime(webPreviewCurve(p,1,false),now,remainingIn);
+        if(e<fadeIn){
+          const remainingIn=Math.max(.01,fadeIn-e);
+          gain.linearRampToValueAtTime(1,now+remainingIn);
         }
-      }
 
-      if(e<fadeOutStart){
-        const untilOut=fadeOutStart-e;
-        gain.setValueAtTime(1,now+Math.max(0,untilOut-.001));
-        gain.setValueCurveAtTime(
-          webPreviewCurve(0,1,true),
-          now+untilOut,
-          fadeOut
-        );
-      }else if(e<duration){
-        const outProgress=(e-fadeOutStart)/fadeOut;
-        const remainingOut=duration-e;
-        if(remainingOut>.01){
+        if(e<fadeOutStart){
+          const untilOut=Math.max(.01,fadeOutStart-e);
+          gain.setValueAtTime(1,now+untilOut);
+          gain.linearRampToValueAtTime(0,now+untilOut+fadeOut);
+        }else if(e<duration){
+          const remainingOut=Math.max(.01,duration-e);
+          gain.linearRampToValueAtTime(0,now+remainingOut);
+        }
+      };
+
+      try{
+        gain.cancelScheduledValues(now);
+        gain.setValueAtTime(webPreviewGainAt(e),now);
+
+        if(e<fadeIn){
+          const p=Math.max(0,Math.min(1,e/fadeIn));
+          const remainingIn=fadeIn-e;
+          if(remainingIn>.01){
+            gain.setValueCurveAtTime(webPreviewCurve(p,1,false),now,remainingIn);
+          }
+        }
+
+        if(e<fadeOutStart){
+          const untilOut=fadeOutStart-e;
+          gain.setValueAtTime(1,now+Math.max(0,untilOut-.001));
           gain.setValueCurveAtTime(
-            webPreviewCurve(outProgress,1,true),
-            now,
-            remainingOut
+            webPreviewCurve(0,1,true),
+            now+untilOut,
+            fadeOut
           );
+        }else if(e<duration){
+          const outProgress=(e-fadeOutStart)/fadeOut;
+          const remainingOut=duration-e;
+          if(remainingOut>.01){
+            gain.setValueCurveAtTime(
+              webPreviewCurve(outProgress,1,true),
+              now,
+              remainingOut
+            );
+          }
         }
+      }catch(_){
+        // Firefox/WebKit builds can be stricter about overlapping AudioParam
+        // automation events. Linear ramps preserve a smooth audible envelope.
+        scheduleLinearFallback();
       }
     }
 
@@ -4459,7 +4485,16 @@
             startAt,
             crossfadeSeconds
           );
-        }catch(_){}
+        }catch(_){
+          try{
+            outgoingParam.cancelScheduledValues(startAt);
+            outgoingParam.setValueAtTime(
+              Math.max(0,Math.min(1,outgoing.level)),
+              startAt
+            );
+            outgoingParam.linearRampToValueAtTime(0,startAt+crossfadeSeconds);
+          }catch(__){}
+        }
 
         try{
           incomingParam.cancelScheduledValues(startAt);
@@ -4484,7 +4519,23 @@
             startAt+fadeOutStart,
             naturalOutDuration
           );
-        }catch(_){}
+        }catch(_){
+          try{
+            incomingParam.cancelScheduledValues(startAt);
+            incomingParam.setValueAtTime(0,startAt);
+            incomingParam.linearRampToValueAtTime(1,startAt+crossfadeSeconds);
+
+            const fallbackOutStart=Math.max(
+              crossfadeSeconds+.02,
+              webPreviewClipDuration-webPreviewFadeOut
+            );
+            incomingParam.setValueAtTime(1,startAt+fallbackOutStart);
+            incomingParam.linearRampToValueAtTime(
+              0,
+              startAt+webPreviewClipDuration
+            );
+          }catch(__){}
+        }
 
         setPreviewButtonState(outgoing.songId,"play");
         setPreviewButtonState(song.id,"pause");
@@ -5282,7 +5333,16 @@
 
         try{
           await toggleWebAudioPreview(song,previewData);
-        }catch(_){
+        }catch(error){
+          try{
+            window.dispatchEvent(new CustomEvent("ipcdj:preview-error",{
+              detail:{
+                songId:song.id,
+                stage:"playback-start",
+                message:String(error&&error.message?error.message:error)
+              }
+            }));
+          }catch(_){}
           resetWebAudioPreview(song.id,true);
         }
         return;
@@ -5502,7 +5562,16 @@
             }
 
             if(row.isConnected)playPreviewSong(song,data);
-          }catch(_){
+          }catch(error){
+            try{
+              window.dispatchEvent(new CustomEvent("ipcdj:preview-error",{
+                detail:{
+                  songId:song.id,
+                  stage:"prepare-or-click",
+                  message:String(error&&error.message?error.message:error)
+                }
+              }));
+            }catch(_){}
             if(row.isConnected){
               button.disabled=true;
               const iconSlot=button.querySelector(".preview-icon-slot");
@@ -6423,6 +6492,7 @@
         errors:[],
         rejections:[],
         resourceErrors:[],
+        previewErrors:[],
         frameSamples:[],
         lastCheck:null
       };
@@ -6474,6 +6544,16 @@
 
       window.addEventListener("unhandledrejection",event=>{
         record(health.rejections,{reason:serializeReason(event.reason)});
+      });
+
+      window.addEventListener("ipcdj:preview-error",event=>{
+        const detail=event&&event.detail?event.detail:{};
+        record(health.previewErrors,{
+          songId:String(detail.songId||""),
+          stage:String(detail.stage||""),
+          message:String(detail.message||"Unknown preview error")
+        });
+        persist();
       });
 
       const supported=(
@@ -6553,6 +6633,7 @@
           lcp:health.lcp,
           errors:health.errors.length,
           rejections:health.rejections.length,
+          previewErrors:health.previewErrors.length,
           longTasks:health.longTasks.length,
           longAnimationFrames:health.longAnimationFrames.length
         };
@@ -6568,7 +6649,8 @@
             latestFrameSample:health.frameSamples[health.frameSamples.length-1]||null,
             recentErrors:health.errors.slice(-5),
             recentRejections:health.rejections.slice(-5),
-            recentResourceErrors:health.resourceErrors.slice(-5)
+            recentResourceErrors:health.resourceErrors.slice(-5),
+            recentPreviewErrors:health.previewErrors.slice(-5)
           }));
         }catch(_){}
       };
@@ -6668,7 +6750,8 @@
           latestFrameSample:health.frameSamples[health.frameSamples.length-1]||null,
           recentErrors:health.errors.slice(-5),
           recentRejections:health.rejections.slice(-5),
-          recentResourceErrors:health.resourceErrors.slice(-5)
+          recentResourceErrors:health.resourceErrors.slice(-5),
+          recentPreviewErrors:health.previewErrors.slice(-5)
         };
         health.lastCheck={time:Date.now(),snapshot};
         persist();
