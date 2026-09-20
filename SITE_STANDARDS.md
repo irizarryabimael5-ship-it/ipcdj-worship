@@ -1282,7 +1282,7 @@ Startup presentation:
 - The launch logo is an inline vector derived from the repository's highest-quality IPCDJ favicon/logo SVG, with background rectangles removed and logo geometry rendered white.
 - The exact logo geometry is separated into left ring, central CDJ/Worship mark, and right ring for coordinated motion.
 - Animate only opacity and transform on SVG groups. Do not animate SVG filters, blur, or expensive paint effects.
-- Ring A enters from a very small left/down offset; ring B mirrors from right/up; the central mark follows with a restrained vertical/scale resolve.
+- Ring A enters from a very small left/down offset and ring B mirrors from right/up. The central mark fades in without modifying its baked SVG positioning transform; the shared outer logo stage performs the restrained scale resolve.
 - Motion must remain subtle, premium, centered, and church-brand appropriate; no bouncing, spinning, flashy particles, or gamified loading indicators.
 - Normal launch minimum visibility is approximately 1.22 seconds; hard maximum is approximately 2.45 seconds.
 - Exit uses a ~.68 second whole-layer opacity dissolve into the already-rendered website.
