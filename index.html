@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v131" />
+  <meta name="ipcdj-build" content="persistent-launch-v132" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -1842,12 +1842,22 @@
       text-shadow:0 1px 6px rgba(0,0,0,.42);
     }
 
-    .preview-row-future.preview-future-ending .future-preview-active{
+    .preview-row-future.preview-future-complete .future-preview-active{
+      opacity:1;
+      transform:scale(1);
+    }
+
+    .preview-row-future.preview-future-complete .future-preview-idle{
+      opacity:0;
+      transform:scale(.84);
+    }
+
+    .preview-row-future.preview-future-returning .future-preview-active{
       opacity:0;
       transform:scale(.92);
     }
 
-    .preview-row-future.preview-future-ending .future-preview-idle{
+    .preview-row-future.preview-future-returning .future-preview-idle{
       opacity:1;
       transform:scale(1);
     }
@@ -4068,7 +4078,12 @@
           clearTimeout(row._previewEndTimer);
           row._previewEndTimer=null;
         }
-        row.classList.remove("preview-ending","preview-resetting","preview-future-ending");
+        row.classList.remove(
+          "preview-ending",
+          "preview-resetting",
+          "preview-future-complete",
+          "preview-future-returning"
+        );
         if(row._previewFutureEndTimer){
           clearTimeout(row._previewFutureEndTimer);
           row._previewFutureEndTimer=null;
@@ -4533,20 +4548,33 @@
 
           const futureTime=row.querySelector(".future-preview-countdown");
           const futureRing=row.querySelector(".future-preview-ring-progress");
+
+          // Complete the clockwise ring and hold the finished state long enough
+          // to read as intentional before dissolving the whole countdown UI.
           futureButton.style.setProperty("--future-ring-progress","100");
           if(futureRing)futureRing.style.strokeDashoffset="0";
           if(futureTime)futureTime.textContent="0:00";
-          row.classList.add("preview-future-ending");
+          row.classList.remove("preview-future-returning");
+          row.classList.add("preview-future-complete");
 
           row._previewFutureEndTimer=setTimeout(()=>{
             if(!row.isConnected)return;
-            row.classList.remove("preview-future-ending");
-            setPreviewButtonState(songId,"play");
-            futureButton.style.setProperty("--future-ring-progress","0");
-            if(futureRing)futureRing.style.strokeDashoffset="100";
-            if(futureTime)futureTime.textContent=formatPreviewRemaining(fullDuration);
-            row._previewFutureEndTimer=null;
-          },520);
+
+            // Keep the ring visually complete while the active UI fades away.
+            row.classList.add("preview-future-returning");
+
+            row._previewFutureEndTimer=setTimeout(()=>{
+              if(!row.isConnected)return;
+
+              // Reset only after the completed ring/timer are no longer visible.
+              row.classList.remove("preview-future-complete","preview-future-returning");
+              setPreviewButtonState(songId,"play");
+              futureButton.style.setProperty("--future-ring-progress","0");
+              if(futureRing)futureRing.style.strokeDashoffset="100";
+              if(futureTime)futureTime.textContent=formatPreviewRemaining(fullDuration);
+              row._previewFutureEndTimer=null;
+            },560);
+          },620);
           return;
         }
 
