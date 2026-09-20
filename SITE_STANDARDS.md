@@ -1207,3 +1207,17 @@ Mobile background/lock audio:
 - The next user Play gesture creates/unlocks a fresh AudioContext.
 - This path is intentionally different from manual Pause; manual Pause continues to preserve exact resume position.
 - Desktop hidden-tab continuation remains unchanged.
+
+
+## Earliest mobile lifecycle stop v104
+
+Mobile background/lock stopping must use the earliest lifecycle signal available.
+
+Required behavior:
+- window blur is the first-line stop event on mobile/tablet because iOS standalone PWAs can deliver visibilitychange later during lock/app-switch transitions.
+- Also listen for standard visibilitychange, webkitvisibilitychange, pagehide, and freeze as backup lifecycle signals.
+- All mobile lifecycle events route through one idempotent stopPreviewForMobileBackground() helper.
+- The helper uses the v103 hard-stop path: immediate zero gain, immediate source stop/disconnect, and mobile AudioContext close.
+- Event listeners use capture where supported so the stop runs as early as possible in dispatch.
+- Desktop tab switching must remain unaffected. Desktop blur must not stop the preview.
+- Desktop pagehide still stops playback when the page is actually being left/closed.
