@@ -989,3 +989,18 @@ Album-art/current card:
 Global:
 - Lock browser text autosizing at 100% to prevent mobile Safari/Chromium from unexpectedly changing typography hierarchy.
 - Device breakpoints may rearrange layout for fit, but must not change semantic colors, wording, feature availability, animation intent, cover-art identity, or interaction meaning.
+
+
+## Wall-clock preview envelope v92
+
+Adelanto volume-envelope timing must not depend on YouTube currentTime after hot standby.
+
+Required behavior:
+- Keep immediate hot-standby startup.
+- Drive fade-in, fade-out, and total preview duration from performance.now() elapsed time once the user starts playback.
+- Use the same smoothstep curve for fade-in and fade-out on every platform.
+- For Dios De Milagros: previewClipDuration 19.4 seconds, previewFadeIn .70 seconds, previewFadeOut 1.0 second.
+- The fade clock begins at the Play tap for an already-prepared hot player so the fade is audibly present from zero volume while the music begins immediately.
+- If the player was not prepared and must actually start later, reset the fade clock when the player reaches PLAYING.
+- Do not use YouTube currentTime to decide when the fade-out begins or when the preview stops.
+- This is specifically to eliminate Safari/iOS and Chromium timing differences caused by iframe seek/playback clock behavior.
