@@ -933,3 +933,20 @@ Required behavior:
 - Explicit Pause remains immediate, then silently restores hot standby at the chorus start.
 - Automatic completion fades to zero, then silently restores hot standby at the chorus start.
 - Only the current song may use hot standby.
+
+
+## Cross-platform album-art composition lock v88
+
+The current-song album-art background must preserve the same visual composition across desktop, tablet, mobile, tiny-width, and landscape layouts.
+
+Required behavior:
+- Use shared CSS variables for blurred-base opacity, detail-layer opacity, perimeter-detail opacity, and detail blur strength.
+- Desktop baseline: base .76, detail .42, edge .50, detail blur 2.6px, edge blur 1.6px.
+- Tablet 641–899px keeps the desktop baseline exactly.
+- Mobile <=640px may soften only slightly for density/readability: detail .40, edge .48, detail blur 2.8px, edge blur 1.7px. Do not create a visibly different composition.
+- Tiny mobile must retain the mobile composition instead of progressively reducing album-art visibility.
+- Short landscape keeps the desktop background composition; layout changes must not alter artwork balance.
+- The broad center-detail reveal uses the same focal geometry across breakpoints so the visual center never becomes a blurred/dead spot on one device but visible on another.
+- The left/title-side dark blend remains shared across all sizes.
+- Person/subject placement and size may remain responsive; do not alter the approved subject masks or their responsive positioning as part of background consistency work.
+- Reduced-transparency/forced-colors accessibility modes may intentionally reduce artwork visibility and are exempt from visual parity.
