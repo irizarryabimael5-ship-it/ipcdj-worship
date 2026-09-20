@@ -1459,3 +1459,34 @@ Fade lifecycle:
 - Warm PWA resume follows the same armed -> playing transition and remains covered by black while the transition is prepared.
 
 Preserve v112 pure-black iOS native startup bridge, v111 repository hygiene, v109 persistent launch lifecycle, and all approved reliability/audio behavior.
+
+
+## iOS PWA launch lifecycle stabilization v115
+
+v115 addresses installed-iPhone startup churn that does not reproduce in a normal mobile browser tab.
+
+Lifecycle:
+- The standalone launch state machine must be idempotent across blur, visibilitychange, webkitvisibilitychange, pagehide, pageshow, and focus.
+- armLaunch must return immediately if the app is already armed in launch-armed state.
+- window blur must not re-arm or restart the splash while the intro is already launch-armed, launch-playing, or launch-exit.
+- Blur may arm only when the document is already hidden or the launch state is fully launch-idle.
+- This prevents iOS Home Screen startup blur/focus churn from resetting opacity mid-fade.
+- Real background transitions remain covered by visibilitychange/webkitvisibilitychange/pagehide and by blur once the app is idle.
+- playLaunch ignores duplicate requests when an unarmed launch-playing cycle is already active.
+
+Visual timing:
+- Logo remains completely fixed with no transform or runtime positional correction.
+- Fade-in is approximately .88 seconds.
+- Minimum visible cycle is approximately 1.32 seconds.
+- Logo fade-out is approximately .74 seconds.
+- Black launch-layer dissolve is approximately .82 seconds with a short overlap so the website emerges gradually rather than snapping in.
+- Hard maximum remains bounded at approximately 2.85 seconds.
+- Reduced-motion behavior remains short and static.
+
+Native handoff:
+- Keep ios-startup-universal.svg as a pure-black Apple startup bridge.
+- Keep apple-mobile-web-app-status-bar-style=black-translucent and manifest background/theme black.
+- The custom Apple startup image exists to avoid iOS falling back to a screenshot of the previously visible application state.
+- Existing Home Screen installations may retain launch-screen/install-time behavior independently from live web updates; device testing must distinguish installed-state artifacts from current web code.
+
+Preserve v114 fixed-position transition architecture, v112 black native bridge, v111 repository hygiene, and all audio/reliability invariants.
