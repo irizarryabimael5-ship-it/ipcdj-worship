@@ -99,6 +99,7 @@
       opacity:1;
       transform:translateZ(0);
       -webkit-transform:translateZ(0);
+      animation:launchStage .94s cubic-bezier(.2,.75,.2,1) .05s both;
     }
 
     .launch-logo-svg{
@@ -110,11 +111,14 @@
       -webkit-transform:translateZ(0);
     }
 
-    .launch-logo-svg .launch-ring,
-    .launch-logo-svg .launch-mark{
+    .launch-logo-svg .launch-ring{
       transform-box:fill-box;
       transform-origin:center;
       will-change:opacity,transform;
+    }
+
+    .launch-logo-svg .launch-mark{
+      will-change:opacity;
     }
 
     .launch-logo-svg .launch-ring-a{
@@ -166,9 +170,14 @@
     }
 
     @keyframes launchMark{
-      0%{opacity:0;transform:translate3d(0,8px,0) scale(.965)}
-      70%{opacity:1;transform:translate3d(0,-.5px,0) scale(1.004)}
-      100%{opacity:1;transform:translate3d(0,0,0) scale(1)}
+      0%{opacity:0}
+      100%{opacity:1}
+    }
+
+    @keyframes launchStage{
+      0%{transform:translateZ(0) scale(.975)}
+      70%{transform:translateZ(0) scale(1.004)}
+      100%{transform:translateZ(0) scale(1)}
     }
 
     @keyframes launchAura{
@@ -200,12 +209,19 @@
         animation:none;
         opacity:.22;
       }
+      .launch-logo-stage{
+        animation:none;
+        transform:translateZ(0);
+      }
       .launch-logo-svg .launch-ring-a,
-      .launch-logo-svg .launch-ring-b,
-      .launch-logo-svg .launch-mark{
+      .launch-logo-svg .launch-ring-b{
         animation:none;
         opacity:1;
         transform:none;
+      }
+      .launch-logo-svg .launch-mark{
+        animation:none;
+        opacity:1;
       }
     }
   </style>
