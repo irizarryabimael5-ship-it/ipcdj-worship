@@ -968,3 +968,24 @@ Required behavior:
 ## Tiny-mobile cover inheritance v90
 
 Phones <=340px must inherit the explicit <=640px current-cover ready-state visibility without any additional cover opacity overrides.
+
+
+## Cross-platform experience parity v91
+
+The website should present the same design language and interaction behavior across iPhone/iPad Safari and installed web app, Android Chromium/PWA, desktop Safari/Chrome/Edge, tablet, landscape, and supported small screens. Responsive sizing may change where necessary, but the perceived product must remain the same.
+
+Adelanto:
+- Fade-in and fade-out use the same smoothstep volume envelope, driven by requestAnimationFrame and the player clock rather than CSS or browser-specific media transitions.
+- The configured fade durations remain song-specific; do not alter timing merely for a particular browser.
+- The Play button explicitly resets native browser button appearance so Safari/iOS and Chromium/Android render the same circular control.
+- SVG events remain owned by the button, not by the icon.
+
+Album-art/current card:
+- Preserve the v84 center-detail reveal, left-side blend, v90 explicit mobile visibility, and approved person masks/placement.
+- Cover base/detail/edge layers always share the same background position/repeat behavior and centered transform origin across engines.
+- Do not introduce device-specific artwork compositions unless needed for subject placement or accessibility.
+- Browser accessibility modes such as reduced motion, reduced transparency, forced colors, and increased contrast may intentionally differ.
+
+Global:
+- Lock browser text autosizing at 100% to prevent mobile Safari/Chromium from unexpectedly changing typography hierarchy.
+- Device breakpoints may rearrange layout for fit, but must not change semantic colors, wording, feature availability, animation intent, cover-art identity, or interaction meaning.
