@@ -2158,3 +2158,31 @@ Revert:
 - backup-before-future-card-themes-v131 preserves the complete v130 state.
 
 Preserve v130 loudness normalization, v129 audio compatibility diagnostics/fallbacks, v128 health monitoring, v127 song-driven ambient/release lifecycle/translation architecture, and all earlier launch/audio safety invariants.
+
+
+## Future preview completion hold v132
+
+v132 refines the upcoming-song circular preview control so its ending behavior exactly matches the intended visual sequence.
+
+Clockwise progress:
+- The future preview SVG ring continues to begin at 12 o'clock through a -90 degree rotation.
+- Progress continues from 0 to 100 clockwise using the shared audio playback clock.
+- The remaining-time countdown remains centered inside the ring.
+- Play fades/scales out as the countdown/ring fades/scales in without changing the fixed control footprint.
+
+Natural completion sequence:
+- At natural preview completion the ring reaches a fully closed 100% circle and the timer reads 0:00.
+- The complete ring/countdown remains fully visible for approximately 620 ms.
+- After that hold, the entire completed ring/countdown state fades/scales out over approximately 560 ms while the Play state fades/scales back in.
+- The ring must stay at 100% throughout the return fade.
+- Only after the completed state is no longer visible may the ring reset to 0 and the timer reset to the full preview duration.
+- Never animate the circular line backward.
+- Never expose the hidden 100-to-0 reset to the user.
+
+Interaction safety:
+- Starting/resuming playback cancels pending future-complete/future-returning states and timers.
+- The existing Pause target, normalized volume, song-to-song crossfade, mobile hard-stop and preview ownership rules remain unchanged.
+- prefers-reduced-motion keeps the same state sequence without transitional motion.
+
+Revert:
+- backup-before-future-preview-finish-v132 preserves the complete v131 state.
