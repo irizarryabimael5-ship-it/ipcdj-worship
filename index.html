@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a1020" />
-  <meta name="ipcdj-build" content="universal-webaudio-preview-v95" />
+  <meta name="ipcdj-build" content="catalog-chorus-lock-v96" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -2153,6 +2153,7 @@
         itunesCollectionId:"6799307691",
         previewClipDuration:19.4,
         previewClipStart:79,
+        previewCatalogOffset:0,
         previewFadeIn:.70,
         previewFadeOut:1.60,
         previewClipSection:"chorus",
@@ -2991,15 +2992,35 @@
           const bytes=await response.arrayBuffer();
           const ctx=ensureWebPreviewContext();
           const buffer=await ctx.decodeAudioData(bytes.slice(0));
-          const clip=strongestPreviewWindow(
-            buffer,
-            Math.max(1,Number(song.previewClipDuration)||15)
-          );
+          const requestedDuration=Math.max(1,Number(song.previewClipDuration)||15);
+
+          let clip;
+          if(Number.isFinite(song.previewCatalogOffset)){
+            const start=Math.max(
+              0,
+              Math.min(
+                Number(song.previewCatalogOffset),
+                Math.max(0,buffer.duration-.35)
+              )
+            );
+            clip={
+              start,
+              duration:Math.min(
+                requestedDuration,
+                Math.max(1,buffer.duration-start)
+              ),
+              source:"manual-catalog-chorus"
+            };
+          }else{
+            clip=strongestPreviewWindow(buffer,requestedDuration);
+          }
+
           return {
             source:"webaudio",
             buffer,
             clipStart:clip.start,
             clipDuration:clip.duration,
+            clipSource:clip.source||"catalog-analysis",
             previewUrl:data.previewUrl,
             trackName:data.trackName,
             artistName:data.artistName
