@@ -1388,3 +1388,26 @@ Repository files must have a concrete runtime, compatibility, deployment, docume
 - Do not retain obsolete duplicate assets merely because an older manifest or service-worker version once used them.
 - Before deleting an asset, verify index.html, the active manifest, sw.js, CNAME/GitHub Pages behavior, platform-specific startup/icon requirements, and SITE_STANDARDS.md.
 - Canonical source assets and compatibility fallbacks are not considered clutter even when they are not directly visible in the main UI.
+
+
+## Seamless native-to-web launch handoff v112
+
+v112 corrects the black-only launch regression introduced by the root pre-paint overlay and removes the duplicate native-logo handoff on iOS.
+
+Web launch:
+- Do not place an opaque html::before launch layer above the body launch node.
+- The initial document background remains pure #000000, but #ipcdj-launch is the canonical visible web launch surface.
+- The exact inline IPCDJ SVG must remain visible through the launch-playing opacity animation.
+- The logo stays fixed in one centered position and uses opacity only: fade in, hold, fade out.
+
+iOS native bridge:
+- ios-startup-universal.svg is a pure-black bridge only. It must not contain the IPCDJ logo.
+- The purpose of the Apple startup image is to hand off from the native phase into the web animation without showing a duplicate static logo first.
+- The visible logo event belongs to the web launch overlay, not the native startup image.
+
+Installed PWA backgrounding:
+- Continue arming the black launch overlay on blur, visibilitychange, webkitvisibilitychange, and pagehide.
+- After applying launch-armed, synchronously flush layout so WebKit has the armed state committed before suspension/snapshot whenever possible.
+- Foreground resume still restarts the opacity-only launch sequence synchronously.
+
+Preserve v111 repository hygiene, v110 fixed-position animation, v109 persistent launch lifecycle, v106 zero-flash content rules, and all audio/visual invariants.
