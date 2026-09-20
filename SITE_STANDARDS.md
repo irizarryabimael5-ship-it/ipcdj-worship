@@ -2277,3 +2277,46 @@ Preview verification:
 
 Revert:
 - backup-before-notification-foundation-v133 preserves the complete v132 website state before notification groundwork and monitoring-test changes.
+
+
+## Cross-platform sRGB vibrancy consistency v134
+
+v134 hardens the album-derived upcoming-song card colors so the intended palette remains as consistent and vibrant as practical across Chromium, Firefox, WebKit/Safari, Android, desktop and installed PWA rendering.
+
+Scope:
+- No preview playback logic or future-preview countdown/ring behavior changes in v134.
+- No notification foundation activation.
+- This is a color extraction/rendering consistency pass only.
+
+Color-space policy:
+- Future-card theme colors are normalized to explicit 8-bit sRGB integer triplets before being written to CSS custom properties.
+- CSS rendering continues to use rgb()/rgba() only for these dynamic card colors.
+- Do not use display-p3, lab(), lch(), oklab(), oklch(), color-mix(), mix-blend-mode or browser-specific wide-gamut values for the canonical upcoming-card palette.
+- Wide-gamut devices may physically display sRGB differently/better, but the CSS source values and compositing intent remain deterministic.
+
+Palette extraction:
+- The palette canvas explicitly requests a 2D sRGB context when the browser supports the colorSpace option.
+- Browsers that do not support the option fall back to the established standard 2D context without failing.
+- Extracted colorful values pass through normalizeVibrantSrgbColor().
+- Saturation receives a restrained lift and bounded lightness so the palette does not look washed out after dark-theme compositing.
+- Near-neutral/grayscale colors below the saturation threshold stay neutral; never invent a hue for grayscale artwork.
+- Existing cached/fallback palettes are also normalized before future-card CSS variables are generated.
+
+Rendering/compositing:
+- Upcoming cards now have an explicit #0a0d14 base instead of a semi-transparent base layer.
+- The four album-derived radial-gradient colors remain the same semantic palette, but their alpha levels are raised modestly to retain visible vibrancy.
+- The dark readability overlay is reduced slightly so it does not unnecessarily mute the palette.
+- Gradient layers remain plain standards-based radial/linear gradients with no filter blur, backdrop dependency or blend mode.
+- Static gradient rendering remains preferred over animated filters for consistency and GPU efficiency.
+
+Accessibility/readability:
+- White title/metadata treatment and text shadows remain unchanged.
+- Accent borders/date indicators remain derived from the normalized palette.
+- Do not disable user accessibility color/contrast modes merely to force visual fidelity.
+
+Physical-display limitation:
+- Exact emitted color cannot be literally identical across different display panels, calibration, brightness, HDR/wide-gamut capabilities or OS color management.
+- IPCDJ guarantees the same normalized sRGB source values and rendering architecture, not identical physical photons across hardware.
+
+Revert:
+- backup-before-srgb-vibrancy-v134 preserves the complete v132 runtime before this color consistency pass.
