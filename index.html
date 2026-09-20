@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v122" />
+  <meta name="ipcdj-build" content="persistent-launch-v123" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -194,7 +194,7 @@
 
     #ipcdj-launch.launch-playing .launch-logo-stage{
       opacity:1;
-      transition:opacity 1.04s cubic-bezier(.4,0,.2,1);
+      transition:opacity 1.18s cubic-bezier(.4,0,.2,1);
     }
 
     #ipcdj-launch.launch-armed{
@@ -241,7 +241,7 @@
       }
 
       #ipcdj-launch.launch-playing .launch-logo-stage{
-        transition-duration:1.12s;
+        transition-duration:1.28s;
       }
     }
 
@@ -1461,11 +1461,17 @@
       gap:9px;
       padding:0 12px 0 9px;
       border-radius:999px;
-      border:1px solid rgba(255,255,255,.13);
-      background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.035));
+      border:1px solid rgba(var(--cover-c2,137,169,255),.28);
+      background:
+        linear-gradient(
+          110deg,
+          rgba(var(--cover-c1,55,93,202),.24) 0%,
+          rgba(var(--cover-c2,137,169,255),.14) 56%,
+          rgba(255,255,255,.035) 100%
+        );
       color:#f7f8fb;
       box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.055),
+        inset 0 1px 0 rgba(255,255,255,.06),
         0 8px 24px rgba(0,0,0,.16);
       overflow:hidden;
       transition:
@@ -1483,7 +1489,15 @@
       top:0;
       bottom:0;
       width:var(--preview-progress);
-      background:linear-gradient(90deg,var(--stage-soft,rgba(137,169,255,.10)),rgba(255,255,255,.018));
+      background:
+        linear-gradient(
+          100deg,
+          rgba(var(--cover-c1,55,93,202),.54) 0%,
+          rgba(var(--cover-c2,137,169,255),.42) 62%,
+          rgba(var(--cover-c3,83,126,222),.30) 100%
+        );
+      box-shadow:inset -1px 0 0 rgba(255,255,255,.08);
+      transition:width .10s linear;
       pointer-events:none;
     }
 
@@ -1546,10 +1560,16 @@
     }
 
     .preview-row.is-playing .preview-pill{
-      border-color:var(--stage-border,rgba(137,169,255,.30));
-      background:linear-gradient(180deg,rgba(255,255,255,.095),rgba(255,255,255,.045));
+      border-color:rgba(var(--cover-c2,137,169,255),.48);
+      background:
+        linear-gradient(
+          110deg,
+          rgba(var(--cover-c1,55,93,202),.30) 0%,
+          rgba(var(--cover-c2,137,169,255),.18) 58%,
+          rgba(255,255,255,.045) 100%
+        );
       box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.07),
+        inset 0 1px 0 rgba(255,255,255,.075),
         0 8px 26px rgba(0,0,0,.18);
     }
 
