@@ -1326,3 +1326,28 @@ Reliability:
 - Wait for the current prep card/eager cover where practical, but never exceed the hard maximum.
 - Reduced-motion users see the exact static logo with a short crossfade.
 - Preserve v106 zero-flash startup rules, v105 resource hardening, v104 mobile audio lifecycle stop, desktop tab preview continuation, and the full Spotify Adelanto.
+
+
+## Persistent PWA launch state v109
+
+v109 fixes the distinction between a document refresh and reopening an installed PWA.
+
+Launch lifecycle:
+- The #ipcdj-launch node remains in the DOM for the lifetime of the document. Do not remove it after the initial animation.
+- Explicit states are launch-playing, launch-exit, launch-idle, and launch-armed.
+- launch-idle is fully hidden and noninteractive after the normal exit.
+- In installed standalone/fullscreen PWA contexts, visibility loss/pagehide arms the launch layer while the app is backgrounded.
+- launch-armed is an opaque black full-screen layer with the logo held at its pre-animation opacity/transform.
+- When the PWA becomes visible again via visibilitychange, webkitvisibilitychange, pageshow, or focus, restart the exact one-piece logo reveal from a fresh CSS animation timeline.
+- This makes warm reopen/resume visually match a refresh/new-document launch instead of exposing the resumed website frame first.
+- Ordinary browser tabs do not replay the splash merely because the tab changes visibility; warm replay is limited to installed display modes.
+- The launch state machine remains idempotent and uses cycle tokens so duplicate lifecycle events cannot create overlapping exits/replays.
+
+Native alignment:
+- HTML theme-color is pure #000000 during startup.
+- Manifest background_color and theme_color are pure #000000 so Android/Chromium generated PWA launch surfaces match the custom web splash.
+- Provide ios-startup-universal.svg through apple-touch-startup-image as a static Apple startup bridge using the same black canvas and exact white IPCDJ vector.
+- Precache launch-logo-white.svg and ios-startup-universal.svg.
+- The web launch overlay remains the canonical animated experience; the native bridge only exists to reduce the visual seam before web content takes control.
+
+Preserve all v108 exact-logo geometry, v106 zero-flash rules, v105 platform hardening, v104 mobile audio lifecycle stop, full Spotify preview behavior, and desktop tab continuation.
