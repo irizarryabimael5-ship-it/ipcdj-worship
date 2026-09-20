@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://worship.ipcdj.org/notifications/notification-contract.schema.json",
+  "title": "IPCDJ Worship Web Push Payload",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "id", "type", "title", "body", "url"],
+  "properties": {
+    "version": { "const": 1 },
+    "id": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "type": {
+      "type": "string",
+      "enum": [
+        "song.phase.entered",
+        "song.release.reminder",
+        "song.release.today",
+        "live_set.published",
+        "live_set.updated",
+        "system.announcement"
+      ]
+    },
+    "title": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "body": { "type": "string", "minLength": 1, "maxLength": 300 },
+    "url": { "type": "string", "minLength": 1, "maxLength": 500 },
+    "tag": { "type": "string", "maxLength": 160 },
+    "icon": { "type": "string", "maxLength": 500 },
+    "badge": { "type": "string", "maxLength": 500 },
+    "timestamp": { "type": "integer", "minimum": 0 },
+    "expiresAt": { "type": ["integer", "null"], "minimum": 0 },
+    "renotify": { "type": "boolean" },
+    "silent": { "type": "boolean" },
+    "data": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "songId": { "type": "string", "maxLength": 160 },
+        "phase": {
+          "type": "string",
+          "enum": ["upcoming", "learning", "final", "release", "released", "complete"]
+        },
+        "liveSetId": { "type": "string", "maxLength": 160 },
+        "sourceRevision": { "type": "string", "maxLength": 160 }
+      }
+    }
+  }
+}
