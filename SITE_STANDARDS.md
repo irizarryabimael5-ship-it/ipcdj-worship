@@ -1256,3 +1256,19 @@ Service worker:
 - Healthy-network navigations should prefer a fresh deployed shell within a short bounded window, with the last known-good cached shell as fallback.
 - Cache matching for version-query static assets should ignore the query string because the service-worker cache name already versions the asset set.
 - Offline or slow-network fallback remains mandatory.
+
+
+## Zero-flash startup v106
+
+The website/PWA must not perform a visible second-stage startup after the first frame has painted.
+
+Required behavior:
+- .reveal content is visible by default.
+- Initial and near-viewport sections never begin at opacity 0 or translated position.
+- Only genuinely below-the-fold sections receive reveal-pending and may animate when scrolled into view.
+- The current-song card and playlist utility must be in final layout from the first painted frame.
+- The deployed-build freshness probe must never call location.replace() merely because a newer build is detected after paint.
+- When a newer build is detected, trigger service-worker update/skipWaiting silently and allow the next navigation to use the fresh shell.
+- Explicit user pull-to-refresh may still perform a navigation because the user intentionally requested refresh.
+- Preserve the v105 fast-network-first service-worker navigation behavior and cached offline fallback.
+- Preserve the current-cover native fail-safe layer and all approved cover/detail/person transitions.
