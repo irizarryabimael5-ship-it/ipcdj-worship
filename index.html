@@ -4807,8 +4807,34 @@
 
         button.addEventListener("click",async()=>{
           unlockWebPreviewContextFromGesture();
+
+          const selectionToken=++previewSwitchToken;
+          const previousId=activePreviewSongId||webPreviewSongId;
+          let handoffPromise=Promise.resolve();
+
+          if(previousId&&previousId!==song.id){
+            setPreviewButtonState(song.id,"starting");
+
+            if(
+              (webPreviewPlaying&&webPreviewSongId===previousId)||
+              webPreviewSwitchPromise
+            ){
+              handoffPromise=fadeOutWebAudioPreviewForSwitch(previousId,.44);
+            }else{
+              stopYouTubePreview(previousId,{reset:true});
+            }
+          }
+
           try{
-            const data=await prepare();
+            const [data]=await Promise.all([prepare(),handoffPromise]);
+
+            // Rapid taps are last-selection-wins. A superseded song never begins
+            // after the user has already chosen a different preview.
+            if(selectionToken!==previewSwitchToken){
+              if(row.isConnected)setPreviewButtonState(song.id,"play");
+              return;
+            }
+
             if(row.isConnected)playPreviewSong(song,data);
           }catch(_){
             if(row.isConnected){
