@@ -1351,3 +1351,30 @@ Native alignment:
 - The web launch overlay remains the canonical animated experience; the native bridge only exists to reduce the visual seam before web content takes control.
 
 Preserve all v108 exact-logo geometry, v106 zero-flash rules, v105 platform hardening, v104 mobile audio lifecycle stop, full Spotify preview behavior, and desktop tab continuation.
+
+
+## Fixed-position zero-flash launch v110
+
+v110 supersedes the remaining launch-motion and warm-resume timing details from v108/v109.
+
+Logo animation:
+- The exact one-piece IPCDJ logo stays in one fixed centered position for the entire launch sequence.
+- Do not translate, scale, slide, drift, bounce, or otherwise move the outer .launch-logo-stage.
+- The logo animation is opacity-only: fade in, stable hold, then fade out as the black launch layer dissolves.
+- Start the opacity reveal immediately with no intentional animation delay.
+- Keep the existing one-piece exact SVG geometry; never return to internal ring/group animation.
+
+Pre-paint coverage:
+- The root <html> element ships with ipcdj-launch-active already present in the initial markup.
+- Critical head CSS provides a pure-black fixed pre-paint coverage layer behind #ipcdj-launch before body content can become visible.
+- The launch node remains the topmost layer once parsed, and the root pre-paint layer disappears only when the launch lifecycle settles to idle.
+- This exists specifically to prevent a split-frame website flash or compositing seam on mobile startup.
+
+Installed PWA lifecycle:
+- In standalone/fullscreen mode, window blur arms the black launch layer at the earliest app-switch/background signal, before later visibilitychange/pagehide events.
+- visibilitychange, webkitvisibilitychange, and pagehide remain redundant backup arming signals.
+- On foreground resume, the launch-playing state is applied synchronously before the next browser paint rather than waiting an extra requestAnimationFrame.
+- Switching from launch-armed (animation:none) to launch-playing restarts the opacity animation without forced synchronous layout/reflow.
+- Ordinary browser tabs still do not replay the splash merely from tab visibility changes.
+
+Preserve v109 persistent launch states, v106 zero-flash content behavior, v105 reliability hardening, v104 mobile audio shutdown, exact launch logo geometry, and all approved visual/audio invariants.
