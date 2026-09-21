@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v135" />
+  <meta name="ipcdj-build" content="persistent-launch-v136" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -1666,7 +1666,11 @@
       gap:2px;
       margin-left:auto;
       opacity:.46;
-      transition:opacity .18s ease;
+      transform:scale(.96);
+      transform-origin:center center;
+      transition:
+        opacity .24s ease,
+        transform .30s cubic-bezier(.22,.65,.25,1);
     }
 
     .preview-eq-bar{
@@ -1689,6 +1693,24 @@
       font-variant-numeric:tabular-nums;
       letter-spacing:.01em;
       white-space:nowrap;
+      opacity:1;
+      transform:none;
+      transition:
+        opacity .30s ease,
+        transform .34s cubic-bezier(.22,.65,.25,1);
+    }
+
+    .preview-row.preview-ending .preview-eq,
+    .preview-row.preview-ending .preview-time{
+      opacity:0;
+      transform:translateY(2px) scale(.94);
+      transition-duration:.50s;
+    }
+
+    .preview-row.preview-resetting .preview-eq,
+    .preview-row.preview-resetting .preview-time{
+      opacity:0;
+      transition:none !important;
     }
 
     .preview-row.is-playing .preview-pill{
@@ -1707,6 +1729,7 @@
 
     .preview-row.is-playing .preview-eq{
       opacity:1;
+      transform:scale(1);
     }
 
     .future-preview-corner{
@@ -1803,17 +1826,18 @@
 
     .future-preview-ring{
       position:absolute;
-      inset:1px;
-      width:46px;
-      height:46px;
+      inset:-1px;
+      width:50px;
+      height:50px;
       transform:rotate(-90deg);
       overflow:visible;
+      pointer-events:none;
     }
 
     .future-preview-ring-track,
     .future-preview-ring-progress{
       fill:none;
-      stroke-width:2.2;
+      stroke-width:2.4;
       vector-effect:non-scaling-stroke;
     }
 
@@ -4677,6 +4701,11 @@
           row.classList.add("preview-resetting");
           pill.style.setProperty("--preview-progress","0%");
           pill.style.setProperty("--preview-progress-scale","0");
+
+          // The analyser bars and timer are fully transparent at this point.
+          // Reset their values only while hidden, then let both fade back to the
+          // calm idle state together instead of visibly snapping backward.
+          resetPreviewMeter(songId);
           if(time)time.textContent=formatPreviewRemaining(fullDuration);
 
           requestAnimationFrame(()=>{
@@ -5131,7 +5160,6 @@
           setPreviewButtonState(song.id,"play");
           finishPreviewVisual(song.id,webPreviewClipDuration);
         }
-        resetPreviewMeter(song.id);
         cancelAnimationFrame(previewVisualFrame);
         previewVisualFrame=0;
         clearNativePreviewMediaSession();
@@ -6046,9 +6074,9 @@
             <button class="preview-button future-preview-button" type="button" aria-label="Reproducir adelanto de ${escapeHtml(song.title)}">
               <span class="future-preview-idle preview-icon-slot">${previewIcon("play")}</span>
               <span class="future-preview-active" aria-hidden="true">
-                <svg class="future-preview-ring" viewBox="0 0 44 44" focusable="false" aria-hidden="true">
-                  <circle class="future-preview-ring-track" cx="22" cy="22" r="19" pathLength="100"></circle>
-                  <circle class="future-preview-ring-progress" cx="22" cy="22" r="19" pathLength="100"></circle>
+                <svg class="future-preview-ring" viewBox="0 0 50 50" focusable="false" aria-hidden="true">
+                  <circle class="future-preview-ring-track" cx="25" cy="25" r="24" pathLength="100"></circle>
+                  <circle class="future-preview-ring-progress" cx="25" cy="25" r="24" pathLength="100"></circle>
                 </svg>
                 <span class="future-preview-countdown">${formatPreviewRemaining(duration)}</span>
               </span>
