@@ -644,59 +644,111 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
   expect(source).not.toContain('<div class="song-row" data-song-id="no-fallaras">');
 });
 
-test('future song cards retain verified album artwork and palette depth', async ({ page }, testInfo) => {
+test('catalog artwork stays bound to each song across current and future sections', async ({ page }, testInfo) => {
   await openHealthyPage(page);
+  await page.waitForFunction(() => !!window.IPCDJ_CATALOG);
 
-  const expected = {
-    'glorioso-dia': 'ab67616d0000b27372bba4048e09a242595e4a2c',
-    'no-fallaras': 'ab67616d0000b273decf3d0f2c88d97720437f20'
-  };
+  const catalog = await page.evaluate(() => {
+    const now = Date.now();
+    return {
+      snapshot: window.IPCDJ_CATALOG.snapshot(now),
+      songs: window.IPCDJ_CATALOG.songs.map(song => ({
+        id: song.id,
+        artworkUrl: song.artworkUrl,
+        artworkSource: song.artworkSource,
+        futurePalette: song.futurePalette
+      }))
+    };
+  });
 
-  for (const [songId, artworkHash] of Object.entries(expected)) {
-    const card = page.locator('#upcoming-songs [data-song-id="' + songId + '"]');
-    await expect(card).toHaveCount(1);
-    await card.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(80);
-    await page.waitForFunction(id => {
-      const node = document.querySelector('#upcoming-songs [data-song-id="' + id + '"]');
-      return !!node?.dataset.futureArtworkUrl;
-    }, songId);
+  const highRes = value => String(value || '')
+    .replace(/\/\d+x\d+bb\.(jpg|jpeg|png|webp)(\?.*)?$/i, '/1200x1200bb.$1$2')
+    .replace(/\/100x100bb\.(jpg|jpeg|png|webp)(\?.*)?$/i, '/1200x1200bb.$1$2');
 
-    const state = await card.evaluate(node => {
-      const blur = node.querySelector('.future-artwork-blur');
-      const ghost = node.querySelector('.future-artwork-ghost');
-      const css = getComputedStyle(node);
-      return {
-        url: node.dataset.futureArtworkUrl || '',
-        source: node.dataset.futureArtworkSource || '',
-        ready: node.classList.contains('future-artwork-ready'),
-        themed: node.classList.contains('future-themed'),
-        c1: css.getPropertyValue('--future-c1').trim(),
-        c2: css.getPropertyValue('--future-c2').trim(),
-        c3: css.getPropertyValue('--future-c3').trim(),
-        gradientOpacity: Number(css.getPropertyValue('--future-gradient-opacity')),
-        blurOpacityTarget: Number(css.getPropertyValue('--future-blur-opacity')),
-        artOpacityTarget: Number(css.getPropertyValue('--future-art-opacity')),
-        blurImage: blur ? getComputedStyle(blur).backgroundImage : 'none',
-        ghostImage: ghost ? getComputedStyle(ghost).backgroundImage : 'none'
-      };
-    });
+  for (const song of catalog.songs) {
+    if (!song.artworkUrl) continue;
+    const expectedUrl = highRes(song.artworkUrl);
+    const expectedSource = 'verified-' + (song.artworkSource || 'curated');
 
-    expect(state.url).toContain(artworkHash);
-    expect(state.source).toBe('verified-spotify');
-    expect(state.themed).toBe(true);
-    expect(state.c1).not.toBe(state.c2);
-    expect(state.c2).not.toBe(state.c3);
-    expect(state.blurImage).toContain('i.scdn.co');
-    expect(state.ghostImage).toContain('i.scdn.co');
-    expect(state.gradientOpacity).toBeGreaterThanOrEqual(.9);
+    if (catalog.snapshot.upcoming.includes(song.id)) {
+      const card = page.locator('#upcoming-songs [data-song-id="' + song.id + '"]');
+      await expect(card).toHaveCount(1);
+      await card.scrollIntoViewIfNeeded();
+      await page.waitForFunction(id => {
+        const node = document.querySelector('#upcoming-songs [data-song-id="' + id + '"]');
+        return !!node?.dataset.futureArtworkUrl;
+      }, song.id);
 
-    if (/desktop/.test(testInfo.project.name)) {
-      expect(state.blurOpacityTarget).toBeGreaterThanOrEqual(.4);
-      expect(state.artOpacityTarget).toBeGreaterThanOrEqual(.24);
-    } else if (/mobile/.test(testInfo.project.name)) {
-      expect(state.blurOpacityTarget).toBeGreaterThanOrEqual(.2);
-      expect(state.artOpacityTarget).toBeGreaterThanOrEqual(.1);
+      const state = await card.evaluate(node => {
+        const blur = node.querySelector('.future-artwork-blur');
+        const ghost = node.querySelector('.future-artwork-ghost');
+        const css = getComputedStyle(node);
+        return {
+          url: node.dataset.futureArtworkUrl || '',
+          source: node.dataset.futureArtworkSource || '',
+          ready: node.classList.contains('future-artwork-ready'),
+          themed: node.classList.contains('future-themed'),
+          themeId: node.dataset.futureTheme || '',
+          c1: css.getPropertyValue('--future-c1').trim(),
+          c2: css.getPropertyValue('--future-c2').trim(),
+          c3: css.getPropertyValue('--future-c3').trim(),
+          gradientOpacity: Number(css.getPropertyValue('--future-gradient-opacity')),
+          blurOpacityTarget: Number(css.getPropertyValue('--future-blur-opacity')),
+          artOpacityTarget: Number(css.getPropertyValue('--future-art-opacity')),
+          blurImage: blur ? getComputedStyle(blur).backgroundImage : 'none',
+          ghostImage: ghost ? getComputedStyle(ghost).backgroundImage : 'none'
+        };
+      });
+
+      expect(state.url).toBe(expectedUrl);
+      expect(state.source).toBe(expectedSource);
+      expect(state.themed).toBe(true);
+      expect(state.themeId).toBe(song.id);
+      expect(state.blurImage).not.toBe('none');
+      expect(state.ghostImage).not.toBe('none');
+      expect(state.gradientOpacity).toBeGreaterThanOrEqual(.9);
+
+      if (song.futurePalette.length >= 3) {
+        expect(state.c1).not.toBe(state.c2);
+        expect(state.c2).not.toBe(state.c3);
+      }
+
+      if (/desktop/.test(testInfo.project.name)) {
+        expect(state.blurOpacityTarget).toBeGreaterThanOrEqual(.4);
+        expect(state.artOpacityTarget).toBeGreaterThanOrEqual(.24);
+      } else if (/mobile/.test(testInfo.project.name)) {
+        expect(state.blurOpacityTarget).toBeGreaterThanOrEqual(.2);
+        expect(state.artOpacityTarget).toBeGreaterThanOrEqual(.1);
+      }
+      continue;
+    }
+
+    if (catalog.snapshot.current.includes(song.id)) {
+      const card = page.locator('[data-current-song-card][data-song-id="' + song.id + '"]');
+      await expect(card).toHaveCount(1);
+      await page.waitForFunction(id => {
+        const node = document.querySelector('[data-current-song-card][data-song-id="' + id + '"]');
+        return !!node?.dataset.coverArtworkUrl;
+      }, song.id);
+
+      const state = await card.evaluate(node => {
+        const css = getComputedStyle(node);
+        return {
+          url: node.dataset.coverArtworkUrl || '',
+          artworkId: node.dataset.coverArtwork || '',
+          themeId: node.dataset.coverTheme || '',
+          c1: css.getPropertyValue('--cover-c1').trim(),
+          c2: css.getPropertyValue('--cover-c2').trim(),
+          c3: css.getPropertyValue('--cover-c3').trim()
+        };
+      });
+
+      expect(state.url).toBe(expectedUrl);
+      expect(state.artworkId).toBe(song.id);
+      expect(state.themeId).toBe(song.id);
+      expect(state.c1.length).toBeGreaterThan(0);
+      expect(state.c2.length).toBeGreaterThan(0);
+      expect(state.c3.length).toBeGreaterThan(0);
     }
   }
 });
