@@ -546,6 +546,78 @@ test('desktop Chrome tab switching cannot replay the launch intro', async ({ pag
 });
 
 
+
+test('managed song catalog is single-source and lifecycle-safe', async ({ page, request }) => {
+  await openHealthyPage(page);
+
+  const audit = await page.evaluate(() => {
+    const api = window.IPCDJ_CATALOG;
+    if (!api) return null;
+    return {
+      version: api.version,
+      timeZone: api.timeZone,
+      health: api.health,
+      songs: api.songs.map(song => {
+        const learning = api.phase(song.id, Date.parse(song.learningStart));
+        const finalStage = api.phase(song.id, Date.parse(song.finalStart));
+        const release = api.phase(song.id, Date.parse(song.releaseDayStartAt));
+        const released = api.phase(song.id, Date.parse(song.releaseDayEndAt));
+        const complete = api.phase(song.id, Date.parse(song.introducedAt));
+        const atActive = api.snapshot(Date.parse(song.activeFrom));
+        const atIntroduced = api.snapshot(Date.parse(song.introducedAt));
+        return {
+          ...song,
+          learning: learning?.key || '',
+          finalStage: finalStage?.key || '',
+          release: release?.key || '',
+          released: released?.key || '',
+          complete: complete?.key || '',
+          currentAtActive: atActive.current.includes(song.id),
+          currentAtIntroduced: atIntroduced.current.includes(song.id),
+          introducedAtIntroduced: atIntroduced.introduced.includes(song.id)
+        };
+      })
+    };
+  });
+
+  expect(audit).not.toBeNull();
+  expect(audit.version).toBe(1);
+  expect(audit.timeZone).toBe('America/New_York');
+  expect(audit.health.valid).toBe(true);
+  expect(audit.health.errors).toEqual([]);
+  expect(audit.health.managedCount).toBe(audit.health.sourceCount);
+  expect(audit.songs.length).toBeGreaterThan(0);
+
+  const ids = audit.songs.map(song => song.id);
+  expect(new Set(ids).size).toBe(ids.length);
+
+  for (const song of audit.songs) {
+    expect(song.learningLabel).toMatch(/ – /);
+    expect(song.finalLabel).toMatch(/ – /);
+    expect(song.releaseLabel.length).toBeGreaterThan(4);
+    expect(song.releaseShortLabel.length).toBeGreaterThan(2);
+    expect(song.releaseClockLabel).toMatch(/AM|PM/);
+    expect(song.learning).toBe('learning');
+    expect(song.finalStage).toBe('final');
+    expect(song.release).toBe('release');
+    expect(song.released).toBe('released');
+    expect(song.complete).toBe('complete');
+    expect(song.currentAtActive).toBe(true);
+    expect(song.currentAtIntroduced).toBe(false);
+    expect(song.introducedAtIntroduced).toBe(true);
+  }
+
+  const sourceResponse = await request.get('/?catalog-source-check=' + Date.now(), {
+    headers: { 'cache-control': 'no-cache' }
+  });
+  expect(sourceResponse.ok()).toBe(true);
+  const source = await sourceResponse.text();
+  expect(source).toContain('id="upcoming-songs" aria-live="polite"></div>');
+  expect(source).toContain('id="introduced-songs" aria-live="polite"></div>');
+  expect(source).not.toContain('<div class="song-row" data-song-id="glorioso-dia">');
+  expect(source).not.toContain('<div class="song-row" data-song-id="no-fallaras">');
+});
+
 test('future song cards retain verified album artwork and palette depth', async ({ page }, testInfo) => {
   await openHealthyPage(page);
 
@@ -557,6 +629,8 @@ test('future song cards retain verified album artwork and palette depth', async 
   for (const [songId, artworkHash] of Object.entries(expected)) {
     const card = page.locator('#upcoming-songs [data-song-id="' + songId + '"]');
     await expect(card).toHaveCount(1);
+    await card.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(80);
     await page.waitForFunction(id => {
       const node = document.querySelector('#upcoming-songs [data-song-id="' + id + '"]');
       return !!node?.dataset.futureArtworkUrl;
