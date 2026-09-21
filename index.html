@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v157" />
+  <meta name="ipcdj-build" content="persistent-launch-v158" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -3902,7 +3902,14 @@
         artist:"Miel San Marcos & Kim Richards",
         artworkQuery:"Dios De Milagros En Vivo Desde México Miel San Marcos Kim Richards",
         artworkUrl:"https://i.scdn.co/image/ab67616d0000b27341b7ffdb9e0bde66a24425c4",
+        artworkSource:"spotify",
         futurePalette:[[88,57,44],[179,111,62],[54,75,91]],
+        coverSubjectFocus:{
+          desktop:{width:"31%",height:"37%",bgX:"88%",bgY:"64%",bgSize:"325%"},
+          mobile:{right:"-2%",width:"40%",height:"34%",bgX:"84%",bgY:"64%",bgSize:"360%"},
+          opacity:".95",
+          source:"approved-catalog-subject"
+        },
         itunesCollectionId:"6799307691",
         previewClipDuration:19.4,
         previewUseFullAsset:true,
@@ -3934,6 +3941,7 @@
         artist:"Passion Music",
         artworkQuery:"Glorioso Día Passion Kristian Stanfill 2017",
         artworkUrl:"https://i.scdn.co/image/ab67616d0000b27372bba4048e09a242595e4a2c",
+        artworkSource:"spotify",
         futurePalette:[[39,79,148],[223,126,86],[211,176,77]],
         spotifyTrackUri:"spotify:track:0ksqrKoeNvywkfeqltzVQ3",
         previewClipDuration:30,
@@ -3959,6 +3967,7 @@
         artist:"Saddleback Worship",
         artworkQuery:"No Fallarás En Vivo Saddleback Worship 2024",
         artworkUrl:"https://i.scdn.co/image/ab67616d0000b273decf3d0f2c88d97720437f20",
+        artworkSource:"spotify",
         futurePalette:[[34,64,76],[201,118,68],[229,165,99]],
         itunesCollectionId:"1760002960",
         spotifyTrackUri:"spotify:track:04IkHz1UynmZ48Imgkla2J",
@@ -4154,6 +4163,9 @@
 
         if(!song.artworkUrl&&!song.artworkFallbackUrl&&!song.artworkQuery){
           pushIssue("warning",index,"artwork","No artwork source configured; generic fallback colors will be used.");
+        }
+        if(song.artworkUrl&&!String(song.artworkSource||"").trim()){
+          pushIssue("warning",index,"artworkSource","Curated artworkUrl has no artworkSource label; provenance will use verified-curated.");
         }
         if(song.futurePalette&&!validFuturePalette(song.futurePalette)){
           pushIssue("warning",index,"futurePalette","Palette must contain at least three valid sRGB triplets; automatic extraction will be used.");
@@ -4402,7 +4414,9 @@
       blur.style.backgroundImage=value;
       ghost.style.backgroundImage=value;
       card.dataset.futureArtworkUrl=resolved;
-      card.dataset.futureArtworkSource=song.artworkUrl ? "verified-spotify" : "resolved-provider";
+      card.dataset.futureArtworkSource=song.artworkUrl
+        ? "verified-"+String(song.artworkSource||"curated")
+        : "resolved-provider";
       card.classList.remove("future-artwork-ready");
 
       const image=new Image();
@@ -4680,15 +4694,7 @@
     }
 
     function manualCoverSubjectFocus(song){
-      if(song.id==="dios-de-milagros"){
-        return {
-          desktop:{width:"31%",height:"37%",bgX:"88%",bgY:"64%",bgSize:"325%"},
-          mobile:{right:"-2%",width:"40%",height:"34%",bgX:"84%",bgY:"64%",bgSize:"360%"},
-          opacity:".95",
-          source:"approved-dios-de-milagros"
-        };
-      }
-      return song.coverSubjectFocus||song.subjectFocus||null;
+      return song&&(song.coverSubjectFocus||song.subjectFocus)||null;
     }
 
     function normalizedFaceBox(face){
@@ -7833,9 +7839,11 @@
         releaseLabel:song.releaseLabel,
         releaseShortLabel:song.releaseShortLabel,
         releaseClockLabel:song.releaseClockLabel,
+        artworkSource:song.artworkSource||"",
         hasArtwork:!!(song.artworkUrl||song.artworkFallbackUrl||song.artworkQuery),
         hasPreview:!!song.previewAudioUrl,
-        hasCuratedPalette:validFuturePalette(song.futurePalette)
+        hasCuratedPalette:validFuturePalette(song.futurePalette),
+        hasSubjectOverride:!!(song.coverSubjectFocus||song.subjectFocus)
       }))),
       snapshot:timestamp=>catalogSnapshot(Number(timestamp)),
       phase:(songId,timestamp)=>{
