@@ -2519,3 +2519,10 @@ Watchdog:
 - The matrix validates default Inicio state, weekly-tab content, keyboard tab navigation, Campaña GU synthetic pre-expiry visibility, exact midnight removal, fallback to Inicio, and distinct red/amber/green timeline colors.
 - Generic overflow/error/PWA/performance coverage continues to apply platform-wide.
 
+## Semantic timeline cascade correction v144
+
+- Removed the older album-palette background rule whose higher specificity could override the new semantic non-active timeline backgrounds.
+- Aprendizaje, Preparación final, and Estreno cards now consistently own distinct red, amber, and green background treatments as intended.
+- The v143 feature watchdog now verifies both semantic border colors and distinct stage-card background images across the browser matrix.
+- All v143 tab, event-expiry, accessibility, status/progress, and navigation behavior remains unchanged.
+
