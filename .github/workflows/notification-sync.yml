@@ -1,0 +1,44 @@
+name: IPCDJ Notification Catalog Sync
+
+on:
+  workflow_run:
+    workflows: ["IPCDJ Website Health"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve tested commit
+        id: commit
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check out tested website
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.commit.outputs.sha }}
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate autonomous notification planner
+        run: node --test notifications/tests/planner.test.mjs
+
+      - name: Sync canonical song catalog to push scheduler
+        env:
+          IPCDJ_PUSH_ADMIN_TOKEN: ${{ secrets.IPCDJ_PUSH_ADMIN_TOKEN }}
+          IPCDJ_PUSH_API_ORIGIN: ${{ vars.IPCDJ_PUSH_API_ORIGIN }}
+        run: node notifications/scripts/sync-catalog.mjs
