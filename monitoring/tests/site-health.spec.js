@@ -175,11 +175,16 @@ test('preview playback and song-to-song handoff stay functional', async ({ page 
 
       const buttonRect = button.getBoundingClientRect();
       const ringRect = svg.getBoundingClientRect();
+      const ringStyle = getComputedStyle(svg);
       return {
         leftDelta: Math.abs(ringRect.left - buttonRect.left),
         topDelta: Math.abs(ringRect.top - buttonRect.top),
         widthDelta: Math.abs(ringRect.width - buttonRect.width),
         heightDelta: Math.abs(ringRect.height - buttonRect.height),
+        computedWidth: Number.parseFloat(ringStyle.width),
+        computedHeight: Number.parseFloat(ringStyle.height),
+        buttonWidth: buttonRect.width,
+        buttonHeight: buttonRect.height,
         trackRadius: track.getAttribute('r'),
         progressRadius: progress.getAttribute('r')
       };
@@ -190,6 +195,8 @@ test('preview playback and song-to-song handoff stay functional', async ({ page 
     expect(ringAlignment.topDelta).toBeLessThanOrEqual(0.6);
     expect(ringAlignment.widthDelta).toBeLessThanOrEqual(0.6);
     expect(ringAlignment.heightDelta).toBeLessThanOrEqual(0.6);
+    expect(Math.abs(ringAlignment.computedWidth - ringAlignment.buttonWidth)).toBeLessThanOrEqual(0.6);
+    expect(Math.abs(ringAlignment.computedHeight - ringAlignment.buttonHeight)).toBeLessThanOrEqual(0.6);
     expect(ringAlignment.trackRadius).toBe(ringAlignment.progressRadius);
 
     const initialOffset = await futureRing.evaluate(circle => {
