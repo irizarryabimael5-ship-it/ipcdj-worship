@@ -2802,3 +2802,20 @@ Watchdog:
 - Source inspection verifies manualCoverSubjectFocus contains no hard-coded scheduled-song ID.
 - Existing verified Spotify hashes, future ghost art, palette depth, lazy hydration, lifecycle, and cross-platform tests remain active.
 
+## Catalog-driven artwork watchdog v159
+
+- IPCDJ_CATALOG diagnostics now expose each managed song's authored artworkUrl, artworkSource, and read-only futurePalette.
+- The artwork watchdog no longer hard-codes Glorioso Día and No Fallarás as permanently belonging to Después.
+- For every catalog song with an explicit artworkUrl, the test reads the live lifecycle snapshot and validates the cover in the section where the song currently belongs.
+- Future songs must bind the exact catalog artwork, correct verified-<artworkSource> provenance, per-song future theme, blurred art layer, right-side ghost art, and desktop/mobile intensity targets.
+- Current songs must bind the exact catalog artwork and per-song cover theme variables.
+- Introduced songs are not forced back into an artwork card after their lifecycle has legitimately completed.
+
+Scalability:
+- Adding a new explicit-cover song automatically enrolls it in artwork verification without adding a new hard-coded test entry.
+- Artwork tests now move with the song lifecycle instead of becoming stale on release/rollover dates.
+
+Watchdog:
+- Disposition: FEATURE_COVERAGE_ADDED.
+- This closes the lifecycle-staleness gap in the v155 artwork test while retaining all current/future cover-depth checks.
+
