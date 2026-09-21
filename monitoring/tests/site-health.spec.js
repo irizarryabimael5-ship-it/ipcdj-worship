@@ -597,6 +597,14 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
   expect(Date.parse(noFallaras.activeFrom)).toBeGreaterThan(Date.parse(noFallaras.learningStart));
   expect(Date.parse(noFallaras.activeFrom)).toBeLessThan(Date.parse(noFallaras.releaseAt));
 
+  const dios = audit.songs.find(song => song.id === 'dios-de-milagros');
+  expect(dios).toBeTruthy();
+  expect(dios.artworkSource).toBe('spotify');
+  expect(dios.hasSubjectOverride).toBe(true);
+  for (const song of audit.songs.filter(song => song.hasArtwork)) {
+    expect(song.artworkSource).toBe('spotify');
+  }
+
   for (const song of audit.songs) {
     expect(song.learningLabel).toMatch(/ – /);
     expect(song.finalLabel).toMatch(/ – /);
@@ -627,6 +635,9 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
   });
   expect(sourceResponse.ok()).toBe(true);
   const source = await sourceResponse.text();
+  const subjectHelper = source.match(/function manualCoverSubjectFocus\(song\)\{[\s\S]*?\n    \}/)?.[0] || '';
+  expect(subjectHelper).not.toContain('dios-de-milagros');
+  expect(source).toContain('coverSubjectFocus:{');
   expect(source).toContain('id="upcoming-songs" aria-live="polite"></div>');
   expect(source).toContain('id="introduced-songs" aria-live="polite"></div>');
   expect(source).not.toContain('<div class="song-row" data-song-id="glorioso-dia">');
