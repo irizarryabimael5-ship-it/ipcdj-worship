@@ -2917,3 +2917,84 @@ Watchdog:
 - The existing catalog-driven artwork test is the direct regression guard: it requires exact per-song artwork URL, verified provider provenance, artwork identity, theme identity, and cover palette in the current section across all seven profiles.
 - The v162 acceptance criterion is a clean pass of that dedicated assertion without weakening or delaying it.
 
+
+
+## Autonomous Web Push notification platform v164
+
+Purpose:
+- IPCDJ Worship notifications are a lifecycle-aware extension of the managed song catalog, not a second manually-authored song schedule.
+- Automatic messages are short, Spanish, human-sounding, song-aware, intentionally spaced, and limited to songs still in preparation / estreno lifecycle.
+- Manual ministry announcements are supported separately through an authenticated admin sender.
+
+Canonical automation:
+- SONG_CATALOG_SOURCE remains the only authored schedule for managed songs.
+- After IPCDJ Website Health completes successfully on main, IPCDJ Notification Catalog Sync exports the exact tested catalog and sends it to the push backend.
+- Adding one or many songs must not require manual notification dates, separate timers, or per-song notification code.
+- If the GitHub push admin secret is absent, notification sync skips safely without failing the website pipeline.
+
+Automatic cadence:
+- Maximum six automatic notifications per song:
+  1. added to preparation;
+  2. learning phase start;
+  3. one mid-learning check-in when the learning window is long enough;
+  4. final preparation start with explicit estreno date;
+  5. estreno eve;
+  6. estreno morning with service time.
+- Quiet hours: 9:00 PM through 8:00 AM America/New_York.
+- No post-release automatic pushes.
+- Do not add daily reminders or duplicate release-date reminders unless the product contract is intentionally revised.
+- Late backend activation or resync must never replay old lifecycle reminders. The planner keeps only events within the five-minute scheduler grace window or in the future.
+- The added notification is valid only when the backend first sees the song before learning begins.
+
+Wording:
+- Every lifecycle kind owns six approved concise title patterns and six approved concise body patterns.
+- Title/body choices are independently deterministic from the event id, yielding up to 36 natural combinations per lifecycle kind.
+- A retry of the same event must render exactly the same wording.
+- Automatic wording may reference canonical title, estreno date, and service time.
+- Maximum automatic/manual title length: 70 characters.
+- Maximum automatic/manual body length: 150 characters.
+
+Transport:
+- Standards-based Web Push + VAPID is authoritative.
+- Existing IPCDJ service worker owns push and notificationclick handling.
+- Every received push is user-visible; do not use Web Push as an invisible background data channel.
+- Notification tap destinations are same-origin IPCDJ paths.
+- icon-192.png is the primary push icon; it belongs to the same white-background / black-logo IPCDJ icon family used by the installed app.
+- Browser push remains optional and refusal/denial must never degrade any site feature.
+
+Permission UX:
+- Never call Notification.requestPermission() automatically.
+- Subscription must originate from the explicit Activar control.
+- Normal supporting desktop/Android browsers may subscribe from the website.
+- iPhone/iPad users must be guided to the Home Screen installed web-app flow when required by the platform.
+- The Notifications card stays completely hidden while notifications/config.json has enabled:false.
+- Denied permission is explained; the website must not repeatedly prompt.
+
+Backend:
+- Cloudflare Worker + D1 is the production adapter.
+- Public API origin: https://push.worship.ipcdj.org.
+- D1 stores anonymous push subscriptions, canonical song snapshots, notification events and per-subscription deliveries.
+- No name, email, phone number or login is required merely to receive ministry notifications.
+- ADMIN_TOKEN and VAPID private key are Worker secrets and must never enter public GitHub client assets.
+- Push endpoint capability URLs/keys are backend-only records.
+- 404/410 endpoints are disabled automatically.
+- Transient failures use bounded retry.
+- Cron runs once per minute.
+- DELIVERY_BATCH_SIZE defaults to 8 for conservative Free-plan operation and may be raised up to 40 with adequate Worker CPU headroom.
+
+Manual sending:
+- /notifications/admin.html is unlinked and noindex.
+- It requires ADMIN_TOKEN at runtime; the browser stores it only in sessionStorage.
+- It supports immediate or scheduled send, normal/high urgency and a same-origin tap destination.
+- Backend must independently enforce auth, origin, payload length, schedule validity, TTL and URL safety.
+
+Activation gate:
+- v164 code is safe to deploy before the backend exists.
+- notifications/config.json remains enabled:false until Worker, D1, VAPID keys, custom domain, GitHub admin secret and catalog sync have all been verified.
+- Do not turn enabled:true merely because the frontend code exists.
+
+Watchdog:
+- Disposition: FEATURE_COVERAGE_ADDED.
+- Site-health validates notification planner unit tests, late/stale suppression, DST scheduling, deterministic varied wording, JS syntax, canonical catalog export, production notification assets, service-worker push/click handlers, and the no-auto-prompt invariant.
+- The normal seven-profile Playwright matrix continues protecting Chromium desktop, Firefox desktop, WebKit desktop, Chromium mobile, WebKit mobile, compact WebKit mobile and WebKit tablet.
+- Notification catalog synchronization is downstream of a completed successful website-health run, so an unverified website commit cannot become the authoritative push schedule.
