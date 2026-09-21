@@ -2616,3 +2616,18 @@ Watchdog:
 - Primary-tab coverage now verifies the nav precedes the hero and computes as sticky.
 - The standalone full-scroll regression also verifies the navigation remains visible at the bottom of the page before returning to the top and switching tabs.
 
+## Professional static top tabs v150
+
+- Replaced the v149 sticky/floating dock with a static top navigation bar to eliminate visual instability and safe-area/sticky compositing artifacts.
+- Navigation remains above the hero as the first application control.
+- The container is one restrained dark surface with a single border and shadow.
+- Tabs use equal-width CSS grid columns, one simple selected surface, and no animated underline.
+- Removed the selected underline/glow stack and sticky offset entirely.
+- Labels may wrap naturally instead of squeezing or overflowing; <=340px receives a small type/indicator reduction.
+- Existing no-panel-animation, confirmed-background launch behavior, special-event lifecycle, ARIA semantics, and keyboard navigation remain unchanged.
+
+Watchdog:
+- Disposition: FEATURE_COVERAGE_ADDED.
+- Primary navigation coverage now checks that tabs are top-level, non-sticky, equal width/equal height, and contained within the viewport across the browser/device matrix.
+- The existing full-scroll launch regression remains in place without requiring navigation to float during scrolling.
+
