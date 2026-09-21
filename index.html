@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v136" />
+  <meta name="ipcdj-build" content="persistent-launch-v137" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -1752,7 +1752,7 @@
       place-items:center;
       overflow:visible;
       border-radius:50%;
-      border:1px solid rgba(255,255,255,.54);
+      border:1px solid transparent;
       background:rgba(8,10,16,.78);
       color:#ffffff;
       box-shadow:
@@ -1763,7 +1763,6 @@
       transition:
         transform .16s ease,
         box-shadow .24s ease,
-        border-color .24s ease,
         background .24s ease;
     }
 
@@ -1777,6 +1776,7 @@
     .future-preview-active{
       position:absolute;
       inset:0;
+      z-index:2;
       display:grid;
       place-items:center;
       transition:
@@ -1811,7 +1811,6 @@
     }
 
     .preview-row-future.is-playing .future-preview-button{
-      border-color:rgba(var(--future-accent,255,255,255),.78);
       background:rgba(7,9,14,.82);
       box-shadow:
         0 10px 28px rgba(0,0,0,.28),
@@ -1826,32 +1825,55 @@
 
     .future-preview-ring{
       position:absolute;
-      inset:-1px;
-      width:50px;
-      height:50px;
+      inset:0;
+      width:48px;
+      height:48px;
       transform:rotate(-90deg);
+      transform-origin:center;
       overflow:visible;
       pointer-events:none;
+      z-index:1;
     }
 
     .future-preview-ring-track,
     .future-preview-ring-progress{
       fill:none;
-      stroke-width:2.4;
+      stroke-width:1.2;
       vector-effect:non-scaling-stroke;
+      shape-rendering:geometricPrecision;
     }
 
+    /* This SVG track IS the visible button outline. Its 23.4 radius plus
+       half of the 1.2px stroke lands exactly on the 48px viewport edge,
+       so the progress stroke cannot sit outside a second CSS border. */
     .future-preview-ring-track{
-      stroke:rgba(255,255,255,.18);
+      stroke:rgba(255,255,255,.54);
+      transition:stroke .24s ease,opacity .30s ease;
     }
 
     .future-preview-ring-progress{
       stroke:rgb(var(--future-accent,255,255,255));
       stroke-linecap:round;
-      stroke-dasharray:100;
+      stroke-dasharray:100 100;
       stroke-dashoffset:100;
-      transition:stroke-dashoffset .10s linear,opacity .24s ease;
-      filter:drop-shadow(0 0 4px rgba(var(--future-accent,255,255,255),.24));
+      opacity:0;
+      transition:
+        stroke-dashoffset .10s linear,
+        opacity .34s cubic-bezier(.22,.65,.25,1);
+      filter:drop-shadow(0 0 3px rgba(var(--future-accent,255,255,255),.28));
+    }
+
+    .preview-row-future.is-playing .future-preview-ring-progress,
+    .preview-row-future.preview-future-complete .future-preview-ring-progress{
+      opacity:1;
+    }
+
+    .preview-row-future.preview-future-returning .future-preview-ring-progress{
+      opacity:0;
+    }
+
+    .preview-row-future.is-playing .future-preview-ring-track{
+      stroke:rgba(255,255,255,.28);
     }
 
     .future-preview-countdown{
@@ -6072,12 +6094,12 @@
         return `
           <div class="preview-row preview-row-future" ${common}>
             <button class="preview-button future-preview-button" type="button" aria-label="Reproducir adelanto de ${escapeHtml(song.title)}">
+              <svg class="future-preview-ring" viewBox="0 0 48 48" focusable="false" aria-hidden="true">
+                <circle class="future-preview-ring-track" cx="24" cy="24" r="23.4" pathLength="100"></circle>
+                <circle class="future-preview-ring-progress" cx="24" cy="24" r="23.4" pathLength="100"></circle>
+              </svg>
               <span class="future-preview-idle preview-icon-slot">${previewIcon("play")}</span>
               <span class="future-preview-active" aria-hidden="true">
-                <svg class="future-preview-ring" viewBox="0 0 50 50" focusable="false" aria-hidden="true">
-                  <circle class="future-preview-ring-track" cx="25" cy="25" r="24" pathLength="100"></circle>
-                  <circle class="future-preview-ring-progress" cx="25" cy="25" r="24" pathLength="100"></circle>
-                </svg>
                 <span class="future-preview-countdown">${formatPreviewRemaining(duration)}</span>
               </span>
             </button>
