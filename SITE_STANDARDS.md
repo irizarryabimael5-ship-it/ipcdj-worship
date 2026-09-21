@@ -2345,3 +2345,18 @@ Required behavior:
 - The optimization must not alter song lifecycle, countdown timing, preview audio, preview progress, launch behavior, translation, keyboard/input behavior, or PWA freshness.
 - Do not use permanent low-quality rendering merely because the platform is macOS; this is a transient scroll-path optimization.
 
+## Preview finish polish v136
+
+Upcoming-song circular preview:
+- The animated progress stroke must occupy the same outer circumference as the existing 48 px circular Play-button border, visually riding on/over that border rather than appearing as a smaller inner ring.
+- The progress ring may extend approximately 1 px outside the button box so its stroke remains crisp and fully visible.
+- It still begins at 12 o'clock, advances clockwise from 0 to 100, and finishes exactly with the countdown reaching 0:00.
+- The countdown remains centered inside the circular button and the completed ring/countdown state fades back to Play together.
+
+Current-preparation horizontal preview:
+- At natural preview completion, the analyser bars must fade out smoothly rather than visibly snapping to their idle height.
+- The 0:00 timer must fade out before its text is reset to the full preview duration.
+- Reset analyser levels, timer text, and progress position only while those reset-sensitive elements are invisible.
+- After the hidden reset, the analyser and timer may fade back into their calm idle presentation.
+- Preserve the existing coral-to-gold progress finish, Web Audio normalization, equal-power song switching, pause/resume behavior, and mobile background hard-stop.
+
