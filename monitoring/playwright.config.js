@@ -41,6 +41,17 @@ export default defineConfig({
       use: { ...devices['iPhone 15'], browserName: 'webkit' }
     },
     {
+      name: 'webkit-compact-mobile',
+      use: {
+        browserName: 'webkit',
+        viewport: { width: 320, height: 568 },
+        screen: { width: 320, height: 568 },
+        deviceScaleFactor: 2,
+        isMobile: true,
+        hasTouch: true
+      }
+    },
+    {
       name: 'webkit-tablet',
       use: {
         browserName: 'webkit',
