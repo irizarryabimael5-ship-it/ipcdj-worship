@@ -2660,3 +2660,18 @@ Watchdog:
 - Disposition: GENERIC_COVERAGE_SUFFICIENT.
 - This remains a CSS-only contrast refinement on the already-tested equal-width/top-navigation system. Existing layout, overflow, interaction, launch-regression, responsive, and cross-browser coverage applies unchanged.
 
+## Desktop browser return does not replay intro v153
+
+- Initial document launch behavior is unchanged on every platform: a true load/reload still gets the IPCDJ intro.
+- Warm-resume intro behavior is now restricted to iOS/iPadOS Home Screen standalone mode only.
+- Desktop Chrome browser tabs and installed desktop Chrome PWAs no longer replay the intro when users switch tabs/windows and return.
+- Android/desktop standalone display modes no longer inherit the iOS suspension-snapshot workaround.
+- iOS Home Screen detection requires navigator.standalone=true plus an iPhone/iPad/iPod or touch-capable iPadOS MacIntel identity.
+- The confirmed-background protections from v147 remain in force inside the iOS-only warm-resume path.
+- window.IPCDJ_LAUNCH_STATE exposes non-sensitive platform/launch-mode booleans for health verification.
+
+Watchdog:
+- Disposition: FEATURE_COVERAGE_ADDED.
+- The iOS standalone regression now explicitly emulates iPhone standalone identity so its warm-resume path remains covered.
+- A Chromium desktop regression verifies warmResumeEnabled=false and confirms blur/focus/visibility events leave the launch overlay idle after initial load.
+
