@@ -2905,3 +2905,15 @@ Bulk additions:
 - A new explicit-cover song is automatically enrolled in catalog-driven artwork/provenance watchdog checks.
 - Production completion requires IPCDJ_CATALOG_HEALTH.valid=true and fullVisualReady=true with zero catalog errors.
 
+## First-frame current-artwork provenance v162
+
+- Current cards with explicit curated artwork now author data-cover-artwork-source in their initial rendered markup alongside data-cover-artwork and data-cover-artwork-url.
+- The provenance value is deterministic from the catalog record: verified-<artworkSource>, with verified-curated fallback only when a source label is absent.
+- This removes a diagnostics race where the correct cover URL was already present on first paint but provider provenance remained empty until applyCoverArtwork ran later.
+- Visual rendering, artwork URL selection, palette generation, subject focus, previews, lifecycle state, and cross-platform styling are unchanged.
+
+Watchdog:
+- Disposition: FEATURE_COVERAGE_ADDED.
+- The existing catalog-driven artwork test is the direct regression guard: it requires exact per-song artwork URL, verified provider provenance, artwork identity, theme identity, and cover palette in the current section across all seven profiles.
+- The v162 acceptance criterion is a clean pass of that dedicated assertion without weakening or delaying it.
+
