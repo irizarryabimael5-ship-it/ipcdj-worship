@@ -2360,3 +2360,17 @@ Current-preparation horizontal preview:
 - After the hidden reset, the analyser and timer may fade back into their calm idle presentation.
 - Preserve the existing coral-to-gold progress finish, Web Audio normalization, equal-power song switching, pause/resume behavior, and mobile background hard-stop.
 
+## Exact border-owned future preview ring v137
+
+The circular upcoming-song preview progress is not a second ring around the Play button. The SVG ring owns the button outline itself.
+
+Required behavior:
+- The 48 px future preview button keeps a transparent CSS border for sizing only.
+- A permanent 48 x 48 SVG track is the visible circular outline in idle, playback, completion, and return states.
+- The SVG track and progress circle share the exact same center, radius, and stroke geometry. The animated progress stroke must overlay that track, never occupy a larger or smaller circumference.
+- Canonical geometry is viewBox 0 0 48 48, center 24/24, radius 23.4, stroke width 1.2. This keeps the stroke inside the same 48 px button edge without creating an outer halo/ring.
+- Use SVG pathLength=100 with numeric stroke-dasharray/stroke-dashoffset values so elapsed playback maps directly to 0-100 progress consistently across current Safari/WebKit, Chromium, and Firefox.
+- Idle shows the neutral outline and Play icon. Playback fades Play to the centered countdown while the progress stroke draws clockwise from 12 o'clock over the outline itself.
+- At 100% / 0:00, hold the complete progress briefly, then fade the progress stroke and countdown while Play returns, revealing the neutral outline underneath.
+- Do not reintroduce an oversized SVG, negative inset, duplicated CSS border, conic-gradient border, or a separate outer progress circumference.
+
