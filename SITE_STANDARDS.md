@@ -2715,3 +2715,42 @@ Watchdog:
 - The browser/device matrix now verifies Glorioso Día and No Fallarás future cards resolve to their exact canonical Spotify artwork hashes, use verified-spotify source, retain distinct palette colors, and include both blur and right-side artwork layers.
 - Desktop/mobile tests also assert their intended artwork-opacity floors so future CSS changes cannot silently wash desktop colors out again.
 
+## Single-source song catalog and scale hardening v156
+
+Song-management contract:
+- SONG_CATALOG_SOURCE is the only place new scheduled songs are added.
+- Do not hand-write rows in Después, current preparation cards, release banners, or Introducciones recientes.
+- Managed songs are normalized into songPipeline, sorted by releaseAt, and rendered into every section automatically.
+- Learning/final/release display labels and release clock text are generated from ISO lifecycle timestamps in America/New_York. They are no longer duplicated as hand-maintained strings.
+- Required lifecycle timestamps are activeFrom, learningStart, learningEnd, finalStart, finalEnd, releaseDayStartAt, releaseAt, releaseDayEndAt, rolloverAt, and introducedAt.
+- Stable song ids must be lowercase kebab-case and unique.
+- Artwork may use artworkUrl, artworkFallbackUrl, and/or artworkQuery. futurePalette is optional; when supplied it is the canonical curated sRGB fallback for both current and future-card theming.
+- Preview audio is optional. A song without previewAudioUrl still renders and advances through every lifecycle section; it simply omits the Adelanto control.
+- INTRODUCED_ARCHIVE_SOURCE is legacy history only. New songs never get manually added there because managed songs move into Introducciones recientes automatically.
+
+Runtime validation:
+- Every catalog entry is checked for required identity fields, valid lifecycle timestamps, chronological ordering, unique ids, palette shape, artwork availability, and preview metadata.
+- Invalid records are isolated instead of breaking the entire website.
+- window.IPCDJ_CATALOG_HEALTH exposes validation status; current production catalog must remain valid with zero errors.
+- window.IPCDJ_CATALOG exposes normalized song summaries plus pure phase/snapshot helpers for watchdog validation.
+
+Scale/performance:
+- Future rows receive their curated/fallback album palette immediately.
+- Actual cover-art layers and preview-audio preparation are lazy-hydrated through IntersectionObserver as a row approaches the viewport.
+- Pointer/focus interaction forces immediate hydration for accessibility and responsiveness.
+- Older browsers fall back to staggered hydration rather than launching every network request simultaneously.
+- Recovery after pageshow/online preserves the lazy model and retries only cards that had requested heavy hydration.
+- Cover boot cache capacity increased from 12 to 48 records; proactive warming remains bounded to the nearest few songs.
+
+Generated sections:
+- Después is generated entirely from SONG_CATALOG_SOURCE state.
+- Current preparation/release cards are generated entirely from the same records.
+- Introducciones recientes merges explicit legacy archive records with managed songs whose introducedAt has passed.
+- Initial HTML contains empty live containers instead of duplicate hard-coded song rows.
+
+Watchdog:
+- Disposition: FEATURE_COVERAGE_ADDED.
+- New catalog contract test verifies zero validation errors, unique ids, generated labels, and every managed song at learning, final, release, released, and complete lifecycle boundaries.
+- It also verifies active/current and introduced transitions and confirms hard-coded future-song rows are absent from source HTML.
+- Existing v155 future-cover test now scrolls each card into the lazy-hydration range before verifying exact Spotify artwork, palette depth, blur layer, and right-side ghost art.
+
