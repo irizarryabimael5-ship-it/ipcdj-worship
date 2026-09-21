@@ -2647,3 +2647,16 @@ Watchdog:
 - Disposition: GENERIC_COVERAGE_SUFFICIENT.
 - This is CSS-only refinement on the already-tested v150 tab geometry. Existing cross-platform equal-width/height, viewport containment, interaction, launch-regression, and overflow coverage applies unchanged.
 
+## Higher-contrast ultra-clean tabs v152
+
+- Preserved the v151 centered, compact, flat navigation structure.
+- Increased the outer navigation border from very faint to clearly visible while keeping it at 1px.
+- Darkened the navigation surface so it separates more clearly from the page background.
+- Brightened inactive labels so all destinations are easier to identify at a glance.
+- Increased the selected tab's blue-tinted surface and border contrast without adding glow, underline, shadow, or sticky behavior.
+- No navigation behavior, launch handling, tab switching, event lifecycle, accessibility, or layout geometry changed.
+
+Watchdog:
+- Disposition: GENERIC_COVERAGE_SUFFICIENT.
+- This remains a CSS-only contrast refinement on the already-tested equal-width/top-navigation system. Existing layout, overflow, interaction, launch-regression, responsive, and cross-browser coverage applies unchanged.
+
