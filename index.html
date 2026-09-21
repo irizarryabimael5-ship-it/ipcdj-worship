@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v150" />
+  <meta name="ipcdj-build" content="persistent-launch-v151" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -621,14 +621,13 @@
     .site-nav{
       position:relative;
       z-index:8;
-      margin:0 0 16px;
-      padding:4px;
-      border:1px solid rgba(255,255,255,.115);
-      border-radius:15px;
-      background:rgba(8,12,20,.82);
-      box-shadow:
-        0 8px 24px rgba(0,0,0,.22),
-        inset 0 1px 0 rgba(255,255,255,.045);
+      width:min(100%,680px);
+      margin:0 auto 18px;
+      padding:3px;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:14px;
+      background:rgba(255,255,255,.028);
+      box-shadow:none;
     }
 
     .site-tablist{
@@ -636,7 +635,7 @@
       grid-auto-flow:column;
       grid-auto-columns:minmax(0,1fr);
       align-items:stretch;
-      gap:4px;
+      gap:2px;
       min-width:0;
       padding:0;
       border:0;
@@ -646,19 +645,19 @@
     .site-tab{
       position:relative;
       min-width:0;
-      min-height:44px;
-      padding:9px 8px;
+      min-height:42px;
+      padding:8px 10px;
       border:1px solid transparent;
       border-radius:11px;
       appearance:none;
       -webkit-appearance:none;
       background:transparent;
-      color:#a8b2c2;
+      color:#9ea8b8;
       font:inherit;
-      font-size:.78rem;
-      line-height:1.16;
-      font-weight:780;
-      letter-spacing:.006em;
+      font-size:.77rem;
+      line-height:1.15;
+      font-weight:740;
+      letter-spacing:.002em;
       text-align:center;
       white-space:normal;
       overflow-wrap:normal;
@@ -669,22 +668,18 @@
       transition:
         color .16s ease,
         background .16s ease,
-        border-color .16s ease,
-        box-shadow .16s ease;
+        border-color .16s ease;
     }
 
     .site-tab:hover{
-      color:#e5ebf5;
-      background:rgba(255,255,255,.028);
+      color:#e4eaf4;
+      background:rgba(255,255,255,.022);
     }
 
     .site-tab[aria-selected="true"]{
       color:#ffffff;
-      border-color:rgba(143,176,255,.28);
-      background:rgba(111,151,255,.14);
-      box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.055),
-        0 2px 8px rgba(26,53,113,.12);
+      border-color:rgba(255,255,255,.09);
+      background:rgba(255,255,255,.075);
     }
 
     .site-tab[data-special-event="true"]::before{
@@ -692,11 +687,11 @@
       position:absolute;
       top:7px;
       right:7px;
-      width:5px;
-      height:5px;
+      width:4px;
+      height:4px;
       border-radius:50%;
       background:#7ce9ad;
-      box-shadow:0 0 7px rgba(124,233,173,.42);
+      box-shadow:none;
     }
 
     .site-tab:focus-visible{
@@ -2500,9 +2495,9 @@
     }
 
     @media (max-width:520px){
-      .site-nav{padding:4px;border-radius:14px;margin-bottom:12px}
-      .site-tablist{gap:3px}
-      .site-tab{min-height:44px;padding:8px 5px;font-size:.70rem;border-radius:10px}
+      .site-nav{width:100%;padding:3px;border-radius:13px;margin-bottom:14px}
+      .site-tablist{gap:2px}
+      .site-tab{min-height:42px;padding:8px 5px;font-size:.69rem;border-radius:10px}
       .site-tab[data-special-event="true"]::before{top:6px;right:5px}
       .countdown-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
       .countdown-unit{min-height:64px}
@@ -2530,9 +2525,9 @@
       h1{font-size:1.85rem}
       .brand-sub{display:block;margin:.12em 0 0}
       .eyebrow{font-size:.66rem;padding:6px 8px}
-      .site-nav{padding:3px}
-      .site-tablist{gap:2px}
-      .site-tab{min-height:42px;padding:7px 3px;font-size:.59rem;letter-spacing:0}
+      .site-nav{padding:2px}
+      .site-tablist{gap:1px}
+      .site-tab{min-height:40px;padding:7px 3px;font-size:.58rem;letter-spacing:0}
       .platform{padding:10px 11px;gap:9px}
       .playlist-card .platform{
         padding:7px 5px;
