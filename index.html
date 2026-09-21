@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v147" />
+  <meta name="ipcdj-build" content="persistent-launch-v148" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -629,9 +629,12 @@
       align-items:stretch;
       gap:0;
       min-width:0;
-      padding:0 2px;
-      border-bottom:1px solid rgba(255,255,255,.11);
-      background:transparent;
+      padding:2px 2px 0;
+      border-top:1px solid rgba(255,255,255,.045);
+      border-bottom:1px solid rgba(255,255,255,.16);
+      border-radius:12px 12px 0 0;
+      background:
+        linear-gradient(180deg,rgba(255,255,255,.028),rgba(255,255,255,.008));
     }
 
     .site-tab{
@@ -645,12 +648,12 @@
       appearance:none;
       -webkit-appearance:none;
       background:transparent;
-      color:#8f99aa;
+      color:#aab4c5;
       font:inherit;
-      font-size:.76rem;
+      font-size:.79rem;
       line-height:1.16;
-      font-weight:760;
-      letter-spacing:.01em;
+      font-weight:800;
+      letter-spacing:.008em;
       text-align:center;
       cursor:pointer;
       -webkit-tap-highlight-color:transparent;
@@ -664,20 +667,28 @@
       left:8px;
       right:8px;
       bottom:-1px;
-      height:2px;
+      height:3px;
       border-radius:999px 999px 0 0;
-      background:#8fb0ff;
-      box-shadow:0 0 10px rgba(143,176,255,.34);
+      background:linear-gradient(90deg,#7ca0ff,#abc0ff);
+      box-shadow:
+        0 0 8px rgba(124,160,255,.44),
+        0 0 16px rgba(143,176,255,.20);
       opacity:0;
       transform:scaleX(.45);
       transform-origin:center;
       transition:opacity .18s ease,transform .18s ease;
     }
 
-    .site-tab:hover{color:#dce4f2}
+    .site-tab:hover{
+      color:#e3eaf6;
+      background:rgba(255,255,255,.018);
+    }
 
     .site-tab[aria-selected="true"]{
       color:#ffffff;
+      background:
+        linear-gradient(180deg,rgba(124,160,255,.075),rgba(124,160,255,.018));
+      text-shadow:0 0 12px rgba(143,176,255,.18);
     }
 
     .site-tab[aria-selected="true"]::after{
@@ -690,11 +701,13 @@
       position:absolute;
       top:7px;
       right:7px;
-      width:5px;
-      height:5px;
+      width:6px;
+      height:6px;
       border-radius:50%;
-      background:#77e6aa;
-      box-shadow:0 0 8px rgba(119,230,170,.45);
+      background:#7ce9ad;
+      box-shadow:
+        0 0 7px rgba(124,233,173,.52),
+        0 0 12px rgba(124,233,173,.18);
     }
 
     .site-tab:focus-visible{
@@ -2499,8 +2512,8 @@
     }
 
     @media (max-width:520px){
-      .site-tablist{padding:0 1px}
-      .site-tab{min-height:40px;padding:8px 5px 10px;font-size:.69rem}
+      .site-tablist{padding:2px 1px 0}
+      .site-tab{min-height:40px;padding:8px 5px 10px;font-size:.72rem}
       .site-tab::after{left:5px;right:5px}
       .site-tab[data-special-event="true"]::before{top:6px;right:5px}
       .countdown-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
