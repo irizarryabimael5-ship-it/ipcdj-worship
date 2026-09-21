@@ -2483,3 +2483,39 @@ Development integrity:
 Verification baseline:
 - The complete v141 seven-profile health system passed its first final end-to-end run on 2026-09-21 after deployment-aware waiting, Firefox audio-backend setup, WebKit calibration, compact-mobile coverage, and PWA/efficiency checks were added.
 
+## Primary tabs, timed events, and vivid preparation progression v143
+
+Navigation:
+- The existing landing page remains the default Inicio panel with its established content and behavior unchanged.
+- A persistent primary tablist sits below the hero with Inicio and Worship semanal.
+- Tabs follow the WAI-ARIA tab pattern: role=tablist/tab/tabpanel, aria-controls, aria-selected, roving tabindex, and automatic Left/Right/Home/End keyboard activation.
+- Panel switching is local and instant; there is no route reload, duplicate app boot, or extra network dependency.
+- Panel entrance uses a short opacity/translate transition and is disabled under prefers-reduced-motion.
+
+Worship semanal:
+- The panel is currently a coming-soon placeholder.
+- Its purpose text explicitly states that weekly Friday and Sunday worship sets will live there with repertoire, order, and service instructions.
+- Future implementation should populate this panel without disturbing Inicio.
+
+Special-event tabs:
+- SPECIAL_EVENT_TABS is the data-driven source for temporary event tabs.
+- Campaña GU 2026 is currently configured as the active special event.
+- Its placeholder explains that the panel will hold worship repertoire, order, musicians, and team instructions for the October 9–11 event.
+- hideAt is 2026-10-12T00:00:00-04:00, so the tab and panel disappear automatically at midnight immediately after Sunday October 11.
+- Special-event visibility is synchronized from the existing server-calibrated live clock. If an expiring special-event panel is active, navigation falls safely back to Inicio.
+- Future special events should be added to SPECIAL_EVENT_TABS with their own key, label, content, and hideAt timestamp.
+
+Preparation-stage color language:
+- Semantic progression is intentionally more vivid while retaining text labels so status is never communicated by color alone.
+- Learning begins vivid red/coral.
+- It moves through orange into amber for final preparation.
+- It transitions into fresh green as estreno approaches.
+- Estreno itself is green, completing the red-to-green readiness metaphor instead of returning to gold.
+- Timeline cards use stable semantic colors: Aprendizaje red, Preparación final amber, Estreno green.
+- Active timeline/status/progress treatments use stronger soft fills, borders, and restrained glows while keeping the dark IPCDJ visual system.
+
+Watchdog:
+- Disposition: FEATURE_COVERAGE_ADDED.
+- The matrix validates default Inicio state, weekly-tab content, keyboard tab navigation, Campaña GU synthetic pre-expiry visibility, exact midnight removal, fallback to Inicio, and distinct red/amber/green timeline colors.
+- Generic overflow/error/PWA/performance coverage continues to apply platform-wide.
+
