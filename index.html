@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v159" />
+  <meta name="ipcdj-build" content="persistent-launch-v160" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -4088,6 +4088,24 @@
       "activeFrom","learningStart","learningEnd","finalStart","finalEnd",
       "releaseDayStartAt","releaseAt","releaseDayEndAt","rolloverAt","introducedAt"
     ]);
+    const SONG_EXPLICIT_ZONE_RE=/(?:Z|[+-]\d{2}:\d{2})$/i;
+
+    function isHttpsCatalogUrl(value){
+      if(!value)return false;
+      try{return new URL(String(value),location.href).protocol==="https:"}catch(_){return false}
+    }
+
+    function productionVisualReadiness(song){
+      const hasCuratedArtwork=isHttpsCatalogUrl(song&&song.artworkUrl);
+      const hasArtworkSource=!!String(song&&song.artworkSource||"").trim();
+      const hasCuratedPalette=validFuturePalette(song&&song.futurePalette);
+      return Object.freeze({
+        full:hasCuratedArtwork&&hasArtworkSource&&hasCuratedPalette,
+        hasCuratedArtwork,
+        hasArtworkSource,
+        hasCuratedPalette
+      });
+    }
 
     function validateSongCatalogSource(source){
       const issues=[];
@@ -4126,10 +4144,13 @@
 
         const times={};
         SONG_REQUIRED_DATES.forEach(field=>{
-          const time=Date.parse(song&&song[field]||"");
+          const rawValue=String(song&&song[field]||"");
+          const time=Date.parse(rawValue);
           times[field]=time;
           if(!Number.isFinite(time)){
             pushIssue("error",index,field,"Required lifecycle timestamp is missing or invalid.");
+          }else if(!SONG_EXPLICIT_ZONE_RE.test(rawValue)){
+            pushIssue("error",index,field,"Lifecycle timestamps must include an explicit Z or ±HH:MM timezone offset.");
           }
         });
 
@@ -4164,16 +4185,27 @@
         if(!song.artworkUrl&&!song.artworkFallbackUrl&&!song.artworkQuery){
           pushIssue("warning",index,"artwork","No artwork source configured; generic fallback colors will be used.");
         }
+        if(song.artworkUrl&&!isHttpsCatalogUrl(song.artworkUrl)){
+          pushIssue("error",index,"artworkUrl","Curated artworkUrl must be a valid HTTPS URL.");
+        }
         if(song.artworkUrl&&!String(song.artworkSource||"").trim()){
           pushIssue("warning",index,"artworkSource","Curated artworkUrl has no artworkSource label; provenance will use verified-curated.");
         }
         if(song.futurePalette&&!validFuturePalette(song.futurePalette)){
           pushIssue("warning",index,"futurePalette","Palette must contain at least three valid sRGB triplets; automatic extraction will be used.");
         }
+        if(song.artworkUrl&&!validFuturePalette(song.futurePalette)){
+          pushIssue("warning",index,"futurePalette","Curated artwork should include a three-color sRGB futurePalette for deterministic cross-device color identity.");
+        }
         if(!song.previewAudioUrl){
           pushIssue("warning",index,"previewAudioUrl","No preview audio configured; the song will render without an Adelanto control.");
-        }else if(!(Number(song.previewClipDuration)>0)){
-          pushIssue("warning",index,"previewClipDuration","Preview duration missing; normalized 30-second default will be used.");
+        }else{
+          if(!isHttpsCatalogUrl(song.previewAudioUrl)){
+            pushIssue("error",index,"previewAudioUrl","Preview audio URL must use HTTPS.");
+          }
+          if(!(Number(song.previewClipDuration)>0)){
+            pushIssue("warning",index,"previewClipDuration","Preview duration missing; normalized 30-second default will be used.");
+          }
         }
       });
 
@@ -4212,10 +4244,24 @@
     const songPipelineById=new Map(songPipeline.map(song=>[song.id,song]));
     const catalogErrors=Object.freeze(SONG_CATALOG_VALIDATION.issues.filter(issue=>issue.level==="error"));
     const catalogWarnings=Object.freeze(SONG_CATALOG_VALIDATION.issues.filter(issue=>issue.level==="warning"));
+    const catalogVisualNotReady=Object.freeze(
+      songPipeline
+        .map(song=>({id:song.id,readiness:productionVisualReadiness(song)}))
+        .filter(item=>!item.readiness.full)
+        .map(item=>Object.freeze({
+          id:item.id,
+          hasCuratedArtwork:item.readiness.hasCuratedArtwork,
+          hasArtworkSource:item.readiness.hasArtworkSource,
+          hasCuratedPalette:item.readiness.hasCuratedPalette
+        }))
+    );
     const SONG_CATALOG_HEALTH=Object.freeze({
       valid:catalogErrors.length===0&&songPipeline.length===SONG_CATALOG_SOURCE.length,
+      fullVisualReady:catalogVisualNotReady.length===0,
       sourceCount:SONG_CATALOG_SOURCE.length,
       managedCount:songPipeline.length,
+      visualReadyCount:songPipeline.length-catalogVisualNotReady.length,
+      visualNotReady:catalogVisualNotReady,
       errors:catalogErrors,
       warnings:catalogWarnings
     });
@@ -4646,6 +4692,9 @@
       card.style.setProperty("--cover-image",'url("'+safe+'")');
       card.dataset.coverArtwork=song.id;
       card.dataset.coverArtworkUrl=resolvedUrl;
+      card.dataset.coverArtworkSource=song.artworkUrl
+        ? "verified-"+String(song.artworkSource||"curated")
+        : "resolved-provider";
       revealCoverWhenLoaded(card,resolvedUrl);
     }
 
@@ -7686,12 +7735,17 @@
         return;
       }
 
-      // Very old browsers: preserve functionality without one giant network burst.
-      future.forEach((song,index)=>{
+      // Very old browsers: hydrate sequentially forever instead of bunching
+      // song 41+ into one timer burst when a large catalog is loaded.
+      const queue=future.slice();
+      const hydrateNext=()=>{
+        const song=queue.shift();
+        if(!song)return;
         const card=container.querySelector('[data-song-id="'+CSS.escape(song.id)+'"]');
-        if(!card)return;
-        setTimeout(()=>hydrateFutureSongCard(song,card),Math.min(index,40)*260);
-      });
+        if(card)hydrateFutureSongCard(song,card);
+        if(queue.length)setTimeout(hydrateNext,220);
+      };
+      hydrateNext();
     }
 
     let upcomingRenderSignature="";
@@ -7845,6 +7899,8 @@
         hasArtwork:!!(song.artworkUrl||song.artworkFallbackUrl||song.artworkQuery),
         hasPreview:!!song.previewAudioUrl,
         hasCuratedPalette:validFuturePalette(song.futurePalette),
+        fullVisualReady:productionVisualReadiness(song).full,
+        visualReadiness:productionVisualReadiness(song),
         hasSubjectOverride:!!(song.coverSubjectFocus||song.subjectFocus)
       }))),
       snapshot:timestamp=>catalogSnapshot(Number(timestamp)),
