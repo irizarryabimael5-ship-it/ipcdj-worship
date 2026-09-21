@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v155" />
+  <meta name="ipcdj-build" content="persistent-launch-v156" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -3289,60 +3289,14 @@
       <h2 class="section-title">Después</h2>
       <p class="section-note">Canciones ya programadas para comenzar a prepararse más adelante.</p>
 
-      <div class="songs" id="upcoming-songs">
-
-        <div class="song-row" data-song-id="glorioso-dia">
-          <div class="song-top">
-            <div>
-              <h3>Glorioso Día</h3>
-              <p>Passion Music</p>
-            </div>
-            <div class="song-date">Estreno: 25 Oct</div>
-          </div>
-          <div class="song-meta">
-            <div class="meta-line"><span class="meta-label">Aprendizaje:</span><span>Lun. 12 Oct – Dom. 18 Oct</span></div>
-            <div class="meta-line"><span class="meta-label">Preparación final:</span><span>Lun. 19 Oct – Sáb. 24 Oct</span></div>
-          </div>
-        </div>
-
-        <div class="song-row" data-song-id="no-fallaras">
-          <div class="song-top">
-            <div>
-              <h3>No Fallarás</h3>
-              <p>Saddleback Worship</p>
-            </div>
-            <div class="song-date">Estreno: 8 Nov</div>
-          </div>
-          <div class="song-meta">
-            <div class="meta-line"><span class="meta-label">Aprendizaje:</span><span>Lun. 26 Oct – Dom. 1 Nov</span></div>
-            <div class="meta-line"><span class="meta-label">Preparación final:</span><span>Lun. 2 Nov – Sáb. 7 Nov</span></div>
-          </div>
-        </div>
-
-      </div>
+      <div class="songs" id="upcoming-songs" aria-live="polite"></div>
     </section>
 
     <section class="card reveal">
       <h2 class="section-title">Introducciones recientes</h2>
       <p class="section-note">Canciones recientemente integradas al repertorio del ministerio.</p>
 
-      <div class="recent-list" id="introduced-songs">
-        <div class="recent">
-          <div class="recent-main">
-            <strong>Puedo Descansar</strong>
-            <span class="recent-artist">Jonathan Rivas ft. Job González</span>
-          </div>
-          <span class="date">Introducida · 13 de septiembre</span>
-        </div>
-
-        <div class="recent">
-          <div class="recent-main">
-            <strong>Clamo A Cristo</strong>
-            <span class="recent-artist">Elevation Español</span>
-          </div>
-          <span class="date">Introducida · 6 de septiembre</span>
-        </div>
-      </div>
+      <div class="recent-list" id="introduced-songs" aria-live="polite"></div>
     </section>
     <footer class="reveal">
       Iglesia Pentecostal Ciudad de Jehová · IPCDJ
@@ -3941,7 +3895,7 @@
     setInterval(syncServerClock,5*60*1000);
 
     // IPCDJ song pipeline: one source of truth for current song, countdown, phases and rollover.
-    const songPipeline = [
+    const SONG_CATALOG_SOURCE = [
       {
         id:"dios-de-milagros",
         title:"Dios De Milagros",
@@ -3973,9 +3927,6 @@
         releaseDayEndAt:"2026-09-28T00:00:00-04:00",
         introducedAt:"2026-09-29T00:00:00-04:00",
         rolloverAt:"2026-09-28T06:00:00-04:00",
-        learningLabel:"Lun. 14 Sep – Dom. 20 Sep",
-        finalLabel:"Lun. 21 Sep – Sáb. 26 Sep",
-        releaseLabel:"Dom. 27 Sep"
       },
       {
         id:"glorioso-dia",
@@ -4001,9 +3952,6 @@
         releaseDayEndAt:"2026-10-26T00:00:00-04:00",
         introducedAt:"2026-10-27T00:00:00-04:00",
         rolloverAt:"2026-10-26T06:00:00-04:00",
-        learningLabel:"Lun. 12 Oct – Dom. 18 Oct",
-        finalLabel:"Lun. 19 Oct – Sáb. 24 Oct",
-        releaseLabel:"Dom. 25 Oct"
       },
       {
         id:"no-fallaras",
@@ -4030,11 +3978,229 @@
         releaseDayEndAt:"2026-11-09T00:00:00-05:00",
         introducedAt:"2026-11-10T00:00:00-05:00",
         rolloverAt:"2026-11-09T06:00:00-05:00",
-        learningLabel:"Lun. 26 Oct – Dom. 1 Nov",
-        finalLabel:"Lun. 2 Nov – Sáb. 7 Nov",
-        releaseLabel:"Dom. 8 Nov"
       }
     ];
+
+    // Historical songs that predate the managed pipeline. New scheduled songs do
+    // NOT belong here; add them only to SONG_CATALOG_SOURCE and lifecycle automation
+    // will move them into Introducciones recientes automatically.
+    const INTRODUCED_ARCHIVE_SOURCE = Object.freeze([
+      Object.freeze({
+        id:"pudo-descansar-archive",
+        title:"Puedo Descansar",
+        artist:"Jonathan Rivas ft. Job González",
+        introducedAt:"2026-09-13T11:00:00-04:00"
+      }),
+      Object.freeze({
+        id:"clamo-a-cristo-archive",
+        title:"Clamo A Cristo",
+        artist:"Elevation Español",
+        introducedAt:"2026-09-06T11:00:00-04:00"
+      })
+    ]);
+
+    const SITE_TIME_ZONE="America/New_York";
+    const SONG_WEEKDAY_ES=Object.freeze({
+      Sun:"Dom.",Mon:"Lun.",Tue:"Mar.",Wed:"Mié.",Thu:"Jue.",Fri:"Vie.",Sat:"Sáb."
+    });
+    const SONG_MONTH_SHORT_ES=Object.freeze([
+      "Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"
+    ]);
+    const SONG_MONTH_LONG_ES=Object.freeze([
+      "enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"
+    ]);
+    const SONG_DATE_PARTS_FORMATTER=new Intl.DateTimeFormat("en-US",{
+      timeZone:SITE_TIME_ZONE,
+      weekday:"short",
+      year:"numeric",
+      month:"2-digit",
+      day:"2-digit",
+      hour:"numeric",
+      minute:"2-digit",
+      hour12:true
+    });
+
+    function songZonedDateParts(value){
+      const timestamp=Date.parse(value);
+      if(!Number.isFinite(timestamp))return null;
+      const parts={};
+      SONG_DATE_PARTS_FORMATTER.formatToParts(new Date(timestamp)).forEach(part=>{
+        if(part.type!=="literal")parts[part.type]=part.value;
+      });
+      return {
+        timestamp,
+        weekday:parts.weekday||"",
+        year:Number(parts.year),
+        month:Number(parts.month),
+        day:Number(parts.day),
+        hour:Number(parts.hour),
+        minute:Number(parts.minute),
+        dayPeriod:String(parts.dayPeriod||"").toUpperCase()
+      };
+    }
+
+    function formatSongShortDate(value){
+      const p=songZonedDateParts(value);
+      if(!p)return "";
+      return (SONG_WEEKDAY_ES[p.weekday]||p.weekday)+" "+p.day+" "+SONG_MONTH_SHORT_ES[p.month-1];
+    }
+
+    function formatSongCompactDate(value){
+      const p=songZonedDateParts(value);
+      if(!p)return "";
+      return p.day+" "+SONG_MONTH_SHORT_ES[p.month-1];
+    }
+
+    function formatSongLongDate(value){
+      const p=songZonedDateParts(value);
+      if(!p)return "";
+      return p.day+" de "+SONG_MONTH_LONG_ES[p.month-1];
+    }
+
+    function formatSongClock(value){
+      const p=songZonedDateParts(value);
+      if(!p)return "";
+      return p.hour+":"+String(p.minute).padStart(2,"0")+" "+p.dayPeriod;
+    }
+
+    function formatSongDateRange(start,end){
+      return formatSongShortDate(start)+" – "+formatSongShortDate(end);
+    }
+
+    function validFuturePalette(palette){
+      return Array.isArray(palette)&&palette.length>=3&&palette.slice(0,3).every(color=>
+        Array.isArray(color)&&color.length===3&&color.every(channel=>
+          Number.isFinite(Number(channel))&&Number(channel)>=0&&Number(channel)<=255
+        )
+      );
+    }
+
+    const SONG_REQUIRED_DATES=Object.freeze([
+      "activeFrom","learningStart","learningEnd","finalStart","finalEnd",
+      "releaseDayStartAt","releaseAt","releaseDayEndAt","rolloverAt","introducedAt"
+    ]);
+
+    function validateSongCatalogSource(source){
+      const issues=[];
+      const invalidIndices=new Set();
+      const ids=new Map();
+      const pushIssue=(level,index,field,message)=>{
+        const song=source[index]||{};
+        const issue=Object.freeze({
+          level,
+          index,
+          id:String(song.id||""),
+          field,
+          message
+        });
+        issues.push(issue);
+        if(level==="error")invalidIndices.add(index);
+      };
+
+      source.forEach((song,index)=>{
+        ["id","title","artist"].forEach(field=>{
+          if(!String(song&&song[field]||"").trim()){
+            pushIssue("error",index,field,"Required field is missing.");
+          }
+        });
+
+        if(song&&song.id){
+          if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(song.id)){
+            pushIssue("error",index,"id","Use a stable lowercase kebab-case song id.");
+          }
+          if(ids.has(song.id)){
+            pushIssue("error",index,"id","Duplicate song id; first seen at index "+ids.get(song.id)+".");
+          }else{
+            ids.set(song.id,index);
+          }
+        }
+
+        const times={};
+        SONG_REQUIRED_DATES.forEach(field=>{
+          const time=Date.parse(song&&song[field]||"");
+          times[field]=time;
+          if(!Number.isFinite(time)){
+            pushIssue("error",index,field,"Required lifecycle timestamp is missing or invalid.");
+          }
+        });
+
+        const chronology=[
+          ["activeFrom","learningStart"],
+          ["learningStart","learningEnd"],
+          ["learningEnd","finalStart"],
+          ["finalStart","finalEnd"],
+          ["finalEnd","releaseDayStartAt"],
+          ["releaseDayStartAt","releaseAt"],
+          ["releaseAt","releaseDayEndAt"],
+          ["releaseDayEndAt","rolloverAt"],
+          ["rolloverAt","introducedAt"]
+        ];
+        chronology.forEach(([a,b])=>{
+          if(Number.isFinite(times[a])&&Number.isFinite(times[b])&&times[a]>times[b]){
+            pushIssue("error",index,b,b+" occurs before "+a+".");
+          }
+        });
+
+        if(!song.artworkUrl&&!song.artworkFallbackUrl&&!song.artworkQuery){
+          pushIssue("warning",index,"artwork","No artwork source configured; generic fallback colors will be used.");
+        }
+        if(song.futurePalette&&!validFuturePalette(song.futurePalette)){
+          pushIssue("warning",index,"futurePalette","Palette must contain at least three valid sRGB triplets; automatic extraction will be used.");
+        }
+        if(!song.previewAudioUrl){
+          pushIssue("warning",index,"previewAudioUrl","No preview audio configured; the song will render without an Adelanto control.");
+        }else if(!(Number(song.previewClipDuration)>0)){
+          pushIssue("warning",index,"previewClipDuration","Preview duration missing; normalized 30-second default will be used.");
+        }
+      });
+
+      return {issues:Object.freeze(issues),invalidIndices};
+    }
+
+    function normalizeManagedSong(raw){
+      const palette=validFuturePalette(raw.futurePalette)
+        ? raw.futurePalette.slice(0,3).map(color=>color.map(value=>Math.round(Number(value))))
+        : undefined;
+      const normalized={
+        ...raw,
+        artworkQuery:raw.artworkQuery||[raw.title,raw.artist].filter(Boolean).join(" "),
+        previewClipDuration:raw.previewAudioUrl ? Math.max(1,Number(raw.previewClipDuration)||30) : 0,
+        previewFadeIn:raw.previewAudioUrl ? Math.max(0,Number(raw.previewFadeIn)||.70) : 0,
+        previewFadeOut:raw.previewAudioUrl ? Math.max(0,Number(raw.previewFadeOut)||1.60) : 0,
+        futurePalette:palette,
+        learningLabel:formatSongDateRange(raw.learningStart,raw.learningEnd),
+        finalLabel:formatSongDateRange(raw.finalStart,raw.finalEnd),
+        releaseLabel:formatSongShortDate(raw.releaseAt),
+        releaseShortLabel:formatSongCompactDate(raw.releaseAt),
+        releaseLongLabel:formatSongLongDate(raw.releaseAt),
+        learningStartLongLabel:formatSongLongDate(raw.learningStart),
+        releaseClockLabel:raw.releaseClockLabel||formatSongClock(raw.releaseAt)
+      };
+      return Object.freeze(normalized);
+    }
+
+    const SONG_CATALOG_VALIDATION=validateSongCatalogSource(SONG_CATALOG_SOURCE);
+    const songPipeline=Object.freeze(
+      SONG_CATALOG_SOURCE
+        .filter((_,index)=>!SONG_CATALOG_VALIDATION.invalidIndices.has(index))
+        .map(normalizeManagedSong)
+        .sort((a,b)=>Date.parse(a.releaseAt)-Date.parse(b.releaseAt))
+    );
+    const songPipelineById=new Map(songPipeline.map(song=>[song.id,song]));
+    const catalogErrors=Object.freeze(SONG_CATALOG_VALIDATION.issues.filter(issue=>issue.level==="error"));
+    const catalogWarnings=Object.freeze(SONG_CATALOG_VALIDATION.issues.filter(issue=>issue.level==="warning"));
+    const SONG_CATALOG_HEALTH=Object.freeze({
+      valid:catalogErrors.length===0&&songPipeline.length===SONG_CATALOG_SOURCE.length,
+      sourceCount:SONG_CATALOG_SOURCE.length,
+      managedCount:songPipeline.length,
+      errors:catalogErrors,
+      warnings:catalogWarnings
+    });
+    window.IPCDJ_CATALOG_HEALTH=SONG_CATALOG_HEALTH;
+    if(catalogErrors.length){
+      console.error("IPCDJ song catalog validation failed",catalogErrors);
+    }
+
 
     const $ = id => document.getElementById(id);
     const format2 = value => String(Math.max(0, value)).padStart(2,"0");
@@ -4087,7 +4253,7 @@
     const COVER_SUBJECT_CACHE_PREFIX="ipcdj-cover-subject-v2:";
     const COVER_ARTWORK_CACHE_PREFIX="ipcdj-cover-artwork-v2:";
     const COVER_BOOT_CACHE_KEY="ipcdj-cover-boot-v1";
-    const COVER_BOOT_MAX_RECORDS=12;
+    const COVER_BOOT_MAX_RECORDS=48;
     const COV_ENDPOINT="https://covers.musichoarders.xyz/api/search";
     const COV_SOURCES=["tidal","spotify","applemusic"];
     const COVER_ARTWORK_CACHE_MAX_AGE=30*24*60*60*1000;
@@ -4097,11 +4263,11 @@
     const coverThemeRequestTokens=new Map();
     const coverSubjectFocusCache=new Map();
     let portableFaceDetectorPromise=null;
-    const COVER_THEME_FALLBACKS={
-      "dios-de-milagros":[[88,57,44],[179,111,62],[54,75,91]],
-      "glorioso-dia":[[39,79,148],[223,126,86],[211,176,77]],
-      "no-fallaras":[[34,64,76],[201,118,68],[229,165,99]]
-    };
+    const COVER_THEME_FALLBACKS=Object.freeze(Object.fromEntries(
+      songPipeline
+        .filter(song=>validFuturePalette(song.futurePalette))
+        .map(song=>[song.id,song.futurePalette])
+    ));
 
     const normalizeCatalogText=value=>String(value||"")
       .normalize("NFD")
@@ -6673,6 +6839,7 @@
     }
 
     function previewRowMarkup(song,variant="current"){
+      if(!song||!song.previewAudioUrl)return "";
       const duration=Math.max(1,Number(song.previewClipDuration)||15);
       const common='data-preview-song-id="'+escapeHtml(song.id)+'" data-preview-state="play" data-preview-duration="'+duration+'"';
 
@@ -7187,6 +7354,10 @@
     let renderedCurrentSongKey="";
 
     function currentSongCardMarkup(song){
+      const currentPreviewMarkup=previewRowMarkup(song,"current");
+      const currentPreviewSection=currentPreviewMarkup
+        ? '<div class="inline-preview" data-role="inline-preview"><div class="preview-queue">'+currentPreviewMarkup+'</div></div>'
+        : "";
       const explicitCover=song.artworkUrl ? highResolutionArtworkUrl(song.artworkUrl) : "";
       const explicitCoverAttr=explicitCover ? escapeHtml(explicitCover) : "";
       const explicitCoverCss=explicitCover
@@ -7214,11 +7385,7 @@
             <span class="post-release-note" data-role="post-release-note"></span>
           </div>
 
-          <div class="inline-preview" data-role="inline-preview">
-            <div class="preview-queue">
-              ${previewRowMarkup(song,"current")}
-            </div>
-          </div>
+          ${currentPreviewSection}
 
           <div class="countdown-wrap" data-role="countdown-wrap">
             <div class="countdown-heading">
@@ -7390,7 +7557,7 @@
           card,
           "countdown-note",
           phase.key==="upcoming"
-            ? "La canción ya es la próxima en fila. El aprendizaje formal comienza "+song.learningLabel.split(" – ")[0].replace("Lun. ","el ")+"."
+            ? "La canción ya es la próxima en fila. El aprendizaje formal comienza el "+song.learningStartLongLabel+"."
             : "El reloj se actualiza en vivo hasta el servicio de estreno."
         );
       }else{
@@ -7435,6 +7602,81 @@
       renderIntroduced(now);
     }
 
+
+    let futureCardObserver=null;
+
+    function primeFutureCardTheme(song,card){
+      if(!song||!card)return;
+      const fallback=song.futurePalette||COVER_THEME_FALLBACKS[song.id]||[[82,74,68],[116,92,70],[58,68,78]];
+      applyFutureCardTheme(song,fallback,card);
+    }
+
+    function hydrateFutureSongCard(song,card){
+      if(!song||!card)return;
+      card.dataset.futureHydrationRequested="true";
+      ensureFutureCardTheme(song,card);
+
+      const row=card.querySelector('[data-preview-song-id="'+CSS.escape(song.id)+'"]');
+      if(row&&!row.dataset.hydrating&&!row._previewData){
+        row.dataset.hydrating="true";
+        hydratePreviewRow(song).finally(()=>{
+          if(row.isConnected)delete row.dataset.hydrating;
+        });
+      }
+    }
+
+    function bindFutureHydrationTriggers(container){
+      if(!container||container.dataset.futureHydrationBound==="true")return;
+      const hydrateFromEvent=event=>{
+        const target=event.target instanceof Element ? event.target : null;
+        const card=target&&target.closest('[data-song-id]');
+        if(!card||!container.contains(card))return;
+        const song=songPipelineById.get(card.dataset.songId);
+        if(song)hydrateFutureSongCard(song,card);
+      };
+      container.addEventListener("pointerdown",hydrateFromEvent,{passive:true,capture:true});
+      container.addEventListener("focusin",hydrateFromEvent,{capture:true});
+      container.dataset.futureHydrationBound="true";
+    }
+
+    function scheduleFutureHydration(future,container){
+      if(futureCardObserver){
+        futureCardObserver.disconnect();
+        futureCardObserver=null;
+      }
+      bindFutureHydrationTriggers(container);
+
+      future.forEach(song=>{
+        const card=container.querySelector('[data-song-id="'+CSS.escape(song.id)+'"]');
+        if(card)primeFutureCardTheme(song,card);
+      });
+
+      if("IntersectionObserver" in window){
+        futureCardObserver=new IntersectionObserver(entries=>{
+          entries.forEach(entry=>{
+            if(!entry.isIntersecting)return;
+            const card=entry.target;
+            const song=songPipelineById.get(card.dataset.songId);
+            if(song)hydrateFutureSongCard(song,card);
+            futureCardObserver?.unobserve(card);
+          });
+        },{root:null,rootMargin:"850px 0px 850px",threshold:.01});
+
+        future.forEach(song=>{
+          const card=container.querySelector('[data-song-id="'+CSS.escape(song.id)+'"]');
+          if(card)futureCardObserver.observe(card);
+        });
+        return;
+      }
+
+      // Very old browsers: preserve functionality without one giant network burst.
+      future.forEach((song,index)=>{
+        const card=container.querySelector('[data-song-id="'+CSS.escape(song.id)+'"]');
+        if(!card)return;
+        setTimeout(()=>hydrateFutureSongCard(song,card),Math.min(index,40)*260);
+      });
+    }
+
     let upcomingRenderSignature="";
     function renderUpcoming(activeIds,now){
       const container=$("upcoming-songs");
@@ -7448,18 +7690,21 @@
       if(signature===upcomingRenderSignature)return;
       upcomingRenderSignature=signature;
 
-      container.innerHTML=future.map(song=>`
+      container.innerHTML=future.map(song=>{
+        const futurePreview=previewRowMarkup(song,"future");
+        const futurePreviewCorner=futurePreview
+          ? '<div class="future-preview-corner">'+futurePreview+'</div>'
+          : "";
+        return `
         <div class="song-row" data-song-id="${escapeHtml(song.id)}">
           <span class="future-artwork-blur" aria-hidden="true"></span>
           <span class="future-artwork-ghost" aria-hidden="true"></span>
-          <div class="future-preview-corner">
-            ${previewRowMarkup(song,"future")}
-          </div>
+          ${futurePreviewCorner}
           <div class="song-top">
             <div>
               <h3 class="notranslate" translate="no">${escapeHtml(song.title)}</h3>
               <p class="notranslate" translate="no">${escapeHtml(song.artist)}</p>
-              <div class="song-date">Estreno: ${escapeHtml(song.releaseLabel.replace("Dom. ",""))}</div>
+              <div class="song-date">Estreno: ${escapeHtml(song.releaseShortLabel)}</div>
             </div>
           </div>
           <div class="song-meta">
@@ -7467,45 +7712,23 @@
             <div class="meta-line"><span class="meta-label">Preparación final:</span><span>${escapeHtml(song.finalLabel)}</span></div>
           </div>
         </div>
-      `).join("");
-
-      future.forEach(song=>{
-        const card=container.querySelector('[data-song-id="'+CSS.escape(song.id)+'"]');
-        if(card)ensureFutureCardTheme(song,card);
-
-        const row=container.querySelector('[data-preview-song-id="'+CSS.escape(song.id)+'"]');
-        if(row&&!row.dataset.hydrating&&!row._previewData){
-          row.dataset.hydrating="true";
-          hydratePreviewRow(song).finally(()=>{
-            if(row.isConnected)delete row.dataset.hydrating;
-          });
-        }
-      });
+      `;
+      }).join("");
 
       if(!future.length){
+        if(futureCardObserver){
+          futureCardObserver.disconnect();
+          futureCardObserver=null;
+        }
         container.innerHTML='<div class="song-row"><div class="song-top"><div><h3>Próxima canción por definir</h3><p>Se añadirá aquí cuando quede programada.</p></div></div></div>';
+        return;
       }
+
+      scheduleFutureHydration(future,container);
     }
 
-    const introducedBaseline = [
-      {
-        title:"Puedo Descansar",
-        artist:"Jonathan Rivas ft. Job González",
-        introducedAt:"2026-09-13T11:00:00-04:00",
-        label:"13 de septiembre"
-      },
-      {
-        title:"Clamo A Cristo",
-        artist:"Elevation Español",
-        introducedAt:"2026-09-06T11:00:00-04:00",
-        label:"6 de septiembre"
-      }
-    ];
-
     function spanishReleaseLabel(song){
-      const months=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
-      const d=new Date(song.releaseAt);
-      return d.getDate()+" de "+months[d.getMonth()];
+      return song.releaseLongLabel||formatSongLongDate(song.releaseAt);
     }
 
     let introducedRenderSignature="";
@@ -7513,16 +7736,23 @@
       const container=$("introduced-songs");
       if(!container) return;
 
+      const archived=INTRODUCED_ARCHIVE_SOURCE.map(item=>({
+        ...item,
+        label:formatSongLongDate(item.introducedAt)
+      }));
       const autoIntroduced=songPipeline
         .filter(song=>now>=new Date(song.introducedAt||song.rolloverAt).getTime())
         .map(song=>({
+          id:song.id,
           title:song.title,
           artist:song.artist,
           introducedAt:song.introducedAt||song.rolloverAt,
           label:spanishReleaseLabel(song)
         }));
 
-      const all=[...introducedBaseline,...autoIntroduced]
+      const merged=new Map();
+      [...archived,...autoIntroduced].forEach(item=>merged.set(item.id,item));
+      const all=[...merged.values()]
         .sort((a,b)=>new Date(b.introducedAt)-new Date(a.introducedAt));
       const signature=all.map(item=>item.title+"|"+item.introducedAt).join("||");
       if(signature===introducedRenderSignature)return;
@@ -7538,6 +7768,59 @@
         </div>
       `).join("");
     }
+
+    function catalogSnapshot(now=calibratedNow()){
+      const timestamp=Number(now);
+      const current=getCurrentSongs(timestamp);
+      const currentIds=new Set(current.map(entry=>entry.song.id));
+      return Object.freeze({
+        now:timestamp,
+        current:Object.freeze(current.map(entry=>entry.song.id)),
+        upcoming:Object.freeze(songPipeline
+          .filter(song=>!currentIds.has(song.id)&&timestamp<Date.parse(song.activeFrom))
+          .map(song=>song.id)),
+        introduced:Object.freeze(songPipeline
+          .filter(song=>timestamp>=Date.parse(song.introducedAt||song.rolloverAt))
+          .map(song=>song.id)),
+        phases:Object.freeze(Object.fromEntries(
+          songPipeline.map(song=>[song.id,getPhase(song,timestamp).key])
+        ))
+      });
+    }
+
+    window.IPCDJ_CATALOG=Object.freeze({
+      version:1,
+      timeZone:SITE_TIME_ZONE,
+      health:SONG_CATALOG_HEALTH,
+      songs:Object.freeze(songPipeline.map(song=>Object.freeze({
+        id:song.id,
+        title:song.title,
+        artist:song.artist,
+        activeFrom:song.activeFrom,
+        learningStart:song.learningStart,
+        learningEnd:song.learningEnd,
+        finalStart:song.finalStart,
+        finalEnd:song.finalEnd,
+        releaseDayStartAt:song.releaseDayStartAt,
+        releaseAt:song.releaseAt,
+        releaseDayEndAt:song.releaseDayEndAt,
+        rolloverAt:song.rolloverAt,
+        introducedAt:song.introducedAt,
+        learningLabel:song.learningLabel,
+        finalLabel:song.finalLabel,
+        releaseLabel:song.releaseLabel,
+        releaseShortLabel:song.releaseShortLabel,
+        releaseClockLabel:song.releaseClockLabel,
+        hasArtwork:!!(song.artworkUrl||song.artworkFallbackUrl||song.artworkQuery),
+        hasPreview:!!song.previewAudioUrl,
+        hasCuratedPalette:validFuturePalette(song.futurePalette)
+      }))),
+      snapshot:timestamp=>catalogSnapshot(Number(timestamp)),
+      phase:(songId,timestamp)=>{
+        const song=songPipelineById.get(String(songId||""));
+        return song ? getPhase(song,Number(timestamp)) : null;
+      }
+    });
 
     renderCurrent(calibratedNow());
 
@@ -7568,7 +7851,7 @@
       renderCurrent(calibratedNow());
 
       document.querySelectorAll("[data-current-song-card][data-song-id]").forEach(card=>{
-        const song=songPipeline.find(item=>item.id===card.dataset.songId);
+        const song=songPipelineById.get(card.dataset.songId);
         if(!song)return;
 
         if(song.artworkUrl&&card.classList.contains("has-native-cover")){
@@ -7584,8 +7867,12 @@
       });
 
       document.querySelectorAll("#upcoming-songs [data-song-id]").forEach(card=>{
-        const song=songPipeline.find(item=>item.id===card.dataset.songId);
-        if(song)ensureFutureCardTheme(song,card);
+        const song=songPipelineById.get(card.dataset.songId);
+        if(!song)return;
+        primeFutureCardTheme(song,card);
+        if(card.dataset.futureHydrationRequested==="true"){
+          hydrateFutureSongCard(song,card);
+        }
       });
 
       document.querySelectorAll("[data-preview-song-id]").forEach(row=>{
@@ -7611,7 +7898,7 @@
     let responsiveSubjectTimer=null;
     function refreshResponsiveSubjectFocus(){
       document.querySelectorAll("[data-current-song-card][data-song-id]").forEach(card=>{
-        const song=songPipeline.find(item=>item.id===card.dataset.songId);
+        const song=songPipelineById.get(card.dataset.songId);
         if(!song||!card.dataset.coverArtworkUrl)return;
 
         const manual=manualCoverSubjectFocus(song);
