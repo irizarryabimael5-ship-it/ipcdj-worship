@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v156" />
+  <meta name="ipcdj-build" content="persistent-launch-v157" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -4125,7 +4125,6 @@
         });
 
         const chronology=[
-          ["activeFrom","learningStart"],
           ["learningStart","learningEnd"],
           ["learningEnd","finalStart"],
           ["finalStart","finalEnd"],
@@ -4140,6 +4139,18 @@
             pushIssue("error",index,b,b+" occurs before "+a+".");
           }
         });
+
+        // activeFrom controls when the card becomes active/current. It may occur
+        // after learningStart (for example when a previous song rolls over at 6 AM
+        // but this song's learning week began at midnight). It only has to become
+        // active before the release itself.
+        if(
+          Number.isFinite(times.activeFrom)&&
+          Number.isFinite(times.releaseAt)&&
+          times.activeFrom>=times.releaseAt
+        ){
+          pushIssue("error",index,"activeFrom","activeFrom must occur before releaseAt.");
+        }
 
         if(!song.artworkUrl&&!song.artworkFallbackUrl&&!song.artworkQuery){
           pushIssue("warning",index,"artwork","No artwork source configured; generic fallback colors will be used.");
@@ -7682,10 +7693,15 @@
       const container=$("upcoming-songs");
       if(!container)return;
       const activeSet=activeIds instanceof Set?activeIds:new Set();
-      const future=songPipeline.filter(song=>
-        !activeSet.has(song.id)&&
-        now<new Date(song.activeFrom).getTime()
-      );
+      const future=songPipeline
+        .filter(song=>
+          !activeSet.has(song.id)&&
+          now<new Date(song.activeFrom).getTime()
+        )
+        .sort((a,b)=>
+          new Date(a.activeFrom)-new Date(b.activeFrom)||
+          new Date(a.releaseAt)-new Date(b.releaseAt)
+        );
       const signature=future.map(song=>song.id).join("|")||"__none__";
       if(signature===upcomingRenderSignature)return;
       upcomingRenderSignature=signature;
@@ -7778,6 +7794,10 @@
         current:Object.freeze(current.map(entry=>entry.song.id)),
         upcoming:Object.freeze(songPipeline
           .filter(song=>!currentIds.has(song.id)&&timestamp<Date.parse(song.activeFrom))
+          .sort((a,b)=>
+            Date.parse(a.activeFrom)-Date.parse(b.activeFrom)||
+            Date.parse(a.releaseAt)-Date.parse(b.releaseAt)
+          )
           .map(song=>song.id)),
         introduced:Object.freeze(songPipeline
           .filter(song=>timestamp>=Date.parse(song.introducedAt||song.rolloverAt))
@@ -7792,6 +7812,8 @@
       version:1,
       timeZone:SITE_TIME_ZONE,
       health:SONG_CATALOG_HEALTH,
+      sourceCount:SONG_CATALOG_SOURCE.length,
+      managedCount:songPipeline.length,
       songs:Object.freeze(songPipeline.map(song=>Object.freeze({
         id:song.id,
         title:song.title,
@@ -7934,6 +7956,10 @@
       const now=calibratedNow();
       const future=songPipeline
         .filter(song=>now<new Date(song.rolloverAt).getTime())
+        .sort((a,b)=>
+          new Date(a.activeFrom)-new Date(b.activeFrom)||
+          new Date(a.releaseAt)-new Date(b.releaseAt)
+        )
         .slice(0,3);
 
       let offset=0;
