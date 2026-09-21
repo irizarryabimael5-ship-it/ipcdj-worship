@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v148" />
+  <meta name="ipcdj-build" content="persistent-launch-v149" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -619,32 +619,40 @@
     }
 
     .site-nav{
-      position:relative;
-      z-index:8;
-      margin:0 0 18px;
+      position:sticky;
+      top:max(8px,env(safe-area-inset-top,0px));
+      z-index:40;
+      margin:0 0 12px;
+      padding:5px;
+      border:1px solid rgba(255,255,255,.13);
+      border-radius:16px;
+      background:
+        linear-gradient(180deg,rgba(12,17,27,.96),rgba(7,11,18,.94));
+      box-shadow:
+        0 10px 28px rgba(0,0,0,.30),
+        inset 0 1px 0 rgba(255,255,255,.055);
+      isolation:isolate;
     }
 
     .site-tablist{
       display:flex;
       align-items:stretch;
-      gap:0;
+      gap:4px;
       min-width:0;
-      padding:2px 2px 0;
-      border-top:1px solid rgba(255,255,255,.045);
-      border-bottom:1px solid rgba(255,255,255,.16);
-      border-radius:12px 12px 0 0;
-      background:
-        linear-gradient(180deg,rgba(255,255,255,.028),rgba(255,255,255,.008));
+      padding:0;
+      border:0;
+      border-radius:12px;
+      background:transparent;
     }
 
     .site-tab{
       position:relative;
       flex:1 1 0;
       min-width:0;
-      min-height:42px;
-      padding:8px 8px 11px;
-      border:0;
-      border-radius:0;
+      min-height:43px;
+      padding:9px 8px 10px;
+      border:1px solid transparent;
+      border-radius:11px;
       appearance:none;
       -webkit-appearance:none;
       background:transparent;
@@ -664,11 +672,11 @@
     .site-tab::after{
       content:"";
       position:absolute;
-      left:8px;
-      right:8px;
-      bottom:-1px;
-      height:3px;
-      border-radius:999px 999px 0 0;
+      left:16%;
+      right:16%;
+      bottom:4px;
+      height:2px;
+      border-radius:999px;
       background:linear-gradient(90deg,#7ca0ff,#abc0ff);
       box-shadow:
         0 0 8px rgba(124,160,255,.44),
@@ -680,14 +688,18 @@
     }
 
     .site-tab:hover{
-      color:#e3eaf6;
-      background:rgba(255,255,255,.018);
+      color:#e7edf7;
+      background:rgba(255,255,255,.035);
     }
 
     .site-tab[aria-selected="true"]{
       color:#ffffff;
+      border-color:rgba(143,176,255,.24);
       background:
-        linear-gradient(180deg,rgba(124,160,255,.075),rgba(124,160,255,.018));
+        linear-gradient(180deg,rgba(124,160,255,.17),rgba(82,113,201,.075));
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.055),
+        0 4px 12px rgba(39,70,145,.10);
       text-shadow:0 0 12px rgba(143,176,255,.18);
     }
 
@@ -2512,9 +2524,10 @@
     }
 
     @media (max-width:520px){
-      .site-tablist{padding:2px 1px 0}
-      .site-tab{min-height:40px;padding:8px 5px 10px;font-size:.72rem}
-      .site-tab::after{left:5px;right:5px}
+      .site-nav{padding:4px;border-radius:15px;margin-bottom:10px}
+      .site-tablist{gap:3px}
+      .site-tab{min-height:40px;padding:8px 5px 9px;font-size:.71rem;border-radius:10px}
+      .site-tab::after{left:18%;right:18%;bottom:3px}
       .site-tab[data-special-event="true"]::before{top:6px;right:5px}
       .countdown-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
       .countdown-unit{min-height:64px}
@@ -2537,9 +2550,10 @@
       h1{font-size:1.85rem}
       .brand-sub{display:block;margin:.12em 0 0}
       .eyebrow{font-size:.66rem;padding:6px 8px}
-      .site-tablist{padding:0}
-      .site-tab{min-height:38px;padding:7px 3px 9px;font-size:.61rem;letter-spacing:0}
-      .site-tab::after{left:3px;right:3px}
+      .site-nav{padding:3px}
+      .site-tablist{gap:2px}
+      .site-tab{min-height:38px;padding:7px 3px 8px;font-size:.60rem;letter-spacing:0}
+      .site-tab::after{left:18%;right:18%}
       .platform{padding:10px 11px;gap:9px}
       .playlist-card .platform{
         padding:7px 5px;
@@ -3152,6 +3166,13 @@
 
   <main class="shell">
 
+    <nav class="site-nav" aria-label="Secciones principales">
+      <div class="site-tablist" id="site-tablist" role="tablist" aria-label="Secciones de IPCDJ Worship">
+        <button class="site-tab" id="tab-inicio" type="button" role="tab" aria-selected="true" aria-controls="panel-inicio" tabindex="0" data-site-tab="inicio">Inicio</button>
+        <button class="site-tab" id="tab-worship-semanal" type="button" role="tab" aria-selected="false" aria-controls="panel-worship-semanal" tabindex="-1" data-site-tab="worship-semanal">Worship semanal</button>
+      </div>
+    </nav>
+
     <header class="hero">
       <div class="eyebrow"><span class="dot"></span> Ministerio de Alabanza</div>
       <h1 translate="no" class="notranslate">IPCDJ <span class="brand-sub">Worship</span></h1>
@@ -3160,13 +3181,6 @@
         Abre la playlist en la plataforma que ya utilizas y mantente al día con el proceso de aprendizaje.
       </p>
     </header>
-
-    <nav class="site-nav" aria-label="Secciones principales">
-      <div class="site-tablist" id="site-tablist" role="tablist" aria-label="Secciones de IPCDJ Worship">
-        <button class="site-tab" id="tab-inicio" type="button" role="tab" aria-selected="true" aria-controls="panel-inicio" tabindex="0" data-site-tab="inicio">Inicio</button>
-        <button class="site-tab" id="tab-worship-semanal" type="button" role="tab" aria-selected="false" aria-controls="panel-worship-semanal" tabindex="-1" data-site-tab="worship-semanal">Worship semanal</button>
-      </div>
-    </nav>
 
     <div id="site-tab-panels">
       <section class="site-tab-panel" id="panel-inicio" role="tabpanel" aria-labelledby="tab-inicio" tabindex="0">
