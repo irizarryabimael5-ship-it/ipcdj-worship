@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v139" />
+  <meta name="ipcdj-build" content="persistent-launch-v140" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -1876,7 +1876,7 @@
       opacity:0;
       transition:
         stroke-dashoffset .10s linear,
-        opacity .68s cubic-bezier(.22,.65,.25,1);
+        opacity 1.40s cubic-bezier(.18,.68,.24,1);
     }
 
     .preview-row-future.is-playing .future-preview-ring-track{
@@ -1885,7 +1885,7 @@
 
     .preview-row-future.preview-future-returning .future-preview-ring-track{
       stroke:rgba(255,255,255,.54);
-      transition:stroke .70s cubic-bezier(.22,.65,.25,1);
+      transition:stroke 1.30s cubic-bezier(.18,.68,.24,1);
     }
 
     .future-preview-countdown{
@@ -1912,18 +1912,18 @@
 
     .preview-row-future.preview-future-returning .future-preview-active{
       opacity:0;
-      transform:scale(.97);
+      transform:scale(.985);
       transition:
-        opacity .62s cubic-bezier(.22,.65,.25,1),
-        transform .70s cubic-bezier(.22,.65,.25,1);
+        opacity 1.28s cubic-bezier(.18,.68,.24,1),
+        transform 1.34s cubic-bezier(.18,.68,.24,1);
     }
 
     .preview-row-future.preview-future-returning .future-preview-idle{
       opacity:1;
       transform:scale(1);
       transition:
-        opacity .56s cubic-bezier(.22,.65,.25,1) .12s,
-        transform .66s cubic-bezier(.22,.65,.25,1) .12s;
+        opacity 1.18s cubic-bezier(.18,.68,.24,1) .22s,
+        transform 1.26s cubic-bezier(.18,.68,.24,1) .22s;
     }
 
     .preview-row-future.preview-future-returning .future-preview-button{
@@ -1933,8 +1933,8 @@
         inset 0 1px 0 rgba(255,255,255,.08);
       transition:
         transform .16s ease,
-        box-shadow .68s cubic-bezier(.22,.65,.25,1),
-        background .68s cubic-bezier(.22,.65,.25,1);
+        box-shadow 1.30s cubic-bezier(.18,.68,.24,1),
+        background 1.30s cubic-bezier(.18,.68,.24,1);
     }
 
     .youtube-preview-host{
@@ -4730,8 +4730,8 @@
               if(futureRing)futureRing.style.strokeDashoffset="100";
               if(futureTime)futureTime.textContent=formatPreviewRemaining(fullDuration);
               row._previewFutureEndTimer=null;
-            },860);
-          },520);
+            },1720);
+          },620);
           return;
         }
 
