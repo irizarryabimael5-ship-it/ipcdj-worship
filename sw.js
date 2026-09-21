@@ -1,4 +1,6 @@
-const CACHE_NAME = "ipcdj-worship-v162";
+importScripts("./notifications/sw-foundation.js");
+
+const CACHE_NAME = "ipcdj-worship-v164";
 const OFFLINE_PAGE = "./__offline_index__";
 const STATIC_ASSETS = [
   "./favicon.svg",
@@ -25,7 +27,11 @@ const STATIC_ASSETS = [
   "./ios-launch/apple-launch-1242x2208.png",
   "./ios-launch/apple-launch-750x1334.png",
   "./ios-launch/apple-launch-640x1136.png",
-  "./manifest-v9.webmanifest"
+  "./manifest-v9.webmanifest",
+  "./notifications/sw-foundation.js",
+  "./notifications/client.js",
+  "./notifications/ui.js",
+  "./notifications/config.json"
 ];
 
 self.addEventListener("install",event=>{
@@ -175,5 +181,68 @@ self.addEventListener("fetch", event => {
       .catch(() => null);
 
     return cached || await networkPromise || new Response("", { status:504 });
+  })());
+});
+
+
+self.addEventListener("push",event=>{
+  event.waitUntil((async()=>{
+    let raw={};
+    try{
+      raw=event.data ? event.data.json() : {};
+    }catch(_){
+      try{ raw={body:event.data?event.data.text():""}; }catch(__){ raw={}; }
+    }
+
+    const foundation=self.IPCDJPushFoundation;
+    const payload=foundation
+      ? foundation.normalizePayload(raw)
+      : {
+          title:String(raw?.title||"IPCDJ Worship"),
+          body:String(raw?.body||""),
+          icon:String(raw?.icon||"./icon-192.png?v=9"),
+          badge:String(raw?.badge||"./favicon-32.png?v=8"),
+          tag:String(raw?.tag||raw?.eventKey||"ipcdj-worship"),
+          timestamp:Number(raw?.timestamp)||Date.now(),
+          url:String(raw?.url||"./")
+        };
+
+    const options=foundation
+      ? foundation.toNotificationOptions(payload)
+      : {
+          body:payload.body,
+          icon:payload.icon,
+          badge:payload.badge,
+          tag:payload.tag,
+          timestamp:payload.timestamp,
+          data:{url:payload.url}
+        };
+
+    // Web Push for IPCDJ is always user-visible. Scheduling/TTL decisions happen
+    // server-side so a received push is never used as an invisible background ping.
+    await self.registration.showNotification(payload.title||"IPCDJ Worship",options);
+  })());
+});
+
+self.addEventListener("notificationclick",event=>{
+  event.notification.close();
+  event.waitUntil((async()=>{
+    const foundation=self.IPCDJPushFoundation;
+    const target=foundation
+      ? foundation.notificationTarget(event.notification)
+      : String(event.notification?.data?.url||"./");
+
+    const windows=await self.clients.matchAll({type:"window",includeUncontrolled:true});
+    for(const client of windows){
+      try{
+        const url=new URL(client.url);
+        if(url.origin!==self.location.origin)continue;
+        await client.focus();
+        if("navigate" in client)await client.navigate(target).catch(()=>{});
+        return;
+      }catch(_){}
+    }
+
+    if(self.clients.openWindow)await self.clients.openWindow(target);
   })());
 });
