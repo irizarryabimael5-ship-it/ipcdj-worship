@@ -28,6 +28,15 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Validate watchdog co-development contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f WATCHDOG_POLICY.md
+          grep -q "Every substantive runtime feature" WATCHDOG_POLICY.md
+          grep -q "Mandatory user-facing completion report" WATCHDOG_POLICY.md
+          grep -q "Watchdog co-development contract v142" ../SITE_STANDARDS.md
+
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
