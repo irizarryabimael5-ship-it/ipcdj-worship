@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v160" />
+  <meta name="ipcdj-build" content="persistent-launch-v162" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -7429,11 +7429,14 @@
       const explicitCoverCss=explicitCover
         ? explicitCover.replace(/["'\\()]/g,m=>"\\\\"+m)
         : "";
+      const explicitCoverSource=explicitCover
+        ? "verified-"+String(song.artworkSource||"curated")
+        : "";
       const nativeCover=explicitCover
         ? `<img class="cover-native-fallback" src="${explicitCoverAttr}" alt="" aria-hidden="true" loading="eager" decoding="async" fetchpriority="high" />`
         : "";
       const nativeClass=explicitCover ? " has-native-cover" : "";
-      const nativeStyle=explicitCover ? ` style="--cover-image:url(&quot;${escapeHtml(explicitCoverCss)}&quot;)" data-cover-artwork="${escapeHtml(song.id)}" data-cover-artwork-url="${explicitCoverAttr}"` : "";
+      const nativeStyle=explicitCover ? ` style="--cover-image:url(&quot;${escapeHtml(explicitCoverCss)}&quot;)" data-cover-artwork="${escapeHtml(song.id)}" data-cover-artwork-url="${explicitCoverAttr}" data-cover-artwork-source="${escapeHtml(explicitCoverSource)}"` : "";
 
       return `
         <section class="card current reveal visible${nativeClass}" data-current-song-card data-song-id="${escapeHtml(song.id)}" data-cover-transition="staged"${nativeStyle}>
