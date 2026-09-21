@@ -2550,3 +2550,23 @@ Watchdog:
 - Tab tests now verify that local tab changes leave the launch overlay state unchanged and do not add a panel-enter animation.
 - Phase tests verify at most one active illuminated phase, correct phase-to-card mapping, no inactive glow, reduced inactive emphasis, and visible Estreno timeline during the release phase.
 
+## iOS tab launch root fix and restrained Estreno date v146
+
+Internal navigation / launch separation:
+- The v145 click-time guard was too late for iOS standalone mode because a blur/focus pair can occur before the click handler.
+- The launch subsystem now captures pointerdown, touchstart, and mousedown on .site-tab before focus changes and marks a short internal-navigation window.
+- Blur/focus launch handlers ignore that internal window.
+- activateSiteTab also dispatches ipcdj:internalnavigation. If a platform somehow armed the launch overlay before the click, the launch subsystem synchronously cancels that accidental armed state before a frame can paint.
+- Real visibilitychange, pagehide, and genuine app background/foreground behavior remain intact.
+
+Estreno visibility:
+- Inactive phase cards remain neutral and non-glowing.
+- When Estreno is not current, only its date and small dot receive a restrained warm-gold cue so the target date is easy to locate.
+- The inactive Estreno card itself does not receive the active-phase glow, border, or selected treatment.
+- When Estreno becomes the actual phase, the normal active green stage treatment takes ownership.
+
+Watchdog:
+- Disposition: FEATURE_COVERAGE_ADDED.
+- The tab test now reproduces pointerdown -> synthetic blur -> click and verifies the launch overlay remains idle.
+- The phase test continues enforcing one active illuminated phase and no inactive-card glow, while also checking the inactive Estreno date remains visually distinct.
+
