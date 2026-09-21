@@ -545,6 +545,62 @@ test('desktop Chrome tab switching cannot replay the launch intro', async ({ pag
   await expect(root).not.toHaveClass(/ipcdj-launch-active/);
 });
 
+
+test('future song cards retain verified album artwork and palette depth', async ({ page }, testInfo) => {
+  await openHealthyPage(page);
+
+  const expected = {
+    'glorioso-dia': 'ab67616d0000b27372bba4048e09a242595e4a2c',
+    'no-fallaras': 'ab67616d0000b273decf3d0f2c88d97720437f20'
+  };
+
+  for (const [songId, artworkHash] of Object.entries(expected)) {
+    const card = page.locator('#upcoming-songs [data-song-id="' + songId + '"]');
+    await expect(card).toHaveCount(1);
+    await page.waitForFunction(id => {
+      const node = document.querySelector('#upcoming-songs [data-song-id="' + id + '"]');
+      return !!node?.dataset.futureArtworkUrl;
+    }, songId);
+
+    const state = await card.evaluate(node => {
+      const blur = node.querySelector('.future-artwork-blur');
+      const ghost = node.querySelector('.future-artwork-ghost');
+      const css = getComputedStyle(node);
+      return {
+        url: node.dataset.futureArtworkUrl || '',
+        source: node.dataset.futureArtworkSource || '',
+        ready: node.classList.contains('future-artwork-ready'),
+        themed: node.classList.contains('future-themed'),
+        c1: css.getPropertyValue('--future-c1').trim(),
+        c2: css.getPropertyValue('--future-c2').trim(),
+        c3: css.getPropertyValue('--future-c3').trim(),
+        gradientOpacity: Number(css.getPropertyValue('--future-gradient-opacity')),
+        blurOpacityTarget: Number(css.getPropertyValue('--future-blur-opacity')),
+        artOpacityTarget: Number(css.getPropertyValue('--future-art-opacity')),
+        blurImage: blur ? getComputedStyle(blur).backgroundImage : 'none',
+        ghostImage: ghost ? getComputedStyle(ghost).backgroundImage : 'none'
+      };
+    });
+
+    expect(state.url).toContain(artworkHash);
+    expect(state.source).toBe('verified-spotify');
+    expect(state.themed).toBe(true);
+    expect(state.c1).not.toBe(state.c2);
+    expect(state.c2).not.toBe(state.c3);
+    expect(state.blurImage).toContain('i.scdn.co');
+    expect(state.ghostImage).toContain('i.scdn.co');
+    expect(state.gradientOpacity).toBeGreaterThanOrEqual(.9);
+
+    if (/desktop/.test(testInfo.project.name)) {
+      expect(state.blurOpacityTarget).toBeGreaterThanOrEqual(.4);
+      expect(state.artOpacityTarget).toBeGreaterThanOrEqual(.24);
+    } else if (/mobile/.test(testInfo.project.name)) {
+      expect(state.blurOpacityTarget).toBeGreaterThanOrEqual(.2);
+      expect(state.artOpacityTarget).toBeGreaterThanOrEqual(.1);
+    }
+  }
+});
+
 test('PWA shell, service worker and efficiency guardrails remain healthy', async ({ page, request }, testInfo) => {
   const nonce = Date.now();
 
