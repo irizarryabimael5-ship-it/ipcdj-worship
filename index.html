@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v144" />
+  <meta name="ipcdj-build" content="persistent-launch-v145" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -621,75 +621,71 @@
     .site-nav{
       position:relative;
       z-index:8;
-      margin:0 0 16px;
+      margin:0 0 18px;
     }
 
     .site-tablist{
       display:flex;
       align-items:stretch;
-      gap:6px;
+      gap:0;
       min-width:0;
-      padding:6px;
-      border:1px solid rgba(255,255,255,.105);
-      border-radius:18px;
-      background:rgba(8,12,19,.58);
-      box-shadow:
-        0 12px 34px rgba(0,0,0,.22),
-        inset 0 1px 0 rgba(255,255,255,.045);
-      backdrop-filter:blur(11px) saturate(1.08);
-      -webkit-backdrop-filter:blur(11px) saturate(1.08);
+      padding:0 2px;
+      border-bottom:1px solid rgba(255,255,255,.11);
+      background:transparent;
     }
 
     .site-tab{
+      position:relative;
       flex:1 1 0;
       min-width:0;
-      min-height:44px;
-      padding:9px 10px;
-      border:1px solid transparent;
-      border-radius:13px;
+      min-height:42px;
+      padding:8px 8px 11px;
+      border:0;
+      border-radius:0;
       appearance:none;
       -webkit-appearance:none;
       background:transparent;
-      color:#9ea9bc;
+      color:#8f99aa;
       font:inherit;
-      font-size:.78rem;
+      font-size:.76rem;
       line-height:1.16;
-      font-weight:780;
-      letter-spacing:.015em;
+      font-weight:760;
+      letter-spacing:.01em;
       text-align:center;
       cursor:pointer;
       -webkit-tap-highlight-color:transparent;
       touch-action:manipulation;
-      transition:
-        color .26s ease,
-        border-color .26s ease,
-        background .30s ease,
-        box-shadow .30s ease,
-        transform .16s ease;
+      transition:color .18s ease,opacity .18s ease;
     }
 
-    .site-tab:hover{
-      color:#e9eef8;
-      background:rgba(255,255,255,.035);
+    .site-tab::after{
+      content:"";
+      position:absolute;
+      left:8px;
+      right:8px;
+      bottom:-1px;
+      height:2px;
+      border-radius:999px 999px 0 0;
+      background:#8fb0ff;
+      box-shadow:0 0 10px rgba(143,176,255,.34);
+      opacity:0;
+      transform:scaleX(.45);
+      transform-origin:center;
+      transition:opacity .18s ease,transform .18s ease;
     }
 
-    .site-tab:active{transform:scale(.98)}
+    .site-tab:hover{color:#dce4f2}
 
     .site-tab[aria-selected="true"]{
       color:#ffffff;
-      border-color:rgba(143,176,255,.35);
-      background:
-        linear-gradient(180deg,rgba(111,151,255,.18),rgba(64,94,174,.10));
-      box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.08),
-        0 7px 20px rgba(26,53,113,.16);
     }
 
-    .site-tab[data-special-event="true"]{
-      position:relative;
+    .site-tab[aria-selected="true"]::after{
+      opacity:1;
+      transform:scaleX(1);
     }
 
-    .site-tab[data-special-event="true"]::after{
+    .site-tab[data-special-event="true"]::before{
       content:"";
       position:absolute;
       top:7px;
@@ -698,12 +694,13 @@
       height:5px;
       border-radius:50%;
       background:#77e6aa;
-      box-shadow:0 0 10px rgba(119,230,170,.60);
+      box-shadow:0 0 8px rgba(119,230,170,.45);
     }
 
     .site-tab:focus-visible{
-      outline:2px solid rgba(143,176,255,.92);
+      outline:2px solid rgba(143,176,255,.88);
       outline-offset:2px;
+      border-radius:7px;
     }
 
     .site-tab-panel{
@@ -712,15 +709,6 @@
 
     .site-tab-panel[hidden]{
       display:none!important;
-    }
-
-    .site-tab-panel-enter{
-      animation:sitePanelIn .34s cubic-bezier(.22,.65,.25,1) both;
-    }
-
-    @keyframes sitePanelIn{
-      from{opacity:0;transform:translateY(5px)}
-      to{opacity:1;transform:none}
     }
 
     .coming-soon-card{
@@ -1425,7 +1413,6 @@
 
     .current.phase-release .countdown-wrap,
     .current.phase-release .progress-wrap,
-    .current.phase-release .timeline,
     .current.phase-released .countdown-wrap,
     .current.phase-released .progress-wrap,
     .current.phase-released .timeline{
@@ -1610,29 +1597,35 @@
 
     .timeline-item{
       border:1px solid var(--line);
-      background:rgba(255,255,255,.022);
+      background:rgba(255,255,255,.018);
       border-radius:14px;
       padding:12px 14px;
+      box-shadow:none;
+      transition:
+        border-color .42s cubic-bezier(.22,.65,.25,1),
+        background .42s cubic-bezier(.22,.65,.25,1),
+        box-shadow .42s cubic-bezier(.22,.65,.25,1),
+        opacity .42s cubic-bezier(.22,.65,.25,1);
     }
 
-    .timeline-item[data-role="timeline-learning"]{--timeline-rgb:255,82,88}
-    .timeline-item[data-role="timeline-final"]{--timeline-rgb:255,190,58}
-    .timeline-item[data-role="timeline-release"]{--timeline-rgb:42,224,126}
-
     .current .timeline-item:not(.active-phase){
-      border-color:rgba(var(--timeline-rgb),.28);
-      background:
-        linear-gradient(90deg,rgba(var(--timeline-rgb),.105),rgba(var(--timeline-rgb),.025),rgba(255,255,255,.012));
-      box-shadow:inset 3px 0 0 rgba(var(--timeline-rgb),.66);
+      border-color:rgba(255,255,255,.085);
+      background:rgba(255,255,255,.018);
+      box-shadow:none;
+      opacity:.76;
     }
 
     .current .timeline-item:not(.active-phase) .timeline-label{
-      color:rgba(var(--timeline-rgb),.98);
-      text-shadow:0 1px 10px rgba(0,0,0,.28);
+      color:#aeb7c7;
+      text-shadow:none;
     }
 
     .current .timeline-item:not(.active-phase) .timeline-date{
-      color:#c9d0dc;
+      color:#858fa1;
+    }
+
+    .timeline-item.active-phase{
+      opacity:1;
     }
 
     .timeline-item.estreno{
@@ -1652,9 +1645,20 @@
       width:7px;
       height:7px;
       border-radius:50%;
-      background:rgb(42,224,126);
-      box-shadow:0 0 14px rgba(42,224,126,.55);
+      background:rgba(255,255,255,.20);
+      box-shadow:none;
+      opacity:.46;
       flex:0 0 auto;
+      transition:
+        background .42s cubic-bezier(.22,.65,.25,1),
+        box-shadow .42s cubic-bezier(.22,.65,.25,1),
+        opacity .42s cubic-bezier(.22,.65,.25,1);
+    }
+
+    .timeline-item.estreno.active-phase .timeline-label::before{
+      background:var(--stage-accent);
+      box-shadow:0 0 14px var(--stage-glow);
+      opacity:1;
     }
 
     .timeline-item.estreno .timeline-date{
@@ -2483,9 +2487,10 @@
     }
 
     @media (max-width:520px){
-      .site-tablist{gap:4px;padding:5px;border-radius:16px}
-      .site-tab{min-height:42px;padding:8px 6px;font-size:.71rem;border-radius:12px}
-      .site-tab[data-special-event="true"]::after{top:6px;right:6px}
+      .site-tablist{padding:0 1px}
+      .site-tab{min-height:40px;padding:8px 5px 10px;font-size:.69rem}
+      .site-tab::after{left:5px;right:5px}
+      .site-tab[data-special-event="true"]::before{top:6px;right:5px}
       .countdown-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
       .countdown-unit{min-height:64px}
       .progress-top{
@@ -2507,8 +2512,9 @@
       h1{font-size:1.85rem}
       .brand-sub{display:block;margin:.12em 0 0}
       .eyebrow{font-size:.66rem;padding:6px 8px}
-      .site-tablist{padding:4px;gap:3px}
-      .site-tab{min-height:40px;padding:7px 4px;font-size:.64rem;letter-spacing:0}
+      .site-tablist{padding:0}
+      .site-tab{min-height:38px;padding:7px 3px 9px;font-size:.61rem;letter-spacing:0}
+      .site-tab::after{left:3px;right:3px}
       .platform{padding:10px 11px;gap:9px}
       .playlist-card .platform{
         padding:7px 5px;
@@ -2734,8 +2740,7 @@
       .ambient-field{transition:none!important}.ambient-field:not(.ambient-field-active){opacity:0!important}.ambient-field-active{opacity:.46!important}
       .ambient-blob{animation:none!important}
       .inline-preview,.preview-button{transition:none!important}
-      .site-tab{transition:none!important}
-      .site-tab-panel-enter{animation:none!important}
+      .site-tab,.site-tab::after{transition:none!important}
       .platform{transition:none}
       .progress-fill{transition:none}
       .progress-wrap{transition:none}
@@ -2854,6 +2859,11 @@
       let exiting=false;
       let armed=false;
       let cycleToken=0;
+
+      const internalTabSwitchActive=()=>(
+        !document.hidden &&
+        Number(window.__ipcdjInternalTabSwitchUntil||0)>performance.now()
+      );
 
       const lockPage=enabled=>{
         const root=document.documentElement;
@@ -3008,6 +3018,7 @@
       // snapshot is covered before the next foreground paint.
       window.addEventListener("blur",()=>{
         if(!standalone)return;
+        if(internalTabSwitchActive())return;
 
         // iOS can emit blur/focus while the Home Screen launch transition itself
         // is still completing. Never reset an intro that is already armed,
@@ -3045,6 +3056,7 @@
       },{passive:true,capture:true});
 
       window.addEventListener("focus",()=>{
+        if(internalTabSwitchActive())return;
         if(standalone&&armed&&!document.hidden)playLaunch();
       },{passive:true,capture:true});
     })();
@@ -3249,7 +3261,8 @@
       return [...siteTabList.querySelectorAll('[role="tab"]:not([hidden])')];
     }
 
-    function activateSiteTab(key,{focus=false,animate=true}={}){
+    function activateSiteTab(key,{focus=false}={}){
+      window.__ipcdjInternalTabSwitchUntil=performance.now()+700;
       let button=siteTabButton(key);
       if(!button){
         key="inicio";
@@ -3268,15 +3281,8 @@
       });
 
       [...siteTabPanels.querySelectorAll('[role="tabpanel"]')].forEach(panel=>{
-        const selected=panel===target;
-        panel.hidden=!selected;
-        if(selected&&animate){
-          panel.classList.remove("site-tab-panel-enter");
-          void panel.offsetWidth;
-          panel.classList.add("site-tab-panel-enter");
-        }else if(!selected){
-          panel.classList.remove("site-tab-panel-enter");
-        }
+        panel.hidden=panel!==target;
+        panel.classList.remove("site-tab-panel-enter");
       });
 
       activeSiteTabKey=key;
