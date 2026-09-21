@@ -1,0 +1,20 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ipcdj-worship-push",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-21",
+  "triggers": {
+    "crons": ["* * * * *"]
+  },
+  "vars": {
+    "SITE_ORIGIN": "https://worship.ipcdj.org",
+    "VAPID_SUBJECT": "https://worship.ipcdj.org/"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ipcdj-worship-push",
+      "database_id": "REPLACE_WITH_D1_DATABASE_ID"
+    }
+  ]
+}
