@@ -2526,3 +2526,27 @@ Watchdog:
 - The v143 feature watchdog now verifies both semantic border colors and distinct stage-card background images across the browser matrix.
 - All v143 tab, event-expiry, accessibility, status/progress, and navigation behavior remains unchanged.
 
+## Clean tab navigation and single-phase illumination v145
+
+Tabs:
+- Primary navigation is visually reduced to a clean text-tab row with one subtle active underline.
+- Removed the heavy segmented-control container, filled active pill, large shadows, and panel entrance animation.
+- Switching Inicio / Worship semanal / special-event tabs is immediate: no panel fade/translate and no replay of the IPCDJ launch sequence.
+- Internal tab switches mark a short local-navigation window; the standalone launch blur/focus handlers ignore that local switch while still responding normally to real app background/foreground lifecycle events.
+- ARIA tab semantics and keyboard navigation remain unchanged.
+
+Preparation progression:
+- The moving Camino al estreno bar remains the owner of the vivid red→orange→amber→green progression.
+- Timeline phase cards are neutral by default.
+- Only the phase that is actually current receives the illuminated selected treatment using the live stage color.
+- Aprendizaje illuminates only during Aprendizaje.
+- Preparación final illuminates only during Preparación final.
+- Estreno is revealed and illuminated on the release phase; the release timeline is no longer hidden on release day.
+- Inactive phase cards have no glow and reduced opacity, so future/past phases do not compete visually.
+- The Estreno dot is muted when inactive and glows only when Estreno is active.
+
+Watchdog:
+- Disposition: FEATURE_COVERAGE_ADDED.
+- Tab tests now verify that local tab changes leave the launch overlay state unchanged and do not add a panel-enter animation.
+- Phase tests verify at most one active illuminated phase, correct phase-to-card mapping, no inactive glow, reduced inactive emphasis, and visible Estreno timeline during the release phase.
+
