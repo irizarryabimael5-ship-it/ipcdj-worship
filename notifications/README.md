@@ -1,91 +1,190 @@
-# IPCDJ Worship — Push Notification Foundation
+# IPCDJ Worship — Notification Platform
 
-Status: **Dormant foundation only.**
+Status: **v164 implemented, runtime-gated until the push backend is provisioned.**
 
-Nothing in this directory is imported by `index.html` or `sw.js` yet. The current website does not request notification permission, subscribe devices, contact a push backend, register push handlers, or change runtime behavior because of these files.
+The website, service worker, autonomous planner, browser subscription client, manual sender, D1 schema, Cloudflare Worker sender, cron dispatcher, catalog-sync workflow, and watchdog coverage are all present in this repository.
 
-## Goal
+`notifications/config.json` intentionally keeps `enabled:false` until the backend is live. While false:
+- no notification permission is requested;
+- no browser subscribes to push;
+- no backend is contacted by normal visitors;
+- the Notifications card stays hidden;
+- every existing website feature continues normally.
 
-Prepare one standards-based notification architecture that can later support:
+## Product behavior
 
-- song phase-entry notifications;
-- estreno reminders;
-- release-day notifications;
-- weekly Live Set publication / update notifications;
-- future notification categories the ministry decides to add.
+Automatic notifications are generated only for managed songs in preparation. The default sequence is intentionally bounded to six moments:
 
-The system must work through standards-based Web Push rather than browser-specific notification products.
+1. **Added to preparation** — shortly after a future song becomes active.
+2. **Learning week starts** — Monday/phase-start morning.
+3. **Learning check-in** — one mid-learning reminder when the learning window is long enough.
+4. **Final preparation starts** — includes the estreno date.
+5. **Estreno eve** — one last-rehearsal/repaso reminder.
+6. **Estreno day** — morning-of reminder with service time.
 
-## Platform principles
+There are no post-release automatic pushes and no daily reminder loop.
 
-1. Use feature detection, not browser-name detection.
-2. Use the existing HTTPS service worker as the future persistent-notification surface.
-3. Never call `Notification.requestPermission()` or `PushManager.subscribe()` automatically.
-4. Permission/subscription must originate from a deliberate user action in the future Notifications settings UI.
-5. iPhone/iPad users should be guided to the installed/Home Screen web-app experience when required.
-6. The notification system must remain optional. Refusing notifications cannot affect any website feature.
-7. Subscription endpoint URLs and encryption keys are secrets/capability URLs and belong only in the secure backend store.
-8. The client must never contain the VAPID private key.
-9. Notification schedules must be generated server-side. Do not depend on browser timers or periodic background execution.
-10. Use the same canonical song/event dates as the website so UI state and push state cannot disagree.
+Quiet hours are 9:00 PM–8:00 AM America/New_York. Phase notifications are scheduled at deliberate human times rather than midnight lifecycle boundaries.
 
-## Foundation files
+## Human wording
 
-- `notification-foundation.js` — side-effect-free client capability / subscription helpers.
-- `sw-foundation.js` — side-effect-free service-worker payload and click-routing helpers.
-- `notification-contract.schema.json` — versioned push payload contract.
-- `event-catalog.json` — draft event taxonomy and preference categories. No event is activated here.
-- `backend-contract.md` — secure backend/subscription/scheduler interface.
+Each phase owns six approved short Spanish title ideas and six approved short Spanish body ideas.
 
-## Future activation order
+The planner independently selects title/body variants using a deterministic event key, yielding up to 36 natural combinations per phase while keeping retries identical. This prevents duplicate wording from cron retries and avoids the site sounding like a fixed template every song.
 
-### Stage 1 — User-facing settings
-Add a Notifications section to IPCDJ Worship that:
-- detects support;
-- explains install requirements when needed;
-- shows current permission/subscription state;
-- lets the user choose notification categories;
-- only requests permission after a user taps an explicit enable control.
+Automatic messages know the canonical song title, estreno date, and service time directly from the song record.
 
-### Stage 2 — Push backend
-Deploy a small HTTPS service with:
-- VAPID keypair;
-- subscription create/update/delete endpoints;
-- anonymous installation identifiers;
-- preference storage;
-- expired-subscription cleanup;
-- CSRF/origin validation, abuse/rate protections, and secret handling.
+## Single source of truth
 
-### Stage 3 — Service-worker activation
-Import or integrate `sw-foundation.js` into `sw.js`, then add:
-- `push`;
-- `notificationclick`;
-- optional `pushsubscriptionchange`.
+`SONG_CATALOG_SOURCE` in `index.html` remains the only authored song schedule.
 
-Persistent notifications must be created with `ServiceWorkerRegistration.showNotification()`.
+After the main **IPCDJ Website Health** workflow completes successfully, `.github/workflows/notification-sync.yml`:
+1. checks out the exact tested commit;
+2. runs the notification planner tests;
+3. exports the canonical song lifecycle;
+4. syncs it to the push backend.
 
-### Stage 4 — Event scheduler
-Move/duplicate the canonical song schedule into a shared machine-readable source that both:
-- the website phase renderer; and
-- the backend event scheduler
+If `IPCDJ_PUSH_ADMIN_TOKEN` is not configured, the sync exits successfully without sending anything.
 
-consume.
+A new song must never be manually scheduled in a second notification file.
 
-The server creates idempotent events such as `song.phase.entered` or `live_set.published` and sends them only to subscriptions whose saved preferences permit them.
+## Late activation / outage safety
 
-## Deliberately undecided
+The planner never replays old reminders in bulk.
 
-The following are intentionally not chosen until the ministry defines behavior:
-- which event types are enabled;
-- reminder lead times;
-- quiet hours;
-- whether reminders repeat;
-- whether updates become push messages or silent in-app changes;
-- Live Set publication cadence;
-- notification wording;
-- per-song overrides;
-- badge-count rules;
-- category defaults;
-- whether administrators can send manual announcements.
+- “Added” is generated only if the backend first sees the song before its learning phase begins.
+- Scheduled events older than the five-minute scheduler grace window are excluded when a plan is rebuilt.
+- Sent events remain sent across catalog resyncs.
+- Event keys are idempotent.
+- Delivery state is tracked per subscription.
+- Expired 404/410 push endpoints are disabled automatically.
+- Transient failures are retried with a bounded attempt count.
 
-This preserves flexibility without rewriting the transport architecture later.
+## User opt-in behavior
+
+Notification permission is never requested automatically.
+
+When enabled:
+- desktop/Android/supporting browsers can subscribe from the normal website;
+- iPhone/iPad users are guided to add IPCDJ Worship to the Home Screen and enable notifications from the installed web app;
+- denying notifications does not affect any other website feature;
+- users can unsubscribe from the same control.
+
+The notification icon uses IPCDJ's existing white-background/black-logo app artwork. The push payload uses `icon-192.png`; the manifest continues to use the same icon family.
+
+## Manual notifications
+
+`/notifications/admin.html` is an unlinked, no-index admin console.
+
+It supports:
+- immediate send;
+- scheduled send;
+- normal/high urgency;
+- short title/body;
+- same-site tap destination.
+
+The administrative token is entered by the administrator and stored only in `sessionStorage`. It is never committed to GitHub.
+
+The backend independently validates authorization, browser origin, title/body lengths, time, TTL, and destination URL.
+
+## Backend
+
+The production backend is designed for Cloudflare Workers + D1:
+
+- Worker: `notifications/worker/src/index.js`
+- D1 schema: `notifications/worker/schema.sql`
+- Wrangler config: `notifications/worker/wrangler.jsonc`
+- Web Push: `@block65/webcrypto-web-push@2.0.0`
+- scheduler: one-minute Cron Trigger
+- API target: `https://push.worship.ipcdj.org`
+
+The sender uses standards-based Web Push/VAPID rather than a vendor-specific browser SDK.
+
+## One-time production activation
+
+These operations require access to the church's Cloudflare/GitHub account and therefore are intentionally not stored in this repository.
+
+From `notifications/worker`:
+
+```bash
+npm install
+npx wrangler d1 create ipcdj-worship-push
+```
+
+Put the returned D1 database ID into `wrangler.jsonc`, then apply the schema:
+
+```bash
+npm run db:remote
+```
+
+Generate one VAPID keypair offline:
+
+```bash
+npx web-push generate-vapid-keys --json
+```
+
+Store these three values as Worker secrets:
+
+```bash
+npx wrangler secret put VAPID_PUBLIC_KEY
+npx wrangler secret put VAPID_PRIVATE_KEY
+npx wrangler secret put ADMIN_TOKEN
+```
+
+Deploy:
+
+```bash
+npm run deploy
+```
+
+Then connect the Worker to the Custom Domain `push.worship.ipcdj.org`.
+
+In GitHub repository settings, add:
+- Actions secret: `IPCDJ_PUSH_ADMIN_TOKEN` = the same admin token.
+- Actions variable: `IPCDJ_PUSH_API_ORIGIN` = `https://push.worship.ipcdj.org`.
+
+Verify:
+- `https://push.worship.ipcdj.org/health`
+- `https://push.worship.ipcdj.org/v1/config`
+- admin health through `/notifications/admin.html`
+- autonomous catalog sync workflow succeeds.
+
+Only after those checks pass, change `notifications/config.json` to:
+
+```json
+{
+  "enabled": true,
+  "apiOrigin": "https://push.worship.ipcdj.org",
+  "siteOrigin": "https://worship.ipcdj.org",
+  "timezone": "America/New_York",
+  "version": 2
+}
+```
+
+That final toggle exposes the opt-in card and allows browser subscriptions.
+
+## Security / privacy
+
+No login, name, phone, email, or precise location is required for a notification subscription.
+
+Stored subscription data is limited to the Web Push capability endpoint/keys and small device metadata needed to operate the subscription.
+
+The VAPID private key, admin token, and database control credentials are never public client assets.
+
+Push click destinations are restricted to IPCDJ same-origin paths.
+
+## Watchdog
+
+The normal site-health workflow now validates:
+- planner unit tests;
+- stale-reminder prevention;
+- DST-aware scheduling;
+- short/deterministic human wording;
+- JavaScript syntax for client/UI/service-worker foundation/Worker/sync scripts;
+- canonical catalog export;
+- notification assets on production;
+- `push` and `notificationclick` handlers;
+- no automatic permission state change;
+- all existing cross-platform site invariants.
+
+The main seven-profile Playwright matrix remains authoritative for website compatibility.
