@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v137" />
+  <meta name="ipcdj-build" content="persistent-launch-v138" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -1823,11 +1823,15 @@
       height:18px;
     }
 
-    .future-preview-ring{
+    /* Important: this selector intentionally outranks the generic
+       .preview-button svg { width:17px; height:17px } icon rule.
+       The progress SVG must fill the complete dark circular button. */
+    .future-preview-button > svg.future-preview-ring{
       position:absolute;
       inset:0;
-      width:48px;
-      height:48px;
+      width:100%;
+      height:100%;
+      display:block;
       transform:rotate(-90deg);
       transform-origin:center;
       overflow:visible;
