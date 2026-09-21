@@ -455,6 +455,18 @@ test('standalone full-scroll cycle cannot arm launch before tab switching', asyn
         configurable: true,
         get: () => true
       });
+      Object.defineProperty(navigator, 'userAgent', {
+        configurable: true,
+        get: () => 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1'
+      });
+      Object.defineProperty(navigator, 'platform', {
+        configurable: true,
+        get: () => 'iPhone'
+      });
+      Object.defineProperty(navigator, 'maxTouchPoints', {
+        configurable: true,
+        get: () => 5
+      });
     } catch (_) {}
   });
 
@@ -498,6 +510,37 @@ test('standalone full-scroll cycle cannot arm launch before tab switching', asyn
   const eventTab = page.locator('#tab-campana-gu-2026');
   await eventTab.click();
   await expect(eventTab).toHaveAttribute('aria-selected', 'true');
+  await expect(launch).toHaveClass(/launch-idle/);
+  await expect(root).not.toHaveClass(/ipcdj-launch-active/);
+});
+
+
+test('desktop Chrome tab switching cannot replay the launch intro', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'chromium-desktop', 'Desktop Chrome regression only');
+
+  await openHealthyPage(page);
+
+  const launch = page.locator('#ipcdj-launch');
+  const root = page.locator('html');
+
+  const launchState = await page.evaluate(() => window.IPCDJ_LAUNCH_STATE);
+  expect(launchState).toBeTruthy();
+  expect(launchState.ios).toBe(false);
+  expect(launchState.warmResumeEnabled).toBe(false);
+
+  await expect(launch).toHaveClass(/launch-idle/);
+  await expect(root).not.toHaveClass(/ipcdj-launch-active/);
+
+  // Desktop Chrome may emit blur/focus and visibility events as users move
+  // between browser tabs/windows. None may re-arm the intro after initial load.
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event('blur'));
+    document.dispatchEvent(new Event('visibilitychange'));
+    window.dispatchEvent(new Event('focus'));
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await page.waitForTimeout(260);
+
   await expect(launch).toHaveClass(/launch-idle/);
   await expect(root).not.toHaveClass(/ipcdj-launch-active/);
 });
