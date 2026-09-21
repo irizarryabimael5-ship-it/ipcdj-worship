@@ -167,6 +167,31 @@ test('preview playback and song-to-song handoff stay functional', async ({ page 
     await expect(futureCountdown).toHaveCount(1);
     await expect(futureRing).toHaveCount(1);
 
+    const ringAlignment = await futureButton.evaluate(button => {
+      const svg = button.querySelector('.future-preview-ring');
+      const track = button.querySelector('.future-preview-ring-track');
+      const progress = button.querySelector('.future-preview-ring-progress');
+      if (!svg || !track || !progress) return null;
+
+      const buttonRect = button.getBoundingClientRect();
+      const ringRect = svg.getBoundingClientRect();
+      return {
+        leftDelta: Math.abs(ringRect.left - buttonRect.left),
+        topDelta: Math.abs(ringRect.top - buttonRect.top),
+        widthDelta: Math.abs(ringRect.width - buttonRect.width),
+        heightDelta: Math.abs(ringRect.height - buttonRect.height),
+        trackRadius: track.getAttribute('r'),
+        progressRadius: progress.getAttribute('r')
+      };
+    });
+
+    expect(ringAlignment).not.toBeNull();
+    expect(ringAlignment.leftDelta).toBeLessThanOrEqual(0.6);
+    expect(ringAlignment.topDelta).toBeLessThanOrEqual(0.6);
+    expect(ringAlignment.widthDelta).toBeLessThanOrEqual(0.6);
+    expect(ringAlignment.heightDelta).toBeLessThanOrEqual(0.6);
+    expect(ringAlignment.trackRadius).toBe(ringAlignment.progressRadius);
+
     const initialOffset = await futureRing.evaluate(circle => {
       const value = Number.parseFloat(circle.style.strokeDashoffset || getComputedStyle(circle).strokeDashoffset);
       return Number.isFinite(value) ? value : 100;
