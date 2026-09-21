@@ -8,7 +8,8 @@
   },
   "vars": {
     "SITE_ORIGIN": "https://worship.ipcdj.org",
-    "VAPID_SUBJECT": "https://worship.ipcdj.org/"
+    "VAPID_SUBJECT": "https://worship.ipcdj.org/",
+    "DELIVERY_BATCH_SIZE": "8"
   },
   "d1_databases": [
     {
