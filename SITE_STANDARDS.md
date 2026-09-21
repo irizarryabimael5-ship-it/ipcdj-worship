@@ -2412,3 +2412,39 @@ The natural-completion return for future-song circular previews should feel inte
 - Keep the cleanup/reset delay longer than every visual transition (about 1.72 s after return begins).
 - Never expose the internal reset of timer text or ring dash position.
 
+## Continuous stability system v141
+
+v141 audits and hardens the existing v128-v140 monitoring architecture without changing production UI/audio behavior.
+
+Operating model:
+- The external health workflow runs every hour at minute 17, on every push to main, and by manual dispatch.
+- Push-triggered checks wait until the build marker in the deployed GitHub Pages shell matches the repository build marker before executing the browser matrix. This prevents a valid new commit from being judged against an older Pages deployment.
+- The browser matrix covers Chromium desktop, Firefox desktop, WebKit desktop, Chromium mobile, iPhone-class WebKit mobile, 320 x 568 compact WebKit mobile, and WebKit tablet.
+- Linux CI starts a PulseAudio backend before browser tests so Firefox Web Audio is not judged in an environment with no audio server.
+- Playwright browser/media limitations remain distinct from production-browser failures; diagnostic data must preserve enough context to distinguish them.
+
+Monitoring calibration:
+- WebKit CI frame sampling is a catastrophic-freeze detector only. Shared/headless WebKit may throttle rAF independently of actual Safari scrolling, so its ceiling is intentionally loose while real-device IPCDJ_HEALTH remains stricter.
+- Non-WebKit CI retains the tighter frame interval and >50 ms ratio guardrails.
+- Future-preview ring validation checks concentric center alignment and the intentional one-pixel transparent-border inset instead of requiring the SVG padding box to equal the outer border box.
+- The approved production geometry must never be changed merely to satisfy an incorrect synthetic assertion.
+
+Expanded integrity/efficiency checks:
+- Manifest is fetched and validated for canonical id/start_url/scope/display/colors.
+- Every manifest icon must return successfully.
+- sw.js must load successfully and contain a versioned IPCDJ cache.
+- A live service-worker registration must become active.
+- Duplicate DOM IDs, horizontal overflow, same-origin resource errors, JavaScript errors, unhandled rejections, and preview errors remain fatal.
+- Coarse runaway budgets protect against accidental DOM/resource explosions without pretending CI network timing is a real-device benchmark.
+- Health snapshots retain long-task, long-animation-frame, CLS, LCP, resource-count, and DOM-count diagnostics for analysis.
+
+Safe self-recovery:
+- Real devices continue using the in-page adaptive performance guard: two severe samples may enter ipcdj-performance-lite; three healthy samples restore full decoration.
+- The service worker continues network-first freshness with last-known-good fallback and cache cleanup.
+- Playwright retries transient test failures and GitHub automatically closes the health-alert issue after a later fully passing matrix.
+- The monitoring system must NOT autonomously rewrite production source code or roll back a deployment merely because CI fails. Automatic code mutation can turn provider outages, runner noise, or a bad assertion into a production regression. Source fixes remain evidence-driven; only bounded runtime degradation/recovery is automatic.
+- Monitoring should diagnose, isolate, and surface a reproducible failure with artifacts so a source change can be made safely.
+
+Coverage limit:
+- Synthetic browser projects provide broad engine/device regression coverage, not a literal guarantee for every hardware/OS/browser combination. Physical-device reports remain authoritative evidence when synthetic behavior conflicts with an observed real device.
+
