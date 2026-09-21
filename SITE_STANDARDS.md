@@ -2631,3 +2631,19 @@ Watchdog:
 - Primary navigation coverage now checks that tabs are top-level, non-sticky, equal width/equal height, and contained within the viewport across the browser/device matrix.
 - The existing full-scroll launch regression remains in place without requiring navigation to float during scrolling.
 
+## Ultra-clean top tabs v151
+
+- Kept the top-of-app navigation position and equal-width segmented structure from v150.
+- Reduced the navigation width to max 680px and centered it, avoiding an oversized full-shell control on desktop/tablet.
+- Removed the outer drop shadow and reduced the container to one faint border plus one low-contrast surface.
+- Tightened inter-tab spacing from 4px to 2px.
+- Simplified the selected state to a single quiet translucent surface with a very subtle border; no glow, no underline, no selected shadow.
+- Reduced inactive label weight/contrast slightly so the selected tab reads clearly without looking heavy.
+- Reduced the special-event indicator to a 4px flat dot with no glow.
+- Mobile remains full width; compact breakpoints preserve equal tab geometry and readable labels.
+- No navigation behavior, launch logic, panel switching, event expiry, or accessibility behavior changed.
+
+Watchdog:
+- Disposition: GENERIC_COVERAGE_SUFFICIENT.
+- This is CSS-only refinement on the already-tested v150 tab geometry. Existing cross-platform equal-width/height, viewport containment, interaction, launch-regression, and overflow coverage applies unchanged.
+
