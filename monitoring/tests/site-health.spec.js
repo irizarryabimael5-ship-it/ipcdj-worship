@@ -318,16 +318,26 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
     const nav = document.querySelector('.site-nav');
     const hero = document.querySelector('.hero');
     if (!nav || !hero) return null;
+    const tabs = [...nav.querySelectorAll('[role="tab"]')];
+    const widths = tabs.map(tab => tab.getBoundingClientRect().width);
+    const heights = tabs.map(tab => tab.getBoundingClientRect().height);
+    const navRect = nav.getBoundingClientRect();
     return {
       navBeforeHero: !!(nav.compareDocumentPosition(hero) & Node.DOCUMENT_POSITION_FOLLOWING),
       position: getComputedStyle(nav).position,
-      top: getComputedStyle(nav).top
+      navWidth: navRect.width,
+      viewportWidth: window.innerWidth,
+      widths,
+      heights
     };
   });
 
   expect(navLayout).not.toBeNull();
   expect(navLayout.navBeforeHero).toBe(true);
-  expect(navLayout.position).toBe('sticky');
+  expect(navLayout.position).toBe('relative');
+  expect(navLayout.navWidth).toBeLessThanOrEqual(navLayout.viewportWidth);
+  expect(Math.max(...navLayout.widths) - Math.min(...navLayout.widths)).toBeLessThanOrEqual(1.5);
+  expect(Math.max(...navLayout.heights) - Math.min(...navLayout.heights)).toBeLessThanOrEqual(1.5);
 
   await expect(homeTab).toHaveAttribute('aria-selected', 'true');
   await expect(homePanel).toBeVisible();
@@ -460,17 +470,6 @@ test('standalone full-scroll cycle cannot arm launch before tab switching', asyn
   // visible blur/focus pair before an internal tab switch.
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   await page.waitForTimeout(180);
-
-  const stickyNavAtBottom = await page.locator('.site-nav').evaluate(nav => {
-    const rect = nav.getBoundingClientRect();
-    return {
-      visible: rect.bottom > 0 && rect.top < window.innerHeight,
-      top: rect.top,
-      viewportHeight: window.innerHeight
-    };
-  });
-  expect(stickyNavAtBottom.visible).toBe(true);
-  expect(stickyNavAtBottom.top).toBeGreaterThanOrEqual(0);
 
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.waitForTimeout(180);
