@@ -2374,3 +2374,17 @@ Required behavior:
 - At 100% / 0:00, hold the complete progress briefly, then fade the progress stroke and countdown while Play returns, revealing the neutral outline underneath.
 - Do not reintroduce an oversized SVG, negative inset, duplicated CSS border, conic-gradient border, or a separate outer progress circumference.
 
+## Future preview ring cascade integrity v138
+
+Root cause fixed in v138:
+- The site-wide icon rule `.preview-button svg { width:17px; height:17px }` has specificity 0-1-1.
+- A plain `.future-preview-ring` selector has specificity 0-1-0, so the generic icon rule wins for width/height even when it appears earlier in the stylesheet.
+- This caused the progress SVG to render as a 17 x 17 circle at the upper-left of the 48 px dark Play button, matching the production screenshot.
+
+Permanent rule:
+- Size the progress SVG with `.future-preview-button > svg.future-preview-ring`, which is more specific than the generic icon selector.
+- The ring uses width:100% and height:100% so it exactly follows the dark Play button at 48 px desktop and 42 px small-mobile sizes.
+- Never hard-code a separate outer ring size.
+- The neutral SVG track remains the visible border; the progress stroke overlays the exact same path during playback and fades at completion.
+- Automated health checks must compare the SVG and button bounding rectangles so this cascade regression is caught.
+
