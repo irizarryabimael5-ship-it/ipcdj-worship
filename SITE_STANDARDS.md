@@ -2602,3 +2602,17 @@ Watchdog:
 - Disposition: GENERIC_COVERAGE_SUFFICIENT.
 - This is CSS-only visual emphasis. Existing cross-platform layout, overflow, tab interaction, launch-regression, reduced-motion, and responsive coverage already protect the realistic failure modes.
 
+## Top navigation dock v149
+
+- Primary section tabs moved above the IPCDJ Worship hero so navigation is the first application control in the shell.
+- The nav is sticky near the safe top edge, keeping Inicio / Worship semanal / active special-event access available during long scrolling.
+- Styling remains compact and clean: dark high-opacity dock, subtle border/shadow, small gaps, and a restrained selected-tab blue surface plus underline.
+- No backdrop-filter is used on the sticky dock, avoiding extra compositor cost while scrolling.
+- Existing ARIA tab semantics, keyboard behavior, no-panel-animation rule, confirmed-background launch rules, and special-event lifecycle remain unchanged.
+- Compact and tiny-screen rules preserve three-tab fit when Campaña GU is present.
+
+Watchdog:
+- Disposition: FEATURE_COVERAGE_ADDED.
+- Primary-tab coverage now verifies the nav precedes the hero and computes as sticky.
+- The standalone full-scroll regression also verifies the navigation remains visible at the bottom of the page before returning to the top and switching tabs.
+
