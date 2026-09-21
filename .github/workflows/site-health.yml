@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: '23 */2 * * *'
+    - cron: '17 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -39,6 +39,37 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium firefox webkit
 
+      - name: Start Linux audio backend for Firefox Web Audio
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends pulseaudio
+          pulseaudio --start --exit-idle-time=-1 || true
+
+      - name: Wait for the current repository build to be live
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED_BUILD="$(grep -o 'meta name="ipcdj-build" content="[^"]*"' ../index.html | sed -E 's/.*content="([^"]*)".*/\1/' | head -n1)"
+          if [ -z "$EXPECTED_BUILD" ]; then
+            echo "Could not determine expected IPCDJ build from index.html"
+            exit 1
+          fi
+
+          echo "Waiting for deployed build: $EXPECTED_BUILD"
+          for attempt in $(seq 1 36); do
+            LIVE_BUILD="$(curl -fsSL --max-time 15 -H 'Cache-Control: no-cache' "https://worship.ipcdj.org/?deploy-health=${GITHUB_RUN_ID}-${attempt}" | grep -o 'meta name="ipcdj-build" content="[^"]*"' | sed -E 's/.*content="([^"]*)".*/\1/' | head -n1 || true)"
+            if [ "$LIVE_BUILD" = "$EXPECTED_BUILD" ]; then
+              echo "Deployment confirmed on attempt $attempt."
+              exit 0
+            fi
+            echo "Attempt $attempt: live='$LIVE_BUILD' expected='$EXPECTED_BUILD'; retrying in 10s."
+            sleep 10
+          done
+
+          echo "Timed out waiting for GitHub Pages to deploy $EXPECTED_BUILD"
+          exit 1
+
       - name: Run cross-platform website health matrix
         env:
           IPCDJ_BASE_URL: https://worship.ipcdj.org
@@ -67,8 +98,10 @@ jobs:
               '',
               `Run: ${runUrl}`,
               `Commit: ${context.sha}`,
+              `Trigger: ${context.eventName}`,
               '',
-              'The failing run includes Playwright traces, screenshots, videos, and health snapshots when available.'
+              'The failing run includes Playwright traces, screenshots, console diagnostics, and IPCDJ health snapshots when available.',
+              'The monitor uses conservative CI thresholds and a separate real-device adaptive performance guard to reduce false positives.'
             ].join('\n');
 
             const { data: issues } = await github.rest.issues.listForRepo({
