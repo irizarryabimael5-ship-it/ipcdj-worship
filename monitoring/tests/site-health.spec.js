@@ -317,7 +317,14 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(homePanel).toBeVisible();
   await expect(weeklyPanel).toBeHidden();
 
-  const launchClassBeforeSwitch = await page.locator('#ipcdj-launch').getAttribute('class');
+  const launch = page.locator('#ipcdj-launch');
+  const launchClassBeforeSwitch = await launch.getAttribute('class');
+
+  // Reproduce the standalone-iOS ordering that triggered the regression:
+  // internal touch/pointer begins, then a stray window blur arrives before click.
+  await weeklyTab.dispatchEvent('pointerdown', { pointerType: 'touch', isPrimary: true });
+  await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+  await expect(launch).toHaveAttribute('class', launchClassBeforeSwitch || 'launch-idle');
 
   await weeklyTab.click();
   await expect(weeklyTab).toHaveAttribute('aria-selected', 'true');
@@ -328,7 +335,7 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(weeklyPanel).toContainText(/domingo/i);
   await expect(weeklyPanel).not.toHaveClass(/site-tab-panel-enter/);
 
-  const launchClassAfterSwitch = await page.locator('#ipcdj-launch').getAttribute('class');
+  const launchClassAfterSwitch = await launch.getAttribute('class');
   expect(launchClassAfterSwitch).toBe(launchClassBeforeSwitch);
 
   await weeklyTab.focus();
@@ -367,6 +374,8 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
     const active = items.filter(item => item.classList.contains('active-phase'));
     const inactive = items.filter(item => !item.classList.contains('active-phase'));
 
+    const finalDate = card.querySelector('[data-role="timeline-final"] .timeline-date');
+    const releaseDate = card.querySelector('[data-role="timeline-release"] .timeline-date');
     return {
       phase,
       timelineDisplay: timeline ? getComputedStyle(timeline).display : 'none',
@@ -374,9 +383,12 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
       activeRole: active[0]?.dataset.role || '',
       activeShadow: active[0] ? getComputedStyle(active[0]).boxShadow : 'none',
       inactive: inactive.map(item => ({
+        role: item.dataset.role || '',
         shadow: getComputedStyle(item).boxShadow,
         opacity: Number(getComputedStyle(item).opacity)
-      }))
+      })),
+      finalDateColor: finalDate ? getComputedStyle(finalDate).color : '',
+      releaseDateColor: releaseDate ? getComputedStyle(releaseDate).color : ''
     };
   });
 
@@ -400,6 +412,12 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   for (const item of phaseState.inactive) {
     expect(item.shadow).toBe('none');
     expect(item.opacity).toBeLessThan(1);
+  }
+
+  if (phaseState.phase !== 'release') {
+    expect(phaseState.releaseDateColor).not.toBe(phaseState.finalDateColor);
+    const inactiveRelease = phaseState.inactive.find(item => item.role === 'timeline-release');
+    if (inactiveRelease) expect(inactiveRelease.shadow).toBe('none');
   }
 });
 
