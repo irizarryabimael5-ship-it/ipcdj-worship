@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v138" />
+  <meta name="ipcdj-build" content="persistent-launch-v139" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -1874,10 +1874,18 @@
 
     .preview-row-future.preview-future-returning .future-preview-ring-progress{
       opacity:0;
+      transition:
+        stroke-dashoffset .10s linear,
+        opacity .68s cubic-bezier(.22,.65,.25,1);
     }
 
     .preview-row-future.is-playing .future-preview-ring-track{
       stroke:rgba(255,255,255,.28);
+    }
+
+    .preview-row-future.preview-future-returning .future-preview-ring-track{
+      stroke:rgba(255,255,255,.54);
+      transition:stroke .70s cubic-bezier(.22,.65,.25,1);
     }
 
     .future-preview-countdown{
@@ -1904,12 +1912,29 @@
 
     .preview-row-future.preview-future-returning .future-preview-active{
       opacity:0;
-      transform:scale(.92);
+      transform:scale(.97);
+      transition:
+        opacity .62s cubic-bezier(.22,.65,.25,1),
+        transform .70s cubic-bezier(.22,.65,.25,1);
     }
 
     .preview-row-future.preview-future-returning .future-preview-idle{
       opacity:1;
       transform:scale(1);
+      transition:
+        opacity .56s cubic-bezier(.22,.65,.25,1) .12s,
+        transform .66s cubic-bezier(.22,.65,.25,1) .12s;
+    }
+
+    .preview-row-future.preview-future-returning .future-preview-button{
+      background:rgba(8,10,16,.78);
+      box-shadow:
+        0 9px 24px rgba(0,0,0,.25),
+        inset 0 1px 0 rgba(255,255,255,.08);
+      transition:
+        transform .16s ease,
+        box-shadow .68s cubic-bezier(.22,.65,.25,1),
+        background .68s cubic-bezier(.22,.65,.25,1);
     }
 
     .youtube-preview-host{
@@ -4689,21 +4714,24 @@
           row._previewFutureEndTimer=setTimeout(()=>{
             if(!row.isConnected)return;
 
-            // Keep the ring visually complete while the active UI fades away.
+            // Dissolve the completed progress/timer back into the idle control as
+            // one coordinated crossfade. The returning class also eases the
+            // button surface/glow and neutral outline back to their idle values.
             row.classList.add("preview-future-returning");
 
             row._previewFutureEndTimer=setTimeout(()=>{
               if(!row.isConnected)return;
 
-              // Reset only after the completed ring/timer are no longer visible.
+              // Reset only after the completed ring/timer are fully invisible
+              // and the delayed Play-icon crossfade has finished.
               row.classList.remove("preview-future-complete","preview-future-returning");
               setPreviewButtonState(songId,"play");
               futureButton.style.setProperty("--future-ring-progress","0");
               if(futureRing)futureRing.style.strokeDashoffset="100";
               if(futureTime)futureTime.textContent=formatPreviewRemaining(fullDuration);
               row._previewFutureEndTimer=null;
-            },560);
-          },620);
+            },860);
+          },520);
           return;
         }
 
