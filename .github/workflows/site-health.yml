@@ -42,6 +42,19 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Validate notification platform contracts
+        shell: bash
+        run: |
+          node --test ../notifications/tests/planner.test.mjs
+          node --check ../notifications/client.js
+          node --check ../notifications/ui.js
+          node --check ../notifications/sw-foundation.js
+          node --check ../notifications/worker/src/index.js
+          node --check ../notifications/scripts/export-catalog.mjs
+          node --check ../notifications/scripts/sync-catalog.mjs
+          node ../notifications/scripts/export-catalog.mjs > /tmp/ipcdj-notification-catalog.json
+          node -e "const x=require('/tmp/ipcdj-notification-catalog.json'); if(!Array.isArray(x.songs)||!x.songs.length) process.exit(1)"
+
       - name: Install health test dependencies
         run: npm install --no-audit --no-fund
 
