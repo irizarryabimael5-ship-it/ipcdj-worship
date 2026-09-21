@@ -16,7 +16,7 @@ for(let i=arrayStart;i<source.length;i++){
   const ch=source[i];
   if(quote){
     if(escaped){escaped=false;continue;}
-    if(ch==='\\\\'){escaped=true;continue;}
+    if(ch==='\\'){escaped=true;continue;}
     if(ch===quote)quote='';
     continue;
   }
