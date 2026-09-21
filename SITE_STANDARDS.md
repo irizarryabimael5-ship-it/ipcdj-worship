@@ -2448,3 +2448,38 @@ Safe self-recovery:
 Coverage limit:
 - Synthetic browser projects provide broad engine/device regression coverage, not a literal guarantee for every hardware/OS/browser combination. Physical-device reports remain authoritative evidence when synthetic behavior conflicts with an observed real device.
 
+## Watchdog co-development contract v142
+
+This is a permanent development rule for IPCDJ Worship.
+
+Canonical policy:
+- `monitoring/WATCHDOG_POLICY.md` is the detailed watchdog co-development contract.
+- `SITE_STANDARDS.md` and the watchdog policy must be read before substantive runtime changes.
+- The health workflow validates that the policy and this standards marker remain present before running the matrix.
+
+Feature-development requirement:
+- Every substantive new runtime feature or behavior must receive an explicit watchdog disposition before it is considered complete.
+- Allowed dispositions are:
+  - `FEATURE_COVERAGE_ADDED` when the new feature has behavior/state that existing broad checks cannot understand;
+  - `GENERIC_COVERAGE_SUFFICIENT` when existing global watchdog coverage already detects the realistic failure modes.
+- New interaction/state machines, audio/media behavior, network/provider dependencies, PWA/lifecycle behavior, persistence/sync, browser-specific logic, exact timed sequences, or complex responsive geometry normally require dedicated feature coverage.
+- Simple content/copy/artwork changes using an already-tested renderer usually rely on generic coverage unless they introduce new runtime behavior.
+
+Mandatory implementation reporting:
+- Every substantive website implementation response must explicitly tell the user the watchdog status.
+- Use one of:
+  - `Watchdog: FEATURE_COVERAGE_ADDED — ...`
+  - `Watchdog: GENERIC_COVERAGE_SUFFICIENT — ...`
+  - `Watchdog: PENDING — ...`
+- If the final health run is still queued or running, do not call watchdog verification complete.
+- After a final run completes, report pass/fail and distinguish production regressions from external-provider or CI/test-calibration failures when evidence allows.
+
+Development integrity:
+- Dedicated watchdog coverage must ship in the same change set as the feature it protects whenever practical.
+- Never alter valid production behavior solely to satisfy an incorrect synthetic assertion; calibrate the test to the intended behavior.
+- The watchdog may automatically degrade/recover bounded decorative performance behavior, retry tests, use service-worker fallbacks, capture diagnostics, and manage the health-alert issue.
+- It must not autonomously rewrite production source code or roll back a deployment solely because a synthetic test fails.
+
+Verification baseline:
+- The complete v141 seven-profile health system passed its first final end-to-end run on 2026-09-21 after deployment-aware waiting, Firefox audio-backend setup, WebKit calibration, compact-mobile coverage, and PWA/efficiency checks were added.
+
