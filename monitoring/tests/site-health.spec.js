@@ -584,8 +584,11 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
   expect(audit.version).toBe(1);
   expect(audit.timeZone).toBe('America/New_York');
   expect(audit.health.valid).toBe(true);
+  expect(audit.health.fullVisualReady).toBe(true);
   expect(audit.health.errors).toEqual([]);
+  expect(audit.health.visualNotReady).toEqual([]);
   expect(audit.health.managedCount).toBe(audit.health.sourceCount);
+  expect(audit.health.visualReadyCount).toBe(audit.health.managedCount);
   expect(audit.songs.length).toBeGreaterThan(0);
 
   const ids = audit.songs.map(song => song.id);
@@ -601,8 +604,24 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
   expect(dios).toBeTruthy();
   expect(dios.artworkSource).toBe('spotify');
   expect(dios.hasSubjectOverride).toBe(true);
-  for (const song of audit.songs.filter(song => song.hasArtwork)) {
-    expect(song.artworkSource).toBe('spotify');
+
+  const explicitZone = /(?:Z|[+-]\d{2}:\d{2})$/i;
+  const lifecycleFields = [
+    'activeFrom','learningStart','learningEnd','finalStart','finalEnd',
+    'releaseDayStartAt','releaseAt','releaseDayEndAt','rolloverAt','introducedAt'
+  ];
+
+  for (const song of audit.songs) {
+    expect(song.fullVisualReady).toBe(true);
+    expect(song.visualReadiness.hasCuratedArtwork).toBe(true);
+    expect(song.visualReadiness.hasArtworkSource).toBe(true);
+    expect(song.visualReadiness.hasCuratedPalette).toBe(true);
+    expect(song.artworkUrl).toMatch(/^https:\/\//i);
+    expect(song.artworkSource.length).toBeGreaterThan(0);
+    expect(song.futurePalette).toHaveLength(3);
+    for (const field of lifecycleFields) {
+      expect(song[field]).toMatch(explicitZone);
+    }
   }
 
   for (const song of audit.songs) {
@@ -640,8 +659,13 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
   expect(source).toContain('coverSubjectFocus:{');
   expect(source).toContain('id="upcoming-songs" aria-live="polite"></div>');
   expect(source).toContain('id="introduced-songs" aria-live="polite"></div>');
-  expect(source).not.toContain('<div class="song-row" data-song-id="glorioso-dia">');
-  expect(source).not.toContain('<div class="song-row" data-song-id="no-fallaras">');
+  expect(source).not.toContain('Math.min(index,40)*260');
+
+  for (const id of ids) {
+    const escaped = id.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const occurrences = (source.match(new RegExp(escaped, 'g')) || []).length;
+    expect(occurrences, id + ' should be authored only once in SONG_CATALOG_SOURCE').toBe(1);
+  }
 });
 
 test('catalog artwork stays bound to each song across current and future sections', async ({ page }, testInfo) => {
@@ -735,6 +759,7 @@ test('catalog artwork stays bound to each song across current and future section
         const css = getComputedStyle(node);
         return {
           url: node.dataset.coverArtworkUrl || '',
+          source: node.dataset.coverArtworkSource || '',
           artworkId: node.dataset.coverArtwork || '',
           themeId: node.dataset.coverTheme || '',
           c1: css.getPropertyValue('--cover-c1').trim(),
@@ -744,6 +769,7 @@ test('catalog artwork stays bound to each song across current and future section
       });
 
       expect(state.url).toBe(expectedUrl);
+      expect(state.source).toBe(expectedSource);
       expect(state.artworkId).toBe(song.id);
       expect(state.themeId).toBe(song.id);
       expect(state.c1.length).toBeGreaterThan(0);
