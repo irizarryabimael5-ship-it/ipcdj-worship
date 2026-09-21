@@ -2401,3 +2401,14 @@ At natural completion of an upcoming-song circular preview:
 - Do not reset stroke-dashoffset or countdown text until the completed layer is fully invisible and the Play return has finished.
 - Cleanup timing must remain longer than all return transition durations.
 
+## Slow future preview return v140
+
+The natural-completion return for future-song circular previews should feel intentionally slow and fluid rather than quick:
+- Hold the completed 100% ring / 0:00 state for about 0.62 s.
+- Fade the completed progress ring over about 1.40 s.
+- Fade the countdown/active layer over about 1.28 s with only a very subtle scale settle.
+- Ease the neutral outline and button surface back over about 1.30 s.
+- Bring the Play icon back over about 1.18 s with an approximately 0.22 s delay so it emerges behind the dissolving completed state.
+- Keep the cleanup/reset delay longer than every visual transition (about 1.72 s after return begins).
+- Never expose the internal reset of timer text or ring dash position.
+
