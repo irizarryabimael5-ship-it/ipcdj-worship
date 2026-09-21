@@ -2819,3 +2819,35 @@ Watchdog:
 - Disposition: FEATURE_COVERAGE_ADDED.
 - This closes the lifecycle-staleness gap in the v155 artwork test while retaining all current/future cover-depth checks.
 
+## Catalog scale audit and production-readiness contract v160
+
+Triple-check result:
+- SONG_CATALOG_SOURCE remains the only authored source for scheduled songs.
+- Current preparation/release cards, Después, Introducciones recientes, countdowns, phase cards, progress colors, Adelanto controls, album palettes, blurred art, right-side ghost art, current-card artwork, ambient color, and lifecycle rollover all derive from the managed catalog.
+- Scheduled song ids must not be duplicated anywhere else in authored HTML/JS; the watchdog now enforces one authored occurrence per managed id.
+
+Production-safe dates:
+- Every lifecycle timestamp must include an explicit Z or ±HH:MM timezone offset.
+- A timestamp that parses but omits its timezone is now a catalog error, preventing browser/device-local date drift.
+- HTTPS is required for curated artwork and preview-audio URLs.
+
+Visual readiness:
+- Runtime still degrades safely if provider artwork/palette data is absent, but production readiness now has a stricter standard.
+- fullVisualReady requires an explicit HTTPS artworkUrl, a non-empty artworkSource, and a valid three-color sRGB futurePalette.
+- IPCDJ_CATALOG_HEALTH exposes fullVisualReady, visualReadyCount, and visualNotReady.
+- Each IPCDJ_CATALOG song exposes fullVisualReady plus read-only visualReadiness details.
+- Current-card artwork now records verified-<artworkSource> provenance just like Después cards, so provider identity is auditable in both sections.
+- Artwork source is provider-agnostic: Spotify, Apple, Tidal, church-hosted, or another curated HTTPS source is valid. No watchdog rule assumes Spotify for future additions.
+
+Large-catalog behavior:
+- IntersectionObserver remains the primary lazy artwork/preview hydrator for every future row.
+- On browsers without IntersectionObserver, heavy future-card hydration now runs through a sequential queue with one 220ms stagger at a time, with no 40-song cap or later request burst.
+- Proactive cover warming remains intentionally bounded to the nearest three songs; full hydration occurs lazily as rows approach the viewport.
+- Boot artwork cache remains bounded at 48 records without limiting catalog size or rendering.
+
+Watchdog:
+- Disposition: FEATURE_COVERAGE_ADDED.
+- Catalog tests now require zero lifecycle errors, full production visual readiness, explicit timezone offsets, HTTPS curated assets, provider-agnostic provenance, and one authored occurrence per managed song id.
+- Current and future artwork tests both verify exact per-song artwork URL and verified provider provenance.
+- Existing lifecycle-boundary, lazy-hydration, preview, phase, responsive, tab, launch, PWA, and cross-browser checks remain active.
+
