@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v158" />
+  <meta name="ipcdj-build" content="persistent-launch-v159" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -7839,7 +7839,9 @@
         releaseLabel:song.releaseLabel,
         releaseShortLabel:song.releaseShortLabel,
         releaseClockLabel:song.releaseClockLabel,
+        artworkUrl:song.artworkUrl||"",
         artworkSource:song.artworkSource||"",
+        futurePalette:Object.freeze((song.futurePalette||[]).map(color=>Object.freeze(color.slice(0,3)))),
         hasArtwork:!!(song.artworkUrl||song.artworkFallbackUrl||song.artworkQuery),
         hasPreview:!!song.previewAudioUrl,
         hasCuratedPalette:validFuturePalette(song.futurePalette),
