@@ -300,6 +300,77 @@ test('live rendering tolerates translation-style DOM rewrites and text expansion
   expect(overflow).toBeLessThanOrEqual(4);
 });
 
+
+test('primary tabs, weekly panel and special-event lifecycle remain healthy', async ({ page }) => {
+  await openHealthyPage(page);
+
+  await page.waitForFunction(() => !!window.IPCDJ_NAV);
+
+  const tablist = page.getByRole('tablist', { name: 'Secciones de IPCDJ Worship' });
+  const homeTab = page.locator('#tab-inicio');
+  const weeklyTab = page.locator('#tab-worship-semanal');
+  const homePanel = page.locator('#panel-inicio');
+  const weeklyPanel = page.locator('#panel-worship-semanal');
+
+  await expect(tablist).toBeVisible();
+  await expect(homeTab).toHaveAttribute('aria-selected', 'true');
+  await expect(homePanel).toBeVisible();
+  await expect(weeklyPanel).toBeHidden();
+
+  await weeklyTab.click();
+  await expect(weeklyTab).toHaveAttribute('aria-selected', 'true');
+  await expect(weeklyPanel).toBeVisible();
+  await expect(homePanel).toBeHidden();
+  await expect(weeklyPanel.getByText('Próximamente')).toBeVisible();
+  await expect(weeklyPanel).toContainText(/viernes/i);
+  await expect(weeklyPanel).toContainText(/domingo/i);
+
+  await weeklyTab.focus();
+  await page.keyboard.press('Home');
+  await expect(homeTab).toBeFocused();
+  await expect(homeTab).toHaveAttribute('aria-selected', 'true');
+
+  await page.evaluate(() => {
+    window.IPCDJ_NAV.syncSpecialEvents(Date.parse('2026-10-11T23:59:59-04:00'));
+  });
+
+  const eventTab = page.locator('#tab-campana-gu-2026');
+  await expect(eventTab).toBeVisible();
+  await eventTab.click();
+
+  const eventPanel = page.locator('#panel-campana-gu-2026');
+  await expect(eventTab).toHaveAttribute('aria-selected', 'true');
+  await expect(eventPanel).toBeVisible();
+  await expect(eventPanel).toContainText('Próximamente');
+  await expect(eventPanel).toContainText('Campaña GU 2026');
+
+  await page.evaluate(() => {
+    window.IPCDJ_NAV.syncSpecialEvents(Date.parse('2026-10-12T00:00:00-04:00'));
+  });
+
+  await expect(page.locator('#tab-campana-gu-2026')).toHaveCount(0);
+  await expect(homeTab).toHaveAttribute('aria-selected', 'true');
+  await expect(homePanel).toBeVisible();
+
+  await page.evaluate(() => window.IPCDJ_NAV.syncSpecialEvents(Date.now()));
+
+  const stageColors = await page.locator('[data-current-song-card]').first().evaluate(card => {
+    const read = role => getComputedStyle(card.querySelector('[data-role="' + role + '"]')).borderColor;
+    const numbers = value => (value.match(/[0-9.]+/g) || []).slice(0, 3).map(Number);
+
+    return {
+      learning: numbers(read('timeline-learning')),
+      finalStage: numbers(read('timeline-final')),
+      release: numbers(read('timeline-release'))
+    };
+  });
+
+  expect(stageColors.learning[0]).toBeGreaterThan(stageColors.learning[1]);
+  expect(stageColors.release[1]).toBeGreaterThan(stageColors.release[0]);
+  expect(stageColors.learning.join(',')).not.toBe(stageColors.finalStage.join(','));
+  expect(stageColors.finalStage.join(',')).not.toBe(stageColors.release.join(','));
+});
+
 test('PWA shell, service worker and efficiency guardrails remain healthy', async ({ page, request }, testInfo) => {
   const nonce = Date.now();
 
