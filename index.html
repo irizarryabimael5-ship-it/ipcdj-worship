@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v153" />
+  <meta name="ipcdj-build" content="persistent-launch-v154" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -621,12 +621,12 @@
     .site-nav{
       position:relative;
       z-index:8;
-      width:min(100%,680px);
-      margin:0 auto 18px;
-      padding:3px;
-      border:1px solid rgba(255,255,255,.14);
-      border-radius:14px;
-      background:rgba(5,9,15,.78);
+      width:min(100%,720px);
+      margin:0 auto 20px;
+      padding:0;
+      border:0;
+      border-radius:0;
+      background:transparent;
       box-shadow:none;
     }
 
@@ -635,29 +635,30 @@
       grid-auto-flow:column;
       grid-auto-columns:minmax(0,1fr);
       align-items:stretch;
-      gap:2px;
+      gap:0;
       min-width:0;
       padding:0;
       border:0;
+      border-bottom:1px solid rgba(255,255,255,.18);
       background:transparent;
     }
 
     .site-tab{
       position:relative;
       min-width:0;
-      min-height:42px;
-      padding:8px 10px;
-      border:1px solid transparent;
-      border-radius:11px;
+      min-height:46px;
+      padding:10px 10px 12px;
+      border:0;
+      border-radius:0;
       appearance:none;
       -webkit-appearance:none;
       background:transparent;
-      color:#bcc5d3;
+      color:#aeb8c7;
       font:inherit;
-      font-size:.77rem;
+      font-size:.79rem;
       line-height:1.15;
-      font-weight:740;
-      letter-spacing:.002em;
+      font-weight:700;
+      letter-spacing:.003em;
       text-align:center;
       white-space:normal;
       overflow-wrap:normal;
@@ -665,28 +666,43 @@
       cursor:pointer;
       -webkit-tap-highlight-color:transparent;
       touch-action:manipulation;
-      transition:
-        color .16s ease,
-        background .16s ease,
-        border-color .16s ease;
+      transition:color .16s ease,opacity .16s ease;
+    }
+
+    .site-tab::after{
+      content:"";
+      position:absolute;
+      left:8%;
+      right:8%;
+      bottom:-1px;
+      height:2px;
+      border-radius:999px;
+      background:#8fb0ff;
+      opacity:0;
+      transform:scaleX(.72);
+      transform-origin:center;
+      transition:opacity .16s ease,transform .16s ease;
     }
 
     .site-tab:hover{
-      color:#eef2f8;
-      background:rgba(255,255,255,.035);
+      color:#edf2f8;
     }
 
     .site-tab[aria-selected="true"]{
       color:#ffffff;
-      border-color:rgba(143,176,255,.38);
-      background:rgba(111,151,255,.18);
+      font-weight:820;
+    }
+
+    .site-tab[aria-selected="true"]::after{
+      opacity:1;
+      transform:scaleX(1);
     }
 
     .site-tab[data-special-event="true"]::before{
       content:"";
       position:absolute;
-      top:7px;
-      right:7px;
+      top:9px;
+      right:9px;
       width:4px;
       height:4px;
       border-radius:50%;
@@ -696,7 +712,8 @@
 
     .site-tab:focus-visible{
       outline:2px solid rgba(143,176,255,.88);
-      outline-offset:2px;
+      outline-offset:-2px;
+      border-radius:7px;
     }
 
     .site-tab-panel{
@@ -2495,10 +2512,10 @@
     }
 
     @media (max-width:520px){
-      .site-nav{width:100%;padding:3px;border-radius:13px;margin-bottom:14px}
-      .site-tablist{gap:2px}
-      .site-tab{min-height:42px;padding:8px 5px;font-size:.69rem;border-radius:10px}
-      .site-tab[data-special-event="true"]::before{top:6px;right:5px}
+      .site-nav{width:100%;margin-bottom:16px}
+      .site-tab{min-height:44px;padding:9px 5px 11px;font-size:.71rem}
+      .site-tab::after{left:7%;right:7%}
+      .site-tab[data-special-event="true"]::before{top:8px;right:5px}
       .countdown-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
       .countdown-unit{min-height:64px}
       .progress-top{
@@ -2525,9 +2542,9 @@
       h1{font-size:1.85rem}
       .brand-sub{display:block;margin:.12em 0 0}
       .eyebrow{font-size:.66rem;padding:6px 8px}
-      .site-nav{padding:2px}
-      .site-tablist{gap:1px}
-      .site-tab{min-height:40px;padding:7px 3px;font-size:.58rem;letter-spacing:0}
+      .site-nav{margin-bottom:14px}
+      .site-tab{min-height:42px;padding:8px 3px 10px;font-size:.59rem;letter-spacing:0}
+      .site-tab::after{left:5%;right:5%}
       .platform{padding:10px 11px;gap:9px}
       .playlist-card .platform{
         padding:7px 5px;
