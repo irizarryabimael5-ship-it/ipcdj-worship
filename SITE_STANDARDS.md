@@ -2871,3 +2871,37 @@ Watchdog:
 - Disposition: FEATURE_COVERAGE_ADDED.
 - These changes remove false negatives while retaining runtime integrity, exact artwork/provenance, event lifecycle, and gross-freeze detection.
 
+## Canonical new-song intake contract v161
+
+When the user asks to add or update one or many scheduled songs, treat SONG_CATALOG_SOURCE as the only authored schedule source. Do not manually edit Current, Después, Introducciones recientes, phase cards, countdown labels, progress colors, preview rows, artwork layers, or ambient theming for the same song.
+
+For every production-ready scheduled song, resolve and author:
+- id: stable lowercase kebab-case, unique.
+- title and artist: canonical display names.
+- artworkUrl: verified canonical HTTPS album/single artwork.
+- artworkSource: provider/provenance label such as spotify, apple, tidal, or church-hosted.
+- futurePalette: three curated sRGB triplets sampled/verified against the canonical cover so desktop/mobile color identity is deterministic.
+- artworkQuery: fallback lookup query when useful.
+- coverSubjectFocus: optional only when a specific cover needs a catalog-owned subject/crop override; runtime code must remain song-agnostic.
+- previewAudioUrl and preview metadata when an Adelanto is available; preview remains optional.
+- activeFrom, learningStart, learningEnd, finalStart, finalEnd, releaseDayStartAt, releaseAt, releaseDayEndAt, rolloverAt, introducedAt, all with explicit timezone offsets.
+
+Automatic results from that one record:
+- normalized Spanish date/range labels and release clock text;
+- correct Current/Después/Introducciones recientes placement;
+- Aprendizaje/Preparación final/Estreno phase selection;
+- countdown and Camino al estreno progress;
+- preview presence/absence;
+- current-card album theming;
+- future-card palette, blur wash, and right-side ghost artwork;
+- ambient palette driver;
+- preload/lazy hydration/recovery behavior;
+- automatic rollover into recent introductions;
+- catalog diagnostics and watchdog enrollment.
+
+Bulk additions:
+- Multiple new records may be added in one update; renderers sort by lifecycle timestamps instead of authoring order.
+- Large catalogs remain lazy-hydrated; do not add manual per-song timers, observers, or markup.
+- A new explicit-cover song is automatically enrolled in catalog-driven artwork/provenance watchdog checks.
+- Production completion requires IPCDJ_CATALOG_HEALTH.valid=true and fullVisualReady=true with zero catalog errors.
+
