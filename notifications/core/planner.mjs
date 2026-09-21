@@ -200,9 +200,16 @@ export function buildSongNotificationPlan(song,{nowMs=Date.now(),firstSeenAtMs=n
   };
 
   const activeAt=Date.parse(song.activeFrom);
+  const learningAt=Date.parse(song.learningStart);
   const introducedAt=Date.parse(song.introducedAt);
   const announceBase=Math.max(firstSeenAtMs+2*60*1000,activeAt);
-  if(announceBase<introducedAt)add('added',nextAllowedDelivery(announceBase,timeZone));
+
+  // "Added" is a true first-entry notification, never a retroactive bootstrap message.
+  // If push is enabled after a song's learning window already began, do not tell users
+  // that the song was "just added"; the remaining future phase reminders are enough.
+  if(firstSeenAtMs<learningAt && announceBase<introducedAt){
+    add('added',nextAllowedDelivery(announceBase,timeZone));
+  }
 
   add('learning_start',atLocalDateFromIso(song.learningStart,9,12,timeZone));
   const mid=midpointLocalEvening(song.learningStart,song.learningEnd,timeZone);
@@ -212,7 +219,12 @@ export function buildSongNotificationPlan(song,{nowMs=Date.now(),firstSeenAtMs=n
   add('release_day',atLocalDateFromIso(song.releaseDayStartAt,8,12,timeZone));
 
   const releaseDayEnd=Date.parse(song.releaseDayEndAt||song.rolloverAt||song.introducedAt);
+  const staleCutoff=nowMs-(NOTIFICATION_POLICY.schedulerWindowMinutes*60*1000);
   return entries
+    // Never replay old lifecycle reminders during first deployment, a catalog resync,
+    // or after the scheduler has been offline for a long period. A small grace window
+    // keeps normal cron/deploy jitter reliable without creating a burst of stale pushes.
+    .filter(event=>Date.parse(event.scheduledAt)>=staleCutoff)
     .filter(event=>Date.parse(event.scheduledAt)<introducedAt)
     .filter(event=>event.kind!=='release_day'||Date.parse(event.scheduledAt)<releaseDayEnd)
     .sort((a,b)=>Date.parse(a.scheduledAt)-Date.parse(b.scheduledAt))
