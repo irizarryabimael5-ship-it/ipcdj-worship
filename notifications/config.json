@@ -1,0 +1,8 @@
+{
+  "enabled": false,
+  "apiOrigin": "https://push.worship.ipcdj.org",
+  "vapidPublicKey": "",
+  "siteOrigin": "https://worship.ipcdj.org",
+  "timezone": "America/New_York",
+  "version": 1
+}
