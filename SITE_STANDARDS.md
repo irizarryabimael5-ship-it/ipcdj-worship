@@ -2570,3 +2570,22 @@ Watchdog:
 - The tab test now reproduces pointerdown -> synthetic blur -> click and verifies the launch overlay remains idle.
 - The phase test continues enforcing one active illuminated phase and no inactive-card glow, while also checking the inactive Estreno date remains visually distinct.
 
+## Confirmed-background launch authority v147
+
+Root cause:
+- iOS standalone mode may emit window blur/focus while the document remains visible after a full scroll cycle.
+- v146 still allowed a visible blur to arm the launch overlay before later tab interaction, which could replay the intro even though the app never left the foreground.
+
+Permanent launch rule:
+- window blur is no longer authoritative for background detection.
+- A blur only starts a short observation timer; it may arm the launch sequence only if document.hidden becomes true.
+- visibilitychange / webkitvisibilitychange with document.hidden=true and pagehide are authoritative background signals.
+- Resume playback occurs only when a background transition was explicitly confirmed.
+- A visible blur followed by focus, scrolling, keyboard/focus changes, or internal navigation must never arm or replay the intro.
+- Internal navigation clears any pending blur observation.
+
+Watchdog:
+- Disposition: FEATURE_COVERAGE_ADDED.
+- A dedicated standalone-mode regression test now performs full scroll bottom -> top, injects visible blur/focus, then switches to Worship semanal and Campaña GU.
+- The test asserts launch-idle and absence of ipcdj-launch-active throughout the sequence.
+
