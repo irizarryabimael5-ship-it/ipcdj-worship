@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v140" />
+  <meta name="ipcdj-build" content="persistent-launch-v143" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -618,6 +618,152 @@
       text-wrap:pretty;
     }
 
+    .site-nav{
+      position:relative;
+      z-index:8;
+      margin:0 0 16px;
+    }
+
+    .site-tablist{
+      display:flex;
+      align-items:stretch;
+      gap:6px;
+      min-width:0;
+      padding:6px;
+      border:1px solid rgba(255,255,255,.105);
+      border-radius:18px;
+      background:rgba(8,12,19,.58);
+      box-shadow:
+        0 12px 34px rgba(0,0,0,.22),
+        inset 0 1px 0 rgba(255,255,255,.045);
+      backdrop-filter:blur(11px) saturate(1.08);
+      -webkit-backdrop-filter:blur(11px) saturate(1.08);
+    }
+
+    .site-tab{
+      flex:1 1 0;
+      min-width:0;
+      min-height:44px;
+      padding:9px 10px;
+      border:1px solid transparent;
+      border-radius:13px;
+      appearance:none;
+      -webkit-appearance:none;
+      background:transparent;
+      color:#9ea9bc;
+      font:inherit;
+      font-size:.78rem;
+      line-height:1.16;
+      font-weight:780;
+      letter-spacing:.015em;
+      text-align:center;
+      cursor:pointer;
+      -webkit-tap-highlight-color:transparent;
+      touch-action:manipulation;
+      transition:
+        color .26s ease,
+        border-color .26s ease,
+        background .30s ease,
+        box-shadow .30s ease,
+        transform .16s ease;
+    }
+
+    .site-tab:hover{
+      color:#e9eef8;
+      background:rgba(255,255,255,.035);
+    }
+
+    .site-tab:active{transform:scale(.98)}
+
+    .site-tab[aria-selected="true"]{
+      color:#ffffff;
+      border-color:rgba(143,176,255,.35);
+      background:
+        linear-gradient(180deg,rgba(111,151,255,.18),rgba(64,94,174,.10));
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.08),
+        0 7px 20px rgba(26,53,113,.16);
+    }
+
+    .site-tab[data-special-event="true"]{
+      position:relative;
+    }
+
+    .site-tab[data-special-event="true"]::after{
+      content:"";
+      position:absolute;
+      top:7px;
+      right:7px;
+      width:5px;
+      height:5px;
+      border-radius:50%;
+      background:#77e6aa;
+      box-shadow:0 0 10px rgba(119,230,170,.60);
+    }
+
+    .site-tab:focus-visible{
+      outline:2px solid rgba(143,176,255,.92);
+      outline-offset:2px;
+    }
+
+    .site-tab-panel{
+      min-width:0;
+    }
+
+    .site-tab-panel[hidden]{
+      display:none!important;
+    }
+
+    .site-tab-panel-enter{
+      animation:sitePanelIn .34s cubic-bezier(.22,.65,.25,1) both;
+    }
+
+    @keyframes sitePanelIn{
+      from{opacity:0;transform:translateY(5px)}
+      to{opacity:1;transform:none}
+    }
+
+    .coming-soon-card{
+      min-height:220px;
+      display:grid;
+      place-items:center;
+      text-align:center;
+      padding:clamp(30px,8vw,54px) 20px;
+    }
+
+    .coming-soon-inner{
+      width:min(560px,100%);
+      margin:0 auto;
+    }
+
+    .coming-soon-kicker{
+      display:inline-block;
+      margin-bottom:12px;
+      color:#9fb8ff;
+      font-size:.70rem;
+      line-height:1.25;
+      font-weight:850;
+      letter-spacing:.09em;
+      text-transform:uppercase;
+    }
+
+    .coming-soon-title{
+      margin:0;
+      color:#ffffff;
+      font-size:clamp(1.65rem,5vw,2.35rem);
+      line-height:1.05;
+      letter-spacing:-.035em;
+    }
+
+    .coming-soon-purpose{
+      max-width:520px;
+      margin:12px auto 0;
+      color:#abb5c7;
+      font-size:.96rem;
+      line-height:1.58;
+      text-wrap:pretty;
+    }
+
     .card{
       min-width:0;
       background:linear-gradient(180deg, rgba(13,18,28,.46), rgba(8,12,19,.54));
@@ -736,10 +882,11 @@
     }
 
     .current{
-      --stage-accent:#e25252;
-      --stage-soft:rgba(226,82,82,.10);
-      --stage-border:rgba(226,82,82,.30);
-      --stage-text:#f8dddd;
+      --stage-accent:#ff4c54;
+      --stage-soft:rgba(255,76,84,.14);
+      --stage-border:rgba(255,76,84,.46);
+      --stage-text:#ffe3e5;
+      --stage-glow:rgba(255,76,84,.22);
       --cover-c1:96,62,44;
       --cover-c2:166,108,61;
       --cover-c3:56,76,93;
@@ -1177,7 +1324,9 @@
       background:var(--stage-soft);
       border:1px solid var(--stage-border);
       color:var(--stage-text);
-      box-shadow:inset 0 1px 0 rgba(255,255,255,.035);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.055),
+        0 0 18px var(--stage-glow);
       font-size:.78rem;
       font-weight:700;
       letter-spacing:.03em;
@@ -1228,28 +1377,28 @@
     }
 
     .current.phase-release{
-      border-color:rgba(242,193,78,.42);
+      border-color:rgba(42,224,126,.48);
       box-shadow:
         0 20px 58px rgba(0,0,0,.30),
-        inset 0 1px 0 rgba(255,235,178,.07),
-        inset 0 0 0 1px rgba(242,193,78,.06);
+        inset 0 1px 0 rgba(193,255,220,.08),
+        inset 0 0 0 1px rgba(42,224,126,.09);
     }
 
     .current.phase-release .status{
-      background:rgba(242,193,78,.15);
-      border-color:rgba(242,193,78,.42);
-      color:#fff0b9;
+      background:rgba(42,224,126,.16);
+      border-color:rgba(42,224,126,.48);
+      color:#dcffeb;
     }
 
     .current.phase-release .post-release-banner{
       display:block;
-      border-color:rgba(242,193,78,.38);
+      border-color:rgba(42,224,126,.40);
       background:
-        linear-gradient(110deg,rgba(242,193,78,.18),rgba(255,151,73,.08),rgba(8,11,17,.68));
+        linear-gradient(110deg,rgba(42,224,126,.18),rgba(112,234,145,.08),rgba(8,11,17,.68));
       animation:phaseBannerIn .62s cubic-bezier(.22,.65,.25,1) both;
     }
 
-    .current.phase-release .post-release-kicker{color:#f2c14e}
+    .current.phase-release .post-release-kicker{color:#6ff0a7}
 
     .current.phase-released{
       border-color:rgba(93,211,167,.34);
@@ -1380,11 +1529,11 @@
     }
 
     .progress-wrap{
-      --progress-c1:#35b75c;
-      --progress-c2:#65dc83;
-      --progress-glow:rgba(78,214,112,.38);
-      --progress-soft:rgba(48,175,82,.07);
-      --progress-border:rgba(88,220,120,.20);
+      --progress-c1:#ff4c54;
+      --progress-c2:#ff8750;
+      --progress-glow:rgba(255,76,84,.52);
+      --progress-soft:rgba(255,76,84,.13);
+      --progress-border:rgba(255,76,84,.42);
       margin-top:18px;
       padding:14px;
       border:1px solid var(--progress-border);
@@ -1442,8 +1591,10 @@
 
     .timeline-item.active-phase{
       border-color:var(--stage-border);
-      background:linear-gradient(90deg,var(--stage-soft),rgba(255,255,255,.012));
-      box-shadow:inset 3px 0 0 var(--stage-accent);
+      background:linear-gradient(90deg,var(--stage-soft),rgba(255,255,255,.016));
+      box-shadow:
+        inset 3px 0 0 var(--stage-accent),
+        0 0 16px var(--stage-glow);
     }
 
     .progress-note{
@@ -1465,27 +1616,36 @@
       padding:12px 14px;
     }
 
-    .current .timeline-item:not(.active-phase):not(.estreno){
-      background:linear-gradient(90deg,rgba(var(--cover-c1),.045),rgba(var(--cover-c2),.022),rgba(255,255,255,.012));
-      border-color:rgba(255,255,255,.085);
+    .timeline-item[data-role="timeline-learning"]{--timeline-rgb:255,82,88}
+    .timeline-item[data-role="timeline-final"]{--timeline-rgb:255,190,58}
+    .timeline-item[data-role="timeline-release"]{--timeline-rgb:42,224,126}
+
+    .current .timeline-item:not(.active-phase){
+      border-color:rgba(var(--timeline-rgb),.28);
+      background:
+        linear-gradient(90deg,rgba(var(--timeline-rgb),.105),rgba(var(--timeline-rgb),.025),rgba(255,255,255,.012));
+      box-shadow:inset 3px 0 0 rgba(var(--timeline-rgb),.66);
+    }
+
+    .current .timeline-item:not(.active-phase) .timeline-label{
+      color:rgba(var(--timeline-rgb),.98);
+      text-shadow:0 1px 10px rgba(0,0,0,.28);
+    }
+
+    .current .timeline-item:not(.active-phase) .timeline-date{
+      color:#c9d0dc;
     }
 
     .timeline-item.estreno{
       position:relative;
-      border-color:rgba(242,193,78,.34);
-      background:
-        linear-gradient(90deg, rgba(173,128,28,.085), rgba(255,255,255,.015));
-      box-shadow:inset 3px 0 0 rgba(242,193,78,.82);
     }
 
     .timeline-item.estreno .timeline-label{
       position:relative;
       z-index:1;
-      color:#ffffff;
       display:flex;
       align-items:center;
       gap:8px;
-      text-shadow:0 1px 10px rgba(0,0,0,.28);
     }
 
     .timeline-item.estreno .timeline-label::before{
@@ -1493,15 +1653,14 @@
       width:7px;
       height:7px;
       border-radius:50%;
-      background:#f2c14e;
-      box-shadow:0 0 12px rgba(242,193,78,.48);
+      background:rgb(42,224,126);
+      box-shadow:0 0 14px rgba(42,224,126,.55);
       flex:0 0 auto;
     }
 
     .timeline-item.estreno .timeline-date{
       position:relative;
       z-index:1;
-      color:#f4e5bc;
     }
 
     .timeline-label{
@@ -2325,6 +2484,9 @@
     }
 
     @media (max-width:520px){
+      .site-tablist{gap:4px;padding:5px;border-radius:16px}
+      .site-tab{min-height:42px;padding:8px 6px;font-size:.71rem;border-radius:12px}
+      .site-tab[data-special-event="true"]::after{top:6px;right:6px}
       .countdown-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
       .countdown-unit{min-height:64px}
       .progress-top{
@@ -2346,6 +2508,8 @@
       h1{font-size:1.85rem}
       .brand-sub{display:block;margin:.12em 0 0}
       .eyebrow{font-size:.66rem;padding:6px 8px}
+      .site-tablist{padding:4px;gap:3px}
+      .site-tab{min-height:40px;padding:7px 4px;font-size:.64rem;letter-spacing:0}
       .platform{padding:10px 11px;gap:9px}
       .playlist-card .platform{
         padding:7px 5px;
@@ -2571,6 +2735,8 @@
       .ambient-field{transition:none!important}.ambient-field:not(.ambient-field-active){opacity:0!important}.ambient-field-active{opacity:.46!important}
       .ambient-blob{animation:none!important}
       .inline-preview,.preview-button{transition:none!important}
+      .site-tab{transition:none!important}
+      .site-tab-panel-enter{animation:none!important}
       .platform{transition:none}
       .progress-fill{transition:none}
       .progress-wrap{transition:none}
@@ -2915,6 +3081,16 @@
       </p>
     </header>
 
+    <nav class="site-nav" aria-label="Secciones principales">
+      <div class="site-tablist" id="site-tablist" role="tablist" aria-label="Secciones de IPCDJ Worship">
+        <button class="site-tab" id="tab-inicio" type="button" role="tab" aria-selected="true" aria-controls="panel-inicio" tabindex="0" data-site-tab="inicio">Inicio</button>
+        <button class="site-tab" id="tab-worship-semanal" type="button" role="tab" aria-selected="false" aria-controls="panel-worship-semanal" tabindex="-1" data-site-tab="worship-semanal">Worship semanal</button>
+      </div>
+    </nav>
+
+    <div id="site-tab-panels">
+      <section class="site-tab-panel" id="panel-inicio" role="tabpanel" aria-labelledby="tab-inicio" tabindex="0">
+
     <section class="card reveal playlist-card">
       <h2 class="section-title">Próximas canciones</h2>
       <p class="section-note">Playlist completa · acceso rápido si la necesitas.</p>
@@ -3002,6 +3178,19 @@
       Iglesia Pentecostal Ciudad de Jehová · IPCDJ
     </footer>
 
+      </section>
+
+      <section class="site-tab-panel" id="panel-worship-semanal" role="tabpanel" aria-labelledby="tab-worship-semanal" tabindex="0" hidden>
+        <section class="card coming-soon-card">
+          <div class="coming-soon-inner">
+            <span class="coming-soon-kicker">Worship Sets · Viernes + Domingo</span>
+            <h2 class="coming-soon-title">Próximamente</h2>
+            <p class="coming-soon-purpose">Aquí estarán los worship sets de cada semana, separados para viernes y domingo, con el repertorio, orden e indicaciones necesarias para cada servicio.</p>
+          </div>
+        </section>
+      </section>
+    </div>
+
   </main>
 
   <script>
@@ -3036,6 +3225,165 @@
         // New worker takes control without forcing an extra reload loop.
       });
     }
+
+    // Primary app sections. Special-event tabs are data-driven and automatically
+    // disappear at midnight immediately after their event window ends.
+    const siteTabList=document.getElementById("site-tablist");
+    const siteTabPanels=document.getElementById("site-tab-panels");
+    let activeSiteTabKey="inicio";
+
+    const SPECIAL_EVENT_TABS=[
+      {
+        key:"campana-gu-2026",
+        label:"Campaña GU 2026",
+        eyebrow:"Evento especial · 9–11 Oct",
+        title:"Próximamente",
+        description:"Aquí estará la información de worship para la Campaña GU 2026: repertorio, orden, músicos e indicaciones importantes para el equipo durante el evento.",
+        hideAt:"2026-10-12T00:00:00-04:00"
+      }
+    ];
+
+    const siteTabButton=key=>document.querySelector('[data-site-tab="'+CSS.escape(key)+'"]');
+
+    function visibleSiteTabs(){
+      if(!siteTabList)return [];
+      return [...siteTabList.querySelectorAll('[role="tab"]:not([hidden])')];
+    }
+
+    function activateSiteTab(key,{focus=false,animate=true}={}){
+      let button=siteTabButton(key);
+      if(!button){
+        key="inicio";
+        button=siteTabButton(key);
+      }
+      if(!button||!siteTabPanels)return false;
+
+      const targetId=button.getAttribute("aria-controls");
+      const target=document.getElementById(targetId);
+      if(!target)return false;
+
+      visibleSiteTabs().forEach(tab=>{
+        const selected=tab===button;
+        tab.setAttribute("aria-selected",selected?"true":"false");
+        tab.tabIndex=selected?0:-1;
+      });
+
+      [...siteTabPanels.querySelectorAll('[role="tabpanel"]')].forEach(panel=>{
+        const selected=panel===target;
+        panel.hidden=!selected;
+        if(selected&&animate){
+          panel.classList.remove("site-tab-panel-enter");
+          void panel.offsetWidth;
+          panel.classList.add("site-tab-panel-enter");
+        }else if(!selected){
+          panel.classList.remove("site-tab-panel-enter");
+        }
+      });
+
+      activeSiteTabKey=key;
+      if(focus)button.focus({preventScroll:true});
+      return true;
+    }
+
+    function createSpecialEventNodes(event){
+      if(!siteTabList||!siteTabPanels||siteTabButton(event.key))return;
+
+      const tab=document.createElement("button");
+      tab.className="site-tab";
+      tab.type="button";
+      tab.id="tab-"+event.key;
+      tab.setAttribute("role","tab");
+      tab.setAttribute("aria-selected","false");
+      tab.setAttribute("aria-controls","panel-"+event.key);
+      tab.setAttribute("tabindex","-1");
+      tab.dataset.siteTab=event.key;
+      tab.dataset.specialEvent="true";
+      tab.textContent=event.label;
+      siteTabList.appendChild(tab);
+
+      const panel=document.createElement("section");
+      panel.className="site-tab-panel";
+      panel.id="panel-"+event.key;
+      panel.setAttribute("role","tabpanel");
+      panel.setAttribute("aria-labelledby",tab.id);
+      panel.setAttribute("tabindex","0");
+      panel.dataset.sitePanel=event.key;
+      panel.hidden=true;
+
+      const card=document.createElement("section");
+      card.className="card coming-soon-card";
+      const inner=document.createElement("div");
+      inner.className="coming-soon-inner";
+      const kicker=document.createElement("span");
+      kicker.className="coming-soon-kicker";
+      kicker.textContent=event.eyebrow;
+      const title=document.createElement("h2");
+      title.className="coming-soon-title";
+      title.textContent=event.title;
+      const purpose=document.createElement("p");
+      purpose.className="coming-soon-purpose";
+      purpose.textContent=event.description;
+
+      inner.append(kicker,title,purpose);
+      card.appendChild(inner);
+      panel.appendChild(card);
+      siteTabPanels.appendChild(panel);
+    }
+
+    function removeSpecialEventNodes(event){
+      const tab=siteTabButton(event.key);
+      const panel=document.getElementById("panel-"+event.key);
+      if(tab)tab.remove();
+      if(panel)panel.remove();
+    }
+
+    function syncSpecialEventTabs(now=Date.now()){
+      const timestamp=Number(now);
+      SPECIAL_EVENT_TABS.forEach(event=>{
+        const hideAt=Date.parse(event.hideAt);
+        const visible=Number.isFinite(timestamp)&&Number.isFinite(hideAt)&&timestamp<hideAt;
+        if(visible)createSpecialEventNodes(event);
+        else removeSpecialEventNodes(event);
+      });
+
+      if(!siteTabButton(activeSiteTabKey)){
+        activateSiteTab("inicio",{animate:false});
+      }
+      return visibleSiteTabs().map(tab=>tab.dataset.siteTab);
+    }
+
+    if(siteTabList){
+      siteTabList.addEventListener("click",event=>{
+        const tab=event.target.closest('[role="tab"][data-site-tab]');
+        if(!tab||!siteTabList.contains(tab))return;
+        activateSiteTab(tab.dataset.siteTab);
+      });
+
+      siteTabList.addEventListener("keydown",event=>{
+        if(!["ArrowLeft","ArrowRight","Home","End"].includes(event.key))return;
+        const tabs=visibleSiteTabs();
+        const current=tabs.indexOf(document.activeElement);
+        if(current<0||!tabs.length)return;
+
+        event.preventDefault();
+        let next=current;
+        if(event.key==="Home")next=0;
+        else if(event.key==="End")next=tabs.length-1;
+        else if(event.key==="ArrowRight")next=(current+1)%tabs.length;
+        else if(event.key==="ArrowLeft")next=(current-1+tabs.length)%tabs.length;
+        activateSiteTab(tabs[next].dataset.siteTab,{focus:true});
+      });
+    }
+
+    syncSpecialEventTabs(Date.now());
+    activateSiteTab("inicio",{animate:false});
+
+    window.IPCDJ_NAV=Object.freeze({
+      activate:key=>activateSiteTab(String(key||"")),
+      syncSpecialEvents:now=>syncSpecialEventTabs(now),
+      getActiveKey:()=>activeSiteTabKey,
+      getVisibleTabs:()=>visibleSiteTabs().map(tab=>tab.dataset.siteTab)
+    });
 
     const pullRefresh=document.querySelector(".pull-refresh");
     const refreshGlyph=pullRefresh ? pullRefresh.querySelector(".refresh-glyph") : null;
@@ -3546,11 +3894,11 @@
     // Phase-aware progress palette. Colors are derived from the song's own timeline,
     // so every future pipeline entry inherits the same visual behavior automatically.
     const PROGRESS_COLORS={
-      learningStart:[226,82,82],
-      learningEnd:[242,145,63],
-      finalStart:[226,179,65],
-      finalEnd:[58,176,110],
-      release:[242,193,78]
+      learningStart:[255,76,84],
+      learningEnd:[255,130,55],
+      finalStart:[255,190,58],
+      finalEnd:[104,219,91],
+      release:[42,224,126]
     };
 
     const clamp01=value=>Math.min(1,Math.max(0,value));
@@ -6533,11 +6881,12 @@
       return {
         start:rgb(darker),
         end:rgb(lighter),
-        glow:rgba(base,.40),
-        soft:rgba(base,.075),
-        border:rgba(base,.28),
+        glow:rgba(base,.56),
+        soft:rgba(base,.135),
+        border:rgba(base,.44),
         accent:rgb(base),
-        stageText:rgb(mixRgb(base,[255,255,255],.70)),
+        stageGlow:rgba(base,.24),
+        stageText:rgb(mixRgb(base,[255,255,255],.82)),
         phaseText
       };
     }
@@ -6557,6 +6906,7 @@
       card.style.setProperty("--stage-accent",palette.accent);
       card.style.setProperty("--stage-soft",palette.soft);
       card.style.setProperty("--stage-border",palette.border);
+      card.style.setProperty("--stage-glow",palette.stageGlow);
       card.style.setProperty("--stage-text",palette.stageText);
 
       const track=cardRole(card,"progress-track");
@@ -6844,6 +7194,7 @@
     }
 
     function renderCurrent(now=calibratedNow()){
+      syncSpecialEventTabs(now);
       const current=getCurrentSongs(now);
 
       if(!current.length){
