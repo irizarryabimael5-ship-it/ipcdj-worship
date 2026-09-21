@@ -2675,3 +2675,20 @@ Watchdog:
 - The iOS standalone regression now explicitly emulates iPhone standalone identity so its warm-resume path remains covered.
 - A Chromium desktop regression verifies warmResumeEnabled=false and confirms blur/focus/visibility events leave the launch overlay idle after initial load.
 
+## Research-informed line tabs v154
+
+Design direction:
+- Replaced the segmented/contained appearance with standalone line tabs.
+- This follows the full-page tab hierarchy recommended by Carbon: the navigation sits directly on the page layer instead of inside a visually heavy contained control.
+- Preserved equal-width destinations for balance while removing the outer container border, background, radius, and filled selected state.
+- A single shared baseline creates structure; only the active destination receives a crisp 2px IPCDJ-blue indicator.
+- Active state is reinforced by white text and stronger weight, not by a pill/background.
+- Special-event presence remains a tiny flat green dot with no glow.
+- Labels remain centered, compact, and allowed to wrap safely for translation/small screens.
+- Existing WAI-ARIA tab semantics and keyboard behavior remain unchanged.
+- No content-switch animation or launch behavior changed.
+
+Watchdog:
+- Disposition: GENERIC_COVERAGE_SUFFICIENT.
+- This is a CSS-only visual hierarchy change. Existing equal-width/height, viewport containment, responsive overflow, tab interaction, keyboard, and launch-regression coverage continues to apply.
+
