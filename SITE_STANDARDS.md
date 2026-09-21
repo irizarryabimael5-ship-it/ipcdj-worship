@@ -2754,3 +2754,29 @@ Watchdog:
 - It also verifies active/current and introduced transitions and confirms hard-coded future-song rows are absent from source HTML.
 - Existing v155 future-cover test now scrolls each card into the lazy-hydration range before verifying exact Spotify artwork, palette depth, blur layer, and right-side ghost art.
 
+## Song-catalog readiness correction v157
+
+Lifecycle semantics:
+- activeFrom is the time a song becomes the active/current card in the site, not necessarily the beginning of its Aprendizaje phase.
+- activeFrom may therefore be later than learningStart. This is required for handoffs such as No Fallarás, whose learning week begins at midnight while the previous-song rollover promotes it at 6:00 AM.
+- The catalog validator no longer incorrectly requires activeFrom <= learningStart.
+- activeFrom must still be strictly before releaseAt.
+- The preparation chronology remains enforced independently: learningStart <= learningEnd <= finalStart <= finalEnd <= releaseDayStartAt <= releaseAt <= releaseDayEndAt <= rolloverAt <= introducedAt.
+
+Ordering:
+- Después explicitly sorts future songs by activeFrom, then releaseAt, rather than relying on source order or the release-sorted managed catalog.
+- The public IPCDJ_CATALOG snapshot uses the same ordering.
+- Future-cover warming uses the same activation ordering so the next visual assets are prefetched first when the catalog grows.
+
+Scalability audit:
+- SONG_CATALOG_SOURCE remains the only authored source for scheduled songs.
+- Current cards, Después, Introducciones recientes, phase/countdown/progress state, previews, cover palettes, blurred artwork, right-side cover reveal, and ambient theming continue to derive from managed catalog entries.
+- Future cards use lazy IntersectionObserver hydration plus pointer/focus hydration, preventing a large catalog from triggering every artwork and preview request at page load.
+- IPCDJ_CATALOG now also exposes sourceCount and managedCount for easier catalog diagnostics.
+
+Watchdog:
+- Disposition: FEATURE_COVERAGE_ADDED.
+- The catalog contract test now explicitly protects the valid No Fallarás case where activeFrom is later than learningStart.
+- Synthetic snapshots verify Sep 21 future ordering, the pre-activation Oct 26 state, and the exact post-6 AM promotion into current state.
+- Existing single-source DOM, artwork/palette, preview, phase, responsive, launch, and PWA coverage remains active.
+
