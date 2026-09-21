@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v145" />
+  <meta name="ipcdj-build" content="persistent-launch-v146" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -1661,9 +1661,21 @@
       opacity:1;
     }
 
+    .current .timeline-item.estreno:not(.active-phase) .timeline-label::before{
+      background:rgba(242,193,78,.46);
+      box-shadow:0 0 9px rgba(242,193,78,.13);
+      opacity:.62;
+    }
+
     .timeline-item.estreno .timeline-date{
       position:relative;
       z-index:1;
+    }
+
+    .current .timeline-item.estreno:not(.active-phase) .timeline-date{
+      color:#d6c79f;
+      font-weight:650;
+      text-shadow:0 0 10px rgba(242,193,78,.10);
     }
 
     .timeline-label{
@@ -2865,6 +2877,18 @@
         Number(window.__ipcdjInternalTabSwitchUntil||0)>performance.now()
       );
 
+      const markInternalTabInteraction=event=>{
+        const target=event&&event.target;
+        if(!(target instanceof Element)||!target.closest(".site-tab"))return;
+        window.__ipcdjInternalTabSwitchUntil=performance.now()+1800;
+      };
+
+      // Capture the interaction before iOS standalone mode can emit a window
+      // blur/focus pair. The click handler is too late for that ordering.
+      document.addEventListener("pointerdown",markInternalTabInteraction,{passive:true,capture:true});
+      document.addEventListener("touchstart",markInternalTabInteraction,{passive:true,capture:true});
+      document.addEventListener("mousedown",markInternalTabInteraction,{passive:true,capture:true});
+
       const lockPage=enabled=>{
         const root=document.documentElement;
         root.classList.toggle("ipcdj-launch-active",!!enabled);
@@ -3059,6 +3083,21 @@
         if(internalTabSwitchActive())return;
         if(standalone&&armed&&!document.hidden)playLaunch();
       },{passive:true,capture:true});
+
+      window.addEventListener("ipcdj:internalnavigation",()=>{
+        window.__ipcdjInternalTabSwitchUntil=performance.now()+1800;
+        if(!standalone||document.hidden)return;
+
+        // If a platform already armed the launch overlay from a stray blur,
+        // cancel it synchronously before the browser can paint an intro frame.
+        if(armed&&launch.className==="launch-armed"){
+          cycleToken++;
+          armed=false;
+          exiting=false;
+          launch.className="launch-idle";
+          lockPage(false);
+        }
+      },{capture:true});
     })();
   </script>
   <div class="ambient-bg" aria-hidden="true">
@@ -3262,7 +3301,8 @@
     }
 
     function activateSiteTab(key,{focus=false}={}){
-      window.__ipcdjInternalTabSwitchUntil=performance.now()+700;
+      window.__ipcdjInternalTabSwitchUntil=performance.now()+1800;
+      window.dispatchEvent(new CustomEvent("ipcdj:internalnavigation"));
       let button=siteTabButton(key);
       if(!button){
         key="inicio";
@@ -3352,7 +3392,7 @@
       });
 
       if(!siteTabButton(activeSiteTabKey)){
-        activateSiteTab("inicio",{animate:false});
+        activateSiteTab("inicio");
       }
       return visibleSiteTabs().map(tab=>tab.dataset.siteTab);
     }
@@ -3381,7 +3421,7 @@
     }
 
     syncSpecialEventTabs(Date.now());
-    activateSiteTab("inicio",{animate:false});
+    activateSiteTab("inicio");
 
     window.IPCDJ_NAV=Object.freeze({
       activate:key=>activateSiteTab(String(key||"")),
