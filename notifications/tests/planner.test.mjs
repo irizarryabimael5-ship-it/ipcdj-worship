@@ -93,3 +93,20 @@ test('DST-crossing lifecycle remains scheduled in New York local time',()=>{
   assert.equal(localHour(byKind.release_eve.scheduledAt),18);
   assert.equal(localHour(byKind.release_day.scheduledAt),8);
 });
+
+
+test('wording engine composes more than the six original fixed pairs',()=>{
+  const variants=new Set();
+  for(let i=0;i<80;i++){
+    const msg=renderMessage('learning_start',song,'auto:'+song.id+':learning_start:sample-'+i);
+    variants.add(msg.title+'|'+msg.body);
+  }
+  assert.ok(variants.size>6,'expected independently varied title/body combinations');
+});
+
+test('final preparation wording always includes the estreno date context',()=>{
+  for(let i=0;i<30;i++){
+    const msg=renderMessage('final_start',song,'auto:'+song.id+':final_start:sample-'+i);
+    assert.match(msg.body,/octubre/i);
+  }
+});
