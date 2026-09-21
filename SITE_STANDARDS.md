@@ -2780,3 +2780,25 @@ Watchdog:
 - Synthetic snapshots verify Sep 21 future ordering, the pre-activation Oct 26 state, and the exact post-6 AM promotion into current state.
 - Existing single-source DOM, artwork/palette, preview, phase, responsive, launch, and PWA coverage remains active.
 
+## Catalog-owned per-song visual metadata v158
+
+- Removed the final scheduled-song ID check from runtime artwork logic.
+- Dios De Milagros subject/crop tuning now lives inside its SONG_CATALOG_SOURCE entry as coverSubjectFocus.
+- manualCoverSubjectFocus is now generic and reads only catalog-provided coverSubjectFocus / subjectFocus.
+- Existing curated cover URLs now declare artworkSource:"spotify".
+- Future-card provenance is generated as verified-<artworkSource> instead of assuming every explicit artworkUrl is Spotify.
+- New songs can therefore use Spotify, Apple, Tidal, a church-hosted cover, or another curated source without lying about provenance.
+- Catalog validation warns when an explicit artworkUrl has no artworkSource, but the song remains functional and receives verified-curated provenance.
+- IPCDJ_CATALOG diagnostics expose artworkSource and hasSubjectOverride so artwork-specific configuration is auditable without mutable access.
+
+Scalability rule:
+- Runtime rendering code must remain song-agnostic.
+- A song-specific crop, palette, preview accent, provider, or other presentation override belongs in that song's catalog object.
+- Automatic artwork/palette/subject detection remains the default when no override is supplied.
+
+Watchdog:
+- Disposition: FEATURE_COVERAGE_ADDED.
+- The catalog contract checks provider metadata and confirms the approved Dios subject override is catalog-owned.
+- Source inspection verifies manualCoverSubjectFocus contains no hard-coded scheduled-song ID.
+- Existing verified Spotify hashes, future ghost art, palette depth, lazy hydration, lifecycle, and cross-platform tests remain active.
+
