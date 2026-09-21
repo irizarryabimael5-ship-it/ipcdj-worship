@@ -27,6 +27,19 @@ function authorized(request,env){
   return !!env.ADMIN_TOKEN && auth==='Bearer '+env.ADMIN_TOKEN;
 }
 
+function sameOriginPath(value='/'){
+  const input=String(value||'/').trim()||'/';
+  if(!input.startsWith('/')||input.startsWith('//'))throw new Error('invalid-url');
+  return input.slice(0,600);
+}
+
+function cleanManualText(value,max,label){
+  const text=String(value||'').trim();
+  if(!text)throw new Error(label+'-required');
+  if(text.length>max)throw new Error(label+'-too-long');
+  return text;
+}
+
 async function sha256(value){
   const digest=await crypto.subtle.digest('SHA-256',encoder.encode(value));
   return [...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('');
@@ -135,22 +148,37 @@ async function syncCatalog(request,env){
 }
 
 async function manualSend(request,env){
-  if(!authorized(request,env))return json({error:'unauthorized'},401);
-  const body=await request.json();
-  const id=String(body.idempotencyKey||'').trim();
-  const title=String(body.title||'').trim();
-  const message=String(body.body||'').trim();
-  if(!id||!title||!message)return json({error:'idempotencyKey-title-body-required'},400);
-  const now=new Date().toISOString();
-  const eventKey='manual:'+id;
-  const tag=String(body.tag||('manual-'+id)).replace(/[^A-Za-z0-9_-]/g,'-').slice(0,32);
-  const sql='INSERT INTO notification_events(event_key,kind,source,scheduled_at,title,body,url,tag,urgency,ttl_seconds,status,created_at) '+
-    "VALUES(?,?,'manual',?,?,?,?,?,?,?,'pending',?) ON CONFLICT(event_key) DO NOTHING";
-  await env.DB.prepare(sql).bind(
-    eventKey,'manual',String(body.scheduledAt||now),title,message,String(body.url||'/'),tag,
-    body.urgency==='high'?'high':'normal',Number(body.ttlSeconds)||21600,now
-  ).run();
-  return json({ok:true,eventKey});
+  const origin=request.headers.get('origin')||'';
+  const headers=cors(origin,env);
+  if(origin&&origin!==env.SITE_ORIGIN)return json({error:'origin-not-allowed'},403,headers);
+  if(!authorized(request,env))return json({error:'unauthorized'},401,headers);
+
+  try{
+    const body=await request.json();
+    const id=cleanManualText(body.idempotencyKey,120,'idempotencyKey')
+      .replace(/[^A-Za-z0-9._:-]/g,'-');
+    const title=cleanManualText(body.title,70,'title');
+    const message=cleanManualText(body.body,150,'body');
+    const scheduledAt=String(body.scheduledAt||new Date().toISOString());
+    if(!Number.isFinite(Date.parse(scheduledAt)))return json({error:'invalid-scheduledAt'},400,headers);
+
+    const now=new Date().toISOString();
+    const eventKey='manual:'+id;
+    const tag=String(body.tag||('manual-'+id)).replace(/[^A-Za-z0-9_-]/g,'-').slice(0,32);
+    const url=sameOriginPath(body.url||'/');
+    const ttl=Math.max(60,Math.min(86400,Number(body.ttlSeconds)||21600));
+    const sql='INSERT INTO notification_events(event_key,kind,source,scheduled_at,title,body,url,tag,urgency,ttl_seconds,status,created_at) '+
+      "VALUES(?,?,'manual',?,?,?,?,?,?,?,'pending',?) ON CONFLICT(event_key) DO NOTHING";
+    await env.DB.prepare(sql).bind(
+      eventKey,'manual',new Date(Date.parse(scheduledAt)).toISOString(),title,message,url,tag,
+      body.urgency==='high'?'high':'normal',ttl,now
+    ).run();
+    return json({ok:true,eventKey},200,headers);
+  }catch(error){
+    const reason=String(error?.message||error);
+    const known=/^(idempotencyKey|title|body)-(required|too-long)$|^invalid-url$/.test(reason);
+    return json({error:known?reason:'invalid-request'},400,headers);
+  }
 }
 
 async function ensureDeliveries(env,eventKey){
@@ -256,7 +284,10 @@ async function dispatchDue(env){
 }
 
 async function adminHealth(request,env){
-  if(!authorized(request,env))return json({error:'unauthorized'},401);
+  const origin=request.headers.get('origin')||'';
+  const headers=cors(origin,env);
+  if(origin&&origin!==env.SITE_ORIGIN)return json({error:'origin-not-allowed'},403,headers);
+  if(!authorized(request,env))return json({error:'unauthorized'},401,headers);
   const subscriptions=await env.DB.prepare('SELECT COUNT(*) AS n FROM subscriptions WHERE enabled=1').first();
   const pending=await env.DB.prepare("SELECT COUNT(*) AS n FROM notification_events WHERE status IN ('pending','sending')").first();
   const sent=await env.DB.prepare("SELECT COUNT(*) AS n FROM notification_events WHERE status='sent'").first();
@@ -265,7 +296,7 @@ async function adminHealth(request,env){
     subscriptions:Number(subscriptions?.n||0),
     pending:Number(pending?.n||0),
     sent:Number(sent?.n||0)
-  });
+  },200,headers);
 }
 
 export default {
