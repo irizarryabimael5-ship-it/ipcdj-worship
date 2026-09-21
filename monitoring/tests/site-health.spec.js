@@ -881,3 +881,46 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
   });
 });
 
+
+
+test('notification shell is safe, opt-in only and service-worker ready', async ({ page, request }) => {
+  const nonce=Date.now();
+  const [configResponse, clientResponse, uiResponse, foundationResponse, swResponse] = await Promise.all([
+    request.get('/notifications/config.json?healthcheck='+nonce,{headers:{'cache-control':'no-cache'}}),
+    request.get('/notifications/client.js?healthcheck='+nonce,{headers:{'cache-control':'no-cache'}}),
+    request.get('/notifications/ui.js?healthcheck='+nonce,{headers:{'cache-control':'no-cache'}}),
+    request.get('/notifications/sw-foundation.js?healthcheck='+nonce,{headers:{'cache-control':'no-cache'}}),
+    request.get('/sw.js?healthcheck='+nonce,{headers:{'cache-control':'no-cache'}})
+  ]);
+  for(const response of [configResponse,clientResponse,uiResponse,foundationResponse,swResponse]){
+    expect(response.ok()).toBe(true);
+  }
+
+  const config=await configResponse.json();
+  expect(typeof config.enabled).toBe('boolean');
+  expect(config.siteOrigin).toBe('https://worship.ipcdj.org');
+  expect(config.apiOrigin).toMatch(/^https:\/\//);
+
+  const swSource=await swResponse.text();
+  expect(swSource).toContain('addEventListener("push"');
+  expect(swSource).toContain('addEventListener("notificationclick"');
+  expect(swSource).toContain('showNotification');
+  expect(swSource).toContain('notifications/sw-foundation.js');
+
+  await openHealthyPage(page);
+  const permissionBefore=await page.evaluate(() => (
+    'Notification' in window ? Notification.permission : 'unsupported'
+  ));
+  await page.waitForTimeout(700);
+  const permissionAfter=await page.evaluate(() => (
+    'Notification' in window ? Notification.permission : 'unsupported'
+  ));
+  expect(permissionAfter).toBe(permissionBefore);
+
+  const apiExists=await page.evaluate(() => !!window.IPCDJ_NOTIFICATIONS);
+  expect(apiExists).toBe(true);
+
+  if(!config.enabled){
+    await expect(page.locator('#ipcdj-notification-card')).toHaveCount(0);
+  }
+});
