@@ -358,10 +358,14 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
     const read = role => getComputedStyle(card.querySelector('[data-role="' + role + '"]')).borderColor;
     const numbers = value => (value.match(/[0-9.]+/g) || []).slice(0, 3).map(Number);
 
+    const backgrounds = role => getComputedStyle(card.querySelector('[data-role="' + role + '"]')).backgroundImage;
     return {
       learning: numbers(read('timeline-learning')),
       finalStage: numbers(read('timeline-final')),
-      release: numbers(read('timeline-release'))
+      release: numbers(read('timeline-release')),
+      learningBackground: backgrounds('timeline-learning'),
+      finalBackground: backgrounds('timeline-final'),
+      releaseBackground: backgrounds('timeline-release')
     };
   });
 
@@ -369,6 +373,8 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   expect(stageColors.release[1]).toBeGreaterThan(stageColors.release[0]);
   expect(stageColors.learning.join(',')).not.toBe(stageColors.finalStage.join(','));
   expect(stageColors.finalStage.join(',')).not.toBe(stageColors.release.join(','));
+  expect(stageColors.learningBackground).not.toBe(stageColors.finalBackground);
+  expect(stageColors.finalBackground).not.toBe(stageColors.releaseBackground);
 });
 
 test('PWA shell, service worker and efficiency guardrails remain healthy', async ({ page, request }, testInfo) => {
