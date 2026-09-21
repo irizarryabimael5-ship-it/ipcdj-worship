@@ -421,6 +421,60 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   }
 });
 
+
+test('standalone full-scroll cycle cannot arm launch before tab switching', async ({ page }) => {
+  await page.addInitScript(() => {
+    try {
+      Object.defineProperty(navigator, 'standalone', {
+        configurable: true,
+        get: () => true
+      });
+    } catch (_) {}
+  });
+
+  await openHealthyPage(page);
+
+  const launch = page.locator('#ipcdj-launch');
+  const root = page.locator('html');
+  await expect(launch).toHaveClass(/launch-idle/);
+  await expect(root).not.toHaveClass(/ipcdj-launch-active/);
+
+  // Reproduce the physical path reported on iPhone/PWA:
+  // scroll to the bottom, return all the way to the top, then iOS emits a
+  // visible blur/focus pair before an internal tab switch.
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await page.waitForTimeout(180);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(180);
+
+  await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+  await page.waitForTimeout(240);
+
+  expect(await page.evaluate(() => document.hidden)).toBe(false);
+  await expect(launch).toHaveClass(/launch-idle/);
+  await expect(root).not.toHaveClass(/ipcdj-launch-active/);
+
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await page.waitForTimeout(80);
+  await expect(launch).toHaveClass(/launch-idle/);
+  await expect(root).not.toHaveClass(/ipcdj-launch-active/);
+
+  const weeklyTab = page.locator('#tab-worship-semanal');
+  await weeklyTab.click();
+  await expect(weeklyTab).toHaveAttribute('aria-selected', 'true');
+  await expect(launch).toHaveClass(/launch-idle/);
+  await expect(root).not.toHaveClass(/ipcdj-launch-active/);
+
+  await page.evaluate(() => {
+    window.IPCDJ_NAV.syncSpecialEvents(Date.parse('2026-10-11T23:59:59-04:00'));
+  });
+  const eventTab = page.locator('#tab-campana-gu-2026');
+  await eventTab.click();
+  await expect(eventTab).toHaveAttribute('aria-selected', 'true');
+  await expect(launch).toHaveClass(/launch-idle/);
+  await expect(root).not.toHaveClass(/ipcdj-launch-active/);
+});
+
 test('PWA shell, service worker and efficiency guardrails remain healthy', async ({ page, request }, testInfo) => {
   const nonce = Date.now();
 
