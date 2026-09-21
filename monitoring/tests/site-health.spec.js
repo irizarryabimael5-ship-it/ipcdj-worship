@@ -313,6 +313,22 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   const weeklyPanel = page.locator('#panel-worship-semanal');
 
   await expect(tablist).toBeVisible();
+
+  const navLayout = await page.evaluate(() => {
+    const nav = document.querySelector('.site-nav');
+    const hero = document.querySelector('.hero');
+    if (!nav || !hero) return null;
+    return {
+      navBeforeHero: !!(nav.compareDocumentPosition(hero) & Node.DOCUMENT_POSITION_FOLLOWING),
+      position: getComputedStyle(nav).position,
+      top: getComputedStyle(nav).top
+    };
+  });
+
+  expect(navLayout).not.toBeNull();
+  expect(navLayout.navBeforeHero).toBe(true);
+  expect(navLayout.position).toBe('sticky');
+
   await expect(homeTab).toHaveAttribute('aria-selected', 'true');
   await expect(homePanel).toBeVisible();
   await expect(weeklyPanel).toBeHidden();
@@ -444,6 +460,18 @@ test('standalone full-scroll cycle cannot arm launch before tab switching', asyn
   // visible blur/focus pair before an internal tab switch.
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   await page.waitForTimeout(180);
+
+  const stickyNavAtBottom = await page.locator('.site-nav').evaluate(nav => {
+    const rect = nav.getBoundingClientRect();
+    return {
+      visible: rect.bottom > 0 && rect.top < window.innerHeight,
+      top: rect.top,
+      viewportHeight: window.innerHeight
+    };
+  });
+  expect(stickyNavAtBottom.visible).toBe(true);
+  expect(stickyNavAtBottom.top).toBeGreaterThanOrEqual(0);
+
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.waitForTimeout(180);
 
