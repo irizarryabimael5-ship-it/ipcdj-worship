@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v146" />
+  <meta name="ipcdj-build" content="persistent-launch-v147" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -2871,6 +2871,8 @@
       let exiting=false;
       let armed=false;
       let cycleToken=0;
+      let backgroundConfirmed=false;
+      let blurCheckTimer=0;
 
       const internalTabSwitchActive=()=>(
         !document.hidden &&
@@ -2933,6 +2935,7 @@
         launch.className="launch-idle";
         exiting=false;
         armed=false;
+        backgroundConfirmed=false;
         lockPage(false);
       };
 
@@ -3024,8 +3027,24 @@
         launch.className="launch-armed";
 
         // Commit the opaque armed state before WebKit can suspend/snapshot
-        // the installed app during a background transition.
+        // the installed app during a confirmed background transition.
         void launch.offsetHeight;
+      };
+
+      const confirmBackgroundAndArm=()=>{
+        if(!standalone)return;
+        backgroundConfirmed=true;
+        clearTimeout(blurCheckTimer);
+        blurCheckTimer=0;
+        armLaunch();
+      };
+
+      const resumeFromConfirmedBackground=()=>{
+        clearTimeout(blurCheckTimer);
+        blurCheckTimer=0;
+        if(!standalone||document.hidden||!backgroundConfirmed)return;
+        if(armed)playLaunch();
+        backgroundConfirmed=false;
       };
 
       // Initial document launch begins from the same armed state used for
@@ -3034,58 +3053,56 @@
       armed=true;
       playLaunch();
 
-      // Installed PWAs are often resumed rather than reloaded. Arm the black
-      // launch canvas while hidden so the first returning frame can never expose
-      // a stale/suspended website frame before the logo sequence begins.
-      // iOS standalone PWAs can deliver visibilitychange after the app-switch
-      // transition has already started. Arm on blur first so the suspended
-      // snapshot is covered before the next foreground paint.
+      // A visible window blur is NOT proof that the installed PWA went to the
+      // background. iOS may emit blur/focus around scrolling, browser chrome, or
+      // focus changes while the document remains visible. Blur therefore only
+      // schedules a hidden-state confirmation and can never arm the intro itself.
       window.addEventListener("blur",()=>{
-        if(!standalone)return;
-        if(internalTabSwitchActive())return;
-
-        // iOS can emit blur/focus while the Home Screen launch transition itself
-        // is still completing. Never reset an intro that is already armed,
-        // playing, or exiting. Once the app is fully idle, blur can arm early
-        // before visibilitychange arrives.
-        if(document.hidden||launch.className==="launch-idle"){
-          armLaunch();
-        }
+        if(!standalone||internalTabSwitchActive())return;
+        clearTimeout(blurCheckTimer);
+        blurCheckTimer=setTimeout(()=>{
+          blurCheckTimer=0;
+          if(document.hidden)confirmBackgroundAndArm();
+        },160);
       },{passive:true,capture:true});
 
       document.addEventListener("visibilitychange",()=>{
         if(!standalone)return;
         if(document.hidden){
-          armLaunch();
-        }else if(armed){
-          playLaunch();
+          confirmBackgroundAndArm();
+        }else{
+          resumeFromConfirmedBackground();
         }
       },{passive:true,capture:true});
 
       document.addEventListener("webkitvisibilitychange",()=>{
         if(!standalone)return;
         if(document.hidden){
-          armLaunch();
-        }else if(armed){
-          playLaunch();
+          confirmBackgroundAndArm();
+        }else{
+          resumeFromConfirmedBackground();
         }
       },{passive:true,capture:true});
 
       window.addEventListener("pagehide",()=>{
-        if(standalone)armLaunch();
+        if(standalone)confirmBackgroundAndArm();
       },{passive:true,capture:true});
 
       window.addEventListener("pageshow",()=>{
-        if(standalone&&armed)playLaunch();
+        resumeFromConfirmedBackground();
       },{passive:true,capture:true});
 
       window.addEventListener("focus",()=>{
+        clearTimeout(blurCheckTimer);
+        blurCheckTimer=0;
         if(internalTabSwitchActive())return;
-        if(standalone&&armed&&!document.hidden)playLaunch();
+        resumeFromConfirmedBackground();
       },{passive:true,capture:true});
 
       window.addEventListener("ipcdj:internalnavigation",()=>{
         window.__ipcdjInternalTabSwitchUntil=performance.now()+1800;
+        clearTimeout(blurCheckTimer);
+        blurCheckTimer=0;
         if(!standalone||document.hidden)return;
 
         // If a platform already armed the launch overlay from a stray blur,
