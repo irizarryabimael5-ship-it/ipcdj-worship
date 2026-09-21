@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="theme-color" content="#05070b">
+  <title>IPCDJ Push Admin</title>
+  <style>
+    :root{color-scheme:dark;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:#05070b;color:#fff;padding:24px}
+    main{width:min(680px,100%);margin:0 auto}
+    h1{font-size:1.7rem;margin:0 0 6px}.sub{color:#9ba8bb;margin:0 0 24px;line-height:1.5}
+    .card{background:#0c111b;border:1px solid #202938;border-radius:18px;padding:18px;margin-bottom:14px}
+    label{display:block;font-size:.78rem;font-weight:750;color:#c7d0dd;margin:0 0 7px}
+    input,textarea,select,button{width:100%;font:inherit}
+    input,textarea,select{background:#070b12;color:#fff;border:1px solid #2a3548;border-radius:10px;padding:11px 12px;margin:0 0 14px}
+    textarea{min-height:88px;resize:vertical}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    button{border:0;border-radius:11px;background:#fff;color:#05070b;font-weight:800;padding:12px;cursor:pointer}
+    button[disabled]{opacity:.5;cursor:default}
+    .secondary{background:#171e2a;color:#fff;border:1px solid #2c3748}
+    .status{font-size:.82rem;color:#9fb2c8;min-height:1.4em;margin-top:10px;white-space:pre-wrap}
+    .ok{color:#9ce7b6}.error{color:#ffaaa9}
+    @media(max-width:560px){body{padding:14px}.row{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<main>
+  <h1>IPCDJ Push Admin</h1>
+  <p class="sub">Enviar avisos manuales del Ministerio de Alabanza. Esta página no contiene credenciales; el token administrativo vive solo en esta sesión.</p>
+
+  <section class="card">
+    <label for="token">Token administrativo</label>
+    <input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="Token">
+    <button id="save-token" class="secondary" type="button">Usar token en esta sesión</button>
+    <div class="status" id="health"></div>
+  </section>
+
+  <section class="card">
+    <label for="title">Título</label>
+    <input id="title" maxlength="70" placeholder="Ej. Ensayo de hoy">
+
+    <label for="body">Mensaje</label>
+    <textarea id="body" maxlength="150" placeholder="Mensaje corto y directo"></textarea>
+
+    <div class="row">
+      <div>
+        <label for="when">Enviar</label>
+        <select id="when">
+          <option value="now">Ahora</option>
+          <option value="scheduled">Programar</option>
+        </select>
+      </div>
+      <div>
+        <label for="urgency">Prioridad</label>
+        <select id="urgency">
+          <option value="normal">Normal</option>
+          <option value="high">Alta</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="schedule-wrap" hidden>
+      <label for="scheduled">Fecha y hora</label>
+      <input id="scheduled" type="datetime-local">
+    </div>
+
+    <label for="url">Destino al tocar</label>
+    <input id="url" value="/" placeholder="/?song=...">
+
+    <button id="send" type="button">Enviar notificación</button>
+    <div class="status" id="status" aria-live="polite"></div>
+  </section>
+</main>
+<script src="./admin.js?v=164"></script>
+</body>
+</html>
