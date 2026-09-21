@@ -590,6 +590,12 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
 
   const ids = audit.songs.map(song => song.id);
   expect(new Set(ids).size).toBe(ids.length);
+  expect(ids).toContain('no-fallaras');
+
+  const noFallaras = audit.songs.find(song => song.id === 'no-fallaras');
+  expect(noFallaras).toBeTruthy();
+  expect(Date.parse(noFallaras.activeFrom)).toBeGreaterThan(Date.parse(noFallaras.learningStart));
+  expect(Date.parse(noFallaras.activeFrom)).toBeLessThan(Date.parse(noFallaras.releaseAt));
 
   for (const song of audit.songs) {
     expect(song.learningLabel).toMatch(/ – /);
@@ -606,6 +612,15 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
     expect(song.currentAtIntroduced).toBe(false);
     expect(song.introducedAtIntroduced).toBe(true);
   }
+
+  const orderSnapshots = await page.evaluate(() => ({
+    sep21: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-09-21T12:00:00-04:00')),
+    oct26Early: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-10-26T01:00:00-04:00')),
+    oct26Active: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-10-26T06:01:00-04:00'))
+  }));
+  expect(orderSnapshots.sep21.upcoming).toEqual(['glorioso-dia','no-fallaras']);
+  expect(orderSnapshots.oct26Early.upcoming).toEqual(['no-fallaras']);
+  expect(orderSnapshots.oct26Active.current).toContain('no-fallaras');
 
   const sourceResponse = await request.get('/?catalog-source-check=' + Date.now(), {
     headers: { 'cache-control': 'no-cache' }
