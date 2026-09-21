@@ -2692,3 +2692,26 @@ Watchdog:
 - Disposition: GENERIC_COVERAGE_SUFFICIENT.
 - This is a CSS-only visual hierarchy change. Existing equal-width/height, viewport containment, responsive overflow, tab interaction, keyboard, and launch-regression coverage continues to apply.
 
+## Verified future-song artwork depth v155
+
+Source verification:
+- Dios De Milagros uses the canonical Spotify cover for track 1v2lsV9SYQc0KbRkOLEJzk: ab67616d0000b27341b7ffdb9e0bde66a24425c4.
+- Glorioso Día uses the canonical Spotify cover for track 0ksqrKoeNvywkfeqltzVQ3: ab67616d0000b27372bba4048e09a242595e4a2c.
+- No Fallarás - En Vivo uses the canonical Spotify cover for track 04IkHz1UynmZ48Imgkla2J: ab67616d0000b273decf3d0f2c88d97720437f20.
+- Glorioso Día and No Fallarás now use these as explicit artworkUrl values rather than provider fallbacks, preventing provider search from changing the cover.
+
+Future / Después cards:
+- Added a real blurred album-art wash beneath the cover-derived gradient.
+- Added a second restrained unblurred crop on the right side, faded smoothly into the card with a mask.
+- Desktop receives stronger artwork depth than mobile because the wider card previously diluted the gradient: blur opacity .46 and art crop .28 at >=900px.
+- Mobile intentionally stays close to the already-approved colorful treatment: blur opacity .24 and art crop .12.
+- The text-protection scrim is now left-heavy and lighter on the right so the artwork can read without sacrificing title/date/meta contrast.
+- Curated song-specific futurePalette values anchor the exact color identity across devices and offline/CORS/provider differences.
+- Future palette cache bumped to v2 so stale provider-derived colors cannot override the corrected system.
+- Reduced-transparency mode suppresses the extra real-art layers while preserving the palette gradient.
+
+Watchdog:
+- Disposition: FEATURE_COVERAGE_ADDED.
+- The browser/device matrix now verifies Glorioso Día and No Fallarás future cards resolve to their exact canonical Spotify artwork hashes, use verified-spotify source, retain distinct palette colors, and include both blur and right-side artwork layers.
+- Desktop/mobile tests also assert their intended artwork-opacity floors so future CSS changes cannot silently wash desktop colors out again.
+
