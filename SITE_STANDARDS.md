@@ -2388,3 +2388,16 @@ Permanent rule:
 - The neutral SVG track remains the visible border; the progress stroke overlays the exact same path during playback and fades at completion.
 - Automated health checks must compare the SVG and button bounding rectangles so this cascade regression is caught.
 
+## Future preview completion crossfade v139
+
+At natural completion of an upcoming-song circular preview:
+- Hold the fully completed progress ring and 0:00 state briefly so completion reads intentionally.
+- Then crossfade back to idle as one coordinated transition rather than resetting individual elements abruptly.
+- Progress ring opacity fades over roughly 0.68 s.
+- Countdown/active layer fades and settles with only a subtle scale change.
+- Neutral border stroke eases back to its idle opacity at the same time.
+- The dark button surface and playback glow ease back to the idle surface instead of snapping at cleanup.
+- The Play icon begins slightly after the completed state starts dissolving, producing a layered crossfade instead of a simultaneous pop.
+- Do not reset stroke-dashoffset or countdown text until the completed layer is fully invisible and the Play return has finished.
+- Cleanup timing must remain longer than all return transition durations.
+
