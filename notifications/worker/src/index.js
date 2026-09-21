@@ -1,7 +1,6 @@
 import { buildPushPayload } from '@block65/webcrypto-web-push';
 import { buildSongNotificationPlan, renderMessage } from '../../core/planner.mjs';
 
-const MAX_DELIVERIES_PER_RUN=40;
 const MAX_ATTEMPTS=4;
 const encoder=new TextEncoder();
 
@@ -250,6 +249,7 @@ async function pushOne(env,event,delivery){
 
 async function dispatchDue(env){
   const now=new Date().toISOString();
+  const maxDeliveries=Math.max(1,Math.min(40,Number(env.DELIVERY_BATCH_SIZE)||8));
   const due=(await env.DB.prepare(
     "SELECT * FROM notification_events WHERE status IN ('pending','sending') AND scheduled_at<=? ORDER BY scheduled_at ASC LIMIT 4"
   ).bind(now).all()).results||[];
@@ -262,10 +262,10 @@ async function dispatchDue(env){
 
     const pending=(await env.DB.prepare(
       "SELECT * FROM deliveries WHERE event_key=? AND status IN ('pending','retry') AND attempts<? ORDER BY attempts ASC,updated_at ASC LIMIT ?"
-    ).bind(event.event_key,MAX_ATTEMPTS,Math.max(0,MAX_DELIVERIES_PER_RUN-deliveriesProcessed)).all()).results||[];
+    ).bind(event.event_key,MAX_ATTEMPTS,Math.max(0,maxDeliveries-deliveriesProcessed)).all()).results||[];
 
     for(const delivery of pending){
-      if(deliveriesProcessed>=MAX_DELIVERIES_PER_RUN)break;
+      if(deliveriesProcessed>=maxDeliveries)break;
       await pushOne(env,event,delivery);
       deliveriesProcessed++;
     }
@@ -278,7 +278,7 @@ async function dispatchDue(env){
       await env.DB.prepare("UPDATE notification_events SET status='sent',sent_at=? WHERE event_key=?")
         .bind(new Date().toISOString(),event.event_key).run();
     }
-    if(deliveriesProcessed>=MAX_DELIVERIES_PER_RUN)break;
+    if(deliveriesProcessed>=maxDeliveries)break;
   }
   return {events:due.length,deliveriesProcessed};
 }
