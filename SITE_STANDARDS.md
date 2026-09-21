@@ -2589,3 +2589,16 @@ Watchdog:
 - A dedicated standalone-mode regression test now performs full scroll bottom -> top, injects visible blur/focus, then switches to Worship semanal and Campaña GU.
 - The test asserts launch-idle and absence of ipcdj-launch-active throughout the sequence.
 
+## Tab visibility polish v148
+
+- Kept the v145-v147 clean underline navigation model and all existing no-animation behavior.
+- Increased inactive tab legibility slightly through brighter text and modestly stronger weight.
+- Added only a very faint shared strip background/top edge so the navigation reads as an intentional section without returning to a bulky segmented control.
+- The active tab now uses a slightly thicker blue gradient underline, restrained glow, and faint background wash.
+- The special-event indicator is marginally larger/brighter while remaining subtle.
+- No tab-switch, launch, lifecycle, event-expiry, or accessibility behavior changed.
+
+Watchdog:
+- Disposition: GENERIC_COVERAGE_SUFFICIENT.
+- This is CSS-only visual emphasis. Existing cross-platform layout, overflow, tab interaction, launch-regression, reduced-motion, and responsive coverage already protect the realistic failure modes.
+
