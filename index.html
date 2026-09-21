@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v152" />
+  <meta name="ipcdj-build" content="persistent-launch-v153" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
@@ -2868,6 +2868,21 @@
         (window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches) ||
         (window.matchMedia&&window.matchMedia("(display-mode: fullscreen)").matches)
       );
+      const ua=navigator.userAgent||"";
+      const ios=(
+        /iPhone|iPad|iPod/i.test(ua) ||
+        (navigator.platform==="MacIntel"&&Number(navigator.maxTouchPoints||0)>1)
+      );
+      // The warm-resume intro exists specifically to cover iOS Home Screen PWA
+      // suspension snapshots. Desktop Chrome tab/app switching must never replay it.
+      const warmResumeEnabled=(navigator.standalone===true&&ios);
+
+      window.IPCDJ_LAUNCH_STATE=Object.freeze({
+        standalone,
+        ios,
+        warmResumeEnabled
+      });
+
       let cycleStarted=performance.now();
       let exiting=false;
       let armed=false;
@@ -3019,7 +3034,7 @@
       };
 
       const armLaunch=()=>{
-        if(!standalone)return;
+        if(!warmResumeEnabled)return;
         if(armed&&launch.className==="launch-armed")return;
         cycleToken++;
         exiting=false;
@@ -3033,7 +3048,7 @@
       };
 
       const confirmBackgroundAndArm=()=>{
-        if(!standalone)return;
+        if(!warmResumeEnabled)return;
         backgroundConfirmed=true;
         clearTimeout(blurCheckTimer);
         blurCheckTimer=0;
@@ -3043,7 +3058,7 @@
       const resumeFromConfirmedBackground=()=>{
         clearTimeout(blurCheckTimer);
         blurCheckTimer=0;
-        if(!standalone||document.hidden||!backgroundConfirmed)return;
+        if(!warmResumeEnabled||document.hidden||!backgroundConfirmed)return;
         if(armed)playLaunch();
         backgroundConfirmed=false;
       };
@@ -3059,7 +3074,7 @@
       // focus changes while the document remains visible. Blur therefore only
       // schedules a hidden-state confirmation and can never arm the intro itself.
       window.addEventListener("blur",()=>{
-        if(!standalone||internalTabSwitchActive())return;
+        if(!warmResumeEnabled||internalTabSwitchActive())return;
         clearTimeout(blurCheckTimer);
         blurCheckTimer=setTimeout(()=>{
           blurCheckTimer=0;
@@ -3068,7 +3083,7 @@
       },{passive:true,capture:true});
 
       document.addEventListener("visibilitychange",()=>{
-        if(!standalone)return;
+        if(!warmResumeEnabled)return;
         if(document.hidden){
           confirmBackgroundAndArm();
         }else{
@@ -3077,7 +3092,7 @@
       },{passive:true,capture:true});
 
       document.addEventListener("webkitvisibilitychange",()=>{
-        if(!standalone)return;
+        if(!warmResumeEnabled)return;
         if(document.hidden){
           confirmBackgroundAndArm();
         }else{
@@ -3086,7 +3101,7 @@
       },{passive:true,capture:true});
 
       window.addEventListener("pagehide",()=>{
-        if(standalone)confirmBackgroundAndArm();
+        if(warmResumeEnabled)confirmBackgroundAndArm();
       },{passive:true,capture:true});
 
       window.addEventListener("pageshow",()=>{
@@ -3104,7 +3119,7 @@
         window.__ipcdjInternalTabSwitchUntil=performance.now()+1800;
         clearTimeout(blurCheckTimer);
         blurCheckTimer=0;
-        if(!standalone||document.hidden)return;
+        if(!warmResumeEnabled||document.hidden)return;
 
         // If a platform already armed the launch overlay from a stray blur,
         // cancel it synchronously before the browser can paint an intro frame.
