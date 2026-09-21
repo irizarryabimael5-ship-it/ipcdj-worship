@@ -35,12 +35,12 @@ const TEMPLATE_SETS = Object.freeze({
     ['Un repaso más', 'Hoy viene bien escuchar {title} otra vez y revisar tu parte.'],
   ],
   final_start: [
-    ['Preparación final', '{title} entra en su última semana. Afina tu parte y los detalles.'],
+    ['Preparación final', '{title} entra en su última semana. Estreno: {releaseDay}.'],
     ['Última semana de {title}', 'Ya no es solo escuchar: toca afinar detalles para {releaseDay}.'],
     ['Entramos en preparación final', 'Trabaja los detalles de {title}. Estreno: {releaseDay}.'],
     ['Recta final: {title}', 'Esta semana toca dejar tu parte lista para {releaseDay}.'],
     ['Esta es la semana final', 'Afina {title} y llega listo para el estreno {releaseDay}.'],
-    ['{title}: preparación final', 'Revisa entradas, estructura y detalles antes del estreno.'],
+    ['{title}: preparación final', 'Revisa entradas y estructura. La estrenamos {releaseDay}.'],
   ],
   release_eve: [
     ['Mañana estrenamos {title}', 'Haz el último repaso hoy y llega listo.'],
@@ -169,17 +169,20 @@ function interpolate(text,context){
 export function renderMessage(kind,song,eventKey,lastVariantIndex=-1){
   const set=TEMPLATE_SETS[kind];
   if(!set) throw new Error('Unknown notification kind: '+kind);
-  const variantIndex=chooseVariantIndex(eventKey,kind,lastVariantIndex);
-  const pair=set[variantIndex];
+
+  const lastTitleIndex=lastVariantIndex>=0?Math.floor(lastVariantIndex/100):-1;
+  const lastBodyIndex=lastVariantIndex>=0?lastVariantIndex%100:-1;
+  const titleIndex=chooseVariantIndex(eventKey+'|title',kind,lastTitleIndex);
+  const bodyIndex=chooseVariantIndex(eventKey+'|body',kind,lastBodyIndex);
   const ctx={
     title:song.title,
     releaseDay:formatReleaseDay(song.releaseAt),
     releaseTime:formatReleaseTime(song.releaseAt),
   };
   return {
-    title:interpolate(pair[0],ctx),
-    body:interpolate(pair[1],ctx),
-    variantIndex,
+    title:interpolate(set[titleIndex][0],ctx),
+    body:interpolate(set[bodyIndex][1],ctx),
+    variantIndex:titleIndex*100+bodyIndex,
     templateVersion:NOTIFICATION_POLICY.templateVersion,
   };
 }
