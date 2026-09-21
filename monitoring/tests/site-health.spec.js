@@ -317,6 +317,8 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(homePanel).toBeVisible();
   await expect(weeklyPanel).toBeHidden();
 
+  const launchClassBeforeSwitch = await page.locator('#ipcdj-launch').getAttribute('class');
+
   await weeklyTab.click();
   await expect(weeklyTab).toHaveAttribute('aria-selected', 'true');
   await expect(weeklyPanel).toBeVisible();
@@ -324,6 +326,10 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(weeklyPanel.getByText('Próximamente')).toBeVisible();
   await expect(weeklyPanel).toContainText(/viernes/i);
   await expect(weeklyPanel).toContainText(/domingo/i);
+  await expect(weeklyPanel).not.toHaveClass(/site-tab-panel-enter/);
+
+  const launchClassAfterSwitch = await page.locator('#ipcdj-launch').getAttribute('class');
+  expect(launchClassAfterSwitch).toBe(launchClassBeforeSwitch);
 
   await weeklyTab.focus();
   await page.keyboard.press('Home');
@@ -354,27 +360,47 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
 
   await page.evaluate(() => window.IPCDJ_NAV.syncSpecialEvents(Date.now()));
 
-  const stageColors = await page.locator('[data-current-song-card]').first().evaluate(card => {
-    const read = role => getComputedStyle(card.querySelector('[data-role="' + role + '"]')).borderColor;
-    const numbers = value => (value.match(/[0-9.]+/g) || []).slice(0, 3).map(Number);
+  const phaseState = await page.locator('[data-current-song-card]').first().evaluate(card => {
+    const phase = card.dataset.phase || '';
+    const timeline = card.querySelector('.timeline');
+    const items = [...card.querySelectorAll('.timeline-item')];
+    const active = items.filter(item => item.classList.contains('active-phase'));
+    const inactive = items.filter(item => !item.classList.contains('active-phase'));
 
-    const backgrounds = role => getComputedStyle(card.querySelector('[data-role="' + role + '"]')).backgroundImage;
     return {
-      learning: numbers(read('timeline-learning')),
-      finalStage: numbers(read('timeline-final')),
-      release: numbers(read('timeline-release')),
-      learningBackground: backgrounds('timeline-learning'),
-      finalBackground: backgrounds('timeline-final'),
-      releaseBackground: backgrounds('timeline-release')
+      phase,
+      timelineDisplay: timeline ? getComputedStyle(timeline).display : 'none',
+      activeCount: active.length,
+      activeRole: active[0]?.dataset.role || '',
+      activeShadow: active[0] ? getComputedStyle(active[0]).boxShadow : 'none',
+      inactive: inactive.map(item => ({
+        shadow: getComputedStyle(item).boxShadow,
+        opacity: Number(getComputedStyle(item).opacity)
+      }))
     };
   });
 
-  expect(stageColors.learning[0]).toBeGreaterThan(stageColors.learning[1]);
-  expect(stageColors.release[1]).toBeGreaterThan(stageColors.release[0]);
-  expect(stageColors.learning.join(',')).not.toBe(stageColors.finalStage.join(','));
-  expect(stageColors.finalStage.join(',')).not.toBe(stageColors.release.join(','));
-  expect(stageColors.learningBackground).not.toBe(stageColors.finalBackground);
-  expect(stageColors.finalBackground).not.toBe(stageColors.releaseBackground);
+  if (['learning', 'final', 'release'].includes(phaseState.phase)) {
+    expect(phaseState.activeCount).toBe(1);
+    const expectedRole = phaseState.phase === 'learning'
+      ? 'timeline-learning'
+      : phaseState.phase === 'final'
+        ? 'timeline-final'
+        : 'timeline-release';
+    expect(phaseState.activeRole).toBe(expectedRole);
+    expect(phaseState.activeShadow).not.toBe('none');
+  } else {
+    expect(phaseState.activeCount).toBe(0);
+  }
+
+  if (phaseState.phase === 'release') {
+    expect(phaseState.timelineDisplay).not.toBe('none');
+  }
+
+  for (const item of phaseState.inactive) {
+    expect(item.shadow).toBe('none');
+    expect(item.opacity).toBeLessThan(1);
+  }
 });
 
 test('PWA shell, service worker and efficiency guardrails remain healthy', async ({ page, request }, testInfo) => {
