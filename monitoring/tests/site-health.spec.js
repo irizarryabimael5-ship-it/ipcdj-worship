@@ -948,3 +948,30 @@ test('desktop notification test page is deployed and never auto-prompts', async 
   await expect(page.getByRole('button',{name:'Probar notificación en este dispositivo'})).toBeVisible();
   await expect(page.locator('#push')).toHaveText(/Disponible|No disponible/);
 });
+
+
+test('social share preview is crawler-ready', async ({ page, request }) => {
+  const nonce=Date.now();
+  const [htmlResponse,imageResponse]=await Promise.all([
+    request.get('/?social-health='+nonce,{headers:{'cache-control':'no-cache'}}),
+    request.get('/social-preview.png?social-health='+nonce,{headers:{'cache-control':'no-cache'}})
+  ]);
+  expect(htmlResponse.ok()).toBe(true);
+  expect(imageResponse.ok()).toBe(true);
+  expect((imageResponse.headers()['content-type']||'')).toMatch(/^image\/png/);
+  const imageBytes=await imageResponse.body();
+  expect(imageBytes.length).toBeGreaterThan(5000);
+  expect(imageBytes.length).toBeLessThan(300000);
+
+  const html=await htmlResponse.text();
+  expect(html).toContain('property="og:site_name" content="IPCDJ Worship"');
+  expect(html).toContain('property="og:image" content="https://worship.ipcdj.org/social-preview.png?v=167"');
+  expect(html).toContain('property="og:image:secure_url" content="https://worship.ipcdj.org/social-preview.png?v=167"');
+  expect(html).toContain('property="og:image:type" content="image/png"');
+  expect(html).toContain('property="og:image:width" content="1200"');
+  expect(html).toContain('property="og:image:height" content="630"');
+  expect(html).toContain('name="twitter:card" content="summary_large_image"');
+
+  await page.goto('/?social-health='+nonce,{waitUntil:'domcontentloaded'});
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content','https://worship.ipcdj.org/social-preview.png?v=167');
+});
