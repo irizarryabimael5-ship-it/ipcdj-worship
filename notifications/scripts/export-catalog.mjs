@@ -55,4 +55,4 @@ const songs=catalog.map(song=>{
   };
 });
 
-process.stdout.write(JSON.stringify({version:1,songs},null,2)+'\\n');
+process.stdout.write(JSON.stringify({version:1,songs},null,2)+'\n');
