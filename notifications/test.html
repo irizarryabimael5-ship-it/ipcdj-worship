@@ -42,6 +42,7 @@
       <div class="label">Notifications API</div><div class="value" id="notifications">—</div>
       <div class="label">Service Worker</div><div class="value" id="worker">—</div>
       <div class="label">Push API</div><div class="value" id="push">—</div>
+      <div class="label">Backend IPCDJ remoto</div><div class="value" id="backend">—</div>
       <div class="label">Permiso actual</div><div class="value" id="permission">—</div>
     </div>
   </section>
@@ -86,6 +87,29 @@
     return registration;
   }
 
+  async function inspectBackend(){
+    try{
+      const response=await fetch('./config.json',{cache:'no-store'});
+      if(!response.ok)throw new Error('config');
+      const config=await response.json();
+      if(!config?.enabled){
+        state('backend','Aún desactivado','warn');
+        return false;
+      }
+      const origin=String(config.apiOrigin||'').replace(/\/$/,'');
+      if(!origin)throw new Error('api');
+      const remote=await fetch(origin+'/v1/config',{cache:'no-store',credentials:'omit'});
+      if(!remote.ok)throw new Error('remote');
+      const data=await remote.json();
+      const ready=data?.enabled===true&&!!data?.vapidPublicKey;
+      state('backend',ready?'Activo':'Incompleto',ready?'good':'warn');
+      return ready;
+    }catch(_){
+      state('backend','No disponible','bad');
+      return false;
+    }
+  }
+
   async function inspect(){
     state('secure',window.isSecureContext?'Sí':'No',window.isSecureContext?'good':'bad');
     state('notifications','Notification' in window?'Disponible':'No disponible','Notification' in window?'good':'bad');
@@ -94,6 +118,8 @@
     const permission=('Notification' in window)?Notification.permission:'unsupported';
     state('permission',permission,
       permission==='granted'?'good':permission==='denied'?'bad':'warn');
+
+    await inspectBackend();
 
     if('serviceWorker' in navigator){
       try{
