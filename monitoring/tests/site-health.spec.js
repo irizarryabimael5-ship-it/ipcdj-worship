@@ -924,3 +924,24 @@ test('notification shell is safe, opt-in only and service-worker ready', async (
     await expect(page.locator('#ipcdj-notification-card')).toHaveCount(0);
   }
 });
+
+
+test('desktop notification test page is deployed and never auto-prompts', async ({ page, request }) => {
+  const nonce=Date.now();
+  const response=await request.get('/notifications/test.html?healthcheck='+nonce,{headers:{'cache-control':'no-cache'}});
+  expect(response.ok()).toBe(true);
+  const source=await response.text();
+  expect(source).toContain('Probar notificación en este dispositivo');
+  expect(source).toContain('registration.showNotification');
+  expect(source).toContain("Notification.requestPermission()");
+  expect(source).toContain("data:{");
+  expect(source).toContain("url:'/?notification-test=success'");
+
+  await page.goto('/notifications/test.html?healthcheck='+nonce,{waitUntil:'domcontentloaded'});
+  const before=await page.evaluate(() => ('Notification' in window ? Notification.permission : 'unsupported'));
+  await page.waitForTimeout(600);
+  const after=await page.evaluate(() => ('Notification' in window ? Notification.permission : 'unsupported'));
+  expect(after).toBe(before);
+  await expect(page.getByRole('button',{name:'Probar notificación en este dispositivo'})).toBeVisible();
+  await expect(page.locator('#push')).toHaveText(/Disponible|No disponible/);
+});
