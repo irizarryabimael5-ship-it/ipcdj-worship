@@ -1,62 +1,49 @@
 {
-  "version": 1,
-  "status": "draft",
+  "version": 2,
+  "status": "implemented-runtime-gated",
   "enabled": false,
   "timezone": "America/New_York",
-  "categories": {
-    "song_phases": {
-      "defaultEnabled": false,
-      "eventTypes": ["song.phase.entered"]
+  "automaticPolicy": {
+    "maxPerSong": 6,
+    "quietHours": {
+      "start": "21:00",
+      "end": "08:00"
     },
-    "estreno": {
-      "defaultEnabled": false,
-      "eventTypes": ["song.release.reminder", "song.release.today"]
+    "schedulerGraceMinutes": 5,
+    "onlyWhileManagedSongIsPreRelease": true
+  },
+  "automaticEvents": {
+    "added": {
+      "label": "Added to preparation",
+      "automatic": true
     },
-    "live_set": {
-      "defaultEnabled": false,
-      "eventTypes": ["live_set.published", "live_set.updated"]
+    "learning_start": {
+      "label": "Learning week begins",
+      "automatic": true
     },
-    "announcements": {
-      "defaultEnabled": false,
-      "eventTypes": ["system.announcement"]
+    "learning_mid": {
+      "label": "Learning check-in",
+      "automatic": true
+    },
+    "final_start": {
+      "label": "Final preparation begins",
+      "automatic": true
+    },
+    "release_eve": {
+      "label": "Estreno eve",
+      "automatic": true
+    },
+    "release_day": {
+      "label": "Estreno day",
+      "automatic": true
     }
   },
-  "events": {
-    "song.phase.entered": {
-      "automatic": true,
-      "dedupeKeyTemplate": "song.phase.entered:{songId}:{phase}:{effectiveAt}",
-      "trigger": "A canonical song schedule crosses into a configured phase boundary.",
-      "pendingDecisions": ["Which phases generate pushes", "Notification wording", "Quiet-hour behavior"]
-    },
-    "song.release.reminder": {
-      "automatic": true,
-      "dedupeKeyTemplate": "song.release.reminder:{songId}:{releaseAt}:{lead}",
-      "trigger": "Server-side reminder lead time before estreno.",
-      "pendingDecisions": ["Lead times", "Maximum reminders per song", "Quiet-hour behavior"]
-    },
-    "song.release.today": {
-      "automatic": true,
-      "dedupeKeyTemplate": "song.release.today:{songId}:{releaseDay}",
-      "trigger": "Configured estreno calendar day begins.",
-      "pendingDecisions": ["Send at midnight vs morning", "Whether service-time reminder is separate"]
-    },
-    "live_set.published": {
-      "automatic": true,
-      "dedupeKeyTemplate": "live_set.published:{liveSetId}:{publishedRevision}",
-      "trigger": "A weekly Live Set changes from draft/unpublished to published/live.",
-      "pendingDecisions": ["Publication workflow", "Default deep link", "Badge rules"]
-    },
-    "live_set.updated": {
-      "automatic": true,
-      "dedupeKeyTemplate": "live_set.updated:{liveSetId}:{publishedRevision}",
-      "trigger": "A previously published weekly Live Set receives a material update.",
-      "pendingDecisions": ["What counts as material", "Whether updates push automatically"]
-    },
-    "system.announcement": {
-      "automatic": false,
-      "dedupeKeyTemplate": "system.announcement:{announcementId}",
-      "trigger": "Future administrator/manual announcement.",
-      "pendingDecisions": ["Who can send", "Approval/authentication flow"]
+  "manualEvents": {
+    "manual": {
+      "label": "Administrator announcement",
+      "automatic": false
     }
-  }
+  },
+  "sourceOfTruth": "SONG_CATALOG_SOURCE",
+  "activationFlag": "notifications/config.json"
 }
