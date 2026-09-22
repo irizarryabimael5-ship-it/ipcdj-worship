@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS notification_events (
   ttl_seconds INTEGER NOT NULL DEFAULT 21600,
   variant_index INTEGER,
   template_version INTEGER,
-  status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','sending','sent','cancelled')),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','sending','sent','partial','failed','cancelled')),
   created_at TEXT NOT NULL,
   sent_at TEXT,
   FOREIGN KEY(song_id) REFERENCES songs(id) ON DELETE CASCADE
