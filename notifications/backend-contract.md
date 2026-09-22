@@ -1,10 +1,10 @@
 # IPCDJ Worship — Push Backend Contract
 
-Status: design contract only; no backend is deployed yet.
+Status: v164 backend implementation exists in `notifications/worker/`; production deployment is still gated until Cloudflare/D1/VAPID/admin secrets are provisioned.
 
-## Recommended shape
+## Implemented shape
 
-Keep GitHub Pages as the website host. Add a separate small HTTPS serverless service for Web Push.
+GitHub Pages remains the website host. The Web Push API/scheduler is implemented as a separate Cloudflare Worker with D1.
 
 The transport code should stay provider-neutral so the first implementation can use a serverless platform without coupling the website to that vendor.
 
@@ -124,19 +124,17 @@ Examples for future use:
 
 The service worker should first focus an existing IPCDJ window when practical, then navigate/open the requested same-origin URL.
 
-## Scheduling decisions intentionally deferred
+## Current scheduling policy
 
-Do not implement these until the ministry specifies them:
-- exact send hour for phase entries;
-- estreno reminder lead times;
-- quiet hours;
-- Sunday morning reminder policy;
-- repeated reminders;
-- per-song exceptions;
-- Live Set publication trigger;
-- Live Set update threshold;
-- manual/admin announcements;
-- badges.
+The v164 planner currently owns these decisions:
+- maximum six automatic notifications per managed song;
+- quiet hours 9:00 PM–8:00 AM America/New_York;
+- added, learning-start, one learning check-in, final-prep start, estreno eve, estreno day;
+- final-prep wording always includes the estreno date;
+- stale events older than the scheduler grace window are not replayed;
+- no post-release automatic push.
+
+Manual announcements remain separate and authenticated.
 
 ## Operational recommendation
 
