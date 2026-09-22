@@ -72,6 +72,21 @@ When enabled:
 
 The notification icon uses IPCDJ's existing white-background/black-logo app artwork. The push payload uses `icon-192.png`; the manifest continues to use the same icon family.
 
+## Immediate browser/device test
+
+`/notifications/test.html` is an isolated no-index test surface for validating notification support before remote Web Push is activated.
+
+It does not contact the push backend or subscribe the browser. After an explicit button press it:
+- verifies HTTPS / secure context;
+- verifies Notifications API;
+- verifies the root IPCDJ service worker;
+- reports whether PushManager is available;
+- requests notification permission only from that deliberate click;
+- calls `ServiceWorkerRegistration.showNotification()` using the production IPCDJ icon;
+- writes the production-style click target into notification data so the real `notificationclick` handler opens/focuses IPCDJ Worship.
+
+This proves the browser-side notification surface and click routing. It does **not** prove remote server-to-browser delivery; that requires the Worker/VAPID backend and a real PushSubscription.
+
 ## Manual notifications
 
 `/notifications/admin.html` is an unlinked, no-index admin console.
