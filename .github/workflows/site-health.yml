@@ -54,6 +54,18 @@ jobs:
           node --check ../notifications/scripts/sync-catalog.mjs
           node ../notifications/scripts/export-catalog.mjs > /tmp/ipcdj-notification-catalog.json
           node -e "const x=require('/tmp/ipcdj-notification-catalog.json'); if(!Array.isArray(x.songs)||!x.songs.length) process.exit(1)"
+          node -e "const p=require('../notifications/worker/package.json'); if(!p.scripts['db:local'].includes('d1 execute DB')||!p.scripts['db:remote'].includes('d1 execute DB')) process.exit(1)"
+          python3 - <<'PY'
+          import sqlite3, pathlib
+          schema=pathlib.Path('../notifications/worker/schema.sql').read_text()
+          con=sqlite3.connect(':memory:')
+          con.executescript(schema)
+          expected={'subscriptions','songs','notification_events','deliveries'}
+          tables={r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+          missing=expected-tables
+          if missing:
+              raise SystemExit(f"Missing D1 tables: {sorted(missing)}")
+          PY
 
       - name: Install health test dependencies
         run: npm install --no-audit --no-fund
