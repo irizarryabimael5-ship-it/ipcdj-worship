@@ -8,7 +8,7 @@ const STATIC_ASSETS = [
   "./favicon.ico",
   "./apple-touch-icon.png",
   "./app-icon-safe.svg",
-  "./icon-192.png",
+  "./icon-512.png",
   "./icon-512.png",
   "./spotify.svg",
   "./apple-music.svg",
@@ -200,8 +200,8 @@ self.addEventListener("push",event=>{
       : {
           title:String(raw?.title||"IPCDJ Worship"),
           body:String(raw?.body||""),
-          icon:String(raw?.icon||"./icon-192.png?v=9"),
-          badge:String(raw?.badge||"./favicon-32.png?v=8"),
+          icon:String(raw?.icon||"./icon-512.png?v=9"),
+          badge:String(raw?.badge||"./icon-192.png?v=9"),
           tag:String(raw?.tag||raw?.eventKey||"ipcdj-worship"),
           timestamp:Number(raw?.timestamp)||Date.now(),
           url:String(raw?.url||"./")
