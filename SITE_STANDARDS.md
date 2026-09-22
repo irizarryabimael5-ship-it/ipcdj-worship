@@ -2998,3 +2998,45 @@ Watchdog:
 - Site-health validates notification planner unit tests, late/stale suppression, DST scheduling, deterministic varied wording, JS syntax, canonical catalog export, production notification assets, service-worker push/click handlers, and the no-auto-prompt invariant.
 - The normal seven-profile Playwright matrix continues protecting Chromium desktop, Firefox desktop, WebKit desktop, Chromium mobile, WebKit mobile, compact WebKit mobile and WebKit tablet.
 - Notification catalog synchronization is downstream of a completed successful website-health run, so an unverified website commit cannot become the authoritative push schedule.
+
+
+## Notification production-readiness hardening v166
+
+Scope:
+- v166 preserves the v164/v165 autonomous Web Push architecture while hardening artwork quality, first-time Cloudflare/D1 bootstrap, delivery truthfulness, and ongoing backend health monitoring.
+- Public notification activation remains gated by `notifications/config.json` and stays disabled until the Worker/D1/VAPID/admin configuration is actually live.
+
+Notification artwork:
+- Visible Web Push icon must use `icon-512.png` for high-quality OS/browser downsampling.
+- Badge fallback uses the IPCDJ `icon-192.png` asset rather than a tiny favicon raster.
+- `app-icon-safe.svg` remains the vector master for IPCDJ app artwork.
+- Do not downgrade notification icon payloads back to 192px or favicon-sized sources without a platform-specific reason.
+
+Browser test:
+- `/notifications/test.html` is the canonical isolated real-device browser test.
+- It verifies secure context, Notifications API, service worker, PushManager, current permission, and public backend readiness.
+- It requests permission only from the explicit test button and uses the production root service worker plus production notification artwork/click routing.
+- It proves local browser/system notification presentation but does not by itself prove remote server-to-browser Web Push.
+
+Cloudflare/D1 bootstrap:
+- Do not commit fake, blank, or placeholder D1 database ids into `wrangler.jsonc`.
+- Initial production setup must run `npm run db:create`; Wrangler creates `ipcdj-worship-push`, binds it as `DB`, and writes the real database id into the local config.
+- Only after that binding exists may `npm run db:remote` apply `schema.sql`.
+- D1 helper scripts must target binding `DB`.
+- `npm run credentials:generate` generates one P-256 VAPID keypair plus a 256-bit ADMIN_TOKEN locally and must not persist those credentials into GitHub.
+
+Backend truthfulness:
+- `/health` must expose whether Worker configuration is actually complete.
+- `/v1/config` must report enabled only when required VAPID material is present.
+- Notification event terminal states distinguish `sent`, `partial`, and `failed`; do not report a completely failed fanout as sent.
+- Admin health displays active subscriptions, pending events, sent events, partial events, and failed events.
+
+Backend watchdog:
+- `.github/workflows/notification-backend-health.yml` is the remote Web Push watchdog.
+- While public notifications are disabled, it exits successfully without contacting the dormant backend.
+- Once enabled, it verifies remote /health, /v1/config, configured=true, VAPID public key presence, America/New_York timezone, and CORS permission for https://worship.ipcdj.org.
+- Failures open/update a dedicated IPCDJ Notification Backend Health Alert; recovery closes it.
+- Main website-health validation also executes the D1 schema in an in-memory SQLite database, verifies required tables, verifies D1 helper binding names, validates credential generation, and keeps the full seven-profile browser matrix.
+
+Watchdog disposition:
+- FEATURE_COVERAGE_ADDED.
