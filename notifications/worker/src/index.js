@@ -281,8 +281,24 @@ async function dispatchDue(env){
     ).bind(event.event_key,MAX_ATTEMPTS).first();
 
     if(Number(remaining?.n||0)===0){
-      await env.DB.prepare("UPDATE notification_events SET status='sent',sent_at=? WHERE event_key=?")
-        .bind(new Date().toISOString(),event.event_key).run();
+      const summary=await env.DB.prepare(
+        "SELECT "+
+        "SUM(CASE WHEN status='sent' THEN 1 ELSE 0 END) AS sent_n,"+
+        "SUM(CASE WHEN status='gone' THEN 1 ELSE 0 END) AS gone_n,"+
+        "SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END) AS failed_n,"+
+        "COUNT(*) AS total_n "+
+        "FROM deliveries WHERE event_key=?"
+      ).bind(event.event_key).first();
+      const sentN=Number(summary?.sent_n||0);
+      const goneN=Number(summary?.gone_n||0);
+      const failedN=Number(summary?.failed_n||0);
+      const totalN=Number(summary?.total_n||0);
+      const finalStatus=(
+        failedN===0 ? 'sent' :
+        (sentN+goneN>0 ? 'partial' : 'failed')
+      );
+      await env.DB.prepare("UPDATE notification_events SET status=?,sent_at=? WHERE event_key=?")
+        .bind(finalStatus,new Date().toISOString(),event.event_key).run();
     }
     if(deliveriesProcessed>=maxDeliveries)break;
   }
@@ -297,11 +313,15 @@ async function adminHealth(request,env){
   const subscriptions=await env.DB.prepare('SELECT COUNT(*) AS n FROM subscriptions WHERE enabled=1').first();
   const pending=await env.DB.prepare("SELECT COUNT(*) AS n FROM notification_events WHERE status IN ('pending','sending')").first();
   const sent=await env.DB.prepare("SELECT COUNT(*) AS n FROM notification_events WHERE status='sent'").first();
+  const partial=await env.DB.prepare("SELECT COUNT(*) AS n FROM notification_events WHERE status='partial'").first();
+  const failed=await env.DB.prepare("SELECT COUNT(*) AS n FROM notification_events WHERE status='failed'").first();
   return json({
     ok:true,
     subscriptions:Number(subscriptions?.n||0),
     pending:Number(pending?.n||0),
-    sent:Number(sent?.n||0)
+    sent:Number(sent?.n||0),
+    partial:Number(partial?.n||0),
+    failed:Number(failed?.n||0)
   },200,headers);
 }
 
@@ -311,14 +331,18 @@ export default {
     const origin=request.headers.get('origin')||'';
     if(request.method==='OPTIONS')return new Response(null,{status:204,headers:cors(origin,env)});
     if(url.pathname==='/v1/config'&&request.method==='GET'){
-      return json({enabled:true,vapidPublicKey:env.VAPID_PUBLIC_KEY,timezone:'America/New_York'},200,cors(origin,env));
+      const configured=!!(env.VAPID_PUBLIC_KEY&&env.VAPID_PRIVATE_KEY&&env.VAPID_SUBJECT);
+      return json({enabled:configured,vapidPublicKey:configured?env.VAPID_PUBLIC_KEY:'',timezone:'America/New_York'},200,cors(origin,env));
     }
     if(url.pathname==='/v1/subscriptions'&&request.method==='POST')return upsertSubscription(request,env);
     if(url.pathname==='/v1/subscriptions'&&request.method==='DELETE')return deleteSubscription(request,env);
     if(url.pathname==='/v1/admin/catalog/sync'&&request.method==='POST')return syncCatalog(request,env);
     if(url.pathname==='/v1/admin/send'&&request.method==='POST')return manualSend(request,env);
     if(url.pathname==='/v1/admin/health'&&request.method==='GET')return adminHealth(request,env);
-    if(url.pathname==='/health')return json({ok:true,service:'ipcdj-worship-push'});
+    if(url.pathname==='/health'){
+      const configured=!!(env.VAPID_PUBLIC_KEY&&env.VAPID_PRIVATE_KEY&&env.VAPID_SUBJECT&&env.ADMIN_TOKEN&&env.DB);
+      return json({ok:true,configured,service:'ipcdj-worship-push'});
+    }
     return json({error:'not-found'},404);
   },
   async scheduled(_controller,env,ctx){
