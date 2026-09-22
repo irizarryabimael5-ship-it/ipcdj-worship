@@ -194,15 +194,21 @@ async function pushOne(env,event,delivery){
   if(!sub)return;
 
   const payload={
+    version:1,
+    id:event.event_key,
+    type:event.kind,
     title:event.title,
     body:event.body,
     url:event.url,
     tag:event.tag,
-    eventKey:event.event_key,
-    songId:event.song_id||null,
     icon:'/icon-192.png?v=9',
     badge:'/favicon-32.png?v=8',
-    timestamp:Date.parse(event.scheduled_at)
+    timestamp:Date.parse(event.scheduled_at),
+    data:{
+      eventKey:event.event_key,
+      songId:event.song_id||null,
+      source:event.source
+    }
   };
   const subscription={endpoint:sub.endpoint,expirationTime:null,keys:{p256dh:sub.p256dh,auth:sub.auth}};
   const vapid={subject:env.VAPID_SUBJECT,publicKey:env.VAPID_PUBLIC_KEY,privateKey:env.VAPID_PRIVATE_KEY};
