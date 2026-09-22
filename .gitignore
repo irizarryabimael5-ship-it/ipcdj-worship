@@ -1,0 +1,5 @@
+.DS_Store
+node_modules/
+notifications/worker/.push-credentials.local.json
+notifications/worker/.dev.vars
+notifications/worker/.env
