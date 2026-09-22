@@ -1,6 +1,8 @@
 name: IPCDJ Notification Backend Health
 
 on:
+  push:
+    branches: [main]
   schedule:
     - cron: '37 * * * *'
   workflow_dispatch:
