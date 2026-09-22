@@ -1,6 +1,6 @@
 # IPCDJ Worship — Notification Platform
 
-Status: **v164 implemented, runtime-gated until the push backend is provisioned.**
+Status: **v166 implemented and browser-tested, runtime-gated until the push backend is provisioned.**
 
 The website, service worker, autonomous planner, browser subscription client, manual sender, D1 schema, Cloudflare Worker sender, cron dispatcher, catalog-sync workflow, and watchdog coverage are all present in this repository.
 
@@ -70,7 +70,7 @@ When enabled:
 - denying notifications does not affect any other website feature;
 - users can unsubscribe from the same control.
 
-The notification icon uses IPCDJ's existing white-background/black-logo app artwork. The push payload uses `icon-192.png`; the manifest continues to use the same icon family.
+The notification icon uses IPCDJ's white-background/black-logo app artwork. The visible notification icon uses the 512×512 PNG source for high-quality OS downsampling; the badge fallback uses the 192×192 IPCDJ asset. The vector SVG remains the master artwork.
 
 ## Immediate browser/device test
 
@@ -123,22 +123,14 @@ From `notifications/worker`:
 
 ```bash
 npm install
-npx wrangler d1 create ipcdj-worship-push
-```
-
-Put the returned D1 database ID into `wrangler.jsonc`, then apply the schema:
-
-```bash
+npm run db:create
 npm run db:remote
+npm run credentials:generate
 ```
 
-Generate one VAPID keypair offline:
+`db:create` asks Wrangler to create `ipcdj-worship-push` with binding `DB` and update `wrangler.jsonc` with the returned database id. `credentials:generate` produces one VAPID keypair plus a 256-bit admin token locally; it does not save them to the repository.
 
-```bash
-npx web-push generate-vapid-keys --json
-```
-
-Store these three values as Worker secrets:
+Store the three generated values as Worker secrets:
 
 ```bash
 npx wrangler secret put VAPID_PUBLIC_KEY
@@ -192,6 +184,9 @@ Push click destinations are restricted to IPCDJ same-origin paths.
 
 The normal site-health workflow now validates:
 - planner unit tests;
+- D1 schema execution and required tables;
+- D1 helper scripts target the real `DB` binding;
+- offline VAPID/admin credential generation;
 - stale-reminder prevention;
 - DST-aware scheduling;
 - short/deterministic human wording;
