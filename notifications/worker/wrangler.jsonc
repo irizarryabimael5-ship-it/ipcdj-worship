@@ -12,5 +12,12 @@
     "SITE_ORIGIN": "https://worship.ipcdj.org",
     "VAPID_SUBJECT": "https://worship.ipcdj.org/",
     "DELIVERY_BATCH_SIZE": "8"
+  },
+  "secrets": {
+    "required": [
+      "VAPID_PUBLIC_KEY",
+      "VAPID_PRIVATE_KEY",
+      "ADMIN_TOKEN"
+    ]
   }
 }
