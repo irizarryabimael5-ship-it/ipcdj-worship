@@ -125,24 +125,15 @@ From `notifications/worker`:
 npm install
 npm run db:create
 npm run db:remote
-npm run credentials:generate
+npm run credentials:generate > .push-credentials.local.json
+npx wrangler deploy --secrets-file .push-credentials.local.json
 ```
 
-`db:create` asks Wrangler to create `ipcdj-worship-push` with binding `DB` and update `wrangler.jsonc` with the returned database id. `credentials:generate` produces one VAPID keypair plus a 256-bit admin token locally; it does not save them to the repository.
+`db:create` asks Wrangler to create `ipcdj-worship-push` with binding `DB` and update `wrangler.jsonc` with the returned database id. `credentials:generate` produces one VAPID keypair plus a 256-bit admin token locally.
 
-Store the three generated values as Worker secrets:
+`.push-credentials.local.json` is explicitly gitignored. The first production deploy uploads all three required Worker secrets atomically with the code using Cloudflare's `--secrets-file` support, avoiding a partially configured Worker.
 
-```bash
-npx wrangler secret put VAPID_PUBLIC_KEY
-npx wrangler secret put VAPID_PRIVATE_KEY
-npx wrangler secret put ADMIN_TOKEN
-```
-
-Deploy:
-
-```bash
-npm run deploy
-```
+Do not paste the contents of that file into chat or commit it. Keep it only long enough to copy `ADMIN_TOKEN` into the GitHub Actions secret, then delete the local file.
 
 Then connect the Worker to the Custom Domain `push.worship.ipcdj.org`.
 
