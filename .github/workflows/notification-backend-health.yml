@@ -1,0 +1,80 @@
+name: IPCDJ Notification Backend Health
+
+on:
+  schedule:
+    - cron: '37 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  backend-health:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Determine activation state
+        id: state
+        shell: bash
+        run: |
+          ENABLED="$(node -e "const c=require('./notifications/config.json'); process.stdout.write(c.enabled?'true':'false')")"
+          echo "enabled=$ENABLED" >> "$GITHUB_OUTPUT"
+
+      - name: Remote backend smoke test
+        if: steps.state.outputs.enabled == 'true'
+        env:
+          IPCDJ_PUSH_API_ORIGIN: ${{ vars.IPCDJ_PUSH_API_ORIGIN }}
+        run: node notifications/scripts/backend-smoke.mjs
+
+      - name: Backend dormant
+        if: steps.state.outputs.enabled != 'true'
+        run: echo "Notification backend health check skipped because public notifications are disabled."
+
+      - name: Open or update backend alert
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title='IPCDJ Notification Backend Health Alert';
+            const runUrl=`${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body=`Remote Web Push backend health failed.\n\nRun: ${runUrl}\nCommit: ${context.sha}`;
+            const {data:issues}=await github.rest.issues.listForRepo({
+              owner:context.repo.owner,repo:context.repo.repo,state:'open',per_page:100
+            });
+            const existing=issues.find(i=>!i.pull_request&&i.title===title);
+            if(existing){
+              await github.rest.issues.createComment({
+                owner:context.repo.owner,repo:context.repo.repo,issue_number:existing.number,body
+              });
+            }else{
+              await github.rest.issues.create({
+                owner:context.repo.owner,repo:context.repo.repo,title,body
+              });
+            }
+
+      - name: Close recovered backend alert
+        if: success() && steps.state.outputs.enabled == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title='IPCDJ Notification Backend Health Alert';
+            const {data:issues}=await github.rest.issues.listForRepo({
+              owner:context.repo.owner,repo:context.repo.repo,state:'open',per_page:100
+            });
+            const existing=issues.find(i=>!i.pull_request&&i.title===title);
+            if(!existing)return;
+            await github.rest.issues.createComment({
+              owner:context.repo.owner,repo:context.repo.repo,issue_number:existing.number,
+              body:'Recovered: remote Web Push backend health is passing again.'
+            });
+            await github.rest.issues.update({
+              owner:context.repo.owner,repo:context.repo.repo,issue_number:existing.number,state:'closed'
+            });
