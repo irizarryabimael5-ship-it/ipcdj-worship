@@ -1,7 +1,7 @@
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 
-const api=(process.env.IPCDJ_PUSH_API_ORIGIN||'https://push.worship.ipcdj.org').replace(/\\/$/,'');
+const api=(process.env.IPCDJ_PUSH_API_ORIGIN||'https://push.worship.ipcdj.org').replace(/\/$/,'');
 const token=process.env.IPCDJ_PUSH_ADMIN_TOKEN||'';
 if(!token){
   console.log('IPCDJ_PUSH_ADMIN_TOKEN is not configured; notification catalog sync skipped safely.');
