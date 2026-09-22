@@ -1,6 +1,6 @@
 // IPCDJ Worship service-worker notification helpers.
-// DORMANT: sw.js does not import this file yet. Defining these helpers has no
-// effect until future push handlers explicitly load/use this file.
+// Active helper layer imported by the root IPCDJ service worker.
+// Keep payload normalization and same-origin click routing generic and song-agnostic.
 (function(globalScope){
   "use strict";
 
@@ -34,7 +34,7 @@
       tag: asString(payload.tag, asString(payload.id)),
       url: safeSameOriginPath(payload.url),
       icon: safeSameOriginPath(payload.icon || "./icon-512.png"),
-      badge: safeSameOriginPath(payload.badge || "./icon-512.png"),
+      badge: safeSameOriginPath(payload.badge || "./icon-192.png"),
       timestamp: Number(payload.timestamp) || Date.now(),
       expiresAt: Number(payload.expiresAt) || null,
       renotify: payload.renotify === true,
