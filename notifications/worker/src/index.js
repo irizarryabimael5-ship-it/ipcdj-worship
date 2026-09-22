@@ -201,8 +201,8 @@ async function pushOne(env,event,delivery){
     body:event.body,
     url:event.url,
     tag:event.tag,
-    icon:'/icon-192.png?v=9',
-    badge:'/favicon-32.png?v=8',
+    icon:'/icon-512.png?v=9',
+    badge:'/icon-192.png?v=9',
     timestamp:Date.parse(event.scheduled_at),
     data:{
       eventKey:event.event_key,
