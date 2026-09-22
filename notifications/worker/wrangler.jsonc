@@ -19,5 +19,12 @@
       "VAPID_PRIVATE_KEY",
       "ADMIN_TOKEN"
     ]
-  }
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ipcdj-worship-push",
+      "database_id": "e474b5be-f2a9-4c19-8756-f1adb0a5ef6a"
+    }
+  ]
 }
