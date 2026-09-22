@@ -7,7 +7,8 @@
     "deploy": "wrangler deploy",
     "db:local": "wrangler d1 execute DB --local --file=./schema.sql --yes",
     "db:remote": "wrangler d1 execute DB --remote --file=./schema.sql --yes",
-    "db:create": "wrangler d1 create ipcdj-worship-push --binding DB --update-config"
+    "db:create": "wrangler d1 create ipcdj-worship-push --binding DB --update-config",
+    "credentials:generate": "node scripts/generate-credentials.mjs"
   },
   "dependencies": {
     "@block65/webcrypto-web-push": "2.0.0"
