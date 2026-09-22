@@ -35,7 +35,7 @@
       if(response.status===401)throw new Error('Token incorrecto.');
       if(!response.ok)throw new Error('Backend no disponible ('+response.status+').');
       const data=await response.json();
-      message(health,'Activos: '+data.subscriptions+' · Pendientes: '+data.pending+' · Enviados: '+data.sent,'ok');
+      message(health,'Activos: '+data.subscriptions+' · Pendientes: '+data.pending+' · Enviados: '+data.sent+' · Parciales: '+(data.partial||0)+' · Fallidos: '+(data.failed||0),'ok');
     }catch(error){
       message(health,String(error?.message||error),'error');
     }
