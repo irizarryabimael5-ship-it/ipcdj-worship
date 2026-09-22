@@ -50,6 +50,9 @@ jobs:
           node --check ../notifications/ui.js
           node --check ../notifications/sw-foundation.js
           node --check ../notifications/worker/src/index.js
+          node --check ../notifications/worker/scripts/generate-credentials.mjs
+          node ../notifications/worker/scripts/generate-credentials.mjs > /tmp/ipcdj-push-credentials.json
+          node -e "const x=require('/tmp/ipcdj-push-credentials.json'); if(!x.VAPID_PUBLIC_KEY||!x.VAPID_PRIVATE_KEY||!x.ADMIN_TOKEN) process.exit(1)"
           node --check ../notifications/scripts/export-catalog.mjs
           node --check ../notifications/scripts/sync-catalog.mjs
           node ../notifications/scripts/export-catalog.mjs > /tmp/ipcdj-notification-catalog.json
