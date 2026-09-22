@@ -91,8 +91,9 @@
     state('notifications','Notification' in window?'Disponible':'No disponible','Notification' in window?'good':'bad');
     state('worker','serviceWorker' in navigator?'Disponible':'No disponible','serviceWorker' in navigator?'good':'bad');
     state('push','PushManager' in window?'Disponible':'No disponible','PushManager' in window?'good':'warn');
-    state('permission','Notification' in window?Notification.permission:'unsupported',
-      Notification.permission==='granted'?'good':Notification.permission==='denied'?'bad':'warn');
+    const permission=('Notification' in window)?Notification.permission:'unsupported';
+    state('permission',permission,
+      permission==='granted'?'good':permission==='denied'?'bad':'warn');
 
     if('serviceWorker' in navigator){
       try{
