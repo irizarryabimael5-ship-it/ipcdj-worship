@@ -906,6 +906,7 @@ test('notification shell is safe, opt-in only and service-worker ready', async (
   expect(swSource).toContain('addEventListener("notificationclick"');
   expect(swSource).toContain('showNotification');
   expect(swSource).toContain('notifications/sw-foundation.js');
+  expect(swSource).toContain('icon-512.png');
 
   await openHealthyPage(page);
   const permissionBefore=await page.evaluate(() => (
@@ -936,6 +937,8 @@ test('desktop notification test page is deployed and never auto-prompts', async 
   expect(source).toContain("Notification.requestPermission()");
   expect(source).toContain("data:{");
   expect(source).toContain("url:'/?notification-test=success'");
+  expect(source).toContain("../icon-512.png?v=9");
+  expect(source).toContain('Backend IPCDJ remoto');
 
   await page.goto('/notifications/test.html?healthcheck='+nonce,{waitUntil:'domcontentloaded'});
   const before=await page.evaluate(() => ('Notification' in window ? Notification.permission : 'unsupported'));
