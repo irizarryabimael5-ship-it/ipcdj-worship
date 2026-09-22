@@ -5,8 +5,9 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "db:local": "wrangler d1 execute IPCDJ_PUSH_DB --local --file=./schema.sql",
-    "db:remote": "wrangler d1 execute IPCDJ_PUSH_DB --remote --file=./schema.sql"
+    "db:local": "wrangler d1 execute DB --local --file=./schema.sql --yes",
+    "db:remote": "wrangler d1 execute DB --remote --file=./schema.sql --yes",
+    "db:create": "wrangler d1 create ipcdj-worship-push --binding DB --update-config"
   },
   "dependencies": {
     "@block65/webcrypto-web-push": "2.0.0"
