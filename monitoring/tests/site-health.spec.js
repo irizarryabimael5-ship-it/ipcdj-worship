@@ -952,26 +952,47 @@ test('desktop notification test page is deployed and never auto-prompts', async 
 
 test('social share preview is crawler-ready', async ({ page, request }) => {
   const nonce=Date.now();
-  const [htmlResponse,imageResponse]=await Promise.all([
-    request.get('/?social-health='+nonce,{headers:{'cache-control':'no-cache'}}),
-    request.get('/social-preview.png?social-health='+nonce,{headers:{'cache-control':'no-cache'}})
-  ]);
-  expect(htmlResponse.ok()).toBe(true);
-  expect(imageResponse.ok()).toBe(true);
-  expect((imageResponse.headers()['content-type']||'')).toMatch(/^image\/png/);
-  const imageBytes=await imageResponse.body();
-  expect(imageBytes.length).toBeGreaterThan(5000);
-  expect(imageBytes.length).toBeLessThan(300000);
+  const crawlers=[
+    'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+    'WhatsApp/2.25.25.85 A'
+  ];
 
-  const html=await htmlResponse.text();
-  expect(html).toContain('property="og:site_name" content="IPCDJ Worship"');
-  expect(html).toContain('property="og:image" content="https://worship.ipcdj.org/social-preview.png?v=167"');
-  expect(html).toContain('property="og:image:secure_url" content="https://worship.ipcdj.org/social-preview.png?v=167"');
-  expect(html).toContain('property="og:image:type" content="image/png"');
-  expect(html).toContain('property="og:image:width" content="1200"');
-  expect(html).toContain('property="og:image:height" content="630"');
-  expect(html).toContain('name="twitter:card" content="summary_large_image"');
+  for(const userAgent of crawlers){
+    const [htmlResponse,imageResponse,robotsResponse]=await Promise.all([
+      request.get('/?social-health='+nonce,{headers:{'cache-control':'no-cache','user-agent':userAgent}}),
+      request.get('/social-preview.png?social-health='+nonce,{headers:{'cache-control':'no-cache','user-agent':userAgent}}),
+      request.get('/robots.txt?social-health='+nonce,{headers:{'cache-control':'no-cache','user-agent':userAgent}})
+    ]);
+    expect(htmlResponse.ok()).toBe(true);
+    expect(imageResponse.ok()).toBe(true);
+    expect(robotsResponse.ok()).toBe(true);
+    expect((imageResponse.headers()['content-type']||'')).toMatch(/^image\/png/);
+
+    const imageBytes=await imageResponse.body();
+    expect(imageBytes.length).toBeGreaterThan(5000);
+    expect(imageBytes.length).toBeLessThan(300000);
+
+    const html=await htmlResponse.text();
+    const ogIndex=html.indexOf('property="og:title"');
+    expect(ogIndex).toBeGreaterThan(0);
+    expect(ogIndex).toBeLessThan(2500);
+    expect(html).toContain('prefix="og: https://ogp.me/ns#"');
+    expect(html).toContain('property="og:site_name" content="IPCDJ Worship"');
+    expect(html).toContain('property="og:image" content="https://worship.ipcdj.org/social-preview.png"');
+    expect(html).toContain('property="og:image:url" content="https://worship.ipcdj.org/social-preview.png"');
+    expect(html).toContain('property="og:image:secure_url" content="https://worship.ipcdj.org/social-preview.png"');
+    expect(html).toContain('property="og:image:type" content="image/png"');
+    expect(html).toContain('property="og:image:width" content="1200"');
+    expect(html).toContain('property="og:image:height" content="630"');
+    expect(html).toContain('rel="image_src" href="https://worship.ipcdj.org/social-preview.png"');
+    expect(html).toContain('itemprop="image" content="https://worship.ipcdj.org/social-preview.png"');
+    expect(html).toContain('name="twitter:card" content="summary_large_image"');
+
+    const robots=await robotsResponse.text();
+    expect(robots).toContain('User-agent: facebookexternalhit');
+    expect(robots).toContain('User-agent: meta-externalagent');
+  }
 
   await page.goto('/?social-health='+nonce,{waitUntil:'domcontentloaded'});
-  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content','https://worship.ipcdj.org/social-preview.png?v=167');
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content','https://worship.ipcdj.org/social-preview.png');
 });
