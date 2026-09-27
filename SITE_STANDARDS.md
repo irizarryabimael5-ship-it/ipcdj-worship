@@ -3096,3 +3096,16 @@ Watchdog:
   - visible overlap between both systems so the release state feels richer without changing the identity of the release green.
 - The card outer shadow may include both `--stage-glow` and cover-color glows, but each source retains its role.
 - Watchdog coverage must confirm the computed release UI resolves to the semantic release green while the computed aura remains cover-palette-only.
+
+
+## Estreno contrast and glass clarity v172
+
+- Release-day emphasis must remain vivid, but typography and UI surfaces must read cleanly over the amplified artwork atmosphere.
+- Preserve the v171 role separation:
+  - semantic release green from `--stage-*` variables;
+  - atmospheric background bloom from `--cover-c1`, `--cover-c2`, and `--cover-c3`.
+- Add contrast through controlled dark glass and a restrained release-only readability veil, not by desaturating the cover palette or removing the green.
+- Release title/status/banner/timeline text should use crisper white/near-white values with a strong dark shadow plus a smaller semantic glow; avoid excessive colored text haze.
+- Release banner, status pill, and active Estreno timeline item may use moderate backdrop blur and darker translucent glass to preserve legibility while the background remains luminous.
+- The release artwork can remain saturated, but its brightness/opacity should be tuned so highlights do not wash out the foreground.
+- Watchdog coverage must retain the release-color separation checks and additionally verify the v172 readability veil and dark-glass contrast treatment remain present.
