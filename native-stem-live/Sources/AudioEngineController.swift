@@ -71,6 +71,7 @@ final class AudioEngineController: ObservableObject {
     private var loopJumpPending = false
     private var loopingActive = false
     private var transportRunning = false
+    private var transportGeneration = 0
     private var pausedPosition: Double = 0
 
     init() {
@@ -338,6 +339,7 @@ final class AudioEngineController: ObservableObject {
         anchorHost = startHost
         anchorOffset = offset
         pausedPosition = offset
+        transportGeneration &+= 1
         transportRunning = true
         loopJumpPending = false
         nextClickIndex = 0
@@ -356,6 +358,7 @@ final class AudioEngineController: ObservableObject {
         guard transportRunning else { return }
         let t = transportPosition()
         pausedPosition = t
+        transportGeneration &+= 1
         transportRunning = false
         cancelGainRamp(resetGain: true)
         for player in players.values { player.pause() }
@@ -424,6 +427,7 @@ final class AudioEngineController: ObservableObject {
         defer { graphLock.unlock() }
         let t = immediate ? 0 : transportPosition()
         pausedPosition = t
+        transportGeneration &+= 1
         transportRunning = false
         fadeStopWorkItem?.cancel()
         fadeStopWorkItem = nil
@@ -498,6 +502,7 @@ final class AudioEngineController: ObservableObject {
             let t = self.transportPosition()
             let song = self.activeSong
             let duration = song?.duration ?? 0
+            let generation = self.transportGeneration
             var loopTarget: Double?
 
             if self.loopingActive, let song {
@@ -518,7 +523,12 @@ final class AudioEngineController: ObservableObject {
 
             if let loopTarget, let song {
                 DispatchQueue.main.async {
-                    self.seek(song: song, to: loopTarget, smooth: false)
+                    self.graphLock.lock()
+                    let valid = self.transportRunning && self.transportGeneration == generation
+                    self.graphLock.unlock()
+                    if valid {
+                        self.seek(song: song, to: loopTarget, smooth: false)
+                    }
                 }
                 return
             }
@@ -864,6 +874,7 @@ final class AudioEngineController: ObservableObject {
         graphLock.lock()
         defer { graphLock.unlock() }
         guard !isRecoveringConfiguration else { return }
+        guard activeSong?.id == song.id else { return }
         isRecoveringConfiguration = true
         defer { isRecoveringConfiguration = false }
 
