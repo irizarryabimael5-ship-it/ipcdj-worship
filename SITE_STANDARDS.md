@@ -3209,3 +3209,34 @@ Watchdog:
 - Open Graph and Twitter metadata use the same absolute HTTPS JPEG URL and declare image type/width/height/alt.
 - `.github/workflows/social-preview.yml` regenerates the snapshot when the index, generator, or workflow changes and commits only the generated JPEG; the bot-generated JPEG commit does not recursively trigger another render.
 - Watchdog must fetch the preview as a Meta-style crawler and verify HTTP success, JPEG MIME, file-size bounds, and matching Open Graph metadata.
+
+
+## Final lifecycle/platform/social hardening v178
+
+### Released typography
+- Completed release UI uses the exact display title `ESTRENO COMPLETADO`.
+- `.current.phase-released .post-release-title` enforces uppercase with restrained positive tracking for a clean completed-state hierarchy.
+
+### Lifecycle contract
+- The managed catalog remains the single source of truth for `Después → active preparation → HOY · ESTRENO → ESTRENADO → Introducciones recientes`.
+- `activeFrom` controls automatic promotion from Después into the current preparation card.
+- `releaseDayStartAt` enters the release-day lifecycle.
+- `releaseAt + 30 minutes` settles the song into `ESTRENADO`.
+- `introducedAt` / rollover lifecycle moves the completed song into Introducciones recientes.
+- Watchdog coverage must exercise all boundary crossings, duplicate-node prevention, horizontal overflow prevention, repeated render stress, and bounded DOM growth.
+
+### Platform-wide visual consistency
+- IPCDJ authored CSS color remains sRGB-first for predictable Chrome/Firefox/WebKit rendering.
+- Do not silently substitute Display-P3 authored CSS values for the main UI palette; wide-gamut devices may display sRGB differently according to their calibrated output, but the authored source remains deterministic.
+- Generated social raster media is explicitly tagged with an sRGB ICC profile.
+- Platform fallbacks for backdrop-filter, prefers-contrast, forced-colors, reduced-motion, and reduced-data remain watchdog-protected.
+- Seven watchdog projects remain required: Chromium desktop, Firefox desktop, WebKit desktop, Chromium mobile, WebKit mobile, compact WebKit mobile, and WebKit tablet.
+
+### WhatsApp/social preview
+- The Open Graph image is a browser-rendered capture of the real IPCDJ landing page, not a separately hand-drawn imitation.
+- The capture uses the live page hero/current-song runtime, real glass/card CSS, real artwork, and real lifecycle state.
+- Capture-only CSS may suppress the launch overlay, navigation, secondary lists, and timeline detail so the 1200×630 result remains simple and legible; it must not create a second visual design system.
+- Chromium capture is forced to sRGB, rendered at 2x device scale, downsampled to 1200×630, encoded as optimized JPEG, and tagged with an sRGB ICC profile.
+- The published Open Graph URL carries a version query to force social-crawler cache refresh after design changes.
+- Social-preview generation owns JPEG byte validation; website health owns exact `index.html` + `sw.js` deployment validation. Do not couple website health to the exact social-image hash because lifecycle snapshot generation may legitimately update that file.
+- When the social workflow commits a changed preview, it verifies the generated JPEG reaches the live domain and then dispatches the full website-health workflow against the final main-branch head.
