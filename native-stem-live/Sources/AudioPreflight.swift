@@ -84,7 +84,7 @@ struct AudioPreflightReport {
 
 enum AudioPreflight {
     static func inspect(song: SongProject, engineSampleRate: Double, outputChannels: Int) -> AudioPreflightReport {
-        let live = song.stems.filter { !$0.reference }
+        let live = song.stems.filter { $0.effectiveRoute == .music }
         var descriptors: [AudioSourceDescriptor] = []
         var firstError: String?
 
