@@ -3,8 +3,9 @@ import Foundation
 enum MediaLibrary {
     static var supportRoot: URL {
         let fm = FileManager.default
-        let root = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-            .appendingPathComponent("STEM Live Native", isDirectory: true)
+        let applicationSupport = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? fm.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support", isDirectory: true)
+        let root = applicationSupport.appendingPathComponent("STEM Live Native", isDirectory: true)
         try? fm.createDirectory(at: root, withIntermediateDirectories: true)
         return root
     }
@@ -42,6 +43,17 @@ enum MediaLibrary {
             try fm.removeItem(at: dest)
         }
         try fm.copyItem(at: source, to: dest)
+
+        let sourceSize = (try? fm.attributesOfItem(atPath: source.path)[.size] as? NSNumber)?.int64Value
+        let destSize = (try? fm.attributesOfItem(atPath: dest.path)[.size] as? NSNumber)?.int64Value
+        if let sourceSize, let destSize, sourceSize != destSize {
+            try? fm.removeItem(at: dest)
+            throw NSError(
+                domain: "STEMLive.MediaLibrary",
+                code: -31,
+                userInfo: [NSLocalizedDescriptionKey: "The managed stem copy did not verify correctly."]
+            )
+        }
         return dest
     }
 
