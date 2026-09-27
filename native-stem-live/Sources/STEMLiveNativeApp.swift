@@ -17,7 +17,7 @@ struct STEMLiveNativeApp: App {
                 .environmentObject(audio)
                 .frame(minWidth: 1180, minHeight: 720)
         }
-        .windowStyle(.hiddenTitleBar)
+        .windowStyle(.automatic)
         .commands {
             CommandGroup(replacing: .newItem) { }
         }
