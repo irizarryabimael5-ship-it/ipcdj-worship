@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v175" />
+  <meta name="ipcdj-build" content="persistent-launch-v176" />
   <title>IPCDJ Worship | Ministerio de Alabanza</title>
   <meta name="description" content="Próximas canciones, preparación y estrenos del Ministerio de Alabanza de IPCDJ." />
   <link rel="canonical" href="https://worship.ipcdj.org/" />
@@ -14,19 +14,19 @@
   <meta property="og:title" content="IPCDJ Worship | Ministerio de Alabanza" />
   <meta property="og:description" content="Próximas canciones, preparación y estrenos del Ministerio de Alabanza de IPCDJ." />
   <meta property="og:url" content="https://worship.ipcdj.org/" />
-  <meta property="og:image" content="https://worship.ipcdj.org/social-preview.png" />
-  <meta property="og:image:url" content="https://worship.ipcdj.org/social-preview.png" />
-  <meta property="og:image:secure_url" content="https://worship.ipcdj.org/social-preview.png" />
-  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image" content="https://worship.ipcdj.org/social-preview-v176.jpg" />
+  <meta property="og:image:url" content="https://worship.ipcdj.org/social-preview-v176.jpg" />
+  <meta property="og:image:secure_url" content="https://worship.ipcdj.org/social-preview-v176.jpg" />
+  <meta property="og:image:type" content="image/jpeg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:image:alt" content="IPCDJ Worship — Ministerio de Alabanza" />
-  <link rel="image_src" href="https://worship.ipcdj.org/social-preview.png" />
-  <meta itemprop="image" content="https://worship.ipcdj.org/social-preview.png" />
+  <link rel="image_src" href="https://worship.ipcdj.org/social-preview-v176.jpg" />
+  <meta itemprop="image" content="https://worship.ipcdj.org/social-preview-v176.jpg" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="IPCDJ Worship | Ministerio de Alabanza" />
   <meta name="twitter:description" content="Próximas canciones, preparación y estrenos del Ministerio de Alabanza de IPCDJ." />
-  <meta name="twitter:image" content="https://worship.ipcdj.org/social-preview.png" />
+  <meta name="twitter:image" content="https://worship.ipcdj.org/social-preview-v176.jpg" />
   <meta name="twitter:image:alt" content="IPCDJ Worship — Ministerio de Alabanza" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
@@ -96,6 +96,10 @@
       min-height:100%;
       margin:0;
       background-color:#000000;
+    }
+
+    html{
+      color-scheme:dark;
     }
 
     #ipcdj-launch{
@@ -3237,6 +3241,61 @@
 
     .preview-button svg{
       pointer-events:none;
+    }
+
+    /* v176 rendering invariants.
+       IPCDJ's authored palette stays in sRGB for predictable cross-platform color.
+       Glass blur is enhancement-only; every surface keeps an opaque-enough fallback. */
+    @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+      .card,
+      .playlist-card,
+      .song-row,
+      .current .countdown-wrap,
+      .current .progress-wrap,
+      .current .timeline-item,
+      .current.phase-release .status,
+      .current.phase-release .post-release-banner,
+      .current.phase-release .timeline-item.estreno.active-phase{
+        backdrop-filter:none!important;
+        -webkit-backdrop-filter:none!important;
+      }
+      .current.phase-release .status{background-color:rgba(5,9,12,.94)}
+      .current.phase-release .post-release-banner{background-color:rgba(6,10,15,.94)}
+      .current.phase-release .timeline-item.estreno.active-phase{background-color:rgba(5,9,14,.94)}
+    }
+
+    @media (prefers-contrast:more){
+      .card,
+      .playlist-card,
+      .song-row{border-color:rgba(255,255,255,.20)}
+      .current .status,
+      .current .post-release-banner,
+      .current .timeline-item{border-width:1.5px}
+      .section-note,
+      .artist,
+      .song-meta,
+      .post-release-note{color:#e0e6ef}
+    }
+
+    @media (forced-colors:active){
+      .ambient-wrap,
+      .release-aura,
+      .current::before,
+      .current::after,
+      .current .cover-detail,
+      .current .cover-edge-detail,
+      .current .cover-subject-detail{display:none!important}
+      .card,
+      .playlist-card,
+      .song-row,
+      .status,
+      .post-release-banner,
+      .timeline-item,
+      .platform{
+        forced-color-adjust:auto;
+        border:1px solid CanvasText!important;
+        box-shadow:none!important;
+      }
     }
 
   </style>
@@ -8006,7 +8065,7 @@
         );
       }else if(phase.key==="released"){
         setCardText(card,"post-release-kicker","ESTRENADO");
-        setCardText(card,"post-release-title","Estreno completado");
+        setCardText(card,"post-release-title","ESTRENO COMPLETADO");
         setCardText(card,"post-release-note","La canción ya fue presentada en el servicio de hoy.");
       }
 
