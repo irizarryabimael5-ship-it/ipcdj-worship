@@ -1,0 +1,82 @@
+name: Build STEM Live Native 0.6.0
+
+on:
+  push:
+    branches:
+      - stem-live-native-060
+    paths:
+      - 'native-stem-live/**'
+      - '.github/workflows/stem-live-native.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-14
+    defaults:
+      run:
+        working-directory: native-stem-live
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: stem-live-native-060
+
+      - name: Unpack source
+        run: unzip -q -o source.zip
+
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          swiftc --version
+
+      - name: Build Intel and Apple Silicon
+        run: |
+          set -euo pipefail
+          mkdir -p build/x86 build/arm build/app/'STEM Live Native.app'/Contents/MacOS build/app/'STEM Live Native.app'/Contents/Resources
+          SRC=(Sources/*.swift)
+          xcrun swiftc -O -whole-module-optimization \
+            -target x86_64-apple-macos13.0 \
+            -framework SwiftUI -framework AppKit -framework AVFoundation -framework Accelerate -framework QuartzCore \
+            "${SRC[@]}" -o build/x86/'STEM Live Native'
+          xcrun swiftc -O -whole-module-optimization \
+            -target arm64-apple-macos13.0 \
+            -framework SwiftUI -framework AppKit -framework AVFoundation -framework Accelerate -framework QuartzCore \
+            "${SRC[@]}" -o build/arm/'STEM Live Native'
+          lipo -create build/x86/'STEM Live Native' build/arm/'STEM Live Native' -output build/app/'STEM Live Native.app'/Contents/MacOS/'STEM Live Native'
+          cp Info.plist build/app/'STEM Live Native.app'/Contents/Info.plist
+          chmod +x build/app/'STEM Live Native.app'/Contents/MacOS/'STEM Live Native'
+          plutil -lint build/app/'STEM Live Native.app'/Contents/Info.plist
+          lipo -info build/app/'STEM Live Native.app'/Contents/MacOS/'STEM Live Native'
+
+      - name: Ad-hoc sign and verify app
+        run: |
+          set -euo pipefail
+          codesign --force --deep --sign - build/app/'STEM Live Native.app'
+          codesign --verify --deep --strict --verbose=2 build/app/'STEM Live Native.app'
+
+      - name: Build installer package
+        run: |
+          set -euo pipefail
+          pkgbuild \
+            --component build/app/'STEM Live Native.app' \
+            --install-location /Applications \
+            --identifier org.ipcdj.stemlive.nativepreview.pkg \
+            --version 0.6.0 \
+            build/STEM_Live_Native_0.6.0.pkg
+          xar -tf build/STEM_Live_Native_0.6.0.pkg
+          shasum -a 256 build/STEM_Live_Native_0.6.0.pkg | tee build/SHA256.txt
+          ditto -c -k --keepParent build/app/'STEM Live Native.app' build/STEM_Live_Native_0.6.0_App.zip
+          ditto -c -k build/STEM_Live_Native_0.6.0.pkg build/STEM_Live_Native_0.6.0_PKG.zip
+
+      - name: Upload native release
+        uses: actions/upload-artifact@v4
+        with:
+          name: STEM-Live-Native-0.6.0
+          path: |
+            native-stem-live/build/STEM_Live_Native_0.6.0.pkg
+            native-stem-live/build/STEM_Live_Native_0.6.0_PKG.zip
+            native-stem-live/build/STEM_Live_Native_0.6.0_App.zip
+            native-stem-live/build/SHA256.txt
+          if-no-files-found: error
