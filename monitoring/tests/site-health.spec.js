@@ -978,14 +978,14 @@ test('social share preview is crawler-ready', async ({ page, request }) => {
     expect(ogIndex).toBeLessThan(2500);
     expect(html).toContain('prefix="og: https://ogp.me/ns#"');
     expect(html).toContain('property="og:site_name" content="IPCDJ Worship"');
-    expect(html).toContain('property="og:image" content="https://worship.ipcdj.org/social-preview-v176.jpg?v=178"');
-    expect(html).toContain('property="og:image:url" content="https://worship.ipcdj.org/social-preview-v176.jpg?v=178"');
-    expect(html).toContain('property="og:image:secure_url" content="https://worship.ipcdj.org/social-preview-v176.jpg?v=178"');
+    expect(html).toContain('property="og:image" content="https://worship.ipcdj.org/social-preview-v176.jpg?v=179"');
+    expect(html).toContain('property="og:image:url" content="https://worship.ipcdj.org/social-preview-v176.jpg?v=179"');
+    expect(html).toContain('property="og:image:secure_url" content="https://worship.ipcdj.org/social-preview-v176.jpg?v=179"');
     expect(html).toContain('property="og:image:type" content="image/jpeg"');
     expect(html).toContain('property="og:image:width" content="1200"');
     expect(html).toContain('property="og:image:height" content="630"');
-    expect(html).toContain('rel="image_src" href="https://worship.ipcdj.org/social-preview-v176.jpg?v=178"');
-    expect(html).toContain('itemprop="image" content="https://worship.ipcdj.org/social-preview-v176.jpg?v=178"');
+    expect(html).toContain('rel="image_src" href="https://worship.ipcdj.org/social-preview-v176.jpg?v=179"');
+    expect(html).toContain('itemprop="image" content="https://worship.ipcdj.org/social-preview-v176.jpg?v=179"');
     expect(html).toContain('name="twitter:card" content="summary_large_image"');
 
     const robots=await robotsResponse.text();
@@ -994,7 +994,7 @@ test('social share preview is crawler-ready', async ({ page, request }) => {
   }
 
   await page.goto('/?social-health='+nonce,{waitUntil:'domcontentloaded'});
-  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content','https://worship.ipcdj.org/social-preview-v176.jpg');
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content','https://worship.ipcdj.org/social-preview-v176.jpg?v=179');
 });
 
 
@@ -1145,7 +1145,9 @@ test('release day amplifies the page ambient field from the song palette', async
       haloBackground:halo.backgroundImage,
       haloFilter:halo.filter||halo.webkitFilter,
       blobBackground:blobStyle?blobStyle.backgroundImage:'',
-      blobFilter:blobStyle?(blobStyle.filter||blobStyle.webkitFilter):''
+      blobFilter:blobStyle?(blobStyle.filter||blobStyle.webkitFilter):'',
+      reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches,
+      reducedData:matchMedia('(prefers-reduced-data: reduce)').matches
     };
 
     document.documentElement.classList.remove('ipcdj-ambient-release');
@@ -1154,8 +1156,10 @@ test('release day amplifies the page ambient field from the song palette', async
   });
 
   expect(visual).not.toBeNull();
-  expect(visual.fieldOpacity).toBeGreaterThan(.95);
-  expect(visual.haloOpacity).toBeGreaterThan(.8);
+  const ambientPreferenceFloor=visual.reducedData?.53:visual.reducedMotion?.59:.95;
+  const haloPreferenceFloor=visual.reducedData?.51:visual.reducedMotion?.57:.8;
+  expect(visual.fieldOpacity).toBeGreaterThan(ambientPreferenceFloor);
+  expect(visual.haloOpacity).toBeGreaterThan(haloPreferenceFloor);
   expect(visual.haloBackground).not.toBe('none');
   expect(visual.haloBackground).toContain('88, 57, 44');
   expect(visual.haloBackground).toContain('179, 111, 62');
@@ -1215,7 +1219,9 @@ test('v174 dominant artwork color drives release ambience', async ({ page, reque
     const result={
       background:halo.backgroundImage,
       opacity:Number(halo.opacity),
-      filter:halo.filter||halo.webkitFilter
+      filter:halo.filter||halo.webkitFilter,
+      reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches,
+      reducedData:matchMedia('(prefers-reduced-data: reduce)').matches
     };
     document.documentElement.classList.remove('ipcdj-ambient-release');
     settle.remove();
@@ -1224,7 +1230,8 @@ test('v174 dominant artwork color drives release ambience', async ({ page, reque
 
   expect(visual).not.toBeNull();
   expect(visual.background).toContain('36, 76, 118');
-  expect(visual.opacity).toBeGreaterThan(.9);
+  const dominantPreferenceFloor=visual.reducedData?.51:visual.reducedMotion?.57:.9;
+  expect(visual.opacity).toBeGreaterThan(dominantPreferenceFloor);
   expect(visual.filter).not.toBe('none');
 });
 
@@ -1329,6 +1336,16 @@ test('v175 keeps artwork composition stable when Estrenado card compacts', async
 });
 
 
+test('v179 lifecycle cover-frame work is coalesced between phase transitions', async ({ request }) => {
+  const response=await request.get('/?v179-frame-coalesce='+Date.now(),{headers:{'cache-control':'no-cache'}});
+  expect(response.ok()).toBe(true);
+  const source=await response.text();
+  expect(source).toContain('const lifecycleCoverFrameQueue=new WeakSet()');
+  expect(source).toContain('function scheduleLifecycleStableCoverFrame(card)');
+  expect(source).toContain('if(previousPhase!==phase.key||!card.dataset.coverFrameHeight)');
+  expect(source).toContain('forEach(scheduleLifecycleStableCoverFrame)');
+});
+
 test('v176 lifecycle UI transitions cleanly through Después, prep, release, Estrenado and introduced', async ({ page }) => {
   await openHealthyPage(page);
   await page.waitForFunction(() => !!window.IPCDJ_CATALOG && !!window.IPCDJ_CATALOG_TEST);
@@ -1368,6 +1385,8 @@ test('v176 lifecycle UI transitions cleanly through Después, prep, release, Est
       const checkpoints={
         beforeActive:await renderAt('2026-09-28T05:59:59-04:00'),
         afterActive:await renderAt('2026-09-28T06:00:01-04:00'),
+        learning:await renderAt('2026-10-12T12:00:00-04:00'),
+        finalPrep:await renderAt('2026-10-20T12:00:00-04:00'),
         releaseStart:await renderAt('2026-10-25T00:00:01-04:00'),
         justBeforeSettled:await renderAt('2026-10-25T11:29:59-04:00'),
         settled:await renderAt('2026-10-25T11:30:00-04:00'),
@@ -1377,6 +1396,7 @@ test('v176 lifecycle UI transitions cleanly through Después, prep, release, Est
       const stressStart=performance.now();
       const stressTimes=[
         '2026-09-28T05:59:59-04:00','2026-09-28T06:00:01-04:00',
+        '2026-10-12T12:00:00-04:00','2026-10-20T12:00:00-04:00',
         '2026-10-25T00:00:01-04:00','2026-10-25T11:29:59-04:00',
         '2026-10-25T11:30:00-04:00','2026-10-27T00:00:01-04:00'
       ];
@@ -1405,6 +1425,19 @@ test('v176 lifecycle UI transitions cleanly through Después, prep, release, Est
   expect(result.checkpoints.afterActive.upcoming).not.toContain('glorioso-dia');
   expect(result.checkpoints.afterActive.current.map(x=>x.id)).toContain('glorioso-dia');
   expect(result.checkpoints.afterActive.snapshot.current).toContain('glorioso-dia');
+  const afterActiveCard=result.checkpoints.afterActive.current.find(x=>x.id==='glorioso-dia');
+  expect(afterActiveCard).toBeTruthy();
+  expect(afterActiveCard.phase).toBe('upcoming');
+
+  const learningCard=result.checkpoints.learning.current.find(x=>x.id==='glorioso-dia');
+  expect(learningCard).toBeTruthy();
+  expect(learningCard.phase).toBe('learning');
+  expect(result.checkpoints.learning.snapshot.phases['glorioso-dia']).toBe('learning');
+
+  const finalCard=result.checkpoints.finalPrep.current.find(x=>x.id==='glorioso-dia');
+  expect(finalCard).toBeTruthy();
+  expect(finalCard.phase).toBe('final');
+  expect(result.checkpoints.finalPrep.snapshot.phases['glorioso-dia']).toBe('final');
 
   const releaseCard=result.checkpoints.releaseStart.current.find(x=>x.id==='glorioso-dia');
   expect(releaseCard).toBeTruthy();
@@ -1515,7 +1548,7 @@ test('v178 social preview is a real browser-rendered landing snapshot', async ({
   expect(bytes.length).toBeLessThan(400000);
 
   const html=await htmlResponse.text();
-  expect(html).toContain('property="og:image" content="https://worship.ipcdj.org/social-preview-v176.jpg?v=178"');
+  expect(html).toContain('property="og:image" content="https://worship.ipcdj.org/social-preview-v176.jpg?v=179"');
   expect(html).toContain('property="og:image:type" content="image/jpeg"');
   expect(html).toContain('property="og:image:width" content="1200"');
   expect(html).toContain('property="og:image:height" content="630"');
