@@ -534,7 +534,10 @@ final class AudioEngineController: ObservableObject {
             }
 
             DispatchQueue.main.async {
-                if self.isPlaying {
+                self.graphLock.lock()
+                let stillRunning = self.transportRunning && self.transportGeneration == generation
+                self.graphLock.unlock()
+                if stillRunning {
                     self.currentTime = min(t, duration > 0 ? duration : t)
                     if duration > 0, t >= duration {
                         self.stop(immediate: true)
