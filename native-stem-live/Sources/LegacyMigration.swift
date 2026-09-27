@@ -1,7 +1,7 @@
 import Foundation
 import AppKit
 
-struct LegacyMigrationResult {
+struct LegacyMigrationResult: Sendable {
     var songs: [SongProject]
     var importedStemCount: Int
     var warnings: [String]
@@ -291,7 +291,7 @@ final class LegacyMigrationManager: ObservableObject {
         output.fileHandleForReading.readabilityHandler = { [weak self] handle in
             let data = handle.availableData
             guard !data.isEmpty, let text = String(data: data, encoding: .utf8) else { return }
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
                 guard let self else { return }
                 let line = text.trimmingCharacters(in: .whitespacesAndNewlines)
                 if line.contains("EXPORTING") {
@@ -305,44 +305,43 @@ final class LegacyMigrationManager: ObservableObject {
 
         process.terminationHandler = { [weak self] proc in
             output.fileHandleForReading.readabilityHandler = nil
-            guard let self else { return }
-            if proc.terminationStatus != 0 {
-                let data = output.fileHandleForReading.readDataToEndOfFile()
-                let tail = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                Task { @MainActor in
+            let status = proc.terminationStatus
+            let tailData = status == 0 ? Data() : output.fileHandleForReading.readDataToEndOfFile()
+            let tail = String(data: tailData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+
+                if status != 0 {
                     self.state = .failed
                     self.message = "Legacy migration could not finish."
                     self.detail = tail.isEmpty ? "Close the old STEM Live Alpha completely, then try again." : tail
+                    return
                 }
-                return
-            }
 
-            Task { @MainActor in
                 self.state = .importing
                 self.message = "Moving the legacy library into native managed storage…"
                 self.detail = "Waveforms are being rebuilt from the original stem files."
-            }
 
-            Task.detached(priority: .userInitiated) {
                 do {
-                    let result = try LegacyMigrationBuilder.build(from: out)
-                    try? FileManager.default.removeItem(at: out)
-                    await MainActor.run {
-                        store.installMigratedSongs(result.songs)
-                        self.state = .complete
-                        self.message = "Legacy Alpha migration complete."
-                        self.detail = "\(result.songs.count) song(s) and \(result.importedStemCount) stem file(s) imported." +
-                            (result.warnings.isEmpty ? "" : " \(result.warnings.count) item(s) need review.")
-                        if let song = store.currentSong {
-                            try? audio.prepare(song: song)
-                        }
+                    let result = try await Task.detached(priority: .userInitiated) {
+                        let built = try LegacyMigrationBuilder.build(from: out)
+                        try? FileManager.default.removeItem(at: out)
+                        return built
+                    }.value
+
+                    store.installMigratedSongs(result.songs)
+                    self.state = .complete
+                    self.message = "Legacy Alpha migration complete."
+                    self.detail = "\(result.songs.count) song(s) and \(result.importedStemCount) stem file(s) imported." +
+                        (result.warnings.isEmpty ? "" : " \(result.warnings.count) item(s) need review.")
+                    if let song = store.currentSong {
+                        try? audio.prepare(song: song)
                     }
                 } catch {
-                    await MainActor.run {
-                        self.state = .failed
-                        self.message = "Native import failed."
-                        self.detail = error.localizedDescription
-                    }
+                    self.state = .failed
+                    self.message = "Native import failed."
+                    self.detail = error.localizedDescription
                 }
             }
         }
