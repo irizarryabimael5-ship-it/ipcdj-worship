@@ -372,7 +372,10 @@ final class AudioEngineController: ObservableObject {
     }
 
     func togglePlay(song: SongProject) {
-        isPlaying ? pause() : resume(song: song)
+        graphLock.lock()
+        let running = transportRunning
+        graphLock.unlock()
+        running ? pause() : resume(song: song)
     }
 
     func seek(song: SongProject, to time: Double, smooth: Bool = true) {
