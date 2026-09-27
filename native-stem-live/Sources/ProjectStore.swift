@@ -10,13 +10,12 @@ final class ProjectStore: ObservableObject {
     @Published var livingColorIntensity: Double = 0.82
 
     private let fileURL: URL
+    private let backupURL: URL
 
     init() {
-        let fm = FileManager.default
-        let base = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-            .appendingPathComponent("STEM Live Native", isDirectory: true)
-        try? fm.createDirectory(at: base, withIntermediateDirectories: true)
+        let base = MediaLibrary.supportRoot
         fileURL = base.appendingPathComponent("projects.json")
+        backupURL = base.appendingPathComponent("projects.backup.json")
         load()
     }
 
@@ -138,8 +137,20 @@ final class ProjectStore: ObservableObject {
         let snap = Snapshot(songs: songs, currentSongID: currentSongID, livingColorEnabled: livingColorEnabled, livingColorIntensity: livingColorIntensity)
         let enc = JSONEncoder()
         enc.outputFormatting = [.prettyPrinted, .sortedKeys]
-        if let data = try? enc.encode(snap) {
-            try? data.write(to: fileURL, options: .atomic)
+        guard let data = try? enc.encode(snap) else { return }
+        let fm = FileManager.default
+
+        if fm.fileExists(atPath: fileURL.path) {
+            try? fm.removeItem(at: backupURL)
+            try? fm.copyItem(at: fileURL, to: backupURL)
+        }
+
+        do {
+            try data.write(to: fileURL, options: .atomic)
+        } catch {
+            if !fm.fileExists(atPath: fileURL.path), fm.fileExists(atPath: backupURL.path) {
+                try? fm.copyItem(at: backupURL, to: fileURL)
+            }
         }
     }
 
@@ -150,8 +161,12 @@ final class ProjectStore: ObservableObject {
             var livingColorEnabled: Bool?
             var livingColorIntensity: Double?
         }
-        guard let data = try? Data(contentsOf: fileURL),
-              let snap = try? JSONDecoder().decode(Snapshot.self, from: data) else { return }
+        let decoder = JSONDecoder()
+        let primary = try? Data(contentsOf: fileURL)
+        let backup = try? Data(contentsOf: backupURL)
+        guard let snap = primary.flatMap({ try? decoder.decode(Snapshot.self, from: $0) })
+            ?? backup.flatMap({ try? decoder.decode(Snapshot.self, from: $0) }) else { return }
+
         songs = snap.songs
         currentSongID = snap.currentSongID ?? songs.first?.id
         livingColorEnabled = snap.livingColorEnabled ?? true
