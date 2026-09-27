@@ -135,9 +135,13 @@ func formatTime(_ seconds: Double) -> String {
 }
 
 func formatSampleRate(_ rate: Double) -> String {
-    guard rate > 0 else { return "—" }
-    if abs(rate.rounded() - rate) < 0.01 {
-        return String(format: "%,.0f Hz", rate)
+    guard rate > 0, rate.isFinite else { return "—" }
+    let khz = rate / 1000
+    if abs(khz.rounded() - khz) < 0.001 {
+        return String(format: "%.0f kHz", khz)
     }
-    return String(format: "%,.1f Hz", rate)
+    if abs(khz * 10 - (khz * 10).rounded()) < 0.001 {
+        return String(format: "%.1f kHz", khz)
+    }
+    return String(format: "%.3f kHz", khz)
 }
