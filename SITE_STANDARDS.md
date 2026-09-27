@@ -3083,3 +3083,16 @@ Watchdog:
   - emerald + album-color glow on the status pill, title, artist, release banner, and active Estreno timeline item.
 - The intended visual hierarchy is “release green + full artwork palette,” not “green instead of artwork” or “artwork instead of green.”
 - The watchdog must verify computed release border/status/aura output contains the emerald release color, in addition to the existing album-palette and transition checks.
+
+
+## Semantic release green + cover atmosphere v171
+
+- The release/estreno green must come from the existing lifecycle stage system, not from the album-art palette layer.
+- Use the runtime semantic variables `--stage-accent`, `--stage-soft`, `--stage-border`, `--stage-glow`, and `--stage-text` for release-state UI emphasis.
+- `.release-aura` is reserved for the song's cover-derived `--cover-c1`, `--cover-c2`, and `--cover-c3` atmosphere. It must not inject an additional hard-coded green radial layer.
+- The intended visual composition is:
+  - original semantic release green on status/border/banner/timeline/release text;
+  - intensified artwork colors in the large background bloom and card atmosphere;
+  - visible overlap between both systems so the release state feels richer without changing the identity of the release green.
+- The card outer shadow may include both `--stage-glow` and cover-color glows, but each source retains its role.
+- Watchdog coverage must confirm the computed release UI resolves to the semantic release green while the computed aura remains cover-palette-only.
