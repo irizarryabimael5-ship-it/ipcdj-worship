@@ -4,6 +4,23 @@ import Accelerate
 import AudioToolbox
 import Darwin
 
+enum STEMLiveAudioError: LocalizedError {
+    case outputUnavailable
+    case invalidStereoFormat
+    case splitRequiresStereoOutput(Int)
+
+    var errorDescription: String? {
+        switch self {
+        case .outputUnavailable:
+            return "The selected CoreAudio output is not currently available."
+        case .invalidStereoFormat:
+            return "STEM Live could not create the required stereo processing format."
+        case let .splitRequiresStereoOutput(channels):
+            return "Music L / Click R requires at least 2 output channels. The current device reports \(channels)."
+        }
+    }
+}
+
 final class AudioEngineController: ObservableObject {
     @Published private(set) var isPlaying = false
     @Published private(set) var currentTime: Double = 0
@@ -41,9 +58,29 @@ final class AudioEngineController: ObservableObject {
     private var visualPeak: Double = 0.08
     private var visualSmooth = VisualMetrics()
 
+    private let graphLock = NSRecursiveLock()
+    private var gainRampTimer: DispatchSourceTimer?
+    private var configObserver: NSObjectProtocol?
+    private var recoveryWorkItem: DispatchWorkItem?
+    private var isRecoveringConfiguration = false
+    private var preparedStemSignature = ""
+
+    init() {
+        configObserver = NotificationCenter.default.addObserver(
+            forName: .AVAudioEngineConfigurationChange,
+            object: nil,
+            queue: nil
+        ) { [weak self] _ in
+            self?.scheduleConfigurationRecovery()
+        }
+    }
+
     deinit {
+        recoveryWorkItem?.cancel()
+        gainRampTimer?.cancel()
         transportTimer?.cancel()
         clickTimer?.cancel()
+        if let configObserver { NotificationCenter.default.removeObserver(configObserver) }
         engine.stop()
     }
 
@@ -65,6 +102,8 @@ final class AudioEngineController: ObservableObject {
     }
 
     func matchDeviceToProjectRate(song: SongProject) throws {
+        graphLock.lock()
+        defer { graphLock.unlock() }
         let report = preflight(song: song)
         guard let target = report.recommendedProjectRate else { return }
         stop(immediate: true)
@@ -75,6 +114,9 @@ final class AudioEngineController: ObservableObject {
     }
 
     func prepare(song: SongProject) throws {
+        graphLock.lock()
+        defer { graphLock.unlock() }
+
         stop(immediate: true)
         teardownEngine()
         activeSong = song
@@ -89,44 +131,40 @@ final class AudioEngineController: ObservableObject {
         players = [:]
         files = [:]
 
+        let outputFormat = engine.outputNode.outputFormat(forBus: 0)
+        let sr = outputFormat.sampleRate
+        let outputChannels = Int(outputFormat.channelCount)
+        guard sr > 0, outputChannels > 0 else {
+            throw STEMLiveAudioError.outputUnavailable
+        }
+        guard let stereo = AVAudioFormat(standardFormatWithSampleRate: sr, channels: 2) else {
+            throw STEMLiveAudioError.invalidStereoFormat
+        }
+
         engine.attach(musicMixer)
         engine.attach(reverb)
         engine.attach(musicRouter)
         engine.attach(clickMixer)
         engine.attach(clickNode)
 
+        let matrix = try instantiateMatrixMixer()
+        monoMatrix = matrix
+        engine.attach(matrix)
+
         reverb.loadFactoryPreset(.mediumHall)
         reverb.wetDryMix = 0
 
-        let outputFormat = engine.outputNode.outputFormat(forBus: 0)
-        let sr = outputFormat.sampleRate > 0 ? outputFormat.sampleRate : 48_000
-        let stereo = AVAudioFormat(standardFormatWithSampleRate: sr, channels: 2)!
-        let mono = AVAudioFormat(standardFormatWithSampleRate: sr, channels: 1)!
-
+        // One stable 2-in / 2-out music topology is used for BOTH stereo and split routing.
+        // Output mode changes only alter matrix coefficients; the live graph is never torn down.
         engine.connect(musicMixer, to: reverb, format: stereo)
+        engine.connect(reverb, to: matrix, format: stereo)
+        engine.connect(matrix, to: musicRouter, format: stereo)
+        engine.connect(musicRouter, to: engine.mainMixerNode, format: nil)
+        musicRouter.pan = 0
 
-        if song.outputMode == .split {
-            let matrix = try instantiateMatrixMixer()
-            monoMatrix = matrix
-            engine.attach(matrix)
-            engine.connect(reverb, to: matrix, format: stereo)
-            engine.connect(matrix, to: musicRouter, format: mono)
-            engine.connect(musicRouter, to: engine.mainMixerNode, format: nil)
-            musicRouter.pan = -1
-
-            engine.connect(clickNode, to: clickMixer, format: nil)
-            engine.connect(clickMixer, to: engine.mainMixerNode, format: nil)
-            clickMixer.pan = 1
-            clickMixer.outputVolume = song.click.enabled ? dbToLinear(song.click.levelDB) : 0
-        } else {
-            engine.connect(reverb, to: musicRouter, format: stereo)
-            engine.connect(musicRouter, to: engine.mainMixerNode, format: nil)
-            musicRouter.pan = 0
-
-            engine.connect(clickNode, to: clickMixer, format: nil)
-            engine.connect(clickMixer, to: engine.mainMixerNode, format: nil)
-            clickMixer.outputVolume = 0
-        }
+        engine.connect(clickNode, to: clickMixer, format: nil)
+        engine.connect(clickMixer, to: engine.mainMixerNode, format: nil)
+        clickMixer.pan = 1
 
         for stem in song.stems where stem.effectiveRoute == .music {
             let url = URL(fileURLWithPath: stem.path)
@@ -147,32 +185,59 @@ final class AudioEngineController: ObservableObject {
         engine.prepare()
         try engine.start()
 
-        if song.outputMode == .split {
-            try configureMatrixMixer(mode: song.effectiveMonoDownmixMode)
-        }
+        preparedStemSignature = stemSignature(song)
+        try applyRoutingLocked(song)
 
         let report = preflight(song: song)
         let srcText = report.srcActive ? "SRC active" : "no SRC"
-        DispatchQueue.main.async {
-            self.engineStatus = "CoreAudio · \(Int(sr / 1000)) kHz · \(srcText)"
-            self.preflightGeneration &+= 1
-        }
+        publishStatus("CoreAudio · \(Int(sr / 1000)) kHz · \(srcText)")
+        DispatchQueue.main.async { [weak self] in self?.preflightGeneration &+= 1 }
     }
 
     func reloadIfNeeded(song: SongProject) {
-        let downmixChanged = activeSong?.effectiveMonoDownmixMode != song.effectiveMonoDownmixMode
-        if activeSong?.id != song.id || activeSong?.outputMode != song.outputMode || downmixChanged {
-            do { try prepare(song: song) } catch {
-                DispatchQueue.main.async { self.engineStatus = "Audio error · \(error.localizedDescription)" }
+        graphLock.lock()
+        defer { graphLock.unlock() }
+
+        let graphChanged = activeSong?.id != song.id || preparedStemSignature != stemSignature(song)
+        if graphChanged {
+            do {
+                try prepare(song: song)
+            } catch {
+                publishStatus("Audio error · \(error.localizedDescription)")
             }
-        } else {
-            activeSong = song
-            applyStemState(song)
-            rebuildClickBuffers(song: song)
+            return
         }
+
+        activeSong = song
+        applyStemState(song)
+        rebuildClickBuffers(song: song)
+    }
+
+    func applyRouting(song: SongProject) throws {
+        graphLock.lock()
+        defer { graphLock.unlock() }
+        activeSong = song
+        try applyRoutingLocked(song)
+        let mode = song.outputMode == .split ? "Music L / Click R" : "Stereo Music"
+        publishStatus("CoreAudio · \(Int(hardwareSampleRate / 1000)) kHz · \(mode)")
+    }
+
+    private func applyRoutingLocked(_ song: SongProject) throws {
+        if song.outputMode == .split, outputChannelCount < 2 {
+            throw STEMLiveAudioError.splitRequiresStereoOutput(outputChannelCount)
+        }
+
+        try configureMatrixMixer(mode: song.outputMode == .split ? song.effectiveMonoDownmixMode : nil)
+        clickMixer.pan = 1
+        clickMixer.outputVolume = song.outputMode == .split && song.click.enabled
+            ? dbToLinear(song.click.levelDB)
+            : 0
     }
 
     func applyStemState(_ song: SongProject) {
+        graphLock.lock()
+        defer { graphLock.unlock() }
+
         activeSong = song
         let anySolo = song.stems.contains(where: { $0.solo && $0.effectiveRoute == .music })
         for stem in song.stems where stem.effectiveRoute == .music {
@@ -180,14 +245,17 @@ final class AudioEngineController: ObservableObject {
             let audible = !stem.muted && (!anySolo || stem.solo)
             player.volume = audible ? Float(stem.volume.clamped(0...1.5)) : 0
         }
-        clickMixer.outputVolume = song.outputMode == .split && song.click.enabled ? dbToLinear(song.click.levelDB) : 0
         rebuildClickBuffers(song: song)
-        if song.outputMode == .split {
-            try? configureMatrixMixer(mode: song.effectiveMonoDownmixMode)
+        do {
+            try applyRoutingLocked(song)
+        } catch {
+            publishStatus("Routing check · \(error.localizedDescription)")
         }
     }
 
     func play(song: SongProject, from offset: Double? = nil) {
+        graphLock.lock()
+        defer { graphLock.unlock() }
         do {
             reloadIfNeeded(song: song)
             if !engine.isRunning { try engine.start() }
@@ -200,6 +268,8 @@ final class AudioEngineController: ObservableObject {
     }
 
     private func scheduleAll(song: SongProject, offset: Double) {
+        graphLock.lock()
+        defer { graphLock.unlock() }
         for player in players.values { player.stop() }
         clickNode.stop()
         musicMixer.outputVolume = 1
@@ -282,6 +352,8 @@ final class AudioEngineController: ObservableObject {
     }
 
     func stop(immediate: Bool = false) {
+        graphLock.lock()
+        defer { graphLock.unlock() }
         let t = immediate ? 0 : transportPosition()
         for player in players.values { player.stop() }
         clickNode.stop()
@@ -289,6 +361,7 @@ final class AudioEngineController: ObservableObject {
         DispatchQueue.main.async {
             self.isPlaying = false
             self.currentTime = immediate ? 0 : t
+            if immediate { self.visual = VisualMetrics() }
         }
         if immediate {
             musicMixer.outputVolume = 1
@@ -301,6 +374,8 @@ final class AudioEngineController: ObservableObject {
     }
 
     func previewClick(song: SongProject) {
+        graphLock.lock()
+        defer { graphLock.unlock() }
         reloadIfNeeded(song: song)
         guard let buf = accentClickBuffer else { return }
         if !engine.isRunning { try? engine.start() }
@@ -491,20 +566,25 @@ final class AudioEngineController: ObservableObject {
     }
 
     private func rampMusic(to target: Float, duration: Double, completion: (() -> Void)?) {
+        gainRampTimer?.cancel()
+        gainRampTimer = nil
+
+        let safeDuration = max(0.01, duration)
         let start = musicMixer.outputVolume
-        let steps = max(2, Int(duration * 90))
-        let queue = DispatchQueue.global(qos: .userInteractive)
-        let timer = DispatchSource.makeTimerSource(queue: queue)
+        let steps = max(2, Int(safeDuration * 90))
+        let timer = DispatchSource.makeTimerSource(queue: DispatchQueue.global(qos: .userInteractive))
+        gainRampTimer = timer
         var i = 0
-        timer.schedule(deadline: .now(), repeating: duration / Double(steps), leeway: .milliseconds(1))
-        timer.setEventHandler { [weak self] in
-            guard let self else { timer.cancel(); return }
+        timer.schedule(deadline: .now(), repeating: safeDuration / Double(steps), leeway: .milliseconds(1))
+        timer.setEventHandler { [weak self, weak timer] in
+            guard let self, let timer else { return }
             i += 1
             let x = min(1, Double(i) / Double(steps))
             let eased = 0.5 - 0.5 * cos(.pi * x)
             self.musicMixer.outputVolume = start + (target - start) * Float(eased)
             if i >= steps {
                 timer.cancel()
+                self.gainRampTimer = nil
                 completion?()
             }
         }
@@ -536,46 +616,115 @@ final class AudioEngineController: ObservableObject {
         return result
     }
 
-    private func configureMatrixMixer(mode: MonoDownmixMode) throws {
+    private func configureMatrixMixer(mode: MonoDownmixMode?) throws {
         guard let matrix = monoMatrix else { return }
         let unit = matrix.audioUnit
 
         func set(_ scope: AudioUnitScope, _ element: AudioUnitElement, _ value: Float) throws {
             let status = AudioUnitSetParameter(unit, kMatrixMixerParam_Volume, scope, element, value, 0)
             guard status == noErr else {
-                throw NSError(domain: NSOSStatusErrorDomain, code: Int(status), userInfo: [NSLocalizedDescriptionKey: "AUMatrixMixer parameter configuration failed (\(status))."])
+                throw NSError(
+                    domain: NSOSStatusErrorDomain,
+                    code: Int(status),
+                    userInfo: [NSLocalizedDescriptionKey: "AUMatrixMixer parameter configuration failed (\(status))."]
+                )
             }
         }
 
+        // Global, per-input and per-output gain are held at unity. The four
+        // crosspoints below do all channel routing and mono summing.
         try set(kAudioUnitScope_Global, 0xFFFF_FFFF, 1)
         try set(kAudioUnitScope_Input, 0, 1)
         try set(kAudioUnitScope_Input, 1, 1)
         try set(kAudioUnitScope_Output, 0, 1)
+        try set(kAudioUnitScope_Output, 1, 1)
 
-        let left: Float
-        let right: Float
-        switch mode {
-        case .safeSum:
-            left = 0.5
-            right = 0.5
-        case .equalPower:
-            left = 0.70710678
-            right = 0.70710678
-        case .leftOnly:
-            left = 1
-            right = 0
-        case .rightOnly:
-            left = 0
-            right = 1
+        let lToL = AudioUnitElement((UInt32(0) << 16) | UInt32(0))
+        let lToR = AudioUnitElement((UInt32(0) << 16) | UInt32(1))
+        let rToL = AudioUnitElement((UInt32(1) << 16) | UInt32(0))
+        let rToR = AudioUnitElement((UInt32(1) << 16) | UInt32(1))
+
+        if let mode {
+            let left: Float
+            let right: Float
+            switch mode {
+            case .safeSum:
+                left = 0.5
+                right = 0.5
+            case .equalPower:
+                left = 0.70710678
+                right = 0.70710678
+            case .leftOnly:
+                left = 1
+                right = 0
+            case .rightOnly:
+                left = 0
+                right = 1
+            }
+
+            // Split mode: program music is summed explicitly into LEFT only.
+            try set(kAudioUnitScope_Global, lToL, left)
+            try set(kAudioUnitScope_Global, rToL, right)
+            try set(kAudioUnitScope_Global, lToR, 0)
+            try set(kAudioUnitScope_Global, rToR, 0)
+        } else {
+            // Stereo mode: mathematically transparent 1:1 passthrough.
+            try set(kAudioUnitScope_Global, lToL, 1)
+            try set(kAudioUnitScope_Global, lToR, 0)
+            try set(kAudioUnitScope_Global, rToL, 0)
+            try set(kAudioUnitScope_Global, rToR, 1)
         }
+    }
 
-        let leftCrosspoint = AudioUnitElement((UInt32(0) << 16) | UInt32(0))
-        let rightCrosspoint = AudioUnitElement((UInt32(1) << 16) | UInt32(0))
-        try set(kAudioUnitScope_Global, leftCrosspoint, left)
-        try set(kAudioUnitScope_Global, rightCrosspoint, right)
+    private func stemSignature(_ song: SongProject) -> String {
+        song.stems
+            .map { "\($0.id.uuidString)|\($0.path)|\($0.effectiveRoute.rawValue)" }
+            .joined(separator: "¦")
+    }
+
+    private func publishStatus(_ value: String) {
+        DispatchQueue.main.async { [weak self] in
+            self?.engineStatus = value
+        }
+    }
+
+    private func scheduleConfigurationRecovery() {
+        graphLock.lock()
+        let song = activeSong
+        let wasPlaying = isPlaying
+        let resumeTime = transportPosition()
+        graphLock.unlock()
+
+        guard let song else { return }
+        recoveryWorkItem?.cancel()
+        let item = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.recoverConfiguration(song: song, wasPlaying: wasPlaying, resumeTime: resumeTime)
+        }
+        recoveryWorkItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.20, execute: item)
+    }
+
+    private func recoverConfiguration(song: SongProject, wasPlaying: Bool, resumeTime: Double) {
+        graphLock.lock()
+        defer { graphLock.unlock() }
+        guard !isRecoveringConfiguration else { return }
+        isRecoveringConfiguration = true
+        defer { isRecoveringConfiguration = false }
+
+        publishStatus("CoreAudio · recovering output…")
+        do {
+            try prepare(song: song)
+            if wasPlaying {
+                play(song: song, from: min(resumeTime, song.duration))
+            }
+        } catch {
+            publishStatus("Audio recovery error · \(error.localizedDescription)")
+        }
     }
 
     private func teardownEngine() {
+        gainRampTimer?.cancel(); gainRampTimer = nil
         transportTimer?.cancel(); transportTimer = nil
         clickTimer?.cancel(); clickTimer = nil
         if engine.isRunning { engine.stop() }
