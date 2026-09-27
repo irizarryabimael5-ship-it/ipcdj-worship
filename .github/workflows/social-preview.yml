@@ -13,6 +13,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: ipcdj-social-preview
@@ -32,10 +33,12 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install Pillow
-        run: python -m pip install --disable-pip-version-check pillow==11.3.0
+      - name: Install preview dependencies
+        run: |
+          python -m pip install --disable-pip-version-check pillow==11.3.0 playwright==1.55.0
+          python -m playwright install --with-deps chromium
 
-      - name: Render sRGB social landing snapshot
+      - name: Render sRGB browser landing snapshot
         run: python scripts/generate-social-preview.py
 
       - name: Validate preview
@@ -53,13 +56,46 @@ jobs:
           PY
 
       - name: Commit generated preview
+        id: commit_preview
         run: |
           if git diff --quiet -- social-preview-v176.jpg && git ls-files --error-unmatch social-preview-v176.jpg >/dev/null 2>&1; then
             echo "Preview unchanged."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add social-preview-v176.jpg
-          git commit -m "Generate v176 social landing snapshot [skip social-preview]"
+          git commit -m "Generate v178 browser landing snapshot [skip social-preview]"
           git push
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Verify generated preview is live
+        if: steps.commit_preview.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED="$(sha256sum social-preview-v176.jpg | awk '{print $1}')"
+          echo "Waiting for generated social preview: $EXPECTED"
+          for attempt in $(seq 1 36); do
+            nonce="${GITHUB_RUN_ID}-${attempt}"
+            if curl -fsSL --max-time 20 -H 'Cache-Control: no-cache' \
+              "https://worship.ipcdj.org/social-preview-v176.jpg?social-deploy=${nonce}" \
+              -o /tmp/ipcdj-social-live; then
+              LIVE="$(sha256sum /tmp/ipcdj-social-live | awk '{print $1}')"
+              if [ "$LIVE" = "$EXPECTED" ]; then
+                echo "Generated preview is live on attempt $attempt."
+                exit 0
+              fi
+              echo "Attempt $attempt: live=$LIVE expected=$EXPECTED"
+            fi
+            sleep 10
+          done
+          echo "Timed out waiting for generated social preview deployment."
+          exit 1
+
+      - name: Dispatch final website health on generated head
+        if: steps.commit_preview.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run site-health.yml --ref main
