@@ -65,6 +65,8 @@ final class AudioEngineController: ObservableObject {
     private var recoveryWorkItem: DispatchWorkItem?
     private var isRecoveringConfiguration = false
     private var preparedStemSignature = ""
+    private var loopSectionID: UUID?
+    private var loopJumpPending = false
 
     init() {
         configObserver = NotificationCenter.default.addObserver(
@@ -315,6 +317,7 @@ final class AudioEngineController: ObservableObject {
 
         anchorHost = startHost
         anchorOffset = offset
+        loopJumpPending = false
         nextClickIndex = 0
         lastClickSignature = ""
         DispatchQueue.main.async {
@@ -392,6 +395,7 @@ final class AudioEngineController: ObservableObject {
     }
 
     func jumpToSection(_ section: SectionMarker, song: SongProject) {
+        loopSectionID = section.id
         seek(song: song, to: section.start, smooth: true)
     }
 
@@ -421,7 +425,27 @@ final class AudioEngineController: ObservableObject {
         timer.setEventHandler { [weak self] in
             guard let self else { return }
             let t = self.transportPosition()
-            let duration = self.activeSong?.duration ?? 0
+            let song = self.activeSong
+            let duration = song?.duration ?? 0
+
+            if self.loopEnabled, let song {
+                let loopSection = self.loopSectionID.flatMap { id in
+                    song.sections.first(where: { $0.id == id })
+                } ?? song.sections.last(where: { $0.start <= t })
+
+                if let section = loopSection,
+                   section.loopable,
+                   section.loopEnd > section.loopStart + 0.001,
+                   t >= section.loopEnd - 0.010,
+                   !self.loopJumpPending {
+                    self.loopJumpPending = true
+                    DispatchQueue.main.async {
+                        self.seek(song: song, to: section.loopStart, smooth: false)
+                    }
+                    return
+                }
+            }
+
             DispatchQueue.main.async {
                 if self.isPlaying {
                     self.currentTime = min(t, duration > 0 ? duration : t)
