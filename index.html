@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v171" />
+  <meta name="ipcdj-build" content="persistent-launch-v172" />
   <title>IPCDJ Worship | Ministerio de Alabanza</title>
   <meta name="description" content="Próximas canciones, preparación y estrenos del Ministerio de Alabanza de IPCDJ." />
   <link rel="canonical" href="https://worship.ipcdj.org/" />
@@ -1461,6 +1461,25 @@
       transform-origin:top center;
     }
 
+    .current.phase-release::after{
+      z-index:2;
+      background:
+        linear-gradient(90deg,
+          rgba(3,6,10,.52) 0%,
+          rgba(3,6,10,.40) 24%,
+          rgba(3,6,10,.24) 48%,
+          rgba(3,6,10,.10) 70%,
+          rgba(3,6,10,.02) 100%),
+        linear-gradient(180deg,
+          rgba(3,6,10,.18) 0%,
+          rgba(3,6,10,.10) 32%,
+          rgba(3,6,10,.20) 72%,
+          rgba(3,6,10,.48) 100%);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.03),
+        inset 0 0 0 1px rgba(255,255,255,.018);
+    }
+
     .current.phase-release{
       border-color:var(--stage-border);
       box-shadow:
@@ -1475,14 +1494,14 @@
     }
 
     .current.phase-release .release-aura{
-      opacity:1;
-      transform:scale(1.028);
+      opacity:.94;
+      transform:scale(1.024);
     }
 
     .current.phase-release .cover-native-fallback{
-      opacity:.94;
-      filter:blur(28px) saturate(1.42) contrast(1.08) brightness(1.05);
-      -webkit-filter:blur(28px) saturate(1.42) contrast(1.08) brightness(1.05);
+      opacity:.92;
+      filter:blur(28px) saturate(1.38) contrast(1.14) brightness(.98);
+      -webkit-filter:blur(28px) saturate(1.38) contrast(1.14) brightness(.98);
     }
 
     .current.phase-release.cover-ready::before{opacity:.94}
@@ -1492,37 +1511,37 @@
 
     .current.phase-release .status{
       background:
-        linear-gradient(110deg,var(--stage-soft),rgba(var(--cover-c1),.24),rgba(var(--cover-c2),.20),var(--stage-soft));
+        linear-gradient(110deg,rgba(5,9,12,.72),var(--stage-soft),rgba(var(--cover-c1),.18),rgba(var(--cover-c2),.15),rgba(5,9,12,.68));
       border-color:var(--stage-border);
-      color:var(--stage-text);
+      color:#f7fff9;
+      backdrop-filter:blur(8px) saturate(1.06);
+      -webkit-backdrop-filter:blur(8px) saturate(1.06);
       box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.18),
-        0 0 14px var(--stage-accent),
-        0 0 28px var(--stage-glow),
-        0 0 24px rgba(var(--cover-c1),.42),
-        0 0 46px rgba(var(--cover-c2),.34);
+        inset 0 1px 0 rgba(255,255,255,.20),
+        inset 0 0 0 1px rgba(0,0,0,.16),
+        0 0 12px var(--stage-glow),
+        0 0 24px rgba(var(--cover-c2),.24);
       text-shadow:
-        0 0 8px var(--stage-accent),
-        0 0 18px var(--stage-glow),
-        0 0 28px rgba(var(--cover-c2),.40);
+        0 1px 10px rgba(0,0,0,.88),
+        0 0 7px var(--stage-glow);
       transform:translateY(-1px);
     }
 
     .current.phase-release .song-name{
       color:#fff;
       text-shadow:
-        0 0 9px var(--stage-glow),
-        0 0 16px rgba(var(--cover-c1),.60),
-        0 0 34px rgba(var(--cover-c2),.46),
-        0 3px 18px rgba(0,0,0,.72);
+        0 2px 16px rgba(0,0,0,.92),
+        0 0 8px var(--stage-glow),
+        0 0 14px rgba(var(--cover-c1),.42),
+        0 0 26px rgba(var(--cover-c2),.30);
     }
 
     .current.phase-release .artist{
-      color:var(--stage-text);
+      color:#edf8f1;
       text-shadow:
-        0 0 9px var(--stage-glow),
-        0 0 18px rgba(var(--cover-c2),.38),
-        0 2px 12px rgba(0,0,0,.68);
+        0 2px 12px rgba(0,0,0,.86),
+        0 0 7px var(--stage-glow),
+        0 0 14px rgba(var(--cover-c2),.24);
     }
 
     .current.phase-release .post-release-banner{
@@ -1535,58 +1554,60 @@
       border-width:1px;
       border-color:var(--stage-border);
       background:
-        linear-gradient(110deg,var(--stage-soft),rgba(var(--cover-c1),.30),rgba(var(--cover-c2),.24),rgba(8,11,17,.58));
+        linear-gradient(110deg,rgba(6,10,15,.78),var(--stage-soft),rgba(var(--cover-c1),.20),rgba(var(--cover-c2),.16),rgba(6,10,15,.76));
+      backdrop-filter:blur(10px) saturate(1.05);
+      -webkit-backdrop-filter:blur(10px) saturate(1.05);
       box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.13),
-        0 0 18px var(--stage-glow),
-        0 0 36px var(--stage-glow),
-        0 0 30px rgba(var(--cover-c1),.34),
-        0 0 62px rgba(var(--cover-c2),.28);
+        inset 0 1px 0 rgba(255,255,255,.14),
+        inset 0 0 0 1px rgba(0,0,0,.18),
+        0 0 16px var(--stage-glow),
+        0 0 28px rgba(var(--cover-c1),.22),
+        0 0 46px rgba(var(--cover-c2),.18);
       transition-delay:0s,0s,0s,.22s,0s,0s,0s,0s,0s;
     }
 
     .current.phase-release .post-release-kicker{
-      color:var(--stage-text);
+      color:#eafff1;
       text-shadow:
-        0 0 8px var(--stage-accent),
-        0 0 18px var(--stage-glow),
-        0 0 30px rgba(var(--cover-c2),.44);
+        0 1px 9px rgba(0,0,0,.90),
+        0 0 8px var(--stage-glow);
     }
 
     .current.phase-release .post-release-title{
       color:#fff;
       text-shadow:
-        0 0 9px var(--stage-glow),
-        0 0 16px rgba(var(--cover-c1),.60),
-        0 0 34px rgba(var(--cover-c2),.48);
+        0 2px 14px rgba(0,0,0,.92),
+        0 0 8px var(--stage-glow),
+        0 0 16px rgba(var(--cover-c2),.28);
     }
 
     .current.phase-release .post-release-note{
-      color:#f2fff7;
+      color:#e9f1ec;
       text-shadow:
-        0 0 8px var(--stage-glow),
-        0 0 16px rgba(var(--cover-c2),.28);
+        0 2px 10px rgba(0,0,0,.88),
+        0 0 6px var(--stage-glow);
     }
 
     .current.phase-release .timeline-item.estreno.active-phase{
       border-color:var(--stage-border);
       background:
-        linear-gradient(90deg,var(--stage-soft),rgba(var(--cover-c1),.22),rgba(var(--cover-c2),.17),rgba(255,255,255,.02));
+        linear-gradient(90deg,rgba(5,9,14,.78),var(--stage-soft),rgba(var(--cover-c1),.14),rgba(var(--cover-c2),.12),rgba(5,9,14,.72));
+      backdrop-filter:blur(8px) saturate(1.04);
+      -webkit-backdrop-filter:blur(8px) saturate(1.04);
       box-shadow:
         inset 3px 0 0 var(--stage-accent),
-        0 0 16px var(--stage-glow),
-        0 0 32px var(--stage-glow),
-        0 0 22px rgba(var(--cover-c1),.32),
-        0 0 46px rgba(var(--cover-c2),.24);
+        inset 0 1px 0 rgba(255,255,255,.06),
+        0 0 14px var(--stage-glow),
+        0 0 26px rgba(var(--cover-c2),.18);
     }
 
     .current.phase-release .timeline-item.estreno.active-phase .timeline-label,
     .current.phase-release .timeline-item.estreno.active-phase .timeline-date{
       color:#fff;
       text-shadow:
-        0 0 8px var(--stage-glow),
-        0 0 12px rgba(var(--cover-c1),.56),
-        0 0 26px rgba(var(--cover-c2),.40);
+        0 2px 10px rgba(0,0,0,.88),
+        0 0 6px var(--stage-glow),
+        0 0 12px rgba(var(--cover-c2),.20);
     }
 
     .current.phase-release .timeline-item.estreno.active-phase .timeline-label::before{
