@@ -229,7 +229,7 @@ struct LivePage: View {
                 }
 
                 Button(audio.loopEnabled ? "LOOP ON" : "LOOP OFF") {
-                    audio.loopEnabled.toggle()
+                    audio.setLoopEnabled(!audio.loopEnabled)
                 }
                 .buttonStyle(SmallButton(primary: audio.loopEnabled))
 
