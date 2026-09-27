@@ -52,10 +52,31 @@ final class ProjectStore: ObservableObject {
 
     func removeSong(_ id: UUID) {
         songs.removeAll { $0.id == id }
+        MediaLibrary.removeMedia(for: id)
         if currentSongID == id {
             currentSongID = songs.first?.id
             selectedSectionID = songs.first?.sections.first?.id
         }
+        save()
+    }
+
+    func installMigratedSongs(_ imported: [SongProject]) {
+        guard !imported.isEmpty else { return }
+
+        let existingTitles = Set(songs.map { $0.title.lowercased() })
+        var additions: [SongProject] = []
+        for var song in imported {
+            if existingTitles.contains(song.title.lowercased()) || additions.contains(where: { $0.title.lowercased() == song.title.lowercased() }) {
+                song.title += " · Migrated"
+            }
+            additions.append(song)
+        }
+
+        songs.append(contentsOf: additions)
+        if currentSongID == nil || songs.count == additions.count {
+            currentSongID = additions.first?.id
+        }
+        selectedSectionID = currentSong?.sections.first?.id
         save()
     }
 
