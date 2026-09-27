@@ -818,7 +818,7 @@ struct ArrangementLane: View {
                     .onTapGesture { select(section.id) }
                     .gesture(
                         DragGesture(minimumDistance: 2)
-                            .onChanged { value in
+                            .onEnded { value in
                                 let x = max(0, min(width, startX + value.translation.width))
                                 moveMarker(section.id, Double(x / width) * song.duration)
                                 select(section.id)
