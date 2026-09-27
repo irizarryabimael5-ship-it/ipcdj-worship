@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v172" />
+  <meta name="ipcdj-build" content="persistent-launch-v173" />
   <title>IPCDJ Worship | Ministerio de Alabanza</title>
   <meta name="description" content="Próximas canciones, preparación y estrenos del Ministerio de Alabanza de IPCDJ." />
   <link rel="canonical" href="https://worship.ipcdj.org/" />
@@ -464,6 +464,10 @@
     }
 
     .ambient-field{
+      --ambient-c1:55,93,202;
+      --ambient-c2:75,111,255;
+      --ambient-c3:50,89,180;
+      --ambient-c4:112,88,210;
       position:absolute;
       top:-14vmax;
       right:-14vmax;
@@ -476,7 +480,49 @@
       transition:opacity 2.4s cubic-bezier(.4,0,.2,1);
     }
 
+    .ambient-field::before{
+      content:"";
+      position:absolute;
+      inset:2vmax;
+      pointer-events:none;
+      opacity:.34;
+      transform:scale(.985);
+      background:
+        radial-gradient(circle at 18% 20%,rgba(var(--ambient-c1),.44) 0%,rgba(var(--ambient-c1),.18) 28%,rgba(var(--ambient-c1),.05) 48%,rgba(var(--ambient-c1),0) 68%),
+        radial-gradient(circle at 82% 22%,rgba(var(--ambient-c2),.40) 0%,rgba(var(--ambient-c2),.16) 30%,rgba(var(--ambient-c2),.045) 50%,rgba(var(--ambient-c2),0) 70%),
+        radial-gradient(circle at 50% 86%,rgba(var(--ambient-c3),.36) 0%,rgba(var(--ambient-c3),.15) 34%,rgba(var(--ambient-c3),.04) 54%,rgba(var(--ambient-c3),0) 74%),
+        radial-gradient(circle at 54% 44%,rgba(var(--ambient-c4),.24) 0%,rgba(var(--ambient-c4),.08) 34%,rgba(var(--ambient-c4),0) 66%);
+      filter:blur(30px) saturate(1.10);
+      -webkit-filter:blur(30px) saturate(1.10);
+      transition:
+        opacity 1.55s cubic-bezier(.22,.65,.25,1),
+        transform 1.55s cubic-bezier(.22,.65,.25,1),
+        filter 1.55s cubic-bezier(.22,.65,.25,1);
+    }
+
     .ambient-field-active{opacity:.82}
+
+    html.ipcdj-ambient-release .ambient-field-active{
+      opacity:1;
+    }
+
+    html.ipcdj-ambient-release .ambient-field-active::before{
+      opacity:.90;
+      transform:scale(1.055);
+      filter:blur(38px) saturate(1.38) brightness(1.06);
+      -webkit-filter:blur(38px) saturate(1.38) brightness(1.06);
+    }
+
+    html.ipcdj-ambient-release .ambient-field-active .ambient-blob{
+      background:radial-gradient(circle,
+        rgba(var(--blob-rgb),.92) 0%,
+        rgba(var(--blob-rgb),.62) 34%,
+        rgba(var(--blob-rgb),.32) 58%,
+        rgba(var(--blob-rgb),.10) 76%,
+        rgba(var(--blob-rgb),0) 93%);
+      filter:blur(22px) saturate(1.26) brightness(1.05);
+      -webkit-filter:blur(22px) saturate(1.26) brightness(1.05);
+    }
 
     .ambient-blob{
       --blob-rgb:55,93,202;
@@ -3049,6 +3095,9 @@
 
     @media (prefers-reduced-data: reduce){
       .ambient-field{transition:none!important}.ambient-field:not(.ambient-field-active){opacity:0!important}.ambient-field-active{opacity:.42!important}
+      html.ipcdj-ambient-release .ambient-field-active{opacity:.56!important}
+      .ambient-field::before{transition:none!important}
+      html.ipcdj-ambient-release .ambient-field-active::before{opacity:.54!important;filter:blur(30px) saturate(1.16)!important;-webkit-filter:blur(30px) saturate(1.16)!important;transform:none!important}
       .ambient-blob{animation:none!important}
       .ambient-dither{display:none}
     }
@@ -3086,6 +3135,9 @@
       .current .cover-edge-detail,
       .current .cover-subject-detail{transition:none!important}
       .ambient-field{transition:none!important}.ambient-field:not(.ambient-field-active){opacity:0!important}.ambient-field-active{opacity:.46!important}
+      html.ipcdj-ambient-release .ambient-field-active{opacity:.62!important}
+      .ambient-field::before{transition:none!important}
+      html.ipcdj-ambient-release .ambient-field-active::before{opacity:.60!important;transform:none!important}
       .ambient-blob{animation:none!important}
       .inline-preview,.preview-button{transition:none!important}
       .site-tab{transition:none!important}
@@ -4004,6 +4056,9 @@
     function configureAmbientField(field,palette){
       if(!field)return;
       const colors=buildAmbientPalette(palette);
+      colors.slice(0,4).forEach((color,index)=>{
+        field.style.setProperty("--ambient-c"+(index+1),color.join(","));
+      });
       [...field.querySelectorAll(".ambient-blob")].forEach((blob,index)=>{
         blob.style.setProperty("--blob-rgb",(colors[index]||colors[0]).join(","));
       });
@@ -7662,17 +7717,23 @@
 
     function chooseAmbientDriver(entries,now){
       if(!Array.isArray(entries)||!entries.length)return null;
-      const preparation=entries.filter(({phase})=>phase&&phase.key!=="release"&&phase.key!=="released"&&phase.key!=="complete");
-      const driver=(preparation.length?preparation:entries)[0];
-      return driver?driver.song:null;
+      const release=entries.find(({phase})=>phase&&phase.key==="release");
+      if(release)return release;
+      const preparation=entries.filter(({phase})=>phase&&phase.key!=="released"&&phase.key!=="complete");
+      return preparation[0]||entries[0]||null;
     }
 
     function syncAmbientDriver(entries,now){
-      const song=chooseAmbientDriver(entries,now);
-      if(!song)return;
+      const driver=chooseAmbientDriver(entries,now);
+      if(!driver){
+        document.documentElement.classList.remove("ipcdj-ambient-release");
+        return;
+      }
+      const {song,phase}=driver;
+      document.documentElement.classList.toggle("ipcdj-ambient-release",!!phase&&phase.key==="release");
       ambientDriverSongId=song.id;
       const palette=ambientSongPalettes.get(song.id)||COVER_THEME_FALLBACKS[song.id]||AMBIENT_FALLBACK;
-      setAmbientPalette(palette,"driver:"+song.id);
+      setAmbientPalette(palette,"driver:"+song.id+"|phase:"+(phase?.key||"unknown"));
     }
 
     let renderedCurrentSongKey="";
