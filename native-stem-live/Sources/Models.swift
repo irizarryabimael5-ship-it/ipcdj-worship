@@ -42,6 +42,13 @@ enum MonoDownmixMode: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+enum StemRoute: String, Codable, CaseIterable, Identifiable {
+    case music
+    case click
+    case reference
+    var id: String { rawValue }
+}
+
 enum ClickPreset: String, Codable, CaseIterable, Identifiable {
     case softWood = "Soft Wood"
     case warmPulse = "Warm Pulse"
@@ -58,8 +65,13 @@ struct StemTrack: Identifiable, Codable, Hashable {
     var muted: Bool = false
     var solo: Bool = false
     var reference: Bool = false
+    var route: StemRoute? = nil
     var waveform: [Float] = []
     var duration: Double = 0
+
+    var effectiveRoute: StemRoute {
+        route ?? (reference ? .reference : .music)
+    }
 }
 
 struct SectionMarker: Identifiable, Codable, Hashable {
@@ -95,10 +107,12 @@ struct SongProject: Identifiable, Codable, Hashable {
     var stems: [StemTrack] = []
     var sections: [SectionMarker] = []
     var click = ClickSettings()
+    var lyricsRaw: String? = nil
+    var notes: String? = nil
     var createdAt = Date()
 
     var duration: Double {
-        stems.filter { !$0.reference }.map(\.duration).max() ?? 0
+        stems.filter { $0.effectiveRoute != .reference }.map(\.duration).max() ?? 0
     }
 
     var meterText: String { "\(meterTop)/\(meterBottom)" }
