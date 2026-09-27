@@ -1,6 +1,7 @@
 import Foundation
 import AVFoundation
 import Accelerate
+import AudioToolbox
 import Darwin
 
 final class AudioEngineController: ObservableObject {
@@ -8,6 +9,7 @@ final class AudioEngineController: ObservableObject {
     @Published private(set) var currentTime: Double = 0
     @Published private(set) var visual = VisualMetrics()
     @Published private(set) var engineStatus = "Audio idle"
+    @Published private(set) var preflightGeneration = 0
     @Published var loopEnabled = false
 
     private var engine = AVAudioEngine()
@@ -16,6 +18,7 @@ final class AudioEngineController: ObservableObject {
     private var musicRouter = AVAudioMixerNode()
     private var clickMixer = AVAudioMixerNode()
     private var clickNode = AVAudioPlayerNode()
+    private var monoMatrix: AVAudioUnit?
 
     private var players: [UUID: AVAudioPlayerNode] = [:]
     private var files: [UUID: AVAudioFile] = [:]
@@ -46,7 +49,29 @@ final class AudioEngineController: ObservableObject {
 
     var hardwareSampleRate: Double {
         let sr = engine.outputNode.outputFormat(forBus: 0).sampleRate
-        return sr > 0 ? sr : 48_000
+        return sr > 0 ? sr : (try? CoreAudioDeviceManager.currentOutputInfo().sampleRate) ?? 48_000
+    }
+
+    var outputChannelCount: Int {
+        Int(engine.outputNode.outputFormat(forBus: 0).channelCount)
+    }
+
+    func preflight(song: SongProject) -> AudioPreflightReport {
+        AudioPreflight.inspect(
+            song: song,
+            engineSampleRate: hardwareSampleRate,
+            outputChannels: outputChannelCount
+        )
+    }
+
+    func matchDeviceToProjectRate(song: SongProject) throws {
+        let report = preflight(song: song)
+        guard let target = report.recommendedProjectRate else { return }
+        stop(immediate: true)
+        teardownEngine()
+        engineStatus = "Matching device to \(formatSampleRate(target))…"
+        try CoreAudioDeviceManager.setNominalSampleRate(target)
+        try prepare(song: song)
     }
 
     func prepare(song: SongProject) throws {
@@ -60,6 +85,7 @@ final class AudioEngineController: ObservableObject {
         musicRouter = AVAudioMixerNode()
         clickMixer = AVAudioMixerNode()
         clickNode = AVAudioPlayerNode()
+        monoMatrix = nil
         players = [:]
         files = [:]
 
@@ -74,23 +100,31 @@ final class AudioEngineController: ObservableObject {
 
         let outputFormat = engine.outputNode.outputFormat(forBus: 0)
         let sr = outputFormat.sampleRate > 0 ? outputFormat.sampleRate : 48_000
+        let stereo = AVAudioFormat(standardFormatWithSampleRate: sr, channels: 2)!
+        let mono = AVAudioFormat(standardFormatWithSampleRate: sr, channels: 1)!
 
-        engine.connect(musicMixer, to: reverb, format: nil)
+        engine.connect(musicMixer, to: reverb, format: stereo)
+
         if song.outputMode == .split {
-            let mono = AVAudioFormat(standardFormatWithSampleRate: sr, channels: 1)!
-            engine.connect(reverb, to: musicRouter, format: mono)
-            engine.connect(musicRouter, to: engine.mainMixerNode, format: outputFormat)
+            let matrix = try instantiateMatrixMixer()
+            monoMatrix = matrix
+            engine.attach(matrix)
+            engine.connect(reverb, to: matrix, format: stereo)
+            engine.connect(matrix, to: musicRouter, format: mono)
+            engine.connect(musicRouter, to: engine.mainMixerNode, format: nil)
             musicRouter.pan = -1
+
             engine.connect(clickNode, to: clickMixer, format: nil)
-            engine.connect(clickMixer, to: engine.mainMixerNode, format: outputFormat)
+            engine.connect(clickMixer, to: engine.mainMixerNode, format: nil)
             clickMixer.pan = 1
-            clickMixer.outputVolume = dbToLinear(song.click.levelDB)
+            clickMixer.outputVolume = song.click.enabled ? dbToLinear(song.click.levelDB) : 0
         } else {
-            engine.connect(reverb, to: musicRouter, format: nil)
-            engine.connect(musicRouter, to: engine.mainMixerNode, format: outputFormat)
+            engine.connect(reverb, to: musicRouter, format: stereo)
+            engine.connect(musicRouter, to: engine.mainMixerNode, format: nil)
             musicRouter.pan = 0
+
             engine.connect(clickNode, to: clickMixer, format: nil)
-            engine.connect(clickMixer, to: engine.mainMixerNode, format: outputFormat)
+            engine.connect(clickMixer, to: engine.mainMixerNode, format: nil)
             clickMixer.outputVolume = 0
         }
 
@@ -113,13 +147,21 @@ final class AudioEngineController: ObservableObject {
         engine.prepare()
         try engine.start()
 
+        if song.outputMode == .split {
+            try configureMatrixMixer(mode: song.effectiveMonoDownmixMode)
+        }
+
+        let report = preflight(song: song)
+        let srcText = report.srcActive ? "SRC active" : "no SRC"
         DispatchQueue.main.async {
-            self.engineStatus = "CoreAudio · \(Int(sr / 1000)) kHz · Native"
+            self.engineStatus = "CoreAudio · \(Int(sr / 1000)) kHz · \(srcText)"
+            self.preflightGeneration &+= 1
         }
     }
 
     func reloadIfNeeded(song: SongProject) {
-        if activeSong?.id != song.id || activeSong?.outputMode != song.outputMode {
+        let downmixChanged = activeSong?.effectiveMonoDownmixMode != song.effectiveMonoDownmixMode
+        if activeSong?.id != song.id || activeSong?.outputMode != song.outputMode || downmixChanged {
             do { try prepare(song: song) } catch {
                 DispatchQueue.main.async { self.engineStatus = "Audio error · \(error.localizedDescription)" }
             }
@@ -140,6 +182,9 @@ final class AudioEngineController: ObservableObject {
         }
         clickMixer.outputVolume = song.outputMode == .split && song.click.enabled ? dbToLinear(song.click.levelDB) : 0
         rebuildClickBuffers(song: song)
+        if song.outputMode == .split {
+            try? configureMatrixMixer(mode: song.effectiveMonoDownmixMode)
+        }
     }
 
     func play(song: SongProject, from offset: Double? = nil) {
@@ -346,13 +391,13 @@ final class AudioEngineController: ObservableObject {
 
     private func rebuildClickBuffers(song: SongProject) {
         let sr = hardwareSampleRate
-        normalClickBuffer = makeClickBuffer(sampleRate: sr, preset: song.click.preset, accent: false, subdivision: false)
-        accentClickBuffer = makeClickBuffer(sampleRate: sr, preset: song.click.preset, accent: true, subdivision: false)
-        subdivisionClickBuffer = makeClickBuffer(sampleRate: sr, preset: song.click.preset, accent: false, subdivision: true)
+        normalClickBuffer = makeClickBuffer(sampleRate: sr, preset: song.click.preset, accent: false, subdivision: false, accentDB: song.click.accentDB)
+        accentClickBuffer = makeClickBuffer(sampleRate: sr, preset: song.click.preset, accent: true, subdivision: false, accentDB: song.click.accentDB)
+        subdivisionClickBuffer = makeClickBuffer(sampleRate: sr, preset: song.click.preset, accent: false, subdivision: true, accentDB: song.click.accentDB)
         clickMixer.outputVolume = song.outputMode == .split && song.click.enabled ? dbToLinear(song.click.levelDB) : 0
     }
 
-    private func makeClickBuffer(sampleRate: Double, preset: ClickPreset, accent: Bool, subdivision: Bool) -> AVAudioPCMBuffer? {
+    private func makeClickBuffer(sampleRate: Double, preset: ClickPreset, accent: Bool, subdivision: Bool, accentDB: Double) -> AVAudioPCMBuffer? {
         let spec: (freq: Double, accent: Double, duration: Double, harmonic: Double)
         switch preset {
         case .softWood: spec = (720, 920, 0.050, 0.16)
@@ -362,6 +407,7 @@ final class AudioEngineController: ObservableObject {
         }
         let freq = (accent ? spec.accent : spec.freq) * (subdivision ? 0.82 : 1.0)
         let dur = spec.duration * (subdivision ? 0.72 : 1.0)
+        let accentGain = accent ? min(2.2, pow(10, accentDB / 20)) : 1
         let frames = AVAudioFrameCount(max(64, Int(sampleRate * dur)))
         guard let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1),
               let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames) else { return nil }
@@ -372,7 +418,7 @@ final class AudioEngineController: ObservableObject {
             let env = exp(-t * (subdivision ? 78 : 58))
             let fundamental = sin(2 * .pi * freq * t)
             let harmonic = sin(2 * .pi * freq * 1.52 * t) * spec.harmonic
-            dst[i] = Float((fundamental + harmonic) * env * (subdivision ? 0.38 : 0.62))
+            dst[i] = Float((fundamental + harmonic) * env * (subdivision ? 0.38 : 0.62) * accentGain)
         }
         return buffer
     }
@@ -465,12 +511,77 @@ final class AudioEngineController: ObservableObject {
         timer.resume()
     }
 
+    private func instantiateMatrixMixer() throws -> AVAudioUnit {
+        let description = AudioComponentDescription(
+            componentType: kAudioUnitType_Mixer,
+            componentSubType: kAudioUnitSubType_MatrixMixer,
+            componentManufacturer: kAudioUnitManufacturer_Apple,
+            componentFlags: 0,
+            componentFlagsMask: 0
+        )
+
+        let semaphore = DispatchSemaphore(value: 0)
+        var result: AVAudioUnit?
+        var capturedError: Error?
+        AVAudioUnit.instantiate(with: description, options: []) { unit, error in
+            result = unit
+            capturedError = error
+            semaphore.signal()
+        }
+        semaphore.wait()
+        if let capturedError { throw capturedError }
+        guard let result else {
+            throw NSError(domain: "STEMLive.Audio", code: -20, userInfo: [NSLocalizedDescriptionKey: "AUMatrixMixer could not be instantiated."])
+        }
+        return result
+    }
+
+    private func configureMatrixMixer(mode: MonoDownmixMode) throws {
+        guard let matrix = monoMatrix else { return }
+        let unit = matrix.audioUnit
+
+        func set(_ scope: AudioUnitScope, _ element: AudioUnitElement, _ value: Float) throws {
+            let status = AudioUnitSetParameter(unit, kMatrixMixerParam_Volume, scope, element, value, 0)
+            guard status == noErr else {
+                throw NSError(domain: NSOSStatusErrorDomain, code: Int(status), userInfo: [NSLocalizedDescriptionKey: "AUMatrixMixer parameter configuration failed (\(status))."])
+            }
+        }
+
+        try set(kAudioUnitScope_Global, 0xFFFF_FFFF, 1)
+        try set(kAudioUnitScope_Input, 0, 1)
+        try set(kAudioUnitScope_Input, 1, 1)
+        try set(kAudioUnitScope_Output, 0, 1)
+
+        let left: Float
+        let right: Float
+        switch mode {
+        case .safeSum:
+            left = 0.5
+            right = 0.5
+        case .equalPower:
+            left = 0.70710678
+            right = 0.70710678
+        case .leftOnly:
+            left = 1
+            right = 0
+        case .rightOnly:
+            left = 0
+            right = 1
+        }
+
+        let leftCrosspoint = AudioUnitElement((UInt32(0) << 16) | UInt32(0))
+        let rightCrosspoint = AudioUnitElement((UInt32(1) << 16) | UInt32(0))
+        try set(kAudioUnitScope_Global, leftCrosspoint, left)
+        try set(kAudioUnitScope_Global, rightCrosspoint, right)
+    }
+
     private func teardownEngine() {
         transportTimer?.cancel(); transportTimer = nil
         clickTimer?.cancel(); clickTimer = nil
         if engine.isRunning { engine.stop() }
         for player in players.values { player.stop() }
         players.removeAll(); files.removeAll()
+        monoMatrix = nil
     }
 
     private func dbToLinear(_ db: Double) -> Float {
