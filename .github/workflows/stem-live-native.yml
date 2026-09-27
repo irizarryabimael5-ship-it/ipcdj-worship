@@ -11,6 +11,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: stem-live-native-063
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: macos-14
