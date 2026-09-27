@@ -40,7 +40,7 @@ func main() {
 		fail("Legacy STEM Live app not found: " + err.Error())
 	}
 
-	if p := exec.Command("/usr/bin/pgrep", "-f", *profile); p.Run() == nil {
+	if legacyChromeIsRunning(*profile) {
 		fail("Close the old STEM Live Alpha completely before migration, then try again.")
 	}
 
@@ -124,6 +124,20 @@ func main() {
 
 	_ = os.RemoveAll(profileCopy)
 	fmt.Printf("DONE %d song(s) and %d stem(s) exported\n", len(manifest.Songs), len(manifest.Stems))
+}
+
+func legacyChromeIsRunning(profile string) bool {
+	cmd := exec.Command("/bin/ps", "-ax", "-o", "command=")
+	out, err := cmd.Output()
+	if err != nil {
+		return false
+	}
+	for _, line := range strings.Split(string(out), "\n") {
+		if strings.Contains(line, "Google Chrome") && strings.Contains(line, profile) {
+			return true
+		}
+	}
+	return false
 }
 
 func locateChrome() string {
