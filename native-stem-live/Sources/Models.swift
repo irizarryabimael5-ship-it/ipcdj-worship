@@ -24,6 +24,24 @@ enum OutputMode: String, Codable, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+enum MonoDownmixMode: String, Codable, CaseIterable, Identifiable {
+    case safeSum = "Safe Sum · L+R -6 dB"
+    case equalPower = "Equal Power · L+R -3 dB"
+    case leftOnly = "Left Only"
+    case rightOnly = "Right Only"
+
+    var id: String { rawValue }
+
+    var shortName: String {
+        switch self {
+        case .safeSum: return "SAFE SUM"
+        case .equalPower: return "EQUAL POWER"
+        case .leftOnly: return "LEFT ONLY"
+        case .rightOnly: return "RIGHT ONLY"
+        }
+    }
+}
+
 enum ClickPreset: String, Codable, CaseIterable, Identifiable {
     case softWood = "Soft Wood"
     case warmPulse = "Warm Pulse"
@@ -73,6 +91,7 @@ struct SongProject: Identifiable, Codable, Hashable {
     var meterTop: Int = 4
     var meterBottom: Int = 4
     var outputMode: OutputMode = .stereo
+    var monoDownmixMode: MonoDownmixMode? = nil
     var stems: [StemTrack] = []
     var sections: [SectionMarker] = []
     var click = ClickSettings()
@@ -83,6 +102,7 @@ struct SongProject: Identifiable, Codable, Hashable {
     }
 
     var meterText: String { "\(meterTop)/\(meterBottom)" }
+    var effectiveMonoDownmixMode: MonoDownmixMode { monoDownmixMode ?? .safeSum }
 }
 
 extension Double {
@@ -98,4 +118,12 @@ func formatTime(_ seconds: Double) -> String {
     let secs = Int(s) % 60
     let ms = Int((s - floor(s)) * 1000)
     return String(format: "%02d:%02d.%03d", minutes, secs, ms)
+}
+
+func formatSampleRate(_ rate: Double) -> String {
+    guard rate > 0 else { return "—" }
+    if abs(rate.rounded() - rate) < 0.01 {
+        return String(format: "%,.0f Hz", rate)
+    }
+    return String(format: "%,.1f Hz", rate)
 }
