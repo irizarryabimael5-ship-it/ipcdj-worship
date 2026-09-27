@@ -101,7 +101,7 @@ struct Sidebar: View {
                 .background(Card(corner: 17)).padding(.horizontal, 9)
             }
 
-            HStack { LabelText("SETLIST"); Spacer(); Text("\(store.songs.count)").font(.caption2).foregroundColor(.secondary) }
+            HStack { LabelText("SETLIST"); Spacer(); Text("\(store.songs.count)").font(.system(size: 10.5, weight: .medium)).foregroundColor(.secondary) }
                 .padding(.horizontal, 15).padding(.top, 18).padding(.bottom, 8)
 
             ScrollView {
@@ -114,7 +114,7 @@ struct Sidebar: View {
                                 RoundedRectangle(cornerRadius: 8)
                                     .fill(store.currentSongID == song.id ? Color.white : Color.white.opacity(0.07))
                                     .frame(width: 28, height: 28)
-                                    .overlay(Text("\(idx + 1)").font(.system(size: 9, weight: .black))
+                                    .overlay(Text("\(idx + 1)").font(.system(size: 10, weight: .black))
                                         .foregroundColor(store.currentSongID == song.id ? .black : .white))
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(song.title).font(.system(size: 12, weight: .bold)).lineLimit(1)
@@ -133,7 +133,7 @@ struct Sidebar: View {
                     Circle().fill(audio.isPlaying ? .green : .gray).frame(width: 6, height: 6)
                     Text(audio.engineStatus).font(.system(size: 10, weight: .medium)).foregroundColor(.secondary).lineLimit(1)
                 }
-                Text("Native 0.6.3").font(.system(size: 9, weight: .medium)).foregroundColor(.secondary.opacity(0.8))
+                Text("Native 0.6.3").font(.system(size: 10.5, weight: .medium)).foregroundColor(.secondary.opacity(0.8))
             }.frame(maxWidth: .infinity, alignment: .leading).padding(14)
         }
         .background(RoundedRectangle(cornerRadius: 26).fill(.regularMaterial.opacity(0.50)))
@@ -409,7 +409,7 @@ struct QuickClick: View {
                 ForEach(ClickPreset.allCases) { Text($0.rawValue).tag($0) }
             }.frame(width: 180)
             Slider(value: Binding(get: { song.click.levelDB }, set: { v in store.mutateCurrent { $0.click.levelDB = v }; refresh() }), in: -30...0).frame(width: 160)
-            Text("\(song.click.levelDB, specifier: "%.1f") dB").font(.caption2).monospacedDigit().frame(width: 60)
+            Text("\(song.click.levelDB, specifier: "%.1f") dB").font(.system(size: 10.5, weight: .medium)).monospacedDigit().frame(width: 60)
             Toggle("1/8", isOn: Binding(get: { song.click.eighths }, set: { v in store.mutateCurrent { $0.click.eighths = v; if v { $0.click.sixteenths = false } }; refresh() }))
             Toggle("1/16", isOn: Binding(get: { song.click.sixteenths }, set: { v in store.mutateCurrent { $0.click.sixteenths = v; if v { $0.click.eighths = false } }; refresh() }))
             Spacer()
@@ -741,7 +741,7 @@ struct TimelineHeaderCell: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title).font(.system(size: 10, weight: .black)).tracking(0.7)
-            Text(subtitle).font(.system(size: 9, weight: .medium)).foregroundColor(.secondary)
+            Text(subtitle).font(.system(size: 10.5, weight: .medium)).foregroundColor(.secondary)
         }
         .padding(.horizontal, 12)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
@@ -862,7 +862,7 @@ struct LogicTrackHeader: View {
                     .font(.system(size: 11.5, weight: .bold))
                     .lineLimit(1)
                 Text(routeLabel)
-                    .font(.system(size: 8.5, weight: .black))
+                    .font(.system(size: 9.5, weight: .black))
                     .tracking(0.7)
                     .foregroundColor(routeColor)
             }
@@ -889,7 +889,7 @@ struct TrackToggleStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 9, weight: .black))
+            .font(.system(size: 10, weight: .black))
             .foregroundColor(active ? .black : .secondary)
             .frame(width: 28, height: 27)
             .background(
@@ -1056,7 +1056,7 @@ struct MixPage: View {
                                 VStack(alignment: .leading) {
                                     Text(stem.name).font(.system(size: 11, weight: .bold))
                                     Text(stem.effectiveRoute == .reference ? "REFERENCE · EXCLUDED" : (stem.effectiveRoute == .click ? "CLICK · EXCLUDED FROM MUSIC" : "LIVE STEM"))
-                                        .font(.system(size: 8, weight: .black))
+                                        .font(.system(size: 10, weight: .black))
                                         .foregroundColor(stem.effectiveRoute == .reference ? .orange : (stem.effectiveRoute == .click ? .cyan : .secondary))
                                 }.frame(width: 260, alignment: .leading)
                                 Slider(value: Binding(get: { stem.volume }, set: { v in update(stem) { $0.volume = v } }), in: 0...1.5)
@@ -1175,16 +1175,16 @@ struct SystemPage: View {
                         }
 
                         if let error = report.error {
-                            Text(error).font(.system(size: 9)).foregroundColor(.orange)
+                            Text(error).font(.system(size: 11)).foregroundColor(.orange)
                         }
                         if let preflightMessage {
-                            Text(preflightMessage).font(.system(size: 9)).foregroundColor(.secondary).lineSpacing(3)
+                            Text(preflightMessage).font(.system(size: 11)).foregroundColor(.secondary).lineSpacing(3)
                         }
 
                         Text(report.allLossless
                              ? "All live stems are lossless source formats. STEM Live performs no lossy encode/decode stage."
                              : "One or more live stems are not identified as a lossless source format.")
-                            .font(.system(size: 9))
+                            .font(.system(size: 11))
                             .foregroundColor(report.allLossless ? .secondary : .orange)
                             .lineSpacing(3)
                     }
@@ -1228,7 +1228,7 @@ struct SystemPage: View {
                             }
 
                             Text("Safe Sum is the default: L and R feed an Apple AUMatrixMixer at -6.02 dB each, preserving headroom for correlated stereo material. Equal Power is louder but may clip on highly correlated mixes. Left/Right Only bypass stereo summing for phase-sensitive sources.")
-                                .font(.system(size: 9)).foregroundColor(.secondary).lineSpacing(4)
+                                .font(.system(size: 11)).foregroundColor(.secondary).lineSpacing(4)
                         }
 
                         LabelText("ENGINE")
@@ -1250,7 +1250,7 @@ struct SystemPage: View {
                             store.livingColorIntensity = $0; store.save()
                         }
                         Text("Music metrics update around 20 Hz. Core Animation performs the visual interpolation; the UI never determines audio timing.")
-                            .font(.system(size: 9)).foregroundColor(.secondary).lineSpacing(4)
+                            .font(.system(size: 11)).foregroundColor(.secondary).lineSpacing(4)
                     }.padding(18).frame(maxWidth: .infinity, alignment: .leading).background(Card())
 
                     VStack(alignment: .leading, spacing: 10) {
@@ -1258,11 +1258,11 @@ struct SystemPage: View {
                         Text("TRANSPARENT PATH READY")
                             .font(.system(size: 11, weight: .bold)).foregroundColor(.green)
                         Text("Lossless source files are present and every live stem matches the hardware sample rate, so no sample-rate conversion is required.")
-                            .font(.system(size: 9)).foregroundColor(.secondary).lineSpacing(4)
+                            .font(.system(size: 11)).foregroundColor(.secondary).lineSpacing(4)
                         Text("SRC ACTIVE")
                             .font(.system(size: 11, weight: .bold)).foregroundColor(.orange)
                         Text("At least one live stem differs from the output device rate. Playback remains native Float32, but CoreAudio must resample that source.")
-                            .font(.system(size: 9)).foregroundColor(.secondary).lineSpacing(4)
+                            .font(.system(size: 11)).foregroundColor(.secondary).lineSpacing(4)
                     }.padding(18).frame(width: 410, alignment: .leading).background(Card())
                 }
             } else {
@@ -1320,7 +1320,7 @@ struct LabelText: View {
 struct TabButton: ButtonStyle {
     let active: Bool
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label.font(.system(size: 8, weight: .black)).tracking(0.7)
+        configuration.label.font(.system(size: 10, weight: .black)).tracking(0.7)
             .foregroundColor(active ? .black : .secondary)
             .frame(minWidth: 61, minHeight: 37)
             .background(RoundedRectangle(cornerRadius: 11).fill(active ? Color.white : Color.clear))
@@ -1364,7 +1364,7 @@ struct SettingSlider: View {
     let onChange: (Double) -> Void
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack { LabelText(title); Spacer(); Text("\(value, specifier: "%.1f") \(suffix)").font(.system(size: 9, weight: .bold)).foregroundColor(.secondary) }
+            HStack { LabelText(title); Spacer(); Text("\(value, specifier: "%.1f") \(suffix)").font(.system(size: 10.5, weight: .bold)).foregroundColor(.secondary) }
             Slider(value: Binding(get: { value }, set: onChange), in: range)
         }
     }
@@ -1413,9 +1413,9 @@ struct LegacyMigrationBanner: View {
                 .background(RoundedRectangle(cornerRadius: 11).fill(Color.cyan.opacity(0.10)))
             VStack(alignment: .leading, spacing: 3) {
                 Text("LEGACY ALPHA LIBRARY FOUND")
-                    .font(.system(size: 9, weight: .black)).tracking(0.8)
+                    .font(.system(size: 10, weight: .black)).tracking(0.8)
                 Text("Bring your existing songs, lyrics, sections and embedded stem audio into the native app.")
-                    .font(.system(size: 9)).foregroundColor(.secondary)
+                    .font(.system(size: 11)).foregroundColor(.secondary)
             }
             Spacer()
             Button("IMPORT") { migration.showMigration = true }
@@ -1464,7 +1464,7 @@ struct LegacyMigrationSheet: View {
             VStack(alignment: .leading, spacing: 5) {
                 Text(migration.message).font(.system(size: 12, weight: .bold))
                 if !migration.detail.isEmpty {
-                    Text(migration.detail).font(.system(size: 9)).foregroundColor(.secondary).lineSpacing(3)
+                    Text(migration.detail).font(.system(size: 11)).foregroundColor(.secondary).lineSpacing(3)
                 }
             }
             .padding(12)
@@ -1509,7 +1509,7 @@ struct MigrationStep: View {
                 .frame(width: 28, height: 28).background(Circle().fill(.white))
             VStack(alignment: .leading, spacing: 3) {
                 Text(title).font(.system(size: 11, weight: .bold))
-                Text(detail).font(.system(size: 9)).foregroundColor(.secondary).lineSpacing(3)
+                Text(detail).font(.system(size: 11)).foregroundColor(.secondary).lineSpacing(3)
             }
         }
     }
@@ -1520,8 +1520,8 @@ struct UpdateRow: View {
     init(_ n: String, _ title: String, _ detail: String) { self.n=n; self.title=title; self.detail=detail }
     var body: some View {
         HStack(alignment: .top, spacing: 11) {
-            Text(n).font(.system(size: 9, weight: .black)).frame(width: 30, height: 30).background(RoundedRectangle(cornerRadius: 9).fill(Color.white.opacity(0.08)))
-            VStack(alignment: .leading, spacing: 3) { Text(title).font(.system(size: 12, weight: .bold)); Text(detail).font(.system(size: 9)).foregroundColor(.secondary).lineSpacing(3) }
+            Text(n).font(.system(size: 10, weight: .black)).frame(width: 30, height: 30).background(RoundedRectangle(cornerRadius: 9).fill(Color.white.opacity(0.08)))
+            VStack(alignment: .leading, spacing: 3) { Text(title).font(.system(size: 12, weight: .bold)); Text(detail).font(.system(size: 11)).foregroundColor(.secondary).lineSpacing(3) }
         }.padding(10).background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.03)))
     }
 }
