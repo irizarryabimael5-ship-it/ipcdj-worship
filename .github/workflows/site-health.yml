@@ -83,7 +83,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends pulseaudio
           pulseaudio --start --exit-idle-time=-1 || true
 
-      - name: Wait for the current repository build to be live
+      - name: Wait for the exact repository runtime to be live
         shell: bash
         run: |
           set -euo pipefail
@@ -93,18 +93,51 @@ jobs:
             exit 1
           fi
 
-          echo "Waiting for deployed build: $EXPECTED_BUILD"
-          for attempt in $(seq 1 36); do
-            LIVE_BUILD="$(curl -fsSL --max-time 15 -H 'Cache-Control: no-cache' "https://worship.ipcdj.org/?deploy-health=${GITHUB_RUN_ID}-${attempt}" | grep -o 'meta name="ipcdj-build" content="[^"]*"' | sed -E 's/.*content="([^"]*)".*/\1/' | head -n1 || true)"
-            if [ "$LIVE_BUILD" = "$EXPECTED_BUILD" ]; then
-              echo "Deployment confirmed on attempt $attempt."
+          EXPECTED_INDEX_SHA="$(sha256sum ../index.html | awk '{print $1}')"
+          EXPECTED_SW_SHA="$(sha256sum ../sw.js | awk '{print $1}')"
+          EXPECTED_SOCIAL_SHA="$(sha256sum ../social-preview-v176.jpg | awk '{print $1}')"
+
+          echo "Waiting for exact deployed runtime: $EXPECTED_BUILD"
+          echo "index=$EXPECTED_INDEX_SHA"
+          echo "sw=$EXPECTED_SW_SHA"
+          echo "social=$EXPECTED_SOCIAL_SHA"
+
+          for attempt in $(seq 1 48); do
+            nonce="${GITHUB_RUN_ID}-${attempt}"
+            rm -f /tmp/ipcdj-live-index /tmp/ipcdj-live-sw /tmp/ipcdj-live-social
+
+            curl -fsSL --max-time 20 -H 'Cache-Control: no-cache' \
+              "https://worship.ipcdj.org/?deploy-health=${nonce}" \
+              -o /tmp/ipcdj-live-index || true
+            curl -fsSL --max-time 20 -H 'Cache-Control: no-cache' \
+              "https://worship.ipcdj.org/sw.js?deploy-health=${nonce}" \
+              -o /tmp/ipcdj-live-sw || true
+            curl -fsSL --max-time 20 -H 'Cache-Control: no-cache' \
+              "https://worship.ipcdj.org/social-preview-v176.jpg?deploy-health=${nonce}" \
+              -o /tmp/ipcdj-live-social || true
+
+            LIVE_BUILD="$(grep -o 'meta name="ipcdj-build" content="[^"]*"' /tmp/ipcdj-live-index 2>/dev/null | sed -E 's/.*content="([^"]*)".*/\1/' | head -n1 || true)"
+            LIVE_INDEX_SHA="$(sha256sum /tmp/ipcdj-live-index 2>/dev/null | awk '{print $1}' || true)"
+            LIVE_SW_SHA="$(sha256sum /tmp/ipcdj-live-sw 2>/dev/null | awk '{print $1}' || true)"
+            LIVE_SOCIAL_SHA="$(sha256sum /tmp/ipcdj-live-social 2>/dev/null | awk '{print $1}' || true)"
+
+            if [ "$LIVE_BUILD" = "$EXPECTED_BUILD" ] \
+              && [ "$LIVE_INDEX_SHA" = "$EXPECTED_INDEX_SHA" ] \
+              && [ "$LIVE_SW_SHA" = "$EXPECTED_SW_SHA" ] \
+              && [ "$LIVE_SOCIAL_SHA" = "$EXPECTED_SOCIAL_SHA" ]; then
+              echo "Exact deployment confirmed on attempt $attempt."
               exit 0
             fi
-            echo "Attempt $attempt: live='$LIVE_BUILD' expected='$EXPECTED_BUILD'; retrying in 10s."
+
+            echo "Attempt $attempt mismatch:"
+            echo "  build:  live='$LIVE_BUILD' expected='$EXPECTED_BUILD'"
+            echo "  index:  live='$LIVE_INDEX_SHA' expected='$EXPECTED_INDEX_SHA'"
+            echo "  sw:     live='$LIVE_SW_SHA' expected='$EXPECTED_SW_SHA'"
+            echo "  social: live='$LIVE_SOCIAL_SHA' expected='$EXPECTED_SOCIAL_SHA'"
             sleep 10
           done
 
-          echo "Timed out waiting for GitHub Pages to deploy $EXPECTED_BUILD"
+          echo "Timed out waiting for the exact final runtime bytes to deploy."
           exit 1
 
       - name: Run cross-platform website health matrix
