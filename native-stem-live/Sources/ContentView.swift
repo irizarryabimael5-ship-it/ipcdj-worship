@@ -8,7 +8,7 @@ struct ContentView: View {
     @AppStorage("stemlive.native.lastSeenVersion") private var lastSeenVersion = ""
     @State private var whatsNew = false
     @State private var quickClick = false
-    private let version = "0.6.0"
+    private let version = "0.6.1"
 
     var body: some View {
         ZStack {
@@ -112,7 +112,7 @@ struct Sidebar: View {
                     Circle().fill(audio.isPlaying ? .green : .gray).frame(width: 6, height: 6)
                     Text(audio.engineStatus).font(.system(size: 8)).foregroundColor(.secondary).lineLimit(1)
                 }
-                Text("Native 0.6.0").font(.system(size: 8)).foregroundColor(.secondary.opacity(0.7))
+                Text("Native 0.6.1").font(.system(size: 8)).foregroundColor(.secondary.opacity(0.7))
             }.frame(maxWidth: .infinity, alignment: .leading).padding(14)
         }
         .background(RoundedRectangle(cornerRadius: 26).fill(.regularMaterial.opacity(0.72)))
@@ -584,33 +584,160 @@ struct SystemPage: View {
     @EnvironmentObject var store: ProjectStore
     @EnvironmentObject var audio: AudioEngineController
     @Binding var whatsNew: Bool
+    @State private var preflightMessage: String?
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack { PageHeading(title: "System", subtitle: "CoreAudio engine and stage appearance."); Spacer(); Button("WHAT'S NEW…") { whatsNew = true }.buttonStyle(SmallButton(primary: false)) }
-            HStack(alignment: .top, spacing: 12) {
-                VStack(alignment: .leading, spacing: 13) {
-                    LabelText("AUDIO ENGINE")
-                    Text("AVAudioEngine / CoreAudio").font(.system(size: 20, weight: .bold))
-                    Text(audio.engineStatus).foregroundColor(.green).font(.system(size: 11, weight: .semibold))
-                    if let song = store.currentSong {
+            HStack {
+                PageHeading(title: "System", subtitle: "CoreAudio fidelity, routing and stage appearance.")
+                Spacer()
+                Button("WHAT'S NEW…") { whatsNew = true }.buttonStyle(SmallButton(primary: false))
+            }
+
+            if let song = store.currentSong {
+                let report = audio.preflight(song: song)
+                HStack(alignment: .top, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 13) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                LabelText("STRICT AUDIO PREFLIGHT")
+                                Text(report.transparentReady ? "TRANSPARENT PATH READY" : (report.srcActive ? "SAMPLE-RATE CONVERSION ACTIVE" : "REVIEW AUDIO PATH"))
+                                    .font(.system(size: 17, weight: .bold))
+                                    .foregroundColor(report.transparentReady ? .green : .orange)
+                            }
+                            Spacer()
+                            Image(systemName: report.transparentReady ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(report.transparentReady ? .green : .orange)
+                        }
+
+                        HStack(spacing: 8) {
+                            PreflightValue(title: "SOURCE RATE", value: report.sourceRateText)
+                            PreflightValue(title: "SOURCE DEPTH", value: report.sourceBitText)
+                            PreflightValue(title: "CHANNELS", value: report.sourceChannelText)
+                            PreflightValue(title: "FORMAT", value: report.sourceFormatText)
+                        }
+
+                        Divider().opacity(0.25)
+
+                        if let device = report.device {
+                            HStack(spacing: 8) {
+                                PreflightValue(title: "OUTPUT DEVICE", value: device.name)
+                                PreflightValue(title: "DEVICE RATE", value: formatSampleRate(device.sampleRate))
+                                PreflightValue(title: "BUFFER", value: "\(device.bufferFrames) frames")
+                                PreflightValue(title: "SRC", value: report.srcActive ? "ACTIVE" : "NONE", accent: report.srcActive ? .orange : .green)
+                            }
+
+                            if report.canMatchDevice, let target = report.recommendedProjectRate {
+                                Button("MATCH DEVICE TO \(formatSampleRate(target))") {
+                                    do {
+                                        try audio.matchDeviceToProjectRate(song: song)
+                                        preflightMessage = "Output device matched to \(formatSampleRate(target)). Recheck the preflight status above."
+                                    } catch {
+                                        preflightMessage = error.localizedDescription
+                                    }
+                                }.buttonStyle(SmallButton(primary: true))
+                            }
+                        }
+
+                        if let error = report.error {
+                            Text(error).font(.system(size: 9)).foregroundColor(.orange)
+                        }
+                        if let preflightMessage {
+                            Text(preflightMessage).font(.system(size: 9)).foregroundColor(.secondary).lineSpacing(3)
+                        }
+
+                        Text(report.allLossless
+                             ? "All live stems are lossless source formats. STEM Live performs no lossy encode/decode stage."
+                             : "One or more live stems are not identified as a lossless source format.")
+                            .font(.system(size: 9))
+                            .foregroundColor(report.allLossless ? .secondary : .orange)
+                            .lineSpacing(3)
+                    }
+                    .padding(18).frame(maxWidth: .infinity, alignment: .leading).background(Card())
+
+                    VStack(alignment: .leading, spacing: 14) {
+                        LabelText("ROUTING")
                         Picker("Output", selection: Binding(get: { song.outputMode }, set: { mode in
                             store.mutateCurrent { $0.outputMode = mode }
-                            if let s = store.currentSong { try? audio.prepare(song: s) }
-                        })) { ForEach(OutputMode.allCases) { Text($0.rawValue).tag($0) } }.pickerStyle(.segmented)
+                            if let current = store.currentSong { try? audio.prepare(song: current) }
+                        })) {
+                            ForEach(OutputMode.allCases) { Text($0.rawValue).tag($0) }
+                        }.pickerStyle(.segmented)
+
+                        if song.outputMode == .split {
+                            Divider().opacity(0.25)
+                            LabelText("MONO DOWNMIX")
+                            Picker("Downmix", selection: Binding(get: { song.effectiveMonoDownmixMode }, set: { mode in
+                                store.mutateCurrent { $0.monoDownmixMode = mode }
+                                if let current = store.currentSong { try? audio.prepare(song: current) }
+                            })) {
+                                ForEach(MonoDownmixMode.allCases) { Text($0.rawValue).tag($0) }
+                            }
+
+                            Text("Safe Sum is the default: L and R feed an Apple AUMatrixMixer at -6.02 dB each, preserving headroom for correlated stereo material. Equal Power is louder but may clip on highly correlated mixes. Left/Right Only bypass stereo summing for phase-sensitive sources.")
+                                .font(.system(size: 9)).foregroundColor(.secondary).lineSpacing(4)
+                        }
+
+                        LabelText("ENGINE")
+                        Text("AVAudioEngine / CoreAudio").font(.system(size: 18, weight: .bold))
+                        Text(audio.engineStatus)
+                            .foregroundColor(audio.engineStatus.contains("error") ? .orange : .green)
+                            .font(.system(size: 10, weight: .semibold))
                     }
-                    Text("This preview contains no Chrome/WebAudio playback path. Audio scheduling uses CoreAudio host time and the native render graph.")
-                        .font(.system(size: 10)).foregroundColor(.secondary).lineSpacing(4)
-                }.padding(18).frame(maxWidth: .infinity, alignment: .leading).background(Card())
-                VStack(alignment: .leading, spacing: 14) {
-                    LabelText("STAGE APPEARANCE")
-                    Toggle("Living Color", isOn: Binding(get: { store.livingColorEnabled }, set: { store.livingColorEnabled = $0; store.save() })).toggleStyle(.switch)
-                    SettingSlider(title: "INTENSITY", value: store.livingColorIntensity, range: 0.25...1.15, suffix: "") { store.livingColorIntensity = $0; store.save() }
-                    Text("Music metrics update around 20 Hz. Native Core Animation performs the visual interpolation; audio timing never waits on the UI.")
-                        .font(.system(size: 9)).foregroundColor(.secondary).lineSpacing(4)
-                }.padding(18).frame(width: 370, alignment: .leading).background(Card())
+                    .padding(18).frame(width: 410, alignment: .leading).background(Card())
+                }
+
+                HStack(alignment: .top, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 14) {
+                        LabelText("STAGE APPEARANCE")
+                        Toggle("Living Color", isOn: Binding(get: { store.livingColorEnabled }, set: {
+                            store.livingColorEnabled = $0; store.save()
+                        })).toggleStyle(.switch)
+                        SettingSlider(title: "INTENSITY", value: store.livingColorIntensity, range: 0.25...1.15, suffix: "") {
+                            store.livingColorIntensity = $0; store.save()
+                        }
+                        Text("Music metrics update around 20 Hz. Core Animation performs the visual interpolation; the UI never determines audio timing.")
+                            .font(.system(size: 9)).foregroundColor(.secondary).lineSpacing(4)
+                    }.padding(18).frame(maxWidth: .infinity, alignment: .leading).background(Card())
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        LabelText("WHAT THE STATUS MEANS")
+                        Text("TRANSPARENT PATH READY")
+                            .font(.system(size: 11, weight: .bold)).foregroundColor(.green)
+                        Text("Lossless source files are present and every live stem matches the hardware sample rate, so no sample-rate conversion is required.")
+                            .font(.system(size: 9)).foregroundColor(.secondary).lineSpacing(4)
+                        Text("SRC ACTIVE")
+                            .font(.system(size: 11, weight: .bold)).foregroundColor(.orange)
+                        Text("At least one live stem differs from the output device rate. Playback remains native Float32, but CoreAudio must resample that source.")
+                            .font(.system(size: 9)).foregroundColor(.secondary).lineSpacing(4)
+                    }.padding(18).frame(width: 410, alignment: .leading).background(Card())
+                }
+            } else {
+                EmptyState(title: "No song loaded", subtitle: "Create a song and import stems to run audio preflight.")
             }
             Spacer()
         }.padding(5)
+    }
+}
+
+struct PreflightValue: View {
+    let title: String
+    let value: String
+    var accent: Color = .white
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            LabelText(title)
+            Text(value)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(accent)
+                .lineLimit(2)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.035)))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.06)))
     }
 }
 
@@ -707,15 +834,15 @@ struct WhatsNew: View {
                 RoundedRectangle(cornerRadius: 15).fill(.white).frame(width: 52, height: 52)
                     .overlay(Text("S").foregroundColor(.black).font(.system(size: 23, weight: .black)))
                 VStack(alignment: .leading) {
-                    Text("What's New in STEM Live 0.6.0").font(.system(size: 23, weight: .bold))
-                    Text("Native Performance Foundation").foregroundColor(.secondary)
+                    Text("What's New in STEM Live 0.6.1").font(.system(size: 23, weight: .bold))
+                    Text("Audio Fidelity Foundation").foregroundColor(.secondary)
                 }
             }
-            UpdateRow("01", "Native audio engine", "Chrome and WebAudio are removed from the live path. Playback uses AVAudioEngine and CoreAudio host-time scheduling.")
-            UpdateRow("02", "Native Living Color", "The stage color is rendered with Core Animation and wakes/decays from the actual post-music signal.")
-            UpdateRow("03", "Waveform Arrange", "Each live stem gets a native waveform lane with draggable section markers and exact millisecond editing.")
-            UpdateRow("04", "Native Click", "The generated click shares the CoreAudio host clock and Quick Click appears in LIVE only for Music L / Click R.")
-            UpdateRow("05", "Safe migration", "This installs as STEM Live Native beside the Chrome Alpha while we validate the new engine.")
+            UpdateRow("01", "Strict audio preflight", "SYSTEM now shows source sample rate, bit depth, channel count, codec, device rate, buffer size and whether sample-rate conversion is active.")
+            UpdateRow("02", "Match the device", "When your output device supports the project's native rate, STEM Live can switch the CoreAudio device to that rate and rebuild the engine.")
+            UpdateRow("03", "Explicit professional mono", "Music L / Click R now uses Apple's AUMatrixMixer with selectable Safe Sum, Equal Power, Left Only and Right Only routing.")
+            UpdateRow("04", "Lossless-source status", "Lossless PCM/ALAC/FLAC inputs are identified explicitly. A green Transparent Path status is only shown when the hardware rate also matches.")
+            UpdateRow("05", "Native DMG release", "The native app is now also shipped as a drag-to-Applications DMG; the PKG remains available as a fallback installer.")
             Spacer()
             HStack { Spacer(); Button("START TESTING") { dismiss() }.buttonStyle(SmallButton(primary: true)) }
         }.padding(24).background(Color.black.opacity(0.96))
