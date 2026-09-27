@@ -3070,3 +3070,16 @@ State behavior:
 
 Watchdog:
 - Production health checks verify the release aura exists, palette-derived glow contracts remain present, countdown/progress compute to the collapsed state in release mode, banner computes visible, and transition timing is nonzero.
+
+
+## Estreno color intensity v170
+
+- Release-day emphasis must show the semantic emerald release color and the song-specific album palette at the same time.
+- Green may not be reduced to a barely visible accent while cover colors dominate.
+- `phase-release` requires:
+  - strong emerald card border and outer halo;
+  - a dedicated emerald radial component inside `.release-aura`;
+  - strong album-color glows from `--cover-c1`, `--cover-c2`, and `--cover-c3`;
+  - emerald + album-color glow on the status pill, title, artist, release banner, and active Estreno timeline item.
+- The intended visual hierarchy is “release green + full artwork palette,” not “green instead of artwork” or “artwork instead of green.”
+- The watchdog must verify computed release border/status/aura output contains the emerald release color, in addition to the existing album-palette and transition checks.
