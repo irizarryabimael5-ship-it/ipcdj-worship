@@ -1,8 +1,8 @@
-name: Build STEM Live Native 0.6.0
+name: Build STEM Live Native 0.6.1
 
 on:
   push:
-    branches: [stem-live-native-060]
+    branches: [stem-live-native-061]
     paths:
       - 'native-stem-live/**'
       - '.github/workflows/stem-live-native.yml'
@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: stem-live-native-060
+          ref: stem-live-native-061
 
       - name: Toolchain
         run: |
@@ -34,7 +34,7 @@ jobs:
           mkdir -p build/arm build/app/'STEM Live Native.app'/Contents/MacOS build/app/'STEM Live Native.app'/Contents/Resources
           xcrun swiftc -O -whole-module-optimization -parse-as-library \
             -target arm64-apple-macos13.0 \
-            -framework SwiftUI -framework AppKit -framework AVFoundation -framework Accelerate -framework QuartzCore \
+            -framework SwiftUI -framework AppKit -framework AVFoundation -framework Accelerate -framework QuartzCore -framework CoreAudio -framework AudioToolbox \
             Sources/*.swift -o build/arm/'STEM Live Native'
 
       - name: Build Intel
@@ -43,7 +43,7 @@ jobs:
           mkdir -p build/x86
           xcrun swiftc -O -whole-module-optimization -parse-as-library \
             -target x86_64-apple-macos13.0 \
-            -framework SwiftUI -framework AppKit -framework AVFoundation -framework Accelerate -framework QuartzCore \
+            -framework SwiftUI -framework AppKit -framework AVFoundation -framework Accelerate -framework QuartzCore -framework CoreAudio -framework AudioToolbox \
             Sources/*.swift -o build/x86/'STEM Live Native'
 
       - name: Universal app
@@ -57,27 +57,45 @@ jobs:
           codesign --force --deep --sign - build/app/'STEM Live Native.app'
           codesign --verify --deep --strict --verbose=2 build/app/'STEM Live Native.app'
 
-      - name: Build installer
+      - name: Build PKG and DMG
         run: |
           set -euo pipefail
+
           pkgbuild \
             --component build/app/'STEM Live Native.app' \
             --install-location /Applications \
             --identifier org.ipcdj.stemlive.nativepreview.pkg \
-            --version 0.6.0 \
-            build/STEM_Live_Native_0.6.0.pkg
-          xar -tf build/STEM_Live_Native_0.6.0.pkg
-          shasum -a 256 build/STEM_Live_Native_0.6.0.pkg | tee build/SHA256.txt
-          ditto -c -k --keepParent build/app/'STEM Live Native.app' build/STEM_Live_Native_0.6.0_App.zip
-          ditto -c -k build/STEM_Live_Native_0.6.0.pkg build/STEM_Live_Native_0.6.0_PKG.zip
+            --version 0.6.1 \
+            build/STEM_Live_Native_0.6.1.pkg
+          xar -tf build/STEM_Live_Native_0.6.1.pkg
+
+          mkdir -p build/dmg-stage
+          ditto build/app/'STEM Live Native.app' build/dmg-stage/'STEM Live Native.app'
+          ln -s /Applications build/dmg-stage/Applications
+          hdiutil create \
+            -volname 'STEM Live Native 0.6.1' \
+            -srcfolder build/dmg-stage \
+            -ov -format UDZO \
+            build/STEM_Live_Native_0.6.1.dmg
+          hdiutil verify build/STEM_Live_Native_0.6.1.dmg
+
+          ditto -c -k --keepParent build/app/'STEM Live Native.app' build/STEM_Live_Native_0.6.1_App.zip
+          ditto -c -k build/STEM_Live_Native_0.6.1.pkg build/STEM_Live_Native_0.6.1_PKG.zip
+
+          shasum -a 256 \
+            build/STEM_Live_Native_0.6.1.dmg \
+            build/STEM_Live_Native_0.6.1.pkg \
+            build/STEM_Live_Native_0.6.1_App.zip \
+            build/STEM_Live_Native_0.6.1_PKG.zip | tee build/SHA256.txt
 
       - name: Upload native release
         uses: actions/upload-artifact@v4
         with:
-          name: STEM-Live-Native-0.6.0
+          name: STEM-Live-Native-0.6.1
           path: |
-            native-stem-live/build/STEM_Live_Native_0.6.0.pkg
-            native-stem-live/build/STEM_Live_Native_0.6.0_PKG.zip
-            native-stem-live/build/STEM_Live_Native_0.6.0_App.zip
+            native-stem-live/build/STEM_Live_Native_0.6.1.dmg
+            native-stem-live/build/STEM_Live_Native_0.6.1.pkg
+            native-stem-live/build/STEM_Live_Native_0.6.1_PKG.zip
+            native-stem-live/build/STEM_Live_Native_0.6.1_App.zip
             native-stem-live/build/SHA256.txt
           if-no-files-found: error
