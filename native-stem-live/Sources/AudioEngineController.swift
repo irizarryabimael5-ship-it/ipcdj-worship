@@ -128,7 +128,7 @@ final class AudioEngineController: ObservableObject {
             clickMixer.outputVolume = 0
         }
 
-        for stem in song.stems where !stem.reference {
+        for stem in song.stems where stem.effectiveRoute == .music {
             let url = URL(fileURLWithPath: stem.path)
             guard FileManager.default.fileExists(atPath: url.path) else { continue }
             let file = try AVAudioFile(forReading: url)
@@ -174,8 +174,8 @@ final class AudioEngineController: ObservableObject {
 
     func applyStemState(_ song: SongProject) {
         activeSong = song
-        let anySolo = song.stems.contains(where: { $0.solo && !$0.reference })
-        for stem in song.stems where !stem.reference {
+        let anySolo = song.stems.contains(where: { $0.solo && $0.effectiveRoute == .music })
+        for stem in song.stems where stem.effectiveRoute == .music {
             guard let player = players[stem.id] else { continue }
             let audible = !stem.muted && (!anySolo || stem.solo)
             player.volume = audible ? Float(stem.volume.clamped(0...1.5)) : 0
@@ -208,7 +208,7 @@ final class AudioEngineController: ObservableObject {
         let startHost = mach_absolute_time() + AVAudioTime.hostTime(forSeconds: 0.11)
         let when = AVAudioTime(hostTime: startHost)
         var scheduled = 0
-        for stem in song.stems where !stem.reference {
+        for stem in song.stems where stem.effectiveRoute == .music {
             guard let player = players[stem.id], let file = files[stem.id] else { continue }
             let rate = file.processingFormat.sampleRate
             let frame = AVAudioFramePosition(offset * rate)
