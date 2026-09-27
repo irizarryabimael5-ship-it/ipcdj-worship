@@ -27,6 +27,7 @@ final class AudioEngineController: ObservableObject {
     @Published private(set) var visual = VisualMetrics()
     @Published private(set) var engineStatus = "Audio idle"
     @Published private(set) var preflightGeneration = 0
+    @Published private(set) var latestPreflight: AudioPreflightReport?
     @Published var loopEnabled = false
 
     private var engine = AVAudioEngine()
@@ -99,6 +100,24 @@ final class AudioEngineController: ObservableObject {
             engineSampleRate: hardwareSampleRate,
             outputChannels: outputChannelCount
         )
+    }
+
+    func cachedPreflight(song: SongProject) -> AudioPreflightReport {
+        if let latestPreflight { return latestPreflight }
+        let report = preflight(song: song)
+        DispatchQueue.main.async { [weak self] in
+            self?.latestPreflight = report
+            self?.preflightGeneration &+= 1
+        }
+        return report
+    }
+
+    func refreshPreflight(song: SongProject) {
+        let report = preflight(song: song)
+        DispatchQueue.main.async { [weak self] in
+            self?.latestPreflight = report
+            self?.preflightGeneration &+= 1
+        }
     }
 
     func matchDeviceToProjectRate(song: SongProject) throws {
@@ -191,7 +210,10 @@ final class AudioEngineController: ObservableObject {
         let report = preflight(song: song)
         let srcText = report.srcActive ? "SRC active" : "no SRC"
         publishStatus("CoreAudio · \(Int(sr / 1000)) kHz · \(srcText)")
-        DispatchQueue.main.async { [weak self] in self?.preflightGeneration &+= 1 }
+        DispatchQueue.main.async { [weak self] in
+            self?.latestPreflight = report
+            self?.preflightGeneration &+= 1
+        }
     }
 
     func reloadIfNeeded(song: SongProject) {
