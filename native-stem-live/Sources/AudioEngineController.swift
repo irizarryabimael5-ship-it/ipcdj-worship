@@ -28,7 +28,7 @@ final class AudioEngineController: ObservableObject {
     @Published private(set) var engineStatus = "Audio idle"
     @Published private(set) var preflightGeneration = 0
     @Published private(set) var latestPreflight: AudioPreflightReport?
-    @Published var loopEnabled = false
+    @Published private(set) var loopEnabled = false
 
     private var engine = AVAudioEngine()
     private var musicMixer = AVAudioMixerNode()
@@ -67,6 +67,9 @@ final class AudioEngineController: ObservableObject {
     private var preparedStemSignature = ""
     private var loopSectionID: UUID?
     private var loopJumpPending = false
+    private var loopingActive = false
+    private var transportRunning = false
+    private var pausedPosition: Double = 0
 
     init() {
         configObserver = NotificationCenter.default.addObserver(
@@ -125,6 +128,9 @@ final class AudioEngineController: ObservableObject {
     func matchDeviceToProjectRate(song: SongProject) throws {
         graphLock.lock()
         defer { graphLock.unlock() }
+        recoveryWorkItem?.cancel()
+        isRecoveringConfiguration = true
+        defer { isRecoveringConfiguration = false }
         let report = preflight(song: song)
         guard let target = report.recommendedProjectRate else { return }
         stop(immediate: true)
@@ -287,7 +293,7 @@ final class AudioEngineController: ObservableObject {
             DispatchQueue.main.async { self.engineStatus = "Audio error · \(error.localizedDescription)" }
             return
         }
-        let start = max(0, min(offset ?? currentTime, song.duration > 0 ? song.duration : Double.greatestFiniteMagnitude))
+        let start = max(0, min(offset ?? pausedPosition, song.duration > 0 ? song.duration : Double.greatestFiniteMagnitude))
         scheduleAll(song: song, offset: start)
     }
 
@@ -317,6 +323,8 @@ final class AudioEngineController: ObservableObject {
 
         anchorHost = startHost
         anchorOffset = offset
+        pausedPosition = offset
+        transportRunning = true
         loopJumpPending = false
         nextClickIndex = 0
         lastClickSignature = ""
@@ -329,8 +337,12 @@ final class AudioEngineController: ObservableObject {
     }
 
     func pause() {
-        guard isPlaying else { return }
+        graphLock.lock()
+        defer { graphLock.unlock() }
+        guard transportRunning else { return }
         let t = transportPosition()
+        pausedPosition = t
+        transportRunning = false
         for player in players.values { player.pause() }
         clickNode.pause()
         DispatchQueue.main.async {
@@ -341,7 +353,7 @@ final class AudioEngineController: ObservableObject {
     }
 
     func resume(song: SongProject) {
-        play(song: song, from: currentTime)
+        play(song: song, from: pausedPosition)
     }
 
     func togglePlay(song: SongProject) {
@@ -350,7 +362,8 @@ final class AudioEngineController: ObservableObject {
 
     func seek(song: SongProject, to time: Double, smooth: Bool = true) {
         let target = max(0, min(time, song.duration))
-        if !isPlaying {
+        if !transportRunning {
+            pausedPosition = target
             DispatchQueue.main.async { self.currentTime = target }
             return
         }
@@ -366,7 +379,7 @@ final class AudioEngineController: ObservableObject {
     }
 
     func fadeOut(seconds: Double = 6.0) {
-        guard isPlaying else { return }
+        guard transportRunning else { return }
         reverb.wetDryMix = 9
         rampMusic(to: 0, duration: seconds) { [weak self] in
             guard let self else { return }
@@ -380,6 +393,8 @@ final class AudioEngineController: ObservableObject {
         graphLock.lock()
         defer { graphLock.unlock() }
         let t = immediate ? 0 : transportPosition()
+        pausedPosition = t
+        transportRunning = false
         for player in players.values { player.stop() }
         clickNode.stop()
         stopClickScheduler()
@@ -394,6 +409,13 @@ final class AudioEngineController: ObservableObject {
         }
     }
 
+    func setLoopEnabled(_ enabled: Bool) {
+        graphLock.lock()
+        loopingActive = enabled
+        graphLock.unlock()
+        DispatchQueue.main.async { [weak self] in self?.loopEnabled = enabled }
+    }
+
     func jumpToSection(_ section: SectionMarker, song: SongProject) {
         loopSectionID = section.id
         seek(song: song, to: section.start, smooth: true)
@@ -404,14 +426,21 @@ final class AudioEngineController: ObservableObject {
         defer { graphLock.unlock() }
         reloadIfNeeded(song: song)
         guard let buf = accentClickBuffer else { return }
-        if !engine.isRunning { try? engine.start() }
+        if !engine.isRunning {
+            do {
+                try engine.start()
+            } catch {
+                publishStatus("Click preview error · \(error.localizedDescription)")
+                return
+            }
+        }
         clickMixer.outputVolume = dbToLinear(song.click.levelDB)
         clickNode.scheduleBuffer(buf, at: nil, options: .interrupts, completionHandler: nil)
         clickNode.play()
     }
 
     private func transportPosition() -> Double {
-        guard isPlaying, anchorHost > 0 else { return currentTime }
+        guard transportRunning, anchorHost > 0 else { return pausedPosition }
         let now = mach_absolute_time()
         guard now >= anchorHost else { return anchorOffset }
         let elapsed = AVAudioTime.seconds(forHostTime: now - anchorHost)
@@ -424,11 +453,17 @@ final class AudioEngineController: ObservableObject {
         timer.schedule(deadline: .now(), repeating: .milliseconds(33), leeway: .milliseconds(4))
         timer.setEventHandler { [weak self] in
             guard let self else { return }
+            self.graphLock.lock()
+            let running = self.transportRunning
             let t = self.transportPosition()
             let song = self.activeSong
             let duration = song?.duration ?? 0
+            let looping = self.loopingActive
+            self.graphLock.unlock()
 
-            if self.loopEnabled, let song {
+            guard running else { return }
+
+            if looping, let song {
                 let loopSection = self.loopSectionID.flatMap { id in
                     song.sections.first(where: { $0.id == id })
                 } ?? song.sections.last(where: { $0.start <= t })
@@ -447,7 +482,7 @@ final class AudioEngineController: ObservableObject {
             }
 
             DispatchQueue.main.async {
-                if self.isPlaying {
+                if self.transportRunning {
                     self.currentTime = min(t, duration > 0 ? duration : t)
                     if duration > 0, t >= duration {
                         self.stop(immediate: true)
@@ -475,7 +510,9 @@ final class AudioEngineController: ObservableObject {
     }
 
     private func scheduleClicksAhead() {
-        guard isPlaying, let song = activeSong, song.outputMode == .split, song.click.enabled,
+        graphLock.lock()
+        defer { graphLock.unlock() }
+        guard transportRunning, let song = activeSong, song.outputMode == .split, song.click.enabled,
               let normal = normalClickBuffer, let accent = accentClickBuffer, let sub = subdivisionClickBuffer else { return }
         let bpm = max(30, song.bpm)
         let quarter = 60.0 / bpm
@@ -736,8 +773,12 @@ final class AudioEngineController: ObservableObject {
 
     private func scheduleConfigurationRecovery() {
         graphLock.lock()
+        if isRecoveringConfiguration {
+            graphLock.unlock()
+            return
+        }
         let song = activeSong
-        let wasPlaying = isPlaying
+        let wasPlaying = transportRunning
         let resumeTime = transportPosition()
         graphLock.unlock()
 
