@@ -1,6 +1,6 @@
 import Foundation
 
-struct VisualMetrics: Equatable {
+struct VisualMetrics: Equatable, Sendable {
     var level: Double = 0
     var bass: Double = 0
     var mid: Double = 0
@@ -8,7 +8,7 @@ struct VisualMetrics: Equatable {
     var transient: Double = 0
 }
 
-enum WorkspacePage: String, CaseIterable, Identifiable, Codable {
+enum WorkspacePage: String, CaseIterable, Identifiable, Codable, Sendable {
     case live = "LIVE"
     case set = "SET"
     case arrange = "ARRANGE"
@@ -18,13 +18,13 @@ enum WorkspacePage: String, CaseIterable, Identifiable, Codable {
     var id: String { rawValue }
 }
 
-enum OutputMode: String, Codable, CaseIterable, Identifiable {
+enum OutputMode: String, Codable, CaseIterable, Identifiable, Sendable {
     case stereo = "Stereo Music"
     case split = "Music L / Click R"
     var id: String { rawValue }
 }
 
-enum MonoDownmixMode: String, Codable, CaseIterable, Identifiable {
+enum MonoDownmixMode: String, Codable, CaseIterable, Identifiable, Sendable {
     case safeSum = "Safe Sum · L+R -6 dB"
     case equalPower = "Equal Power · L+R -3 dB"
     case leftOnly = "Left Only"
@@ -42,14 +42,14 @@ enum MonoDownmixMode: String, Codable, CaseIterable, Identifiable {
     }
 }
 
-enum StemRoute: String, Codable, CaseIterable, Identifiable {
+enum StemRoute: String, Codable, CaseIterable, Identifiable, Sendable {
     case music
     case click
     case reference
     var id: String { rawValue }
 }
 
-enum ClickPreset: String, Codable, CaseIterable, Identifiable {
+enum ClickPreset: String, Codable, CaseIterable, Identifiable, Sendable {
     case softWood = "Soft Wood"
     case warmPulse = "Warm Pulse"
     case studioBlock = "Studio Block"
@@ -57,7 +57,7 @@ enum ClickPreset: String, Codable, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
-struct StemTrack: Identifiable, Codable, Hashable {
+struct StemTrack: Identifiable, Codable, Hashable, Sendable {
     var id = UUID()
     var name: String
     var path: String
@@ -74,7 +74,7 @@ struct StemTrack: Identifiable, Codable, Hashable {
     }
 }
 
-struct SectionMarker: Identifiable, Codable, Hashable {
+struct SectionMarker: Identifiable, Codable, Hashable, Sendable {
     var id = UUID()
     var name: String
     var start: Double
@@ -86,7 +86,7 @@ struct SectionMarker: Identifiable, Codable, Hashable {
     var verified: Bool = false
 }
 
-struct ClickSettings: Codable, Hashable {
+struct ClickSettings: Codable, Hashable, Sendable {
     var enabled: Bool = true
     var preset: ClickPreset = .softWood
     var levelDB: Double = -12
@@ -96,7 +96,7 @@ struct ClickSettings: Codable, Hashable {
     var offsetMS: Double = 0
 }
 
-struct SongProject: Identifiable, Codable, Hashable {
+struct SongProject: Identifiable, Codable, Hashable, Sendable {
     var id = UUID()
     var title: String
     var bpm: Double = 120
