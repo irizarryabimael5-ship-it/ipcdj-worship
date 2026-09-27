@@ -61,6 +61,8 @@ final class AudioEngineController: ObservableObject {
 
     private let graphLock = NSRecursiveLock()
     private var gainRampTimer: DispatchSourceTimer?
+    private var gainRampGeneration = 0
+    private var fadeStopWorkItem: DispatchWorkItem?
     private var configObserver: NSObjectProtocol?
     private var recoveryWorkItem: DispatchWorkItem?
     private var isRecoveringConfiguration = false
@@ -83,6 +85,8 @@ final class AudioEngineController: ObservableObject {
 
     deinit {
         recoveryWorkItem?.cancel()
+        fadeStopWorkItem?.cancel()
+        gainRampGeneration &+= 1
         gainRampTimer?.cancel()
         transportTimer?.cancel()
         clickTimer?.cancel()
@@ -286,6 +290,8 @@ final class AudioEngineController: ObservableObject {
     func play(song: SongProject, from offset: Double? = nil) {
         graphLock.lock()
         defer { graphLock.unlock() }
+        fadeStopWorkItem?.cancel()
+        fadeStopWorkItem = nil
         do {
             reloadIfNeeded(song: song)
             if !engine.isRunning { try engine.start() }
@@ -343,6 +349,7 @@ final class AudioEngineController: ObservableObject {
         let t = transportPosition()
         pausedPosition = t
         transportRunning = false
+        cancelGainRamp(resetGain: true)
         for player in players.values { player.pause() }
         clickNode.pause()
         DispatchQueue.main.async {
@@ -379,13 +386,21 @@ final class AudioEngineController: ObservableObject {
     }
 
     func fadeOut(seconds: Double = 6.0) {
+        graphLock.lock()
+        defer { graphLock.unlock() }
         guard transportRunning else { return }
-        reverb.wetDryMix = 9
-        rampMusic(to: 0, duration: seconds) { [weak self] in
+
+        fadeStopWorkItem?.cancel()
+        fadeStopWorkItem = nil
+        reverb.wetDryMix = 12
+
+        rampMusic(to: 0, duration: max(1.0, seconds)) { [weak self] in
             guard let self else { return }
-            DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 1.4) {
-                self.stop(immediate: true)
+            let tail = DispatchWorkItem { [weak self] in
+                self?.stop(immediate: true)
             }
+            self.fadeStopWorkItem = tail
+            DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 3.2, execute: tail)
         }
     }
 
@@ -395,6 +410,9 @@ final class AudioEngineController: ObservableObject {
         let t = immediate ? 0 : transportPosition()
         pausedPosition = t
         transportRunning = false
+        fadeStopWorkItem?.cancel()
+        fadeStopWorkItem = nil
+        cancelGainRamp(resetGain: immediate)
         for player in players.values { player.stop() }
         clickNode.stop()
         stopClickScheduler()
@@ -648,27 +666,48 @@ final class AudioEngineController: ObservableObject {
         }
     }
 
-    private func rampMusic(to target: Float, duration: Double, completion: (() -> Void)?) {
+    private func cancelGainRamp(resetGain: Bool) {
+        gainRampGeneration &+= 1
         gainRampTimer?.cancel()
         gainRampTimer = nil
+        if resetGain { musicMixer.outputVolume = 1 }
+    }
+
+    private func rampMusic(to target: Float, duration: Double, completion: (() -> Void)?) {
+        cancelGainRamp(resetGain: false)
 
         let safeDuration = max(0.01, duration)
-        let start = musicMixer.outputVolume
+        let mixer = musicMixer
+        let start = mixer.outputVolume
         let steps = max(2, Int(safeDuration * 90))
         let timer = DispatchSource.makeTimerSource(queue: DispatchQueue.global(qos: .userInteractive))
         gainRampTimer = timer
-        var i = 0
+        gainRampGeneration &+= 1
+        let generation = gainRampGeneration
+        var index = 0
+
         timer.schedule(deadline: .now(), repeating: safeDuration / Double(steps), leeway: .milliseconds(1))
-        timer.setEventHandler { [weak self, weak timer] in
-            guard let self, let timer else { return }
-            i += 1
-            let x = min(1, Double(i) / Double(steps))
-            let eased = 0.5 - 0.5 * cos(.pi * x)
-            self.musicMixer.outputVolume = start + (target - start) * Float(eased)
-            if i >= steps {
+        timer.setEventHandler { [weak self] in
+            guard let self else {
                 timer.cancel()
-                self.gainRampTimer = nil
-                completion?()
+                return
+            }
+            guard self.gainRampGeneration == generation else {
+                timer.cancel()
+                return
+            }
+
+            index += 1
+            let x = min(1, Double(index) / Double(steps))
+            let eased = 0.5 - 0.5 * cos(.pi * x)
+            mixer.outputVolume = start + (target - start) * Float(eased)
+
+            if index >= steps {
+                timer.cancel()
+                if self.gainRampGeneration == generation {
+                    self.gainRampTimer = nil
+                    completion?()
+                }
             }
         }
         timer.resume()
@@ -811,6 +850,8 @@ final class AudioEngineController: ObservableObject {
     }
 
     private func teardownEngine() {
+        fadeStopWorkItem?.cancel(); fadeStopWorkItem = nil
+        gainRampGeneration &+= 1
         gainRampTimer?.cancel(); gainRampTimer = nil
         transportTimer?.cancel(); transportTimer = nil
         clickTimer?.cancel(); clickTimer = nil
