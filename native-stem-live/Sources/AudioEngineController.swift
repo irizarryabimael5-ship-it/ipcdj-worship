@@ -266,6 +266,14 @@ final class AudioEngineController: ObservableObject {
         clickMixer.outputVolume = song.outputMode == .split && song.click.enabled
             ? dbToLinear(song.click.levelDB)
             : 0
+
+        if transportRunning {
+            if song.outputMode == .split && song.click.enabled {
+                startClickScheduler()
+            } else {
+                stopClickScheduler()
+            }
+        }
     }
 
     func applyStemState(_ song: SongProject) {
