@@ -1158,3 +1158,77 @@ test('release day amplifies the page ambient field from the song palette', async
   expect(visual.blobBackground).not.toBe('none');
   expect(visual.blobFilter).not.toBe('none');
 });
+
+
+test('v174 release lifecycle settles exactly thirty minutes after releaseAt', async ({ request }) => {
+  const response=await request.get('/?v174-release-settle='+Date.now(),{
+    headers:{'cache-control':'no-cache'}
+  });
+  expect(response.ok()).toBe(true);
+  const source=await response.text();
+
+  expect(source).toContain('const RELEASE_SETTLE_DELAY_MS=30*60*1000;');
+  expect(source).toContain('const releaseSettledAt=release+RELEASE_SETTLE_DELAY_MS;');
+  expect(source).toContain('if(now<releaseSettledAt)return {');
+  expect(source).toContain('phase.key==="released"?"ESTRENADO"');
+  expect(source).toContain('setCardText(card,"post-release-kicker","ESTRENADO")');
+  expect(source).toContain('La canción ya fue presentada en el servicio de hoy.');
+  expect(source).toContain('.current.phase-released .timeline{');
+  expect(source).not.toContain('.current.phase-released .timeline{\n      display:none;');
+});
+
+test('v174 dominant artwork color drives release ambience', async ({ page, request }) => {
+  const response=await request.get('/?v174-dominant-ambient='+Date.now(),{
+    headers:{'cache-control':'no-cache'}
+  });
+  expect(response.ok()).toBe(true);
+  const source=await response.text();
+
+  expect(source).toContain('--ambient-dominant:55,93,202');
+  expect(source).toContain('--cover-dominant:96,62,44');
+  expect(source).toContain('field.style.setProperty("--ambient-dominant",dominant.join(","))');
+  expect(source).toContain('card.style.setProperty("--cover-dominant"');
+  expect(source).toContain('rgba(var(--ambient-dominant),.62)');
+  expect(source).toContain('rgba(var(--cover-dominant),.88)');
+  expect(source).toContain('futurePalette:[[36,76,118],[46,82,120],[28,55,84]]');
+
+  await openHealthyPage(page);
+  const visual=await page.evaluate(async()=>{
+    const field=document.querySelector('.ambient-field-active')||document.querySelector('.ambient-field');
+    if(!field)return null;
+    field.style.setProperty('--ambient-dominant','36,76,118');
+    field.style.setProperty('--ambient-c1','36,76,118');
+    field.style.setProperty('--ambient-c2','46,82,120');
+    field.style.setProperty('--ambient-c3','28,55,84');
+    document.documentElement.classList.add('ipcdj-ambient-release');
+    field.classList.add('ambient-field-active');
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    const halo=getComputedStyle(field,'::before');
+    const result={
+      background:halo.backgroundImage,
+      opacity:Number(halo.opacity),
+      filter:halo.filter||halo.webkitFilter
+    };
+    document.documentElement.classList.remove('ipcdj-ambient-release');
+    return result;
+  });
+
+  expect(visual).not.toBeNull();
+  expect(visual.background).toContain('36, 76, 118');
+  expect(visual.opacity).toBeGreaterThan(.9);
+  expect(visual.filter).not.toBe('none');
+});
+
+test('v174 preview requests playback audio session for iPhone silent mode', async ({ request }) => {
+  const response=await request.get('/?v174-audio-session='+Date.now(),{
+    headers:{'cache-control':'no-cache'}
+  });
+  expect(response.ok()).toBe(true);
+  const source=await response.text();
+
+  expect(source).toContain('function configurePreviewAudioSessionForPlayback()');
+  expect(source).toContain('const session=navigator.audioSession;');
+  expect(source).toContain('if(session.type!=="playback")session.type="playback";');
+  expect(source).toContain('function unlockWebPreviewContextFromGesture(){');
+  expect(source).toContain('async function startWebAudioPreview(song,data');
+});
