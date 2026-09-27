@@ -3109,3 +3109,19 @@ Watchdog:
 - Release banner, status pill, and active Estreno timeline item may use moderate backdrop blur and darker translucent glass to preserve legibility while the background remains luminous.
 - The release artwork can remain saturated, but its brightness/opacity should be tuned so highlights do not wash out the foreground.
 - Watchdog coverage must retain the release-color separation checks and additionally verify the v172 readability veil and dark-glass contrast treatment remain present.
+
+
+## Page-level release ambience v173
+
+- Release-day visual emphasis extends beyond the card into the existing fixed page ambient system.
+- During `phase-release`, the release song takes temporary priority as the ambient palette driver even when another preparation song is also active.
+- Outside release day, normal preparation-song ambient priority resumes.
+- The page-level ambient treatment is driven by the release song's cover-derived palette, not by the semantic green release color.
+- `.ambient-field::before` provides a broad, low-frequency cover-color atmosphere behind the entire page.
+- `html.ipcdj-ambient-release` increases active-field opacity, expands/saturates the broad ambient halo, and strengthens the moving ambient blobs.
+- The semantic release green remains owned by the foreground `--stage-*` system; the page ambience remains cover-palette-only.
+- v172 foreground readability/contrast treatment must remain intact while ambient intensity increases.
+- Palette extraction updates must preserve the current release-phase signature so the field does not crossfade back to a non-release signature.
+- When no current song exists, release ambient mode must be removed explicitly to prevent stale high-intensity background state.
+- Reduced-motion and reduced-data modes retain a visible release atmosphere but avoid costly animation/intensity.
+- Watchdog coverage must verify release-mode ambient class behavior, cover-palette variables, active-field opacity, broad halo rendering, blob rendering, and release-driver priority.
