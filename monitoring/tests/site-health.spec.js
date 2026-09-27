@@ -1526,6 +1526,7 @@ test('v178 social preview is a real browser-rendered landing snapshot', async ({
   expect(generator).toContain('from playwright.sync_api import sync_playwright');
   expect(generator).toContain('--force-color-profile=srgb');
   expect(generator).toContain('#current-song-cards [data-current-song-card]');
-  expect(generator).toContain('Render sRGB');
+  expect(generator).toContain('browser-landing-snapshot');
+  expect(generator).toContain('ImageCms.createProfile("sRGB")');
   expect(generator).toContain('social-preview-v176.jpg');
 });
