@@ -269,7 +269,7 @@ final class AudioEngineController: ObservableObject {
 
         if transportRunning {
             if song.outputMode == .split && song.click.enabled {
-                startClickScheduler()
+                if clickTimer == nil { startClickScheduler() }
             } else {
                 stopClickScheduler()
             }
