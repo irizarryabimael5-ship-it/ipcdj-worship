@@ -326,6 +326,7 @@ final class LegacyMigrationManager: ObservableObject {
             Task.detached(priority: .userInitiated) {
                 do {
                     let result = try LegacyMigrationBuilder.build(from: out)
+                    try? FileManager.default.removeItem(at: out)
                     await MainActor.run {
                         store.installMigratedSongs(result.songs)
                         self.state = .complete
