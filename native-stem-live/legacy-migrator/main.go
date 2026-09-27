@@ -13,13 +13,15 @@ import (
 	"time"
 
 	"github.com/chromedp/cdproto/browser"
+	"github.com/chromedp/cdproto/runtime"
 	"github.com/chromedp/chromedp"
 )
 
-type exportResult struct {
-	Songs     int      `json:"songs"`
-	Stems     int      `json:"stems"`
-	Downloads []string `json:"downloads"`
+type exportManifest struct {
+	Songs []json.RawMessage `json:"songs"`
+	Stems []struct {
+		DownloadName string `json:"downloadName"`
+	} `json:"stems"`
 }
 
 func main() {
@@ -81,7 +83,6 @@ func main() {
 	defer timeoutCancel()
 
 	fmt.Println("EXPORTING Legacy Alpha IndexedDB songs and stem blobs")
-	var result exportResult
 	js := migrationJS()
 
 	err := chromedp.Run(ctx,
@@ -94,19 +95,35 @@ func main() {
 		chromedp.Navigate(fileURL),
 		chromedp.WaitReady("body", chromedp.ByQuery),
 		chromedp.Sleep(900*time.Millisecond),
-		chromedp.Evaluate(js, &result, chromedp.EvalAwaitPromise, chromedp.EvalAsValue),
+		chromedp.ActionFunc(func(ctx context.Context) error {
+			_, exception, err := runtime.Evaluate(js).
+				WithAwaitPromise(true).
+				WithReturnByValue(false).
+				Do(ctx)
+			if err != nil {
+				return err
+			}
+			if exception != nil {
+				return fmt.Errorf("legacy page script exception")
+			}
+			return nil
+		}),
 	)
 	if err != nil {
 		fail("Could not read the Legacy Alpha database: " + err.Error())
 	}
 
-	fmt.Printf("EXPORTING %d song(s), %d stem blob(s)\n", result.Songs, result.Stems)
-	if err := waitForDownloads(*out, result.Downloads, 15*time.Minute); err != nil {
+	manifest, err := waitForManifest(*out, 30*time.Second)
+	if err != nil {
+		fail(err.Error())
+	}
+	fmt.Printf("EXPORTING %d song(s), %d stem blob(s)\n", len(manifest.Songs), len(manifest.Stems))
+	if err := waitForDownloads(*out, manifest, 15*time.Minute); err != nil {
 		fail(err.Error())
 	}
 
 	_ = os.RemoveAll(profileCopy)
-	fmt.Printf("DONE %d song(s) and %d stem(s) exported\n", result.Songs, result.Stems)
+	fmt.Printf("DONE %d song(s) and %d stem(s) exported\n", len(manifest.Songs), len(manifest.Stems))
 }
 
 func locateChrome() string {
@@ -130,9 +147,28 @@ func run(name string, args ...string) error {
 	return cmd.Run()
 }
 
-func waitForDownloads(dir string, names []string, timeout time.Duration) error {
+func waitForManifest(dir string, timeout time.Duration) (exportManifest, error) {
 	deadline := time.Now().Add(timeout)
-	required := append([]string{"migration_manifest.json"}, names...)
+	path := filepath.Join(dir, "migration_manifest.json")
+	for time.Now().Before(deadline) {
+		data, err := os.ReadFile(path)
+		if err == nil && len(data) > 0 {
+			var manifest exportManifest
+			if json.Unmarshal(data, &manifest) == nil {
+				return manifest, nil
+			}
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	return exportManifest{}, fmt.Errorf("Legacy manifest was not produced by Chrome")
+}
+
+func waitForDownloads(dir string, manifest exportManifest, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	required := []string{"migration_manifest.json"}
+	for _, stem := range manifest.Stems {
+		required = append(required, stem.DownloadName)
+	}
 	for time.Now().Before(deadline) {
 		all := true
 		for _, name := range required {
@@ -221,8 +257,4 @@ func migrationJS() string {
 	  return { songs: songs.length, stems: downloads.length, downloads };
 	})()`
 	return strings.TrimSpace(script)
-}
-
-func init() {
-	_, _ = json.Marshal(exportResult{})
 }
