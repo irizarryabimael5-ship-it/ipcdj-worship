@@ -401,7 +401,9 @@ final class AudioEngineController: ObservableObject {
             let tail = DispatchWorkItem { [weak self] in
                 self?.stop(immediate: true)
             }
+            self.graphLock.lock()
             self.fadeStopWorkItem = tail
+            self.graphLock.unlock()
             DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 3.2, execute: tail)
         }
     }
@@ -703,7 +705,11 @@ final class AudioEngineController: ObservableObject {
                 timer.cancel()
                 return
             }
-            guard self.gainRampGeneration == generation else {
+
+            self.graphLock.lock()
+            let valid = self.gainRampGeneration == generation
+            self.graphLock.unlock()
+            guard valid else {
                 timer.cancel()
                 return
             }
@@ -715,10 +721,12 @@ final class AudioEngineController: ObservableObject {
 
             if index >= steps {
                 timer.cancel()
-                if self.gainRampGeneration == generation {
-                    self.gainRampTimer = nil
-                    completion?()
-                }
+                self.graphLock.lock()
+                let stillCurrent = self.gainRampGeneration == generation
+                if stillCurrent { self.gainRampTimer = nil }
+                self.graphLock.unlock()
+
+                if stillCurrent { completion?() }
             }
         }
         timer.resume()
