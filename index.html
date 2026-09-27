@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v176" />
+  <meta name="ipcdj-build" content="persistent-launch-v177" />
   <title>IPCDJ Worship | Ministerio de Alabanza</title>
   <meta name="description" content="Próximas canciones, preparación y estrenos del Ministerio de Alabanza de IPCDJ." />
   <link rel="canonical" href="https://worship.ipcdj.org/" />
@@ -8430,8 +8430,12 @@
     renderCurrent(calibratedNow());
 
     let liveClockTimer=null;
+    let catalogHealthRenderLocked=false;
+
     function scheduleLiveClock(){
       clearTimeout(liveClockTimer);
+      if(catalogHealthRenderLocked)return;
+
       const now=calibratedNow();
       renderCurrent(now);
 
@@ -8441,12 +8445,32 @@
       const nextDelay=Math.max(40,1000-(Math.floor(now)%1000));
       liveClockTimer=setTimeout(scheduleLiveClock,nextDelay);
     }
+
+    // Passive deterministic watchdog hook. Production never calls this; it lets
+    // CI inspect real DOM lifecycle transitions without racing the one-second clock.
+    window.IPCDJ_CATALOG_TEST=Object.freeze({
+      renderAt(timestamp){
+        const value=Number(timestamp);
+        if(!Number.isFinite(value))throw new TypeError("Invalid lifecycle test timestamp");
+        clearTimeout(liveClockTimer);
+        catalogHealthRenderLocked=true;
+        renderCurrent(value);
+        return catalogSnapshot(value);
+      },
+      resume(){
+        catalogHealthRenderLocked=false;
+        scheduleLiveClock();
+      },
+      locked:()=>catalogHealthRenderLocked
+    });
+
     scheduleLiveClock();
 
     document.addEventListener("visibilitychange",async()=>{
-      if(!document.hidden){
+      if(!document.hidden&&!catalogHealthRenderLocked){
         renderCurrent(calibratedNow());
         await syncServerClock();
+        if(catalogHealthRenderLocked)return;
         renderCurrent(calibratedNow());
         scheduleLiveClock();
       }
@@ -8491,13 +8515,17 @@
     }
 
     window.addEventListener("pageshow",()=>{
+      if(catalogHealthRenderLocked)return;
       recoverTransientResources();
       scheduleLiveClock();
     });
 
     window.addEventListener("online",()=>{
+      if(catalogHealthRenderLocked)return;
       recoverTransientResources();
-      syncServerClock().then(()=>renderCurrent(calibratedNow())).catch(()=>{});
+      syncServerClock().then(()=>{
+        if(!catalogHealthRenderLocked)renderCurrent(calibratedNow());
+      }).catch(()=>{});
     },{passive:true});
 
     let responsiveSubjectTimer=null;
