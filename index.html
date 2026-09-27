@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v168" />
+  <meta name="ipcdj-build" content="persistent-launch-v169" />
   <title>IPCDJ Worship | Ministerio de Alabanza</title>
   <meta name="description" content="Próximas canciones, preparación y estrenos del Ministerio de Alabanza de IPCDJ." />
   <link rel="canonical" href="https://worship.ipcdj.org/" />
@@ -953,6 +953,9 @@
       opacity:var(--cover-base-opacity);
       pointer-events:none;
       user-select:none;
+      transition:
+        opacity 1.35s cubic-bezier(.22,.65,.25,1),
+        filter 1.35s cubic-bezier(.22,.65,.25,1);
     }
 
     .current.has-native-cover::before{
@@ -987,7 +990,7 @@
       z-index:1;
     }
 
-    .current > :not(.cover-native-fallback):not(.cover-detail):not(.cover-edge-detail):not(.cover-subject-detail){
+    .current > :not(.cover-native-fallback):not(.cover-detail):not(.cover-edge-detail):not(.cover-subject-detail):not(.release-aura){
       z-index:3;
     }
 
@@ -1323,6 +1326,25 @@
       box-shadow:inset 0 0 0 1px rgba(255,255,255,.025);
     }
 
+    .release-aura{
+      position:absolute;
+      inset:-26px;
+      z-index:2;
+      pointer-events:none;
+      opacity:0;
+      transform:scale(.985);
+      background:
+        radial-gradient(circle at 12% 18%,rgba(var(--cover-c1),.58) 0%,rgba(var(--cover-c1),.22) 24%,rgba(var(--cover-c1),0) 55%),
+        radial-gradient(circle at 86% 22%,rgba(var(--cover-c2),.54) 0%,rgba(var(--cover-c2),.20) 28%,rgba(var(--cover-c2),0) 58%),
+        radial-gradient(circle at 50% 92%,rgba(var(--cover-c3),.46) 0%,rgba(var(--cover-c3),.17) 30%,rgba(var(--cover-c3),0) 62%);
+      filter:blur(18px) saturate(1.28);
+      -webkit-filter:blur(18px) saturate(1.28);
+      transition:
+        opacity 1.45s cubic-bezier(.22,.65,.25,1),
+        transform 1.45s cubic-bezier(.22,.65,.25,1);
+      will-change:opacity,transform;
+    }
+
     .status{
       display:inline-flex;
       max-width:100%;
@@ -1341,17 +1363,38 @@
       font-weight:700;
       letter-spacing:.03em;
       margin-bottom:14px;
+      transition:
+        background .95s cubic-bezier(.22,.65,.25,1),
+        border-color .95s cubic-bezier(.22,.65,.25,1),
+        color .95s cubic-bezier(.22,.65,.25,1),
+        box-shadow 1.25s cubic-bezier(.22,.65,.25,1),
+        text-shadow 1.25s cubic-bezier(.22,.65,.25,1),
+        transform .95s cubic-bezier(.22,.65,.25,1);
     }
 
     .post-release-banner{
-      display:none;
-      margin:16px 0 4px;
-      padding:16px 17px;
+      display:block;
+      max-height:0;
+      margin:0;
+      padding:0 17px;
+      opacity:0;
+      transform:translateY(8px) scale(.985);
+      visibility:hidden;
       border-radius:17px;
-      border:1px solid rgba(255,255,255,.12);
+      border:0 solid transparent;
       background:rgba(8,11,17,.60);
       box-shadow:inset 0 1px 0 rgba(255,255,255,.045);
       overflow:hidden;
+      transition:
+        max-height 1.05s cubic-bezier(.22,.65,.25,1),
+        margin .95s cubic-bezier(.22,.65,.25,1),
+        padding .95s cubic-bezier(.22,.65,.25,1),
+        opacity .70s cubic-bezier(.22,.65,.25,1) .18s,
+        transform .95s cubic-bezier(.22,.65,.25,1),
+        border-width .55s cubic-bezier(.22,.65,.25,1),
+        border-color .95s cubic-bezier(.22,.65,.25,1),
+        box-shadow 1.25s cubic-bezier(.22,.65,.25,1),
+        visibility 0s linear 1.05s;
     }
 
     .post-release-kicker{
@@ -1381,41 +1424,199 @@
 
     .current{
       transition:
-        border-color .72s cubic-bezier(.4,0,.2,1),
-        box-shadow .72s cubic-bezier(.4,0,.2,1),
-        background-color .72s cubic-bezier(.4,0,.2,1);
+        border-color 1.05s cubic-bezier(.22,.65,.25,1),
+        box-shadow 1.35s cubic-bezier(.22,.65,.25,1),
+        background-color 1.05s cubic-bezier(.22,.65,.25,1);
+    }
+
+    .song-name,
+    .artist,
+    .post-release-kicker,
+    .post-release-title,
+    .post-release-note,
+    .timeline-item.estreno .timeline-label,
+    .timeline-item.estreno .timeline-date{
+      transition:
+        color .95s cubic-bezier(.22,.65,.25,1),
+        text-shadow 1.25s cubic-bezier(.22,.65,.25,1),
+        opacity .95s cubic-bezier(.22,.65,.25,1);
+    }
+
+    .countdown-wrap,
+    .progress-wrap{
+      max-height:420px;
+      opacity:1;
+      transform:translateY(0) scale(1);
+      overflow:hidden;
+      visibility:visible;
+      transition:
+        max-height 1.05s cubic-bezier(.22,.65,.25,1),
+        margin .95s cubic-bezier(.22,.65,.25,1),
+        padding .95s cubic-bezier(.22,.65,.25,1),
+        opacity .62s cubic-bezier(.4,0,.2,1),
+        transform .82s cubic-bezier(.22,.65,.25,1),
+        border-color .72s cubic-bezier(.22,.65,.25,1),
+        background-color .72s cubic-bezier(.22,.65,.25,1),
+        visibility 0s linear 0s;
+      transform-origin:top center;
     }
 
     .current.phase-release{
-      border-color:rgba(42,224,126,.48);
+      border-color:rgba(var(--cover-c2),.68);
       box-shadow:
-        0 20px 58px rgba(0,0,0,.30),
-        inset 0 1px 0 rgba(193,255,220,.08),
-        inset 0 0 0 1px rgba(42,224,126,.09);
+        0 22px 62px rgba(0,0,0,.34),
+        0 0 34px rgba(var(--cover-c1),.30),
+        0 0 74px rgba(var(--cover-c2),.24),
+        0 0 118px rgba(var(--cover-c3),.18),
+        inset 0 1px 0 rgba(255,255,255,.10),
+        inset 0 0 0 1px rgba(var(--cover-c2),.16);
     }
 
+    .current.phase-release .release-aura{
+      opacity:.92;
+      transform:scale(1.015);
+    }
+
+    .current.phase-release .cover-native-fallback{
+      opacity:.94;
+      filter:blur(28px) saturate(1.42) contrast(1.08) brightness(1.05);
+      -webkit-filter:blur(28px) saturate(1.42) contrast(1.08) brightness(1.05);
+    }
+
+    .current.phase-release.cover-ready::before{opacity:.94}
+    .current.phase-release.cover-ready .cover-detail{opacity:.68}
+    .current.phase-release.cover-ready .cover-edge-detail{opacity:.72}
+    .current.phase-release.subject-ready .cover-subject-detail{opacity:min(1,calc(var(--subject-opacity) + .14))}
+
     .current.phase-release .status{
-      background:rgba(42,224,126,.16);
-      border-color:rgba(42,224,126,.48);
-      color:#dcffeb;
+      background:
+        linear-gradient(110deg,rgba(var(--cover-c1),.30),rgba(var(--cover-c2),.22),rgba(42,224,126,.15));
+      border-color:rgba(var(--cover-c2),.76);
+      color:#fff;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.15),
+        0 0 18px rgba(var(--cover-c1),.48),
+        0 0 38px rgba(var(--cover-c2),.34),
+        0 0 64px rgba(42,224,126,.18);
+      text-shadow:
+        0 0 10px rgba(var(--cover-c1),.72),
+        0 0 22px rgba(var(--cover-c2),.52);
+      transform:translateY(-1px);
+    }
+
+    .current.phase-release .song-name{
+      color:#fff;
+      text-shadow:
+        0 0 16px rgba(var(--cover-c1),.46),
+        0 0 34px rgba(var(--cover-c2),.30),
+        0 3px 18px rgba(0,0,0,.72);
+    }
+
+    .current.phase-release .artist{
+      color:#edf3ff;
+      text-shadow:
+        0 0 12px rgba(var(--cover-c2),.34),
+        0 2px 12px rgba(0,0,0,.68);
     }
 
     .current.phase-release .post-release-banner{
-      display:block;
-      border-color:rgba(42,224,126,.40);
+      max-height:240px;
+      margin:16px 0 4px;
+      padding:16px 17px;
+      opacity:1;
+      transform:none;
+      visibility:visible;
+      border-width:1px;
+      border-color:rgba(var(--cover-c2),.64);
       background:
-        linear-gradient(110deg,rgba(42,224,126,.18),rgba(112,234,145,.08),rgba(8,11,17,.68));
-      animation:phaseBannerIn .62s cubic-bezier(.22,.65,.25,1) both;
+        linear-gradient(110deg,rgba(var(--cover-c1),.29),rgba(var(--cover-c2),.19),rgba(42,224,126,.13),rgba(8,11,17,.62));
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.10),
+        0 0 24px rgba(var(--cover-c1),.23),
+        0 0 52px rgba(var(--cover-c2),.16);
+      transition-delay:0s,0s,0s,.22s,0s,0s,0s,0s,0s;
     }
 
-    .current.phase-release .post-release-kicker{color:#6ff0a7}
+    .current.phase-release .post-release-kicker{
+      color:#f5fff9;
+      text-shadow:
+        0 0 10px rgba(var(--cover-c2),.76),
+        0 0 22px rgba(42,224,126,.44);
+    }
+
+    .current.phase-release .post-release-title{
+      color:#fff;
+      text-shadow:
+        0 0 14px rgba(var(--cover-c1),.50),
+        0 0 30px rgba(var(--cover-c2),.38);
+    }
+
+    .current.phase-release .post-release-note{
+      color:#eef5f2;
+      text-shadow:0 0 13px rgba(var(--cover-c2),.22);
+    }
+
+    .current.phase-release .timeline-item.estreno.active-phase{
+      border-color:rgba(var(--cover-c2),.62);
+      background:
+        linear-gradient(90deg,rgba(var(--cover-c1),.24),rgba(var(--cover-c2),.14),rgba(255,255,255,.02));
+      box-shadow:
+        inset 3px 0 0 rgb(var(--cover-c2)),
+        0 0 20px rgba(var(--cover-c1),.30),
+        0 0 42px rgba(var(--cover-c2),.19);
+    }
+
+    .current.phase-release .timeline-item.estreno.active-phase .timeline-label,
+    .current.phase-release .timeline-item.estreno.active-phase .timeline-date{
+      color:#fff;
+      text-shadow:
+        0 0 10px rgba(var(--cover-c1),.52),
+        0 0 22px rgba(var(--cover-c2),.34);
+    }
+
+    .current.phase-release .timeline-item.estreno.active-phase .timeline-label::before{
+      background:rgb(var(--cover-c2));
+      box-shadow:
+        0 0 12px rgba(var(--cover-c1),.72),
+        0 0 24px rgba(var(--cover-c2),.56);
+    }
+
+    .current.phase-release .countdown-wrap,
+    .current.phase-release .progress-wrap,
+    .current.phase-released .countdown-wrap,
+    .current.phase-released .progress-wrap{
+      max-height:0;
+      margin-top:0;
+      padding-top:0;
+      padding-bottom:0;
+      opacity:0;
+      transform:translateY(-8px) scale(.985);
+      visibility:hidden;
+      pointer-events:none;
+      border-color:transparent;
+      transition:
+        max-height 1.05s cubic-bezier(.22,.65,.25,1),
+        margin .95s cubic-bezier(.22,.65,.25,1),
+        padding .95s cubic-bezier(.22,.65,.25,1),
+        opacity .58s cubic-bezier(.4,0,.2,1),
+        transform .82s cubic-bezier(.22,.65,.25,1),
+        border-color .55s cubic-bezier(.22,.65,.25,1),
+        background-color .55s cubic-bezier(.22,.65,.25,1),
+        visibility 0s linear 1.05s;
+    }
 
     .current.phase-released{
       border-color:rgba(93,211,167,.34);
       box-shadow:
         0 18px 52px rgba(0,0,0,.28),
+        0 0 30px rgba(var(--cover-c2),.12),
         inset 0 1px 0 rgba(178,255,226,.055),
         inset 0 0 0 1px rgba(93,211,167,.045);
+    }
+
+    .current.phase-released .release-aura{
+      opacity:.38;
+      transform:scale(1);
     }
 
     .current.phase-released .status{
@@ -1425,26 +1626,26 @@
     }
 
     .current.phase-released .post-release-banner{
-      display:block;
+      max-height:240px;
+      margin:16px 0 4px;
+      padding:16px 17px;
+      opacity:1;
+      transform:none;
+      visibility:visible;
+      border-width:1px;
       border-color:rgba(93,211,167,.28);
       background:
-        linear-gradient(110deg,rgba(93,211,167,.13),rgba(89,146,255,.07),rgba(8,11,17,.72));
-      animation:phaseBannerIn .62s cubic-bezier(.22,.65,.25,1) both;
+        linear-gradient(110deg,rgba(93,211,167,.13),rgba(var(--cover-c2),.08),rgba(8,11,17,.72));
+      box-shadow:
+        inset 0 1px 0 rgba(178,255,226,.055),
+        0 0 24px rgba(var(--cover-c2),.10);
+      transition-delay:0s;
     }
 
     .current.phase-released .post-release-kicker{color:#74dfb7}
 
-    .current.phase-release .countdown-wrap,
-    .current.phase-release .progress-wrap,
-    .current.phase-released .countdown-wrap,
-    .current.phase-released .progress-wrap,
     .current.phase-released .timeline{
       display:none;
-    }
-
-    @keyframes phaseBannerIn{
-      from{opacity:0;transform:translateY(7px)}
-      to{opacity:1;transform:none}
     }
 
     .song-name{
@@ -2857,6 +3058,16 @@
       .progress-fill::after{animation:none}
       .reveal{opacity:1;transform:none;transition:none}
       .post-release-banner,.recent{animation:none!important}
+      .release-aura,
+      .countdown-wrap,
+      .progress-wrap,
+      .status,
+      .song-name,
+      .artist,
+      .post-release-banner,
+      .post-release-kicker,
+      .post-release-title,
+      .post-release-note{transition:none!important}
       .pull-refresh{transition:none}
     }
     /* Cross-platform invariants: browser engines may differ in native controls,
@@ -7454,6 +7665,7 @@
           <div class="cover-detail" aria-hidden="true"></div>
           <div class="cover-edge-detail" aria-hidden="true"></div>
           <div class="cover-subject-detail" aria-hidden="true"></div>
+          <div class="release-aura" data-role="release-aura" aria-hidden="true"></div>
           <div class="status" data-role="status">AHORA EN PREPARACIÓN</div>
           <h2 class="song-name notranslate" data-role="song-name" translate="no">${escapeHtml(song.title)}</h2>
           <p class="artist notranslate" data-role="artist" translate="no">${escapeHtml(song.artist)}</p>
@@ -7542,6 +7754,12 @@
       card.classList.toggle("phase-release",phase.key==="release");
       card.classList.toggle("phase-released",phase.key==="released");
       card.dataset.phase=phase.key;
+
+      const prepControlsHidden=phase.key==="release"||phase.key==="released";
+      ["countdown-wrap","progress-wrap"].forEach(role=>{
+        const el=cardRole(card,role);
+        if(el)el.setAttribute("aria-hidden",prepControlsHidden?"true":"false");
+      });
 
       const statusText=
         phase.key==="release"?"HOY · ESTRENO":
