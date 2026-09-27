@@ -960,13 +960,13 @@ test('social share preview is crawler-ready', async ({ page, request }) => {
   for(const userAgent of crawlers){
     const [htmlResponse,imageResponse,robotsResponse]=await Promise.all([
       request.get('/?social-health='+nonce,{headers:{'cache-control':'no-cache','user-agent':userAgent}}),
-      request.get('/social-preview.png?social-health='+nonce,{headers:{'cache-control':'no-cache','user-agent':userAgent}}),
+      request.get('/social-preview-v176.jpg?social-health='+nonce,{headers:{'cache-control':'no-cache','user-agent':userAgent}}),
       request.get('/robots.txt?social-health='+nonce,{headers:{'cache-control':'no-cache','user-agent':userAgent}})
     ]);
     expect(htmlResponse.ok()).toBe(true);
     expect(imageResponse.ok()).toBe(true);
     expect(robotsResponse.ok()).toBe(true);
-    expect((imageResponse.headers()['content-type']||'')).toMatch(/^image\/png/);
+    expect((imageResponse.headers()['content-type']||'')).toMatch(/^image\/jpeg/);
 
     const imageBytes=await imageResponse.body();
     expect(imageBytes.length).toBeGreaterThan(5000);
@@ -978,14 +978,14 @@ test('social share preview is crawler-ready', async ({ page, request }) => {
     expect(ogIndex).toBeLessThan(2500);
     expect(html).toContain('prefix="og: https://ogp.me/ns#"');
     expect(html).toContain('property="og:site_name" content="IPCDJ Worship"');
-    expect(html).toContain('property="og:image" content="https://worship.ipcdj.org/social-preview.png"');
-    expect(html).toContain('property="og:image:url" content="https://worship.ipcdj.org/social-preview.png"');
-    expect(html).toContain('property="og:image:secure_url" content="https://worship.ipcdj.org/social-preview.png"');
-    expect(html).toContain('property="og:image:type" content="image/png"');
+    expect(html).toContain('property="og:image" content="https://worship.ipcdj.org/social-preview-v176.jpg"');
+    expect(html).toContain('property="og:image:url" content="https://worship.ipcdj.org/social-preview-v176.jpg"');
+    expect(html).toContain('property="og:image:secure_url" content="https://worship.ipcdj.org/social-preview-v176.jpg"');
+    expect(html).toContain('property="og:image:type" content="image/jpeg"');
     expect(html).toContain('property="og:image:width" content="1200"');
     expect(html).toContain('property="og:image:height" content="630"');
-    expect(html).toContain('rel="image_src" href="https://worship.ipcdj.org/social-preview.png"');
-    expect(html).toContain('itemprop="image" content="https://worship.ipcdj.org/social-preview.png"');
+    expect(html).toContain('rel="image_src" href="https://worship.ipcdj.org/social-preview-v176.jpg"');
+    expect(html).toContain('itemprop="image" content="https://worship.ipcdj.org/social-preview-v176.jpg"');
     expect(html).toContain('name="twitter:card" content="summary_large_image"');
 
     const robots=await robotsResponse.text();
@@ -994,7 +994,7 @@ test('social share preview is crawler-ready', async ({ page, request }) => {
   }
 
   await page.goto('/?social-health='+nonce,{waitUntil:'domcontentloaded'});
-  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content','https://worship.ipcdj.org/social-preview.png');
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content','https://worship.ipcdj.org/social-preview-v176.jpg');
 });
 
 
@@ -1267,7 +1267,7 @@ test('v175 keeps artwork composition stable when Estrenado card compacts', async
       <p class="artist">IPCDJ</p>
       <div class="post-release-banner">
         <span class="post-release-kicker">ESTRENADO</span>
-        <strong class="post-release-title">Estreno completado</strong>
+        <strong class="post-release-title">ESTRENO COMPLETADO</strong>
         <span class="post-release-note">Prueba</span>
       </div>
       <div class="timeline">
@@ -1314,4 +1314,165 @@ test('v175 keeps artwork composition stable when Estrenado card compacts', async
   expect(result.frameHeight).toBeGreaterThanOrEqual(result.compactHeight+result.timelineContentHeight);
   expect(result.nativeHeight).toBeGreaterThan(result.compactHeight+60);
   expect(Math.abs(result.subjectHeight-result.expectedSubject)).toBeLessThan(2.5);
+});
+
+
+test('v176 lifecycle UI transitions cleanly through Después, prep, release, Estrenado and introduced', async ({ page }) => {
+  await openHealthyPage(page);
+  await page.waitForFunction(() => !!window.IPCDJ_CATALOG);
+
+  const result = await page.evaluate(async () => {
+    const waitPaint = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const renderAt = async iso => {
+      const ts = Date.parse(iso);
+      renderCurrent(ts);
+      await waitPaint();
+      const current=[...document.querySelectorAll('#current-song-cards [data-current-song-card]')].map(node=>({
+        id:node.dataset.songId,
+        phase:node.dataset.phase,
+        status:node.querySelector('[data-role="status"]')?.textContent?.trim()||'',
+        title:node.querySelector('[data-role="post-release-title"]')?.textContent?.trim()||''
+      }));
+      const upcoming=[...document.querySelectorAll('#upcoming-songs [data-song-id]')].map(node=>node.dataset.songId);
+      const introduced=[...document.querySelectorAll('#introduced-songs .recent strong')].map(node=>node.textContent?.trim()||'');
+      const duplicateIds=[...document.querySelectorAll('[id]')].map(n=>n.id).filter((id,i,a)=>a.indexOf(id)!==i);
+      return {
+        current,upcoming,introduced,duplicateIds,
+        nodes:document.querySelectorAll('*').length,
+        width:document.documentElement.scrollWidth,
+        viewport:document.documentElement.clientWidth
+      };
+    };
+
+    const checkpoints={
+      beforeActive:await renderAt('2026-09-28T05:59:59-04:00'),
+      afterActive:await renderAt('2026-09-28T06:00:01-04:00'),
+      releaseStart:await renderAt('2026-10-25T00:00:01-04:00'),
+      justBeforeSettled:await renderAt('2026-10-25T11:29:59-04:00'),
+      settled:await renderAt('2026-10-25T11:30:00-04:00'),
+      introduced:await renderAt('2026-10-27T00:00:01-04:00')
+    };
+
+    const stressStart=performance.now();
+    const stressTimes=[
+      '2026-09-28T05:59:59-04:00','2026-09-28T06:00:01-04:00',
+      '2026-10-25T00:00:01-04:00','2026-10-25T11:29:59-04:00',
+      '2026-10-25T11:30:00-04:00','2026-10-27T00:00:01-04:00'
+    ];
+    for(let round=0;round<12;round++){
+      renderCurrent(Date.parse(stressTimes[round%stressTimes.length]));
+    }
+    await waitPaint();
+    const stressMs=performance.now()-stressStart;
+    return {
+      checkpoints,
+      stressMs,
+      finalNodes:document.querySelectorAll('*').length,
+      finalCurrentCount:document.querySelectorAll('#current-song-cards [data-current-song-card]').length
+    };
+  });
+
+  expect(result.checkpoints.beforeActive.upcoming).toContain('glorioso-dia');
+  expect(result.checkpoints.beforeActive.current.map(x=>x.id)).not.toContain('glorioso-dia');
+  expect(result.checkpoints.afterActive.upcoming).not.toContain('glorioso-dia');
+  expect(result.checkpoints.afterActive.current.map(x=>x.id)).toContain('glorioso-dia');
+
+  const releaseCard=result.checkpoints.releaseStart.current.find(x=>x.id==='glorioso-dia');
+  expect(releaseCard).toBeTruthy();
+  expect(releaseCard.phase).toBe('release');
+  expect(releaseCard.status).toBe('HOY · ESTRENO');
+
+  const preSettled=result.checkpoints.justBeforeSettled.current.find(x=>x.id==='glorioso-dia');
+  expect(preSettled.phase).toBe('release');
+
+  const settled=result.checkpoints.settled.current.find(x=>x.id==='glorioso-dia');
+  expect(settled.phase).toBe('released');
+  expect(settled.status).toBe('ESTRENADO');
+  expect(settled.title).toBe('ESTRENO COMPLETADO');
+
+  expect(result.checkpoints.introduced.current.map(x=>x.id)).not.toContain('glorioso-dia');
+  expect(result.checkpoints.introduced.introduced).toContain('Glorioso Día');
+
+  for(const state of Object.values(result.checkpoints)){
+    expect(state.duplicateIds).toEqual([]);
+    expect(state.width).toBeLessThanOrEqual(state.viewport+2);
+  }
+  expect(result.stressMs).toBeLessThan(2500);
+  expect(result.finalCurrentCount).toBeLessThanOrEqual(2);
+  expect(result.finalNodes).toBeLessThan(1800);
+});
+
+test('v176 rendering stays sRGB-authored and resilient across browser/device profiles', async ({ page, request }, testInfo) => {
+  await openHealthyPage(page);
+  const sourceResponse=await request.get('/?v176-platform-rendering='+Date.now(),{
+    headers:{'cache-control':'no-cache'}
+  });
+  expect(sourceResponse.ok()).toBe(true);
+  const source=await sourceResponse.text();
+
+  expect(source).toContain('<meta name="color-scheme" content="dark" />');
+  expect(source).toContain('html{\n      color-scheme:dark;');
+  expect(source).toContain('@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px)))');
+  expect(source).toContain('@media (prefers-contrast:more)');
+  expect(source).toContain('@media (forced-colors:active)');
+  expect(source).not.toContain('color(display-p3');
+  expect(source).not.toContain('color(rec2020');
+
+  const audit=await page.evaluate(()=>{
+    const palettes=window.IPCDJ_CATALOG?.songs?.map(song=>song.futurePalette)||[];
+    const root=getComputedStyle(document.documentElement);
+    const body=getComputedStyle(document.body);
+    const card=document.querySelector('.card');
+    const cardStyle=card?getComputedStyle(card):null;
+    return {
+      colorScheme:root.colorScheme,
+      bodyBackground:body.backgroundColor,
+      cardBackground:cardStyle?.backgroundColor||'',
+      scrollWidth:document.documentElement.scrollWidth,
+      clientWidth:document.documentElement.clientWidth,
+      filterSupported:CSS.supports('filter','blur(1px)'),
+      backdropSupported:CSS.supports('backdrop-filter','blur(1px)')||CSS.supports('-webkit-backdrop-filter','blur(1px)'),
+      p3:matchMedia('(color-gamut: p3)').matches,
+      palettes
+    };
+  });
+
+  expect(audit.colorScheme).toContain('dark');
+  expect(audit.bodyBackground).not.toBe('rgba(0, 0, 0, 0)');
+  expect(audit.filterSupported).toBe(true);
+  expect(audit.scrollWidth).toBeLessThanOrEqual(audit.clientWidth+2);
+  for(const palette of audit.palettes){
+    expect(palette).toHaveLength(3);
+    for(const color of palette){
+      expect(color).toHaveLength(3);
+      for(const channel of color){
+        expect(Number.isInteger(channel)).toBe(true);
+        expect(channel).toBeGreaterThanOrEqual(0);
+        expect(channel).toBeLessThanOrEqual(255);
+      }
+    }
+  }
+
+  // Diagnostic only: profiles may report different physical gamut capabilities,
+  // but authored IPCDJ color remains the same sRGB source everywhere.
+  expect(['chromium-desktop','firefox-desktop','webkit-desktop','chromium-mobile','webkit-mobile','webkit-compact-mobile','webkit-tablet']).toContain(testInfo.project.name);
+});
+
+test('v176 social preview is a landing-page JPEG snapshot', async ({ request }) => {
+  const [imageResponse,htmlResponse]=await Promise.all([
+    request.get('/social-preview-v176.jpg?health='+Date.now(),{headers:{'cache-control':'no-cache'}}),
+    request.get('/?social-v176='+Date.now(),{headers:{'cache-control':'no-cache','user-agent':'facebookexternalhit/1.1'}})
+  ]);
+  expect(imageResponse.ok()).toBe(true);
+  expect((imageResponse.headers()['content-type']||'')).toMatch(/^image\/jpeg/);
+  const bytes=await imageResponse.body();
+  expect(bytes.length).toBeGreaterThan(10000);
+  expect(bytes.length).toBeLessThan(400000);
+
+  const html=await htmlResponse.text();
+  expect(html).toContain('property="og:image" content="https://worship.ipcdj.org/social-preview-v176.jpg"');
+  expect(html).toContain('property="og:image:type" content="image/jpeg"');
+  expect(html).toContain('property="og:image:width" content="1200"');
+  expect(html).toContain('property="og:image:height" content="630"');
+  expect(html).toContain('name="twitter:card" content="summary_large_image"');
 });
