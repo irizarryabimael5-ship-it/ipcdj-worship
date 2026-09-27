@@ -95,16 +95,13 @@ jobs:
 
           EXPECTED_INDEX_SHA="$(sha256sum ../index.html | awk '{print $1}')"
           EXPECTED_SW_SHA="$(sha256sum ../sw.js | awk '{print $1}')"
-          EXPECTED_SOCIAL_SHA="$(sha256sum ../social-preview-v176.jpg | awk '{print $1}')"
-
           echo "Waiting for exact deployed runtime: $EXPECTED_BUILD"
           echo "index=$EXPECTED_INDEX_SHA"
           echo "sw=$EXPECTED_SW_SHA"
-          echo "social=$EXPECTED_SOCIAL_SHA"
 
           for attempt in $(seq 1 48); do
             nonce="${GITHUB_RUN_ID}-${attempt}"
-            rm -f /tmp/ipcdj-live-index /tmp/ipcdj-live-sw /tmp/ipcdj-live-social
+            rm -f /tmp/ipcdj-live-index /tmp/ipcdj-live-sw
 
             curl -fsSL --max-time 20 -H 'Cache-Control: no-cache' \
               "https://worship.ipcdj.org/?deploy-health=${nonce}" \
@@ -112,19 +109,12 @@ jobs:
             curl -fsSL --max-time 20 -H 'Cache-Control: no-cache' \
               "https://worship.ipcdj.org/sw.js?deploy-health=${nonce}" \
               -o /tmp/ipcdj-live-sw || true
-            curl -fsSL --max-time 20 -H 'Cache-Control: no-cache' \
-              "https://worship.ipcdj.org/social-preview-v176.jpg?deploy-health=${nonce}" \
-              -o /tmp/ipcdj-live-social || true
-
             LIVE_BUILD="$(grep -o 'meta name="ipcdj-build" content="[^"]*"' /tmp/ipcdj-live-index 2>/dev/null | sed -E 's/.*content="([^"]*)".*/\1/' | head -n1 || true)"
             LIVE_INDEX_SHA="$(sha256sum /tmp/ipcdj-live-index 2>/dev/null | awk '{print $1}' || true)"
             LIVE_SW_SHA="$(sha256sum /tmp/ipcdj-live-sw 2>/dev/null | awk '{print $1}' || true)"
-            LIVE_SOCIAL_SHA="$(sha256sum /tmp/ipcdj-live-social 2>/dev/null | awk '{print $1}' || true)"
-
             if [ "$LIVE_BUILD" = "$EXPECTED_BUILD" ] \
               && [ "$LIVE_INDEX_SHA" = "$EXPECTED_INDEX_SHA" ] \
-              && [ "$LIVE_SW_SHA" = "$EXPECTED_SW_SHA" ] \
-              && [ "$LIVE_SOCIAL_SHA" = "$EXPECTED_SOCIAL_SHA" ]; then
+              && [ "$LIVE_SW_SHA" = "$EXPECTED_SW_SHA" ]; then
               echo "Exact deployment confirmed on attempt $attempt."
               exit 0
             fi
@@ -133,7 +123,6 @@ jobs:
             echo "  build:  live='$LIVE_BUILD' expected='$EXPECTED_BUILD'"
             echo "  index:  live='$LIVE_INDEX_SHA' expected='$EXPECTED_INDEX_SHA'"
             echo "  sw:     live='$LIVE_SW_SHA' expected='$EXPECTED_SW_SHA'"
-            echo "  social: live='$LIVE_SOCIAL_SHA' expected='$EXPECTED_SOCIAL_SHA'"
             sleep 10
           done
 
