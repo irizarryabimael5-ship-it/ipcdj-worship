@@ -1005,11 +1005,12 @@ test('estreno arrival intensifies artwork glow and retires countdown smoothly', 
   expect(sourceResponse.ok()).toBe(true);
   const source=await sourceResponse.text();
   expect(source).toContain('class="release-aura"');
-  expect(source).toContain('rgba(42,224,126,.72)');
-  expect(source).toContain('border-color:rgba(42,224,126,.82)');
-  expect(source).toContain('rgba(var(--cover-c1),.42)');
-  expect(source).toContain('rgba(var(--cover-c2),.34)');
-  expect(source).toContain('rgba(var(--cover-c3),.26)');
+  expect(source).toContain('border-color:var(--stage-border)');
+  expect(source).toContain('background:var(--stage-accent)');
+  expect(source).toContain('var(--stage-glow)');
+  expect(source).toContain('rgba(var(--cover-c1),.48)');
+  expect(source).toContain('rgba(var(--cover-c2),.40)');
+  expect(source).toContain('rgba(var(--cover-c3),.30)');
   expect(source).toContain('max-height 1.05s');
   expect(source).toContain('prepControlsHidden=phase.key==="release"||phase.key==="released"');
 
@@ -1081,5 +1082,6 @@ test('estreno arrival intensifies artwork glow and retires countdown smoothly', 
   expect(visual.timelineShadow).not.toBe('none');
   expect(visual.cardBorder).toContain('42, 224, 126');
   expect(visual.statusBorder).toContain('42, 224, 126');
-  expect(visual.auraBackground).toContain('42, 224, 126');
+  expect(visual.auraBackground).not.toContain('42, 224, 126');
+  expect(visual.auraBackground).not.toBe('none');
 });
