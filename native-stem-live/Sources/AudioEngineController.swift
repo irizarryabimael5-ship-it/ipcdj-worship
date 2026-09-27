@@ -368,6 +368,8 @@ final class AudioEngineController: ObservableObject {
     }
 
     func seek(song: SongProject, to time: Double, smooth: Bool = true) {
+        graphLock.lock()
+        defer { graphLock.unlock() }
         let target = max(0, min(time, song.duration))
         if !transportRunning {
             pausedPosition = target
@@ -435,7 +437,9 @@ final class AudioEngineController: ObservableObject {
     }
 
     func jumpToSection(_ section: SectionMarker, song: SongProject) {
+        graphLock.lock()
         loopSectionID = section.id
+        graphLock.unlock()
         seek(song: song, to: section.start, smooth: true)
     }
 
@@ -471,17 +475,19 @@ final class AudioEngineController: ObservableObject {
         timer.schedule(deadline: .now(), repeating: .milliseconds(33), leeway: .milliseconds(4))
         timer.setEventHandler { [weak self] in
             guard let self else { return }
+
             self.graphLock.lock()
-            let running = self.transportRunning
+            guard self.transportRunning else {
+                self.graphLock.unlock()
+                return
+            }
+
             let t = self.transportPosition()
             let song = self.activeSong
             let duration = song?.duration ?? 0
-            let looping = self.loopingActive
-            self.graphLock.unlock()
+            var loopTarget: Double?
 
-            guard running else { return }
-
-            if looping, let song {
+            if self.loopingActive, let song {
                 let loopSection = self.loopSectionID.flatMap { id in
                     song.sections.first(where: { $0.id == id })
                 } ?? song.sections.last(where: { $0.start <= t })
@@ -492,15 +498,20 @@ final class AudioEngineController: ObservableObject {
                    t >= section.loopEnd - 0.010,
                    !self.loopJumpPending {
                     self.loopJumpPending = true
-                    DispatchQueue.main.async {
-                        self.seek(song: song, to: section.loopStart, smooth: false)
-                    }
-                    return
+                    loopTarget = section.loopStart
                 }
+            }
+            self.graphLock.unlock()
+
+            if let loopTarget, let song {
+                DispatchQueue.main.async {
+                    self.seek(song: song, to: loopTarget, smooth: false)
+                }
+                return
             }
 
             DispatchQueue.main.async {
-                if self.transportRunning {
+                if self.isPlaying {
                     self.currentTime = min(t, duration > 0 ? duration : t)
                     if duration > 0, t >= duration {
                         self.stop(immediate: true)
