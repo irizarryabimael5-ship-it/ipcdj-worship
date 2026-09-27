@@ -23,8 +23,11 @@ jobs:
         with:
           ref: stem-live-native-060
 
-      - name: Unpack source
-        run: unzip -q -o source.zip
+      - name: Reconstruct source archive
+        run: |
+          cat source.part0 source.part1 source.part2 | tr -d '\n\r' | base64 --decode > source.rebuilt.zip
+          unzip -t source.rebuilt.zip
+          unzip -q -o source.rebuilt.zip
 
       - name: Toolchain
         run: |
