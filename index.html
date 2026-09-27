@@ -4733,7 +4733,8 @@
 
       ambientSongPalettes.set(song.id,palette.slice(0,3));
       if(ambientDriverSongId===song.id){
-        setAmbientPalette(palette,"driver:"+song.id);
+        const activePhase=card.dataset.phase||"unknown";
+        setAmbientPalette(palette,"driver:"+song.id+"|phase:"+activePhase);
       }
     }
 
@@ -7967,6 +7968,7 @@
 
       if(!current.length){
         ambientDriverSongId="";
+        document.documentElement.classList.remove("ipcdj-ambient-release");
         setAmbientPalette(AMBIENT_FALLBACK,"fallback");
         renderEmptyCurrent();
         renderUpcoming(new Set(),now);
