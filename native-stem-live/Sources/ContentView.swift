@@ -183,25 +183,66 @@ struct LivePage: View {
     @Binding var quickClick: Bool
 
     private var song: SongProject? { store.currentSong }
+
     private var active: SectionMarker? {
         guard let song else { return nil }
         return song.sections.last(where: { $0.start <= audio.currentTime }) ?? song.sections.first
     }
 
+    private var nextSection: SectionMarker? {
+        guard let song, let active,
+              let index = song.sections.firstIndex(where: { $0.id == active.id }),
+              index + 1 < song.sections.count else { return nil }
+        return song.sections[index + 1]
+    }
+
     var body: some View {
-        VStack(spacing: 11) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    LabelText("NOW PLAYING")
-                    Text(active?.name.uppercased() ?? "READY").font(.system(size: 27, weight: .bold))
+        VStack(spacing: 14) {
+            HStack(spacing: 22) {
+                VStack(alignment: .leading, spacing: 5) {
+                    LabelText(audio.isPlaying ? "NOW PLAYING" : "READY")
+                    Text(active?.name.uppercased() ?? "NO SECTION")
+                        .font(.system(size: 31, weight: .bold))
+                        .lineLimit(1)
                 }
+
+                if let nextSection {
+                    Divider().frame(height: 42).opacity(0.25)
+                    VStack(alignment: .leading, spacing: 5) {
+                        LabelText("UP NEXT")
+                        Text(nextSection.name.uppercased())
+                            .font(.system(size: 17, weight: .bold))
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+
                 Spacer()
-                Text(formatTime(audio.currentTime)).font(.system(size: 34, weight: .black, design: .rounded)).monospacedDigit()
-                Button(audio.loopEnabled ? "LOOP ON" : "LOOP OFF") { audio.loopEnabled.toggle() }.buttonStyle(SmallButton(primary: false))
-                if song?.outputMode == .split {
-                    Button("CLICK") { quickClick.toggle() }.buttonStyle(SmallButton(primary: quickClick))
+
+                VStack(alignment: .trailing, spacing: 3) {
+                    Text(formatTime(audio.currentTime))
+                        .font(.system(size: 38, weight: .black, design: .rounded))
+                        .monospacedDigit()
+                    Text("SPACE · PLAY / PAUSE")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.secondary)
                 }
-            }.padding(17).background(Card())
+
+                Button(audio.loopEnabled ? "LOOP ON" : "LOOP OFF") {
+                    audio.loopEnabled.toggle()
+                }
+                .buttonStyle(SmallButton(primary: audio.loopEnabled))
+
+                if song?.outputMode == .split {
+                    Button("QUICK CLICK") {
+                        withAnimation(.easeOut(duration: 0.16)) { quickClick.toggle() }
+                    }
+                    .buttonStyle(SmallButton(primary: quickClick))
+                }
+            }
+            .padding(.horizontal, 20)
+            .frame(minHeight: 92)
+            .background(Card(corner: 22))
 
             if quickClick, let song, song.outputMode == .split {
                 QuickClick(song: song)
@@ -209,42 +250,75 @@ struct LivePage: View {
             }
 
             if let song {
-                let columns = [GridItem(.adaptive(minimum: 220), spacing: 10)]
+                let columns = [GridItem(.adaptive(minimum: 270), spacing: 12)]
                 ScrollView {
-                    LazyVGrid(columns: columns, spacing: 10) {
+                    LazyVGrid(columns: columns, spacing: 12) {
                         ForEach(song.sections) { section in
                             let isActive = active?.id == section.id
                             Button {
                                 store.selectedSectionID = section.id
                                 audio.jumpToSection(section, song: song)
                             } label: {
-                                SectionCard(section: section, active: isActive, metrics: audio.visual)
-                            }.buttonStyle(.plain)
+                                SectionCard(
+                                    section: section,
+                                    active: isActive,
+                                    metrics: isActive ? audio.visual : VisualMetrics(),
+                                    playing: audio.isPlaying
+                                )
+                            }
+                            .buttonStyle(.plain)
                         }
-                    }.padding(2)
+                    }
+                    .padding(2)
                 }
             } else {
-                EmptyState(title: "No song loaded", subtitle: "Create a song in SET and import stems.")
+                EmptyState(title: "No song loaded", subtitle: "Create a song in SET and import stems in ARRANGE.")
             }
 
             if let song {
-                HStack(spacing: 9) {
+                HStack(spacing: 12) {
                     Button {
                         audio.togglePlay(song: song)
                     } label: {
-                        Image(systemName: audio.isPlaying ? "pause.fill" : "play.fill").frame(width: 48, height: 44)
-                    }.buttonStyle(BigControl(primary: true))
-                    Button { audio.stop(immediate: true) } label: {
-                        Image(systemName: "stop.fill").frame(width: 44, height: 44)
-                    }.buttonStyle(BigControl(primary: false))
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(active?.name.uppercased() ?? "—").font(.system(size: 10, weight: .black))
+                        Image(systemName: audio.isPlaying ? "pause.fill" : "play.fill")
+                            .font(.system(size: 18, weight: .bold))
+                            .frame(width: 58, height: 52)
+                    }
+                    .buttonStyle(BigControl(primary: true))
+
+                    Button {
+                        audio.stop(immediate: true)
+                    } label: {
+                        Image(systemName: "stop.fill")
+                            .font(.system(size: 15, weight: .bold))
+                            .frame(width: 50, height: 52)
+                    }
+                    .buttonStyle(BigControl(primary: false))
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text(active?.name.uppercased() ?? "—")
+                                .font(.system(size: 12, weight: .black))
+                            Spacer()
+                            Text(song.duration > 0 ? formatTime(song.duration) : "—")
+                                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                                .foregroundColor(.secondary)
+                        }
                         ProgressView(value: song.duration > 0 ? audio.currentTime / song.duration : 0)
-                    }.padding(.horizontal, 10).frame(maxWidth: .infinity)
-                    Button("FADE OUT") { audio.fadeOut(seconds: 6.5) }.buttonStyle(DangerButton())
-                }.padding(10).background(Card(corner: 18))
+                    }
+                    .padding(.horizontal, 8)
+                    .frame(maxWidth: .infinity)
+
+                    Button("FADE OUT") {
+                        audio.fadeOut(seconds: 6.5)
+                    }
+                    .buttonStyle(DangerButton())
+                }
+                .padding(11)
+                .background(Card(corner: 18))
             }
-        }.padding(4)
+        }
+        .padding(4)
     }
 }
 
@@ -252,20 +326,75 @@ struct SectionCard: View {
     let section: SectionMarker
     let active: Bool
     let metrics: VisualMetrics
+    let playing: Bool
+
     var body: some View {
-        let dynamic = Color(red: 0.10 + metrics.mid * 0.18, green: 0.30 + metrics.air * 0.24, blue: 0.72 + metrics.bass * 0.18)
-        VStack(alignment: .leading, spacing: 9) {
-            HStack { LabelText(active ? "CURRENT" : (section.loopable ? "LOOPABLE" : "SECTION")); Spacer(); if section.verified { Image(systemName: "checkmark.seal.fill").foregroundColor(.green) } }
-            Spacer()
-            Text(section.name.uppercased()).font(.system(size: 22, weight: .bold))
-            Text("\(formatTime(section.start)) · loop \(formatTime(section.loopStart))–\(formatTime(section.loopEnd))")
-                .font(.system(size: 9)).foregroundColor(active ? .white.opacity(0.82) : .secondary)
+        let level = playing ? max(0.16, metrics.level) : 0
+        let blue = Color(red: 0.04, green: 0.48, blue: 1.0)
+        let purple = Color(red: 0.69, green: 0.30, blue: 0.96)
+        let cyan = Color(red: 0.12, green: 0.79, blue: 0.98)
+        let pink = Color(red: 1.0, green: 0.25, blue: 0.51)
+        let accentA = metrics.mid > metrics.bass ? purple : blue
+        let accentB = metrics.transient > 0.38 ? pink : cyan
+
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                LabelText(active ? "CURRENT" : (section.loopable ? "LOOPABLE" : "SECTION"))
+                Spacer()
+                if section.verified {
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.green)
+                }
+            }
+
+            Spacer(minLength: 12)
+
+            Text(section.name.uppercased())
+                .font(.system(size: 25, weight: .bold))
+                .lineLimit(2)
+
+            HStack(spacing: 8) {
+                Text("START \(formatTime(section.start))")
+                if section.loopable {
+                    Text("•")
+                    Text("LOOP \(formatTime(section.loopStart))–\(formatTime(section.loopEnd))")
+                }
+            }
+            .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
+            .foregroundColor(active && playing ? .white.opacity(0.86) : .secondary)
         }
-        .padding(18).frame(minHeight: 150, maxHeight: 190)
+        .padding(20)
+        .frame(minHeight: 166, maxHeight: 190)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 22).fill(active ? dynamic.opacity(0.78) : Color.black.opacity(0.23)))
-        .overlay(RoundedRectangle(cornerRadius: 22).stroke(active ? dynamic.opacity(0.95) : Color.white.opacity(0.09), lineWidth: active ? 1.5 : 1))
-        .animation(.easeInOut(duration: 0.55), value: metrics)
+        .background {
+            ZStack {
+                RoundedRectangle(cornerRadius: 22)
+                    .fill(Color.black.opacity(active ? 0.18 : 0.30))
+
+                if active && playing {
+                    LinearGradient(
+                        colors: [
+                            accentA.opacity(0.46 + level * 0.28),
+                            accentB.opacity(0.20 + level * 0.22),
+                            Color.black.opacity(0.10)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 22))
+                }
+            }
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: 22)
+                .stroke(
+                    active && playing ? accentA.opacity(0.72) : Color.white.opacity(active ? 0.20 : 0.09),
+                    lineWidth: active ? 1.5 : 1
+                )
+        )
+        .scaleEffect(active ? 1.0 : 0.995)
+        .animation(.easeOut(duration: playing ? 0.18 : 1.6), value: playing)
     }
 }
 
