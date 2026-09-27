@@ -1019,6 +1019,16 @@ test('estreno arrival intensifies artwork glow and retires countdown smoothly', 
   const visual=await page.evaluate(async () => {
     const card=document.createElement('section');
     card.className='card current phase-release';
+    card.style.cssText=[
+      '--stage-accent:rgb(42,224,126)',
+      '--stage-soft:rgba(42,224,126,.135)',
+      '--stage-border:rgba(42,224,126,.44)',
+      '--stage-glow:rgba(42,224,126,.24)',
+      '--stage-text:rgb(220,255,235)',
+      '--cover-c1:44,86,184',
+      '--cover-c2:61,137,220',
+      '--cover-c3:25,53,128'
+    ].join(';');
     card.innerHTML=`
       <div class="release-aura" aria-hidden="true"></div>
       <div class="status">HOY · ESTRENO</div>
