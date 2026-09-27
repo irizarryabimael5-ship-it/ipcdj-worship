@@ -1011,9 +1011,10 @@ test('estreno arrival intensifies artwork glow and retires countdown smoothly', 
   expect(source).toContain('.current.phase-release::after');
   expect(source).toContain('rgba(3,6,10,.52)');
   expect(source).toContain('backdrop-filter:blur(10px) saturate(1.05)');
-  expect(source).toContain('rgba(var(--cover-c1),.48)');
-  expect(source).toContain('rgba(var(--cover-c2),.40)');
-  expect(source).toContain('rgba(var(--cover-c3),.30)');
+  expect(source).toContain('rgba(var(--cover-dominant),.42)');
+  expect(source).toContain('rgba(var(--cover-c1),.34)');
+  expect(source).toContain('rgba(var(--cover-c2),.30)');
+  expect(source).toContain('rgba(var(--cover-c3),.24)');
   expect(source).toContain('max-height 1.05s');
   expect(source).toContain('prepControlsHidden=phase.key==="release"||phase.key==="released"');
 
