@@ -1,6 +1,6 @@
 importScripts("./notifications/sw-foundation.js");
 
-const CACHE_NAME = "ipcdj-worship-v175";
+const CACHE_NAME = "ipcdj-worship-v176";
 const OFFLINE_PAGE = "./__offline_index__";
 const STATIC_ASSETS = [
   "./favicon.svg",
@@ -9,7 +9,7 @@ const STATIC_ASSETS = [
   "./apple-touch-icon.png",
   "./app-icon-safe.svg",
   "./icon-512.png",
-  "./social-preview.png",
+  "./social-preview-v176.jpg",
   "./spotify.svg",
   "./apple-music.svg",
   "./youtube-music.svg",
