@@ -58,6 +58,10 @@ final class LivingColorNSView: NSView {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        nil
+    }
+
     private func configure(_ g: CAGradientLayer) {
         g.locations = [0, 0.45, 1]
         g.opacity = 0
