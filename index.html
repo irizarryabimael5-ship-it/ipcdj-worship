@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v173" />
+  <meta name="ipcdj-build" content="persistent-launch-v174" />
   <title>IPCDJ Worship | Ministerio de Alabanza</title>
   <meta name="description" content="Próximas canciones, preparación y estrenos del Ministerio de Alabanza de IPCDJ." />
   <link rel="canonical" href="https://worship.ipcdj.org/" />
@@ -468,6 +468,7 @@
       --ambient-c2:75,111,255;
       --ambient-c3:50,89,180;
       --ambient-c4:112,88,210;
+      --ambient-dominant:55,93,202;
       position:absolute;
       top:-14vmax;
       right:-14vmax;
@@ -488,12 +489,13 @@
       opacity:.34;
       transform:scale(.985);
       background:
-        radial-gradient(circle at 18% 20%,rgba(var(--ambient-c1),.44) 0%,rgba(var(--ambient-c1),.18) 28%,rgba(var(--ambient-c1),.05) 48%,rgba(var(--ambient-c1),0) 68%),
-        radial-gradient(circle at 82% 22%,rgba(var(--ambient-c2),.40) 0%,rgba(var(--ambient-c2),.16) 30%,rgba(var(--ambient-c2),.045) 50%,rgba(var(--ambient-c2),0) 70%),
-        radial-gradient(circle at 50% 86%,rgba(var(--ambient-c3),.36) 0%,rgba(var(--ambient-c3),.15) 34%,rgba(var(--ambient-c3),.04) 54%,rgba(var(--ambient-c3),0) 74%),
-        radial-gradient(circle at 54% 44%,rgba(var(--ambient-c4),.24) 0%,rgba(var(--ambient-c4),.08) 34%,rgba(var(--ambient-c4),0) 66%);
-      filter:blur(30px) saturate(1.10);
-      -webkit-filter:blur(30px) saturate(1.10);
+        radial-gradient(circle at 50% 42%,rgba(var(--ambient-dominant),.62) 0%,rgba(var(--ambient-dominant),.31) 26%,rgba(var(--ambient-dominant),.13) 48%,rgba(var(--ambient-dominant),0) 74%),
+        radial-gradient(circle at 16% 20%,rgba(var(--ambient-c1),.38) 0%,rgba(var(--ambient-c1),.15) 30%,rgba(var(--ambient-c1),0) 66%),
+        radial-gradient(circle at 84% 22%,rgba(var(--ambient-c2),.34) 0%,rgba(var(--ambient-c2),.13) 32%,rgba(var(--ambient-c2),0) 68%),
+        radial-gradient(circle at 50% 88%,rgba(var(--ambient-c3),.30) 0%,rgba(var(--ambient-c3),.12) 35%,rgba(var(--ambient-c3),0) 72%),
+        radial-gradient(circle at 54% 44%,rgba(var(--ambient-c4),.18) 0%,rgba(var(--ambient-c4),.06) 34%,rgba(var(--ambient-c4),0) 66%);
+      filter:blur(36px) saturate(1.18);
+      -webkit-filter:blur(36px) saturate(1.18);
       transition:
         opacity 1.55s cubic-bezier(.22,.65,.25,1),
         transform 1.55s cubic-bezier(.22,.65,.25,1),
@@ -507,21 +509,21 @@
     }
 
     html.ipcdj-ambient-release .ambient-field-active::before{
-      opacity:.90;
-      transform:scale(1.055);
-      filter:blur(38px) saturate(1.38) brightness(1.06);
-      -webkit-filter:blur(38px) saturate(1.38) brightness(1.06);
+      opacity:.98;
+      transform:scale(1.07);
+      filter:blur(46px) saturate(1.44) brightness(1.08);
+      -webkit-filter:blur(46px) saturate(1.44) brightness(1.08);
     }
 
     html.ipcdj-ambient-release .ambient-field-active .ambient-blob{
       background:radial-gradient(circle,
-        rgba(var(--blob-rgb),.92) 0%,
-        rgba(var(--blob-rgb),.62) 34%,
-        rgba(var(--blob-rgb),.32) 58%,
-        rgba(var(--blob-rgb),.10) 76%,
-        rgba(var(--blob-rgb),0) 93%);
-      filter:blur(22px) saturate(1.26) brightness(1.05);
-      -webkit-filter:blur(22px) saturate(1.26) brightness(1.05);
+        rgba(var(--blob-rgb),.96) 0%,
+        rgba(var(--blob-rgb),.68) 34%,
+        rgba(var(--blob-rgb),.36) 58%,
+        rgba(var(--blob-rgb),.12) 78%,
+        rgba(var(--blob-rgb),0) 94%);
+      filter:blur(24px) saturate(1.30) brightness(1.06);
+      -webkit-filter:blur(24px) saturate(1.30) brightness(1.06);
     }
 
     .ambient-blob{
@@ -947,6 +949,7 @@
       --cover-c1:96,62,44;
       --cover-c2:166,108,61;
       --cover-c3:56,76,93;
+      --cover-dominant:96,62,44;
       --cover-image:none;
       --cover-pos-x:50%;
       --cover-pos-y:50%;
@@ -1380,9 +1383,10 @@
       opacity:0;
       transform:scale(.982);
       background:
-        radial-gradient(circle at 10% 20%,rgba(var(--cover-c1),.84) 0%,rgba(var(--cover-c1),.38) 26%,rgba(var(--cover-c1),.10) 46%,rgba(var(--cover-c1),0) 66%),
-        radial-gradient(circle at 90% 24%,rgba(var(--cover-c2),.80) 0%,rgba(var(--cover-c2),.36) 30%,rgba(var(--cover-c2),.10) 50%,rgba(var(--cover-c2),0) 68%),
-        radial-gradient(circle at 50% 92%,rgba(var(--cover-c3),.74) 0%,rgba(var(--cover-c3),.32) 34%,rgba(var(--cover-c3),.08) 52%,rgba(var(--cover-c3),0) 72%);
+        radial-gradient(circle at 50% 44%,rgba(var(--cover-dominant),.88) 0%,rgba(var(--cover-dominant),.40) 28%,rgba(var(--cover-dominant),.13) 50%,rgba(var(--cover-dominant),0) 74%),
+        radial-gradient(circle at 10% 20%,rgba(var(--cover-c1),.64) 0%,rgba(var(--cover-c1),.26) 28%,rgba(var(--cover-c1),0) 64%),
+        radial-gradient(circle at 90% 24%,rgba(var(--cover-c2),.58) 0%,rgba(var(--cover-c2),.23) 30%,rgba(var(--cover-c2),0) 66%),
+        radial-gradient(circle at 50% 92%,rgba(var(--cover-c3),.54) 0%,rgba(var(--cover-c3),.21) 34%,rgba(var(--cover-c3),0) 70%);
       filter:blur(20px) saturate(1.42) brightness(1.06);
       -webkit-filter:blur(20px) saturate(1.42) brightness(1.06);
       transition:
@@ -1532,9 +1536,11 @@
         0 24px 68px rgba(0,0,0,.36),
         0 0 22px var(--stage-glow),
         0 0 44px var(--stage-glow),
-        0 0 42px rgba(var(--cover-c1),.48),
-        0 0 88px rgba(var(--cover-c2),.40),
-        0 0 132px rgba(var(--cover-c3),.30),
+        0 0 54px rgba(var(--cover-dominant),.42),
+        0 0 104px rgba(var(--cover-dominant),.28),
+        0 0 42px rgba(var(--cover-c1),.34),
+        0 0 82px rgba(var(--cover-c2),.30),
+        0 0 126px rgba(var(--cover-c3),.24),
         inset 0 1px 0 rgba(255,255,255,.13),
         inset 0 0 0 1px var(--stage-border);
     }
@@ -1728,7 +1734,18 @@
     .current.phase-released .post-release-kicker{color:#74dfb7}
 
     .current.phase-released .timeline{
-      display:none;
+      max-height:0;
+      margin-top:0;
+      opacity:0;
+      transform:translateY(-8px);
+      visibility:hidden;
+      pointer-events:none;
+      transition:
+        max-height 1.05s cubic-bezier(.22,.65,.25,1),
+        margin .95s cubic-bezier(.22,.65,.25,1),
+        opacity .58s cubic-bezier(.4,0,.2,1),
+        transform .82s cubic-bezier(.22,.65,.25,1),
+        visibility 0s linear 1.05s;
     }
 
     .song-name{
@@ -1900,6 +1917,17 @@
       display:grid;
       gap:10px;
       margin-top:12px;
+      max-height:680px;
+      opacity:1;
+      transform:translateY(0);
+      overflow:hidden;
+      visibility:visible;
+      transition:
+        max-height 1.05s cubic-bezier(.22,.65,.25,1),
+        margin .95s cubic-bezier(.22,.65,.25,1),
+        opacity .62s cubic-bezier(.4,0,.2,1),
+        transform .82s cubic-bezier(.22,.65,.25,1),
+        visibility 0s linear 0s;
     }
 
     .timeline-item{
@@ -3148,6 +3176,7 @@
       .reveal{opacity:1;transform:none;transition:none}
       .post-release-banner,.recent{animation:none!important}
       .release-aura,
+      .timeline,
       .countdown-wrap,
       .progress-wrap,
       .status,
@@ -4056,11 +4085,14 @@
     function configureAmbientField(field,palette){
       if(!field)return;
       const colors=buildAmbientPalette(palette);
+      const dominant=colors[0]||AMBIENT_FALLBACK[0];
+      field.style.setProperty("--ambient-dominant",dominant.join(","));
       colors.slice(0,4).forEach((color,index)=>{
         field.style.setProperty("--ambient-c"+(index+1),color.join(","));
       });
       [...field.querySelectorAll(".ambient-blob")].forEach((blob,index)=>{
-        blob.style.setProperty("--blob-rgb",(colors[index]||colors[0]).join(","));
+        const color=index===0?dominant:(colors[index]||dominant);
+        blob.style.setProperty("--blob-rgb",color.join(","));
       });
     }
 
@@ -4216,7 +4248,7 @@
         artworkQuery:"Dios De Milagros En Vivo Desde México Miel San Marcos Kim Richards",
         artworkUrl:"https://i.scdn.co/image/ab67616d0000b27341b7ffdb9e0bde66a24425c4",
         artworkSource:"spotify",
-        futurePalette:[[88,57,44],[179,111,62],[54,75,91]],
+        futurePalette:[[36,76,118],[46,82,120],[28,55,84]],
         coverSubjectFocus:{
           desktop:{width:"31%",height:"37%",bgX:"88%",bgY:"64%",bgSize:"325%"},
           mobile:{right:"-2%",width:"40%",height:"34%",bgX:"84%",bgY:"64%",bgSize:"360%"},
@@ -4322,6 +4354,7 @@
     ]);
 
     const SITE_TIME_ZONE="America/New_York";
+    const RELEASE_SETTLE_DELAY_MS=30*60*1000;
     const SONG_WEEKDAY_ES=Object.freeze({
       Sun:"Dom.",Mon:"Lun.",Tue:"Mar.",Wed:"Mié.",Thu:"Jue.",Fri:"Vie.",Sat:"Sáb."
     });
@@ -4729,6 +4762,7 @@
       card.style.setProperty("--cover-c1",palette[0].join(","));
       card.style.setProperty("--cover-c2",palette[1].join(","));
       card.style.setProperty("--cover-c3",palette[2].join(","));
+      card.style.setProperty("--cover-dominant",(palette[0]||palette[1]||palette[2]).join(","));
       card.dataset.coverTheme=song.id;
 
       ambientSongPalettes.set(song.id,palette.slice(0,3));
@@ -5532,7 +5566,19 @@
     let previewVisualFrame=0;
     const webPreviewOutgoingVoices=new Set();
 
+    function configurePreviewAudioSessionForPlayback(){
+      try{
+        const session=navigator.audioSession;
+        if(!session||!("type" in session))return false;
+        if(session.type!=="playback")session.type="playback";
+        return session.type==="playback";
+      }catch(_){
+        return false;
+      }
+    }
+
     function ensureWebPreviewContext(){
+      configurePreviewAudioSessionForPlayback();
       if(webPreviewContext&&webPreviewContext.state!=="closed"){
         if(!webPreviewAnalyser){
           webPreviewAnalyser=webPreviewContext.createAnalyser();
@@ -5684,6 +5730,7 @@
 
     function unlockWebPreviewContextFromGesture(){
       try{
+        configurePreviewAudioSessionForPlayback();
         const ctx=ensureWebPreviewContext();
 
         // iOS Safari/PWA can require an actual source start inside the user
@@ -6128,8 +6175,10 @@
     }
 
     async function startWebAudioPreview(song,data,{resume=false,crossfadeFrom=""}={}){
+      configurePreviewAudioSessionForPlayback();
       const ctx=ensureWebPreviewContext();
       try{await ctx.resume()}catch(_){}
+      configurePreviewAudioSessionForPlayback();
 
       const canCrossfade=(
         !!crossfadeFrom&&
@@ -7673,22 +7722,22 @@
       const finalEnd=new Date(song.finalEnd).getTime();
       const releaseDayStart=new Date(song.releaseDayStartAt||song.releaseAt).getTime();
       const release=new Date(song.releaseAt).getTime();
-      const releaseDayEnd=new Date(song.releaseDayEndAt||song.rolloverAt).getTime();
+      const releaseSettledAt=release+RELEASE_SETTLE_DELAY_MS;
       const introduced=new Date(song.introducedAt||song.rolloverAt).getTime();
 
       if(now<learningStart)return {key:"upcoming",label:"Próximamente",note:"Próxima fase · aprendizaje"};
       if(now<=learningEnd)return {key:"learning",label:"Aprendizaje",note:"Fase 1 de 3 · aprendizaje en curso"};
       if(now>=finalStart&&now<=finalEnd)return {key:"final",label:"Preparación final",note:"Fase 2 de 3 · preparación final"};
       if(now<releaseDayStart)return {key:"final",label:"Preparación final",note:"Fase 2 de 3 · preparación final"};
-      if(now<releaseDayEnd)return {
+      if(now<releaseSettledAt)return {
         key:"release",
         label:"Estreno",
-        note:now<release?"Estreno de hoy · servicio pendiente":"Estreno de hoy"
+        note:now<release?"Estreno de hoy · servicio pendiente":"Estreno de hoy · recién presentado"
       };
       if(now<introduced)return {
         key:"released",
-        label:"Ya estrenado",
-        note:"Estreno completado · pasa mañana a Introducciones recientes"
+        label:"Estrenado",
+        note:"Estreno completado · canción presentada"
       };
       return {key:"complete",label:"Introducida",note:"Estreno completado"};
     }
@@ -7849,6 +7898,7 @@
       const phase=getPhase(song,now);
       const release=new Date(song.releaseAt).getTime();
       const activeStart=new Date(song.activeFrom).getTime();
+      const previousPhase=card.dataset.phase||"";
 
       card.classList.toggle("phase-release",phase.key==="release");
       card.classList.toggle("phase-released",phase.key==="released");
@@ -7862,13 +7912,29 @@
 
       const statusText=
         phase.key==="release"?"HOY · ESTRENO":
-        phase.key==="released"?"YA ESTRENADO":
+        phase.key==="released"?"ESTRENADO":
         phase.key==="upcoming"?"PRÓXIMA CANCIÓN":
         "AHORA EN PREPARACIÓN";
 
       setCardText(card,"status",statusText);
       setCardText(card,"song-name",song.title);
       setCardText(card,"artist",song.artist);
+
+      if(previousPhase==="release"&&phase.key==="released"&&!window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+        requestAnimationFrame(()=>{
+          [cardRole(card,"status"),cardRole(card,"post-release-banner")].filter(Boolean).forEach((el,index)=>{
+            try{
+              el.animate(
+                [
+                  {opacity:.72,transform:"translateY(-3px) scale(.99)"},
+                  {opacity:1,transform:"translateY(0) scale(1)"}
+                ],
+                {duration:700+(index*120),easing:"cubic-bezier(.22,.65,.25,1)"}
+              );
+            }catch(_){}
+          });
+        });
+      }
 
       if(phase.key==="release"){
         const releaseTime=new Date(song.releaseAt).getTime();
@@ -7879,12 +7945,12 @@
           "post-release-note",
           now<releaseTime
             ? "La canción se estrena hoy en el servicio · "+(song.releaseClockLabel||"11:00 AM")+"."
-            : "La canción llegó a su día de estreno y permanece destacada durante hoy."
+            : "La canción ya fue presentada en el servicio y completa su transición a Estrenado 30 minutos después del horario programado."
         );
       }else if(phase.key==="released"){
-        setCardText(card,"post-release-kicker","YA ESTRENADO");
+        setCardText(card,"post-release-kicker","ESTRENADO");
         setCardText(card,"post-release-title","Estreno completado");
-        setCardText(card,"post-release-note","Permanece aquí durante hoy y pasa a Introducciones recientes a medianoche.");
+        setCardText(card,"post-release-note","La canción ya fue presentada en el servicio de hoy.");
       }
 
       if(song.previewAccent1){
