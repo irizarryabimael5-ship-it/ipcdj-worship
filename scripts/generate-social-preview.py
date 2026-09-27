@@ -75,9 +75,11 @@ html.ipcdj-launch-site-hidden{
 }
 
 .hero .subtitle{
-  max-width:820px !important;
+  max-width:900px !important;
+  font-size:.92rem !important;
+  line-height:1.34 !important;
   display:-webkit-box !important;
-  -webkit-line-clamp:1 !important;
+  -webkit-line-clamp:2 !important;
   -webkit-box-orient:vertical !important;
   overflow:hidden !important;
 }
@@ -189,7 +191,7 @@ def screenshot_landing(url: str) -> tuple[bytes, dict]:
             viewport={"width": WIDTH, "height": HEIGHT},
             device_scale_factor=DEVICE_SCALE,
             color_scheme="dark",
-            reduced_motion="reduce",
+            reduced_motion="no-preference",
         )
         page = context.new_page()
 
@@ -286,7 +288,7 @@ def render():
             {
                 "output": str(OUTPUT.relative_to(ROOT)),
                 "bytes": OUTPUT.stat().st_size,
-                "render": "browser-landing-snapshot",
+                "render": "browser-landing-snapshot-v179",
                 **meta,
             },
             ensure_ascii=False,
