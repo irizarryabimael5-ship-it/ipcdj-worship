@@ -119,6 +119,26 @@ enum CoreAudioDeviceManager {
         guard status == noErr else {
             throw CoreAudioDeviceError.property(status, "Setting device sample rate")
         }
+
+        let deadline = Date().addingTimeInterval(1.5)
+        while Date() < deadline {
+            let observed = try float64Property(
+                device: info.id,
+                selector: kAudioDevicePropertyNominalSampleRate,
+                scope: kAudioObjectPropertyScopeGlobal
+            )
+            if abs(observed - target) < 0.5 { return }
+            Thread.sleep(forTimeInterval: 0.04)
+        }
+
+        let observed = try float64Property(
+            device: info.id,
+            selector: kAudioDevicePropertyNominalSampleRate,
+            scope: kAudioObjectPropertyScopeGlobal
+        )
+        guard abs(observed - target) < 0.5 else {
+            throw CoreAudioDeviceError.property(kAudioHardwareUnspecifiedError, "Waiting for device sample rate")
+        }
     }
 
     private static func stringProperty(
@@ -195,8 +215,9 @@ enum CoreAudioDeviceManager {
         let count = Int(size) / MemoryLayout<AudioValueRange>.size
         var ranges = Array(repeating: AudioValueRange(mMinimum: 0, mMaximum: 0), count: count)
         let status = ranges.withUnsafeMutableBytes { raw -> OSStatus in
+            guard let baseAddress = raw.baseAddress else { return kAudio_ParamError }
             var mutableSize = size
-            return AudioObjectGetPropertyData(device, &address, 0, nil, &mutableSize, raw.baseAddress!)
+            return AudioObjectGetPropertyData(device, &address, 0, nil, &mutableSize, baseAddress)
         }
         guard status == noErr else { return [] }
         return ranges.map { Double($0.mMinimum)...Double($0.mMaximum) }
