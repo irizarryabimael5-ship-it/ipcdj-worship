@@ -3040,3 +3040,33 @@ Backend watchdog:
 
 Watchdog disposition:
 - FEATURE_COVERAGE_ADDED.
+
+
+## Estreno arrival emphasis v169
+
+Purpose:
+- When a managed preparation song crosses into its release-day lifecycle (`phase-release` / “HOY · ESTRENO”), the site must visually communicate that the scheduled moment has arrived.
+- This behavior is catalog-driven and applies automatically to every managed song. Do not add per-song release-day CSS branches.
+
+Release transition:
+- Countdown and progress are not removed with `display:none` at the release-day boundary.
+- They fade, translate, and collapse smoothly using opacity/max-height/margin/padding transitions.
+- The post-release banner expands and fades in concurrently.
+- Runtime sets the collapsed prep controls `aria-hidden=true` during release/released phases.
+- Reduced-motion users receive the same final visual state without transition choreography.
+
+Artwork-derived emphasis:
+- Release-day bloom must derive from the card's existing `--cover-c1`, `--cover-c2`, and `--cover-c3` palette variables.
+- A dedicated `.release-aura` layer crossfades above the artwork stack but below readable card content.
+- Album artwork base/detail/edge intensity increases on release day.
+- Card outer glow, release status pill, release banner, song title, artist, and active Estreno timeline item all receive stronger palette-derived bloom/text-shadow.
+- The semantic green release cue remains a supporting signal; it must not replace the song-specific artwork palette.
+
+State behavior:
+- `phase-release` is the high-intensity arrival state.
+- `phase-released` intentionally settles to a calmer post-release treatment.
+- Other lifecycle phases keep the established preparation styling.
+- Existing cover/subject safety and readability layers remain intact.
+
+Watchdog:
+- Production health checks verify the release aura exists, palette-derived glow contracts remain present, countdown/progress compute to the collapsed state in release mode, banner computes visible, and transition timing is nonzero.
