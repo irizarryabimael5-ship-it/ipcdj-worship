@@ -1098,3 +1098,63 @@ test('estreno arrival intensifies artwork glow and retires countdown smoothly', 
   expect(visual.auraBackground).not.toContain('42, 224, 126');
   expect(visual.auraBackground).not.toBe('none');
 });
+
+
+test('release day amplifies the page ambient field from the song palette', async ({ page, request }) => {
+  const sourceResponse=await request.get('/?ambient-release-health='+Date.now(),{
+    headers:{'cache-control':'no-cache'}
+  });
+  expect(sourceResponse.ok()).toBe(true);
+  const source=await sourceResponse.text();
+  expect(source).toContain('html.ipcdj-ambient-release .ambient-field-active');
+  expect(source).toContain('html.ipcdj-ambient-release .ambient-field-active::before');
+  expect(source).toContain('--ambient-c1');
+  expect(source).toContain('--ambient-c2');
+  expect(source).toContain('--ambient-c3');
+  expect(source).toContain('const release=entries.find(({phase})=>phase&&phase.key==="release")');
+  expect(source).toContain('document.documentElement.classList.toggle("ipcdj-ambient-release"');
+  expect(source).toContain('driver:"+song.id+"|phase:"');
+
+  await openHealthyPage(page);
+
+  const visual=await page.evaluate(async () => {
+    const field=document.querySelector('.ambient-field-active')||document.querySelector('.ambient-field');
+    if(!field)return null;
+    const blob=field.querySelector('.ambient-blob');
+
+    field.style.setProperty('--ambient-c1','88,57,44');
+    field.style.setProperty('--ambient-c2','179,111,62');
+    field.style.setProperty('--ambient-c3','54,75,91');
+    field.style.setProperty('--ambient-c4','72,122,170');
+    if(blob)blob.style.setProperty('--blob-rgb','179,111,62');
+
+    document.documentElement.classList.add('ipcdj-ambient-release');
+    field.classList.add('ambient-field-active');
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+
+    const fieldStyle=getComputedStyle(field);
+    const halo=getComputedStyle(field,'::before');
+    const blobStyle=blob?getComputedStyle(blob):null;
+    const result={
+      fieldOpacity:Number(fieldStyle.opacity),
+      haloOpacity:Number(halo.opacity),
+      haloBackground:halo.backgroundImage,
+      haloFilter:halo.filter||halo.webkitFilter,
+      blobBackground:blobStyle?blobStyle.backgroundImage:'',
+      blobFilter:blobStyle?(blobStyle.filter||blobStyle.webkitFilter):''
+    };
+
+    document.documentElement.classList.remove('ipcdj-ambient-release');
+    return result;
+  });
+
+  expect(visual).not.toBeNull();
+  expect(visual.fieldOpacity).toBeGreaterThan(.95);
+  expect(visual.haloOpacity).toBeGreaterThan(.8);
+  expect(visual.haloBackground).not.toBe('none');
+  expect(visual.haloBackground).toContain('88, 57, 44');
+  expect(visual.haloBackground).toContain('179, 111, 62');
+  expect(visual.haloFilter).not.toBe('none');
+  expect(visual.blobBackground).not.toBe('none');
+  expect(visual.blobFilter).not.toBe('none');
+});
