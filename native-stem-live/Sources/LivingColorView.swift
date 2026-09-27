@@ -2,70 +2,95 @@ import SwiftUI
 import AppKit
 import QuartzCore
 
+/// GPU-backed stage ambience. Audio timing never depends on this view.
+/// The view is deliberately non-interactive so it can never intercept live controls.
 struct LivingColorView: NSViewRepresentable {
     var metrics: VisualMetrics
     var enabled: Bool
     var intensity: Double
+    var playing: Bool
 
     func makeNSView(context: Context) -> LivingColorNSView {
-        let v = LivingColorNSView()
-        v.wantsLayer = true
-        return v
+        LivingColorNSView(frame: .zero)
     }
 
     func updateNSView(_ nsView: LivingColorNSView, context: Context) {
-        nsView.apply(metrics: metrics, enabled: enabled, intensity: intensity)
+        nsView.apply(metrics: metrics, enabled: enabled, intensity: intensity, playing: playing)
     }
 }
 
 final class LivingColorNSView: NSView {
     private let base = CALayer()
-    private let glowA = CAGradientLayer()
-    private let glowB = CAGradientLayer()
+    private let ambient = CAGradientLayer()
+    private let bassGlow = CAGradientLayer()
+    private let airGlow = CAGradientLayer()
+    private let transientGlow = CAGradientLayer()
     private let veil = CAGradientLayer()
+
     private var smoothed = VisualMetrics()
     private var lastTime = CACurrentMediaTime()
+    private var wasPlaying = false
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
-        wantsLayer = true
-        layer = CALayer()
-        layer?.backgroundColor = NSColor(calibratedWhite: 0.018, alpha: 1).cgColor
-        layer?.masksToBounds = true
-
-        base.backgroundColor = NSColor(calibratedWhite: 0.018, alpha: 1).cgColor
-        layer?.addSublayer(base)
-
-        configure(glowA)
-        configure(glowB)
-        glowA.type = .radial
-        glowB.type = .radial
-        glowA.startPoint = CGPoint(x: 0.18, y: 0.18)
-        glowA.endPoint = CGPoint(x: 0.95, y: 0.95)
-        glowB.startPoint = CGPoint(x: 0.82, y: 0.80)
-        glowB.endPoint = CGPoint(x: 0.06, y: 0.05)
-        layer?.addSublayer(glowA)
-        layer?.addSublayer(glowB)
-
-        veil.colors = [
-            NSColor(calibratedWhite: 0.01, alpha: 0.12).cgColor,
-            NSColor(calibratedWhite: 0.005, alpha: 0.44).cgColor
-        ]
-        veil.startPoint = CGPoint(x: 0.5, y: 1)
-        veil.endPoint = CGPoint(x: 0.5, y: 0)
-        layer?.addSublayer(veil)
+        commonInit()
     }
 
-    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        commonInit()
+    }
 
     override func hitTest(_ point: NSPoint) -> NSView? {
         nil
     }
 
-    private func configure(_ g: CAGradientLayer) {
-        g.locations = [0, 0.45, 1]
-        g.opacity = 0
-        g.masksToBounds = false
+    private func commonInit() {
+        wantsLayer = true
+        layer = CALayer()
+        layer?.backgroundColor = NSColor(calibratedWhite: 0.007, alpha: 1).cgColor
+        layer?.masksToBounds = true
+
+        base.backgroundColor = NSColor(calibratedWhite: 0.007, alpha: 1).cgColor
+        layer?.addSublayer(base)
+
+        [ambient, bassGlow, airGlow, transientGlow].forEach {
+            configure($0)
+            $0.compositingFilter = "screenBlendMode"
+            layer?.addSublayer($0)
+        }
+
+        ambient.type = .radial
+        ambient.startPoint = CGPoint(x: 0.50, y: 0.48)
+        ambient.endPoint = CGPoint(x: 1.0, y: 1.0)
+
+        bassGlow.type = .radial
+        bassGlow.startPoint = CGPoint(x: 0.12, y: 0.22)
+        bassGlow.endPoint = CGPoint(x: 0.88, y: 0.96)
+
+        airGlow.type = .radial
+        airGlow.startPoint = CGPoint(x: 0.88, y: 0.74)
+        airGlow.endPoint = CGPoint(x: 0.08, y: 0.10)
+
+        transientGlow.type = .radial
+        transientGlow.startPoint = CGPoint(x: 0.56, y: 0.14)
+        transientGlow.endPoint = CGPoint(x: 0.50, y: 0.92)
+
+        veil.colors = [
+            NSColor(calibratedWhite: 0.00, alpha: 0.04).cgColor,
+            NSColor(calibratedWhite: 0.00, alpha: 0.36).cgColor,
+            NSColor(calibratedWhite: 0.00, alpha: 0.62).cgColor
+        ]
+        veil.locations = [0, 0.62, 1]
+        veil.startPoint = CGPoint(x: 0.5, y: 1)
+        veil.endPoint = CGPoint(x: 0.5, y: 0)
+        layer?.addSublayer(veil)
+    }
+
+    private func configure(_ gradient: CAGradientLayer) {
+        gradient.locations = [0, 0.44, 1]
+        gradient.opacity = 0
+        gradient.masksToBounds = false
     }
 
     override func layout() {
@@ -73,58 +98,100 @@ final class LivingColorNSView: NSView {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         base.frame = bounds
-        glowA.frame = bounds.insetBy(dx: -bounds.width * 0.20, dy: -bounds.height * 0.20)
-        glowB.frame = bounds.insetBy(dx: -bounds.width * 0.18, dy: -bounds.height * 0.18)
+        ambient.frame = bounds.insetBy(dx: -bounds.width * 0.12, dy: -bounds.height * 0.12)
+        bassGlow.frame = bounds.insetBy(dx: -bounds.width * 0.24, dy: -bounds.height * 0.24)
+        airGlow.frame = bounds.insetBy(dx: -bounds.width * 0.22, dy: -bounds.height * 0.22)
+        transientGlow.frame = bounds.insetBy(dx: -bounds.width * 0.18, dy: -bounds.height * 0.18)
         veil.frame = bounds
         CATransaction.commit()
     }
 
-    func apply(metrics: VisualMetrics, enabled: Bool, intensity: Double) {
+    func apply(metrics: VisualMetrics, enabled: Bool, intensity: Double, playing: Bool) {
+        let enabledPlaying = enabled && playing
         let now = CACurrentMediaTime()
         let dt = min(0.15, max(0.01, now - lastTime))
         lastTime = now
-        let target = enabled ? metrics : VisualMetrics()
 
-        smoothed.level = smooth(smoothed.level, target.level, dt: dt, attack: 0.60, release: 2.20)
-        smoothed.bass = smooth(smoothed.bass, target.bass * smoothed.level, dt: dt, attack: 0.52, release: 1.30)
-        smoothed.mid = smooth(smoothed.mid, target.mid * smoothed.level, dt: dt, attack: 0.54, release: 1.35)
-        smoothed.air = smooth(smoothed.air, target.air * smoothed.level, dt: dt, attack: 0.48, release: 1.20)
-        smoothed.transient = smooth(smoothed.transient, target.transient * smoothed.level, dt: dt, attack: 0.28, release: 0.85)
+        let target = enabledPlaying ? metrics : VisualMetrics()
+        smoothed.level = smooth(smoothed.level, target.level, dt: dt, attack: 0.22, release: 1.25)
+        smoothed.bass = smooth(smoothed.bass, target.bass, dt: dt, attack: 0.30, release: 0.90)
+        smoothed.mid = smooth(smoothed.mid, target.mid, dt: dt, attack: 0.28, release: 0.88)
+        smoothed.air = smooth(smoothed.air, target.air, dt: dt, attack: 0.24, release: 0.82)
+        smoothed.transient = smooth(smoothed.transient, target.transient, dt: dt, attack: 0.10, release: 0.46)
 
-        let alive = min(1, smoothed.level * max(0, intensity))
+        let strength = max(0.25, min(1.15, intensity))
+        // Quiet music should still feel alive; silence/stopped transport should not.
+        let alive = enabledPlaying
+            ? min(1, (0.17 + pow(smoothed.level, 0.72) * 0.83) * strength)
+            : 0
+
         let palette = colors(for: smoothed)
         let primary = palette.0
         let secondary = palette.1
         let accent = palette.2
+        let bright = palette.3
 
         CATransaction.begin()
-        CATransaction.setAnimationDuration(alive > Double(glowA.opacity) ? 0.62 : 1.35)
-        CATransaction.setAnimationTimingFunction(CAMediaTimingFunction(name: .easeInEaseOut))
+        if !enabledPlaying && wasPlaying {
+            CATransaction.setAnimationDuration(2.6)
+            CATransaction.setAnimationTimingFunction(CAMediaTimingFunction(name: .easeOut))
+        } else if enabledPlaying && !wasPlaying {
+            CATransaction.setAnimationDuration(0.58)
+            CATransaction.setAnimationTimingFunction(CAMediaTimingFunction(name: .easeInEaseOut))
+        } else {
+            CATransaction.setAnimationDuration(0.16)
+            CATransaction.setAnimationTimingFunction(CAMediaTimingFunction(name: .easeOut))
+        }
 
-        glowA.colors = [
-            primary.withAlphaComponent(0.78).cgColor,
-            secondary.withAlphaComponent(0.24).cgColor,
+        ambient.colors = [
+            primary.withAlphaComponent(0.72).cgColor,
+            secondary.withAlphaComponent(0.23).cgColor,
             NSColor.clear.cgColor
         ]
-        glowB.colors = [
-            accent.withAlphaComponent(0.52).cgColor,
-            secondary.withAlphaComponent(0.13).cgColor,
+        bassGlow.colors = [
+            secondary.withAlphaComponent(0.78).cgColor,
+            accent.withAlphaComponent(0.22).cgColor,
             NSColor.clear.cgColor
         ]
-        glowA.opacity = Float(alive * 0.70)
-        glowB.opacity = Float(alive * (0.20 + smoothed.air * 0.25 + smoothed.transient * 0.10))
+        airGlow.colors = [
+            bright.withAlphaComponent(0.66).cgColor,
+            primary.withAlphaComponent(0.16).cgColor,
+            NSColor.clear.cgColor
+        ]
+        transientGlow.colors = [
+            accent.withAlphaComponent(0.82).cgColor,
+            bright.withAlphaComponent(0.13).cgColor,
+            NSColor.clear.cgColor
+        ]
 
-        let move = CGFloat(alive)
-        glowA.position = CGPoint(
-            x: bounds.midX + CGFloat(smoothed.mid - smoothed.air) * 12 * move,
-            y: bounds.midY + CGFloat(smoothed.bass - 0.5) * 9 * move
+        ambient.opacity = Float(alive * 0.52)
+        bassGlow.opacity = Float(alive * (0.24 + smoothed.bass * 0.38))
+        airGlow.opacity = Float(alive * (0.18 + smoothed.air * 0.36))
+        transientGlow.opacity = Float(alive * smoothed.transient * 0.34)
+
+        let motion = CGFloat(alive)
+        ambient.position = CGPoint(
+            x: bounds.midX + CGFloat(smoothed.mid - 0.45) * 18 * motion,
+            y: bounds.midY + CGFloat(smoothed.level - 0.45) * 12 * motion
         )
-        glowB.position = CGPoint(
-            x: bounds.midX + CGFloat(smoothed.air - smoothed.bass) * 15 * move,
-            y: bounds.midY + CGFloat(smoothed.transient - 0.25) * 10 * move
+        bassGlow.position = CGPoint(
+            x: bounds.midX - bounds.width * 0.18 + CGFloat(smoothed.bass - 0.45) * 24 * motion,
+            y: bounds.midY - bounds.height * 0.09 + CGFloat(smoothed.level - 0.40) * 16 * motion
         )
-        veil.opacity = Float(0.78 - alive * 0.16)
+        airGlow.position = CGPoint(
+            x: bounds.midX + bounds.width * 0.18 + CGFloat(smoothed.air - 0.40) * 24 * motion,
+            y: bounds.midY + bounds.height * 0.10 + CGFloat(smoothed.air - 0.35) * 15 * motion
+        )
+        transientGlow.position = CGPoint(
+            x: bounds.midX + CGFloat(smoothed.transient - 0.25) * 16 * motion,
+            y: bounds.midY + bounds.height * 0.20
+        )
+
+        // Let performance color reach the material layer without sacrificing text contrast.
+        veil.opacity = Float(enabledPlaying ? max(0.48, 0.74 - alive * 0.23) : 0.78)
         CATransaction.commit()
+
+        wasPlaying = enabledPlaying
     }
 
     private func smooth(_ current: Double, _ target: Double, dt: Double, attack: Double, release: Double) -> Double {
@@ -133,18 +200,21 @@ final class LivingColorNSView: NSView {
         return current + (target - current) * a
     }
 
-    private func colors(for m: VisualMetrics) -> (NSColor, NSColor, NSColor) {
-        let blue = NSColor(calibratedRed: 0.04, green: 0.49, blue: 1.0, alpha: 1)
-        let indigo = NSColor(calibratedRed: 0.35, green: 0.32, blue: 0.93, alpha: 1)
-        let purple = NSColor(calibratedRed: 0.69, green: 0.32, blue: 0.95, alpha: 1)
-        let cyan = NSColor(calibratedRed: 0.16, green: 0.78, blue: 0.98, alpha: 1)
-        let pink = NSColor(calibratedRed: 1.0, green: 0.26, blue: 0.52, alpha: 1)
-        let orange = NSColor(calibratedRed: 1.0, green: 0.56, blue: 0.06, alpha: 1)
+    /// A restrained Apple-like performance palette:
+    /// quiet -> blue/indigo, mids -> purple, air -> cyan, transients -> pink.
+    private func colors(for m: VisualMetrics) -> (NSColor, NSColor, NSColor, NSColor) {
+        let blue = NSColor(calibratedRed: 0.04, green: 0.48, blue: 1.00, alpha: 1)
+        let indigo = NSColor(calibratedRed: 0.34, green: 0.32, blue: 0.96, alpha: 1)
+        let purple = NSColor(calibratedRed: 0.69, green: 0.30, blue: 0.96, alpha: 1)
+        let cyan = NSColor(calibratedRed: 0.12, green: 0.79, blue: 0.98, alpha: 1)
+        let pink = NSColor(calibratedRed: 1.00, green: 0.25, blue: 0.51, alpha: 1)
+        let orange = NSColor(calibratedRed: 1.00, green: 0.55, blue: 0.08, alpha: 1)
 
-        let primary = blend(blue, indigo, amount: min(0.58, m.mid * 0.50 + m.bass * 0.12))
-        let secondary = blend(indigo, purple, amount: min(0.55, m.mid * 0.42 + (1 - m.air) * 0.14))
-        let bright = blend(cyan, m.transient > 0.42 ? pink : orange, amount: min(0.34, m.transient * 0.32))
-        return (primary, secondary, bright)
+        let primary = blend(blue, indigo, amount: min(0.64, m.mid * 0.58 + m.level * 0.10))
+        let secondary = blend(indigo, purple, amount: min(0.72, m.mid * 0.54 + m.bass * 0.20))
+        let accent = blend(purple, m.transient > 0.36 ? pink : orange, amount: min(0.46, m.transient * 0.42 + m.bass * 0.12))
+        let bright = blend(blue, cyan, amount: min(0.82, 0.32 + m.air * 0.56))
+        return (primary, secondary, accent, bright)
     }
 
     private func blend(_ a: NSColor, _ b: NSColor, amount: Double) -> NSColor {
