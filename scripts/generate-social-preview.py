@@ -65,19 +65,19 @@ html.ipcdj-launch-site-hidden{
 .shell{
   width:min(920px,calc(100% - 54px)) !important;
   max-width:920px !important;
-  padding-top:28px !important;
+  padding-top:20px !important;
   padding-bottom:0 !important;
 }
 
 .hero{
   margin-top:0 !important;
-  margin-bottom:18px !important;
+  margin-bottom:12px !important;
 }
 
 .hero .subtitle{
   max-width:820px !important;
   display:-webkit-box !important;
-  -webkit-line-clamp:2 !important;
+  -webkit-line-clamp:1 !important;
   -webkit-box-orient:vertical !important;
   overflow:hidden !important;
 }
@@ -91,7 +91,8 @@ html.ipcdj-launch-site-hidden{
   margin-top:0 !important;
 }
 
-.current .timeline{
+.current .timeline,
+.current .inline-preview{
   display:none !important;
 }
 
