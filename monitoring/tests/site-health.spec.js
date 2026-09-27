@@ -1233,3 +1233,85 @@ test('v174 preview requests playback audio session for iPhone silent mode', asyn
   expect(source).toContain('function unlockWebPreviewContextFromGesture(){');
   expect(source).toContain('async function startWebAudioPreview(song,data');
 });
+
+
+test('v175 keeps artwork composition stable when Estrenado card compacts', async ({ page, request }) => {
+  const response=await request.get('/?v175-cover-frame='+Date.now(),{
+    headers:{'cache-control':'no-cache'}
+  });
+  expect(response.ok()).toBe(true);
+  const source=await response.text();
+
+  expect(source).toContain('function syncLifecycleStableCoverFrame(card)');
+  expect(source).toContain('--cover-frame-height:0px');
+  expect(source).toContain('height:max(calc(100% + 68px),calc(var(--cover-frame-height) + 68px))');
+  expect(source).toContain('height:var(--subject-stable-height,var(--subject-height))');
+  expect(source).toContain('if(card.classList.contains("phase-released")&&timeline)');
+  expect(source).toContain('referenceHeight+=timelineHeight+12');
+
+  await openHealthyPage(page);
+
+  const result=await page.evaluate(async()=>{
+    const card=document.createElement('section');
+    card.className='card current phase-released';
+    card.style.width='760px';
+    card.style.setProperty('--subject-height','37%');
+    card.style.setProperty('--cover-image','none');
+    card.innerHTML=`
+      <img class="cover-native-fallback" alt="" />
+      <div class="cover-detail"></div>
+      <div class="cover-edge-detail"></div>
+      <div class="cover-subject-detail"></div>
+      <div class="status">ESTRENADO</div>
+      <h2 class="song-name">Prueba</h2>
+      <p class="artist">IPCDJ</p>
+      <div class="post-release-banner">
+        <span class="post-release-kicker">ESTRENADO</span>
+        <strong class="post-release-title">Estreno completado</strong>
+        <span class="post-release-note">Prueba</span>
+      </div>
+      <div class="timeline">
+        <div class="timeline-item"><div class="timeline-label">Aprendizaje</div><div class="timeline-date">A</div></div>
+        <div class="timeline-item"><div class="timeline-label">Preparación final</div><div class="timeline-date">B</div></div>
+        <div class="timeline-item estreno"><div class="timeline-label">Estreno</div><div class="timeline-date">C</div></div>
+      </div>
+    `;
+    document.body.appendChild(card);
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+
+    const compactHeight=card.getBoundingClientRect().height;
+    const timeline=card.querySelector('.timeline');
+    const timelineContentHeight=timeline.scrollHeight;
+
+    if(typeof window.syncLifecycleStableCoverFrame==='function'){
+      window.syncLifecycleStableCoverFrame(card);
+    }else if(typeof syncLifecycleStableCoverFrame==='function'){
+      syncLifecycleStableCoverFrame(card);
+    }
+
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+
+    const style=getComputedStyle(card);
+    const frameHeight=parseFloat(style.getPropertyValue('--cover-frame-height'))||0;
+    const subjectHeight=parseFloat(getComputedStyle(card.querySelector('.cover-subject-detail')).height)||0;
+    const nativeHeight=parseFloat(getComputedStyle(card.querySelector('.cover-native-fallback')).height)||0;
+    const expectedSubject=frameHeight*.37;
+
+    card.remove();
+
+    return {
+      compactHeight,
+      timelineContentHeight,
+      frameHeight,
+      subjectHeight,
+      nativeHeight,
+      expectedSubject
+    };
+  });
+
+  expect(result.timelineContentHeight).toBeGreaterThan(0);
+  expect(result.frameHeight).toBeGreaterThan(result.compactHeight);
+  expect(result.frameHeight).toBeGreaterThanOrEqual(result.compactHeight+result.timelineContentHeight);
+  expect(result.nativeHeight).toBeGreaterThan(result.compactHeight+60);
+  expect(Math.abs(result.subjectHeight-result.expectedSubject)).toBeLessThan(2.5);
+});
