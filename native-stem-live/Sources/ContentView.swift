@@ -8,7 +8,8 @@ struct ContentView: View {
     @AppStorage("stemlive.native.lastSeenVersion") private var lastSeenVersion = ""
     @State private var whatsNew = false
     @State private var quickClick = false
-    private let version = "0.6.1"
+    @StateObject private var migration = LegacyMigrationManager()
+    private let version = "0.6.2"
 
     var body: some View {
         ZStack {
@@ -32,7 +33,20 @@ struct ContentView: View {
                 }
             }
             .padding(14)
+
+            if migration.shouldOfferMigration && migration.state != .preparing && migration.state != .exporting && migration.state != .importing {
+                VStack {
+                    Spacer()
+                    LegacyMigrationBanner(migration: migration)
+                        .padding(.bottom, 18)
+                }
+                .padding(.horizontal, 250)
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+
+            InstallLocationGate()
         }
+        .background(WindowConfigurator())
         .preferredColorScheme(.dark)
         .background(Color.black)
         .sheet(isPresented: $whatsNew) {
@@ -40,7 +54,13 @@ struct ContentView: View {
                 lastSeenVersion = version
                 whatsNew = false
             }
-            .frame(width: 620, height: 500)
+            .frame(width: 640, height: 520)
+        }
+        .sheet(isPresented: $migration.showMigration) {
+            LegacyMigrationSheet(migration: migration)
+                .environmentObject(store)
+                .environmentObject(audio)
+                .frame(width: 650, height: 470)
         }
         .onAppear {
             if lastSeenVersion != version { whatsNew = true }
@@ -112,7 +132,7 @@ struct Sidebar: View {
                     Circle().fill(audio.isPlaying ? .green : .gray).frame(width: 6, height: 6)
                     Text(audio.engineStatus).font(.system(size: 8)).foregroundColor(.secondary).lineLimit(1)
                 }
-                Text("Native 0.6.1").font(.system(size: 8)).foregroundColor(.secondary.opacity(0.7))
+                Text("Native 0.6.2").font(.system(size: 8)).foregroundColor(.secondary.opacity(0.7))
             }.frame(maxWidth: .infinity, alignment: .leading).padding(14)
         }
         .background(RoundedRectangle(cornerRadius: 26).fill(.regularMaterial.opacity(0.72)))
@@ -129,15 +149,17 @@ struct Header: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(store.currentSong?.title ?? "No Song").font(.system(size: 19, weight: .bold)).lineLimit(1)
                 if let s = store.currentSong {
-                    Text("\(s.bpm, specifier: "%.1f") BPM · \(s.meterText) · \(formatTime(s.duration)) · \(s.stems.filter{!$0.reference}.count) live stems")
+                    Text("\(s.bpm, specifier: "%.1f") BPM · \(s.meterText) · \(formatTime(s.duration)) · \(s.stems.filter{$0.effectiveRoute == .music}.count) live stems")
                         .font(.system(size: 9)).foregroundColor(.secondary)
                 }
             }
             Spacer()
             HStack(spacing: 3) {
                 ForEach(WorkspacePage.allCases) { page in
-                    Button(page.rawValue) { store.page = page }
-                        .buttonStyle(TabButton(active: store.page == page))
+                    ImmediateTabButton(title: page.rawValue, active: store.page == page) {
+                        store.page = page
+                    }
+                    .frame(width: 63, height: 37)
                 }
             }.padding(4).background(RoundedRectangle(cornerRadius: 15).fill(Color.black.opacity(0.30)))
             Spacer()
@@ -361,10 +383,25 @@ struct ArrangePage: View {
         DispatchQueue.global(qos: .userInitiated).async {
             var built: [StemTrack] = []
             for url in urls {
-                if let result = try? WaveformBuilder.inspect(url: url) {
+                if FileManager.default.fileExists(atPath: url.path) {
                     let lower = url.deletingPathExtension().lastPathComponent.lowercased()
-                    let ref = lower.contains("original") || lower.contains("master") || lower.contains("full mix")
-                    built.append(StemTrack(name: url.deletingPathExtension().lastPathComponent, path: url.path, reference: ref, waveform: result.waveform, duration: result.duration))
+                    let route: StemRoute = (lower.contains("click") || lower.contains("cue"))
+                        ? .click
+                        : ((lower.contains("original") || lower.contains("master") || lower.contains("full mix")) ? .reference : .music)
+                    let stemID = UUID()
+                    if let songID = store.currentSong?.id,
+                       let managed = try? MediaLibrary.copyIntoLibrary(source: url, songID: songID, stemID: stemID),
+                       let managedResult = try? WaveformBuilder.inspect(url: managed) {
+                        built.append(StemTrack(
+                            id: stemID,
+                            name: url.deletingPathExtension().lastPathComponent,
+                            path: managed.path,
+                            reference: route == .reference,
+                            route: route,
+                            waveform: managedResult.waveform,
+                            duration: managedResult.duration
+                        ))
+                    }
                 }
             }
             DispatchQueue.main.async {
@@ -390,7 +427,7 @@ struct TimelineView: View {
             ScrollView(.horizontal) {
                 VStack(spacing: 0) {
                     ruler(width: baseWidth)
-                    ForEach(song.stems.filter { !$0.reference }) { stem in
+                    ForEach(song.stems.filter { $0.effectiveRoute != .reference }) { stem in
                         HStack(spacing: 0) {
                             Text(stem.name).font(.system(size: 8, weight: .semibold)).lineLimit(1).frame(width: 130, alignment: .leading).padding(.horizontal, 8)
                             WaveLane(stem: stem, width: max(10, baseWidth - 130), duration: max(0.001, song.duration))
@@ -523,7 +560,9 @@ struct MixPage: View {
                             HStack(spacing: 12) {
                                 VStack(alignment: .leading) {
                                     Text(stem.name).font(.system(size: 11, weight: .bold))
-                                    Text(stem.reference ? "REFERENCE · EXCLUDED" : "LIVE STEM").font(.system(size: 8, weight: .black)).foregroundColor(stem.reference ? .orange : .secondary)
+                                    Text(stem.effectiveRoute == .reference ? "REFERENCE · EXCLUDED" : (stem.effectiveRoute == .click ? "CLICK · EXCLUDED FROM MUSIC" : "LIVE STEM"))
+                                        .font(.system(size: 8, weight: .black))
+                                        .foregroundColor(stem.effectiveRoute == .reference ? .orange : (stem.effectiveRoute == .click ? .cyan : .secondary))
                                 }.frame(width: 260, alignment: .leading)
                                 Slider(value: Binding(get: { stem.volume }, set: { v in update(stem) { $0.volume = v } }), in: 0...1.5)
                                 Button("M") { update(stem) { $0.muted.toggle() } }.buttonStyle(SmallButton(primary: stem.muted))
@@ -834,18 +873,132 @@ struct WhatsNew: View {
                 RoundedRectangle(cornerRadius: 15).fill(.white).frame(width: 52, height: 52)
                     .overlay(Text("S").foregroundColor(.black).font(.system(size: 23, weight: .black)))
                 VStack(alignment: .leading) {
-                    Text("What's New in STEM Live 0.6.1").font(.system(size: 23, weight: .bold))
-                    Text("Audio Fidelity Foundation").foregroundColor(.secondary)
+                    Text("What's New in STEM Live 0.6.2").font(.system(size: 23, weight: .bold))
+                    Text("Migration & Identity Foundation").foregroundColor(.secondary)
                 }
             }
-            UpdateRow("01", "Strict audio preflight", "SYSTEM now shows source sample rate, bit depth, channel count, codec, device rate, buffer size and whether sample-rate conversion is active.")
-            UpdateRow("02", "Match the device", "When your output device supports the project's native rate, STEM Live can switch the CoreAudio device to that rate and rebuild the engine.")
-            UpdateRow("03", "Explicit professional mono", "Music L / Click R now uses Apple's AUMatrixMixer with selectable Safe Sum, Equal Power, Left Only and Right Only routing.")
-            UpdateRow("04", "Lossless-source status", "Lossless PCM/ALAC/FLAC inputs are identified explicitly. A green Transparent Path status is only shown when the hardware rate also matches.")
-            UpdateRow("05", "Native DMG release", "The native app is now also shipped as a drag-to-Applications DMG; the PKG remains available as a fallback installer.")
+            UpdateRow("01", "One-click workspace tabs", "Top navigation now uses native first-click AppKit controls and the animated background is permanently excluded from hit testing.")
+            UpdateRow("02", "Real app identity", "STEM Live Native now ships with its own macOS app icon in Finder, Applications, Spotlight and the Dock.")
+            UpdateRow("03", "Legacy Alpha migration", "A guided migration reads the existing Legacy Alpha Chrome profile, transfers songs, lyrics, sections and embedded stem blobs, then rebuilds them inside the native media library.")
+            UpdateRow("04", "Managed media library", "New stem imports are copied into STEM Live Native's Application Support media library instead of depending on wherever the original file happened to be.")
+            UpdateRow("05", "DMG install guard", "Running directly from a mounted DMG is now blocked with clear install guidance so there is only one working copy in Applications.")
             Spacer()
             HStack { Spacer(); Button("START TESTING") { dismiss() }.buttonStyle(SmallButton(primary: true)) }
         }.padding(24).background(Color.black.opacity(0.96))
+    }
+}
+
+struct LegacyMigrationBanner: View {
+    @ObservedObject var migration: LegacyMigrationManager
+
+    var body: some View {
+        HStack(spacing: 13) {
+            Image(systemName: "arrow.triangle.2.circlepath")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(.cyan)
+                .frame(width: 38, height: 38)
+                .background(RoundedRectangle(cornerRadius: 11).fill(Color.cyan.opacity(0.10)))
+            VStack(alignment: .leading, spacing: 3) {
+                Text("LEGACY ALPHA LIBRARY FOUND")
+                    .font(.system(size: 9, weight: .black)).tracking(0.8)
+                Text("Bring your existing songs, lyrics, sections and embedded stem audio into the native app.")
+                    .font(.system(size: 9)).foregroundColor(.secondary)
+            }
+            Spacer()
+            Button("IMPORT") { migration.showMigration = true }
+                .buttonStyle(SmallButton(primary: true))
+            Button("LATER") { migration.state = .complete }
+                .buttonStyle(SmallButton(primary: false))
+        }
+        .padding(13)
+        .background(RoundedRectangle(cornerRadius: 17).fill(.regularMaterial))
+        .overlay(RoundedRectangle(cornerRadius: 17).stroke(Color.cyan.opacity(0.20)))
+    }
+}
+
+struct LegacyMigrationSheet: View {
+    @EnvironmentObject var store: ProjectStore
+    @EnvironmentObject var audio: AudioEngineController
+    @ObservedObject var migration: LegacyMigrationManager
+
+    private var working: Bool {
+        migration.state == .preparing || migration.state == .exporting || migration.state == .importing
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(spacing: 13) {
+                RoundedRectangle(cornerRadius: 15).fill(Color.cyan.opacity(0.12))
+                    .frame(width: 52, height: 52)
+                    .overlay(Image(systemName: "arrow.triangle.2.circlepath").font(.system(size: 22, weight: .bold)).foregroundColor(.cyan))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Migrate Legacy Alpha").font(.system(size: 23, weight: .bold))
+                    Text("One-time bridge from the Chrome Alpha into native managed storage.")
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                MigrationStep(number: "1", title: "Read a safe copy", detail: "The migrator copies your old custom Chrome profile before opening it. The original Legacy Alpha library is not modified.")
+                MigrationStep(number: "2", title: "Export embedded audio", detail: "Songs, lyrics, section cuts and the stem blobs stored inside IndexedDB are exported from the exact old app origin.")
+                MigrationStep(number: "3", title: "Move into native storage", detail: "STEM Live Native copies those stems into its own media library and rebuilds native waveforms.")
+            }
+
+            if working {
+                ProgressView().progressViewStyle(.linear)
+            }
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text(migration.message).font(.system(size: 12, weight: .bold))
+                if !migration.detail.isEmpty {
+                    Text(migration.detail).font(.system(size: 9)).foregroundColor(.secondary).lineSpacing(3)
+                }
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.035)))
+
+            Spacer()
+
+            HStack {
+                if migration.state == .failed {
+                    Button("RETRY") {
+                        migration.resetForRetry()
+                        migration.begin(store: store, audio: audio)
+                    }.buttonStyle(SmallButton(primary: true))
+                } else if migration.state == .complete {
+                    Button("DONE") { migration.showMigration = false }
+                        .buttonStyle(SmallButton(primary: true))
+                } else if !working {
+                    Button("START MIGRATION") {
+                        migration.begin(store: store, audio: audio)
+                    }.buttonStyle(SmallButton(primary: true))
+                }
+                Spacer()
+                if !working {
+                    Button("CLOSE") { migration.showMigration = false }
+                        .buttonStyle(SmallButton(primary: false))
+                }
+            }
+        }
+        .padding(24)
+        .background(Color.black.opacity(0.96))
+    }
+}
+
+struct MigrationStep: View {
+    let number: String
+    let title: String
+    let detail: String
+    var body: some View {
+        HStack(alignment: .top, spacing: 11) {
+            Text(number).font(.system(size: 10, weight: .black)).foregroundColor(.black)
+                .frame(width: 28, height: 28).background(Circle().fill(.white))
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title).font(.system(size: 11, weight: .bold))
+                Text(detail).font(.system(size: 9)).foregroundColor(.secondary).lineSpacing(3)
+            }
+        }
     }
 }
 
