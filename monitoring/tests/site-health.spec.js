@@ -978,14 +978,14 @@ test('social share preview is crawler-ready', async ({ page, request }) => {
     expect(ogIndex).toBeLessThan(2500);
     expect(html).toContain('prefix="og: https://ogp.me/ns#"');
     expect(html).toContain('property="og:site_name" content="IPCDJ Worship"');
-    expect(html).toContain('property="og:image" content="https://worship.ipcdj.org/social-preview-v176.jpg"');
-    expect(html).toContain('property="og:image:url" content="https://worship.ipcdj.org/social-preview-v176.jpg"');
-    expect(html).toContain('property="og:image:secure_url" content="https://worship.ipcdj.org/social-preview-v176.jpg"');
+    expect(html).toContain('property="og:image" content="https://worship.ipcdj.org/social-preview-v176.jpg?v=178"');
+    expect(html).toContain('property="og:image:url" content="https://worship.ipcdj.org/social-preview-v176.jpg?v=178"');
+    expect(html).toContain('property="og:image:secure_url" content="https://worship.ipcdj.org/social-preview-v176.jpg?v=178"');
     expect(html).toContain('property="og:image:type" content="image/jpeg"');
     expect(html).toContain('property="og:image:width" content="1200"');
     expect(html).toContain('property="og:image:height" content="630"');
-    expect(html).toContain('rel="image_src" href="https://worship.ipcdj.org/social-preview-v176.jpg"');
-    expect(html).toContain('itemprop="image" content="https://worship.ipcdj.org/social-preview-v176.jpg"');
+    expect(html).toContain('rel="image_src" href="https://worship.ipcdj.org/social-preview-v176.jpg?v=178"');
+    expect(html).toContain('itemprop="image" content="https://worship.ipcdj.org/social-preview-v176.jpg?v=178"');
     expect(html).toContain('name="twitter:card" content="summary_large_image"');
 
     const robots=await robotsResponse.text();
@@ -1305,7 +1305,7 @@ test('v175 keeps artwork composition stable when Estrenado card compacts', async
     const subjectHeight=parseFloat(getComputedStyle(card.querySelector('.cover-subject-detail')).height)||0;
     const nativeHeight=parseFloat(getComputedStyle(card.querySelector('.cover-native-fallback')).height)||0;
     const mobile=window.matchMedia('(max-width:640px)').matches;
-    const expectedPercent=mobile?.34:.37;
+    const expectedPercent=mobile ? 0.34 : 0.37;
     const expectedSubject=frameHeight*expectedPercent;
 
     card.remove();
@@ -1501,11 +1501,13 @@ test('v176 rendering stays sRGB-authored and resilient across browser/device pro
   expect(['chromium-desktop','firefox-desktop','webkit-desktop','chromium-mobile','webkit-mobile','webkit-compact-mobile','webkit-tablet']).toContain(testInfo.project.name);
 });
 
-test('v176 social preview is a landing-page JPEG snapshot', async ({ request }) => {
-  const [imageResponse,htmlResponse]=await Promise.all([
+test('v178 social preview is a real browser-rendered landing snapshot', async ({ request }) => {
+  const [imageResponse,htmlResponse,generatorResponse]=await Promise.all([
     request.get('/social-preview-v176.jpg?health='+Date.now(),{headers:{'cache-control':'no-cache'}}),
-    request.get('/?social-v176='+Date.now(),{headers:{'cache-control':'no-cache','user-agent':'facebookexternalhit/1.1'}})
+    request.get('/?social-v178='+Date.now(),{headers:{'cache-control':'no-cache','user-agent':'facebookexternalhit/1.1'}}),
+    request.get('/scripts/generate-social-preview.py?health='+Date.now(),{headers:{'cache-control':'no-cache'}})
   ]);
+
   expect(imageResponse.ok()).toBe(true);
   expect((imageResponse.headers()['content-type']||'')).toMatch(/^image\/jpeg/);
   const bytes=await imageResponse.body();
@@ -1513,9 +1515,17 @@ test('v176 social preview is a landing-page JPEG snapshot', async ({ request }) 
   expect(bytes.length).toBeLessThan(400000);
 
   const html=await htmlResponse.text();
-  expect(html).toContain('property="og:image" content="https://worship.ipcdj.org/social-preview-v176.jpg"');
+  expect(html).toContain('property="og:image" content="https://worship.ipcdj.org/social-preview-v176.jpg?v=178"');
   expect(html).toContain('property="og:image:type" content="image/jpeg"');
   expect(html).toContain('property="og:image:width" content="1200"');
   expect(html).toContain('property="og:image:height" content="630"');
   expect(html).toContain('name="twitter:card" content="summary_large_image"');
+
+  expect(generatorResponse.ok()).toBe(true);
+  const generator=await generatorResponse.text();
+  expect(generator).toContain('from playwright.sync_api import sync_playwright');
+  expect(generator).toContain('--force-color-profile=srgb');
+  expect(generator).toContain('#current-song-cards [data-current-song-card]');
+  expect(generator).toContain('Render sRGB');
+  expect(generator).toContain('social-preview-v176.jpg');
 });
