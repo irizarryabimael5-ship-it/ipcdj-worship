@@ -1156,8 +1156,8 @@ test('release day amplifies the page ambient field from the song palette', async
   });
 
   expect(visual).not.toBeNull();
-  const ambientPreferenceFloor=visual.reducedData?.53:visual.reducedMotion?.59:.95;
-  const haloPreferenceFloor=visual.reducedData?.51:visual.reducedMotion?.57:.8;
+  const ambientPreferenceFloor=visual.reducedData ? .53 : (visual.reducedMotion ? .59 : .95);
+  const haloPreferenceFloor=visual.reducedData ? .51 : (visual.reducedMotion ? .57 : .8);
   expect(visual.fieldOpacity).toBeGreaterThan(ambientPreferenceFloor);
   expect(visual.haloOpacity).toBeGreaterThan(haloPreferenceFloor);
   expect(visual.haloBackground).not.toBe('none');
@@ -1230,7 +1230,7 @@ test('v174 dominant artwork color drives release ambience', async ({ page, reque
 
   expect(visual).not.toBeNull();
   expect(visual.background).toContain('36, 76, 118');
-  const dominantPreferenceFloor=visual.reducedData?.51:visual.reducedMotion?.57:.9;
+  const dominantPreferenceFloor=visual.reducedData ? .51 : (visual.reducedMotion ? .57 : .9);
   expect(visual.opacity).toBeGreaterThan(dominantPreferenceFloor);
   expect(visual.filter).not.toBe('none');
 });
@@ -1534,10 +1534,10 @@ test('v176 rendering stays sRGB-authored and resilient across browser/device pro
   expect(['chromium-desktop','firefox-desktop','webkit-desktop','chromium-mobile','webkit-mobile','webkit-compact-mobile','webkit-tablet']).toContain(testInfo.project.name);
 });
 
-test('v178 social preview is a real browser-rendered landing snapshot', async ({ request }) => {
+test('v179 social preview is a full-color browser-rendered landing snapshot', async ({ request }) => {
   const [imageResponse,htmlResponse,generatorResponse]=await Promise.all([
     request.get('/social-preview-v176.jpg?health='+Date.now(),{headers:{'cache-control':'no-cache'}}),
-    request.get('/?social-v178='+Date.now(),{headers:{'cache-control':'no-cache','user-agent':'facebookexternalhit/1.1'}}),
+    request.get('/?social-v179='+Date.now(),{headers:{'cache-control':'no-cache','user-agent':'facebookexternalhit/1.1'}}),
     request.get('/scripts/generate-social-preview.py?health='+Date.now(),{headers:{'cache-control':'no-cache'}})
   ]);
 
@@ -1558,8 +1558,10 @@ test('v178 social preview is a real browser-rendered landing snapshot', async ({
   const generator=await generatorResponse.text();
   expect(generator).toContain('from playwright.sync_api import sync_playwright');
   expect(generator).toContain('--force-color-profile=srgb');
+  expect(generator).toContain('reduced_motion="no-preference"');
+  expect(generator).toContain('-webkit-line-clamp:2');
   expect(generator).toContain('#current-song-cards [data-current-song-card]');
-  expect(generator).toContain('browser-landing-snapshot');
+  expect(generator).toContain('browser-landing-snapshot-v179');
   expect(generator).toContain('ImageCms.createProfile("sRGB")');
   expect(generator).toContain('social-preview-v176.jpg');
 });
