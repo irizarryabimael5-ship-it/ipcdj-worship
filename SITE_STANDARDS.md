@@ -3125,3 +3125,36 @@ Watchdog:
 - When no current song exists, release ambient mode must be removed explicitly to prevent stale high-intensity background state.
 - Reduced-motion and reduced-data modes retain a visible release atmosphere but avoid costly animation/intensity.
 - Watchdog coverage must verify release-mode ambient class behavior, cover-palette variables, active-field opacity, broad halo rendering, blob rendering, and release-driver priority.
+
+
+## Dominant album ambience + Estrenado handoff + iOS playback session v174
+
+### Dominant album atmosphere
+- The highest-ranked extracted cover color is the ambient-dominant color for the current song.
+- `--ambient-dominant` drives the broad page-level environmental halo during release.
+- `--cover-dominant` drives the strongest inner release aura and card perimeter bloom.
+- Secondary cover colors remain present as supporting atmosphere.
+- The semantic Estreno green remains owned by the `--stage-*` lifecycle system and must not become the main page-background hue.
+- `Dios De Milagros` uses the deterministic fallback palette `[36,76,118] / [46,82,120] / [28,55,84]`, sampled from the approved live visual, while runtime artwork extraction remains authoritative whenever available.
+
+### Estrenado timing
+- `releaseAt` remains the only authored service/estreno clock.
+- The high-intensity `phase-release` state ends exactly 30 minutes after `releaseAt` using `RELEASE_SETTLE_DELAY_MS=30*60*1000`.
+- Example: 11:00 AM estreno -> 11:30 AM automatic `phase-released`.
+- No extra per-song “done” timestamp should be authored.
+- Released UI uses the concise status `ESTRENADO`, title `Estreno completado`, and a completed-service note.
+- The release-to-released visual handoff must remain smooth: card/aura/glass transitions continue and the timeline collapses via opacity/max-height/transform rather than `display:none`.
+
+### iPhone silent-mode preview behavior
+- IPCDJ previews are media playback, not notification/ambient audio.
+- When the browser exposes `navigator.audioSession`, preview interaction must request `audioSession.type="playback"` before the live Web Audio context is created/resumed and again immediately before playback.
+- This preserves the existing Web Audio preview engine (normalization, fades, crossfades, visualization) while using the iOS media-playback audio session so Ring/Silent does not suppress supported iOS playback.
+- Browsers without the AudioSession API continue through the existing preview path without failure.
+- Do not add a looping silent-file workaround because it can expose confusing media controls and is unnecessary on supported iOS versions.
+
+### Watchdog
+- Verify the 30-minute release settle contract.
+- Verify `ESTRENADO` wording and non-`display:none` timeline collapse.
+- Verify `--ambient-dominant` and `--cover-dominant` feed release atmosphere.
+- Verify the deterministic Dios de Milagros blue fallback.
+- Verify the preview source requests `navigator.audioSession.type="playback"`.
