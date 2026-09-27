@@ -452,54 +452,78 @@ struct SetPage: View {
 struct ArrangePage: View {
     @EnvironmentObject var store: ProjectStore
     @EnvironmentObject var audio: AudioEngineController
-    @State private var zoom: Double = 1
+    @State private var zoom: Double = 1.25
     @State private var newSectionName = "VERSE"
+
     private var selected: SectionMarker? {
         guard let song = store.currentSong else { return nil }
         return song.sections.first(where: { $0.id == store.selectedSectionID })
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 11) {
-            HStack {
-                PageHeading(title: "Arrange", subtitle: "Native waveform editor · exact cut and loop boundaries.")
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center) {
+                PageHeading(title: "Arrange", subtitle: "Timeline-first editing · waveforms, arrangement markers and millisecond cut control.")
                 Spacer()
-                Button("IMPORT STEMS") { importStems() }.buttonStyle(SmallButton(primary: true))
+                Button("IMPORT STEMS") { importStems() }
+                    .buttonStyle(SmallButton(primary: true))
                 Button("+ SECTION @ PLAYHEAD") {
                     store.addSection(name: newSectionName, at: audio.currentTime)
-                }.buttonStyle(SmallButton(primary: false))
+                }
+                .buttonStyle(SmallButton(primary: false))
             }
-            if let song = store.currentSong {
-                HStack(spacing: 10) {
-                    Text("ZOOM").font(.caption2).foregroundColor(.secondary)
-                    Slider(value: $zoom, in: 1...8).frame(width: 170)
-                    Text(formatTime(audio.currentTime)).font(.system(size: 11, weight: .bold, design: .monospaced))
-                    Spacer()
-                    TextField("Section", text: $newSectionName).textFieldStyle(.roundedBorder).frame(width: 120)
-                }.padding(.horizontal, 6)
 
-                TimelineView(song: song, zoom: zoom, selectedID: store.selectedSectionID, playhead: audio.currentTime) { t in
-                    audio.seek(song: song, to: t, smooth: false)
-                } select: { id in
-                    store.selectedSectionID = id
-                } moveMarker: { id, time in
-                    if var sec = song.sections.first(where: { $0.id == id }) {
-                        let delta = time - sec.start
-                        sec.start = max(0, time)
-                        sec.loopStart = max(sec.start, sec.loopStart + delta)
-                        sec.loopEnd = max(sec.loopStart + 0.001, sec.loopEnd + delta)
-                        store.updateSection(sec)
+            if let song = store.currentSong {
+                ArrangeTransport(song: song, zoom: $zoom, newSectionName: $newSectionName)
+
+                HStack(alignment: .top, spacing: 10) {
+                    LogicTimelineView(
+                        song: song,
+                        zoom: zoom,
+                        selectedID: store.selectedSectionID,
+                        playhead: audio.currentTime,
+                        seek: { time in
+                            audio.seek(song: song, to: time, smooth: false)
+                        },
+                        select: { id in
+                            store.selectedSectionID = id
+                        },
+                        moveMarker: { id, time in
+                            moveSection(id: id, to: time, song: song)
+                        },
+                        updateStem: { stem, edit in
+                            update(stem: stem, edit)
+                        }
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                    if let section = selected {
+                        LogicSectionInspector(section: section)
+                            .frame(width: 305)
                     }
                 }
-                .frame(maxHeight: .infinity)
-
-                if let sec = selected {
-                    SectionInspector(section: sec)
-                }
             } else {
-                EmptyState(title: "No song", subtitle: "Create a song first.")
+                EmptyState(title: "No song", subtitle: "Create a song in SET, then import stems here.")
             }
-        }.padding(4)
+        }
+        .padding(4)
+    }
+
+    private func moveSection(id: UUID, to time: Double, song: SongProject) {
+        guard var section = song.sections.first(where: { $0.id == id }) else { return }
+        let delta = time - section.start
+        section.start = max(0, time)
+        section.loopStart = max(section.start, section.loopStart + delta)
+        section.loopEnd = max(section.loopStart + 0.001, section.loopEnd + delta)
+        store.updateSection(section)
+    }
+
+    private func update(stem: StemTrack, _ body: (inout StemTrack) -> Void) {
+        store.mutateCurrent { song in
+            guard let index = song.stems.firstIndex(where: { $0.id == stem.id }) else { return }
+            body(&song.stems[index])
+        }
+        if let current = store.currentSong { audio.applyStemState(current) }
     }
 
     private func importStems() {
@@ -509,39 +533,121 @@ struct ArrangePage: View {
         panel.canChooseDirectories = false
         panel.allowedContentTypes = [.audio]
         guard panel.runModal() == .OK else { return }
+
         let urls = panel.urls
         DispatchQueue.global(qos: .userInitiated).async {
             var built: [StemTrack] = []
-            for url in urls {
-                if FileManager.default.fileExists(atPath: url.path) {
-                    let lower = url.deletingPathExtension().lastPathComponent.lowercased()
-                    let route: StemRoute = (lower.contains("click") || lower.contains("cue"))
-                        ? .click
-                        : ((lower.contains("original") || lower.contains("master") || lower.contains("full mix")) ? .reference : .music)
-                    let stemID = UUID()
-                    if let managed = try? MediaLibrary.copyIntoLibrary(source: url, songID: songID, stemID: stemID),
-                       let managedResult = try? WaveformBuilder.inspect(url: managed) {
-                        built.append(StemTrack(
+            for url in urls where FileManager.default.fileExists(atPath: url.path) {
+                let lower = url.deletingPathExtension().lastPathComponent.lowercased()
+                let route: StemRoute = (lower.contains("click") || lower.contains("cue"))
+                    ? .click
+                    : ((lower.contains("original") || lower.contains("master") || lower.contains("full mix")) ? .reference : .music)
+                let stemID = UUID()
+
+                do {
+                    let managed = try MediaLibrary.copyIntoLibrary(source: url, songID: songID, stemID: stemID)
+                    let inspected = try WaveformBuilder.inspect(url: managed)
+                    built.append(
+                        StemTrack(
                             id: stemID,
                             name: url.deletingPathExtension().lastPathComponent,
                             path: managed.path,
                             reference: route == .reference,
                             route: route,
-                            waveform: managedResult.waveform,
-                            duration: managedResult.duration
-                        ))
-                    }
+                            waveform: inspected.waveform,
+                            duration: inspected.duration
+                        )
+                    )
+                } catch {
+                    continue
                 }
             }
+
             DispatchQueue.main.async {
                 store.mutateCurrent { $0.stems.append(contentsOf: built) }
-                if let s = store.currentSong { try? audio.prepare(song: s) }
+                if let current = store.currentSong {
+                    do {
+                        try audio.prepare(song: current)
+                    } catch {
+                        // Engine status already communicates the failure; the imported project remains intact.
+                    }
+                }
             }
         }
     }
 }
 
-struct TimelineView: View {
+struct ArrangeTransport: View {
+    @EnvironmentObject var audio: AudioEngineController
+    let song: SongProject
+    @Binding var zoom: Double
+    @Binding var newSectionName: String
+
+    var body: some View {
+        HStack(spacing: 11) {
+            Button {
+                audio.togglePlay(song: song)
+            } label: {
+                Image(systemName: audio.isPlaying ? "pause.fill" : "play.fill")
+                    .frame(width: 42, height: 36)
+            }
+            .buttonStyle(BigControl(primary: true))
+
+            Button {
+                audio.stop(immediate: true)
+            } label: {
+                Image(systemName: "stop.fill").frame(width: 36, height: 36)
+            }
+            .buttonStyle(BigControl(primary: false))
+
+            VStack(alignment: .leading, spacing: 2) {
+                LabelText("POSITION")
+                Text(formatTime(audio.currentTime))
+                    .font(.system(size: 16, weight: .bold, design: .monospaced))
+                    .monospacedDigit()
+            }
+            .frame(width: 132, alignment: .leading)
+
+            Divider().frame(height: 34).opacity(0.22)
+
+            VStack(alignment: .leading, spacing: 2) {
+                LabelText("TEMPO")
+                Text("\(song.bpm, specifier: "%.1f") BPM")
+                    .font(.system(size: 13, weight: .bold))
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                LabelText("METER")
+                Text(song.meterText)
+                    .font(.system(size: 13, weight: .bold))
+            }
+
+            Divider().frame(height: 34).opacity(0.22)
+
+            LabelText("ZOOM")
+            Slider(value: $zoom, in: 1...10)
+                .frame(width: 170)
+            Button("FIT") { zoom = 1 }
+                .buttonStyle(SmallButton(primary: false))
+
+            Spacer()
+
+            TextField("Section name", text: $newSectionName)
+                .textFieldStyle(.roundedBorder)
+                .font(.system(size: 12))
+                .frame(width: 150)
+
+            Text("SPACE = PLAY / PAUSE")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(.secondary)
+        }
+        .padding(.horizontal, 13)
+        .frame(minHeight: 58)
+        .background(Card(corner: 16))
+    }
+}
+
+struct LogicTimelineView: View {
     let song: SongProject
     let zoom: Double
     let selectedID: UUID?
@@ -549,70 +655,248 @@ struct TimelineView: View {
     let seek: (Double) -> Void
     let select: (UUID) -> Void
     let moveMarker: (UUID, Double) -> Void
+    let updateStem: (StemTrack, (inout StemTrack) -> Void) -> Void
+
+    private let headerWidth: CGFloat = 218
+    private let rulerHeight: CGFloat = 38
+    private let arrangementHeight: CGFloat = 52
+    private let rowHeight: CGFloat = 78
 
     var body: some View {
         GeometryReader { geo in
-            let baseWidth = max(geo.size.width, geo.size.width * zoom)
-            ScrollView(.horizontal) {
-                VStack(spacing: 0) {
-                    ruler(width: baseWidth)
-                    ForEach(song.stems.filter { $0.effectiveRoute != .reference }) { stem in
+            let available = max(520, geo.size.width - headerWidth)
+            let timelineWidth = max(available, available * zoom)
+            let totalWidth = headerWidth + timelineWidth
+            let totalHeight = rulerHeight + arrangementHeight + CGFloat(max(1, song.stems.count)) * rowHeight
+
+            ScrollView([.horizontal, .vertical]) {
+                ZStack(alignment: .topLeading) {
+                    VStack(spacing: 0) {
                         HStack(spacing: 0) {
-                            Text(stem.name).font(.system(size: 8, weight: .semibold)).lineLimit(1).frame(width: 130, alignment: .leading).padding(.horizontal, 8)
-                            WaveLane(stem: stem, width: max(10, baseWidth - 130), duration: max(0.001, song.duration))
-                        }.frame(height: 54).background(Color.black.opacity(0.24))
-                    }
-                }
-                .frame(width: baseWidth)
-                .overlay(alignment: .topLeading) {
-                    let usable = max(1, baseWidth - 130)
-                    ZStack(alignment: .topLeading) {
-                        ForEach(song.sections) { sec in
-                            let x = 130 + usable * CGFloat(sec.start / max(0.001, song.duration))
-                            Rectangle().fill(selectedID == sec.id ? Color.cyan : Color.white.opacity(0.55)).frame(width: 2)
-                                .offset(x: x)
-                                .overlay(alignment: .topLeading) {
-                                    Text(sec.name.uppercased()).font(.system(size: 7, weight: .black)).padding(4)
-                                        .background(Color.black.opacity(0.8)).cornerRadius(5).offset(x: x + 3, y: 28)
-                                }
-                                .contentShape(Rectangle().size(width: 16, height: max(1, geo.size.height)))
-                                .gesture(DragGesture(minimumDistance: 1).onChanged { value in
-                                    let local = max(0, min(usable, value.location.x - 130))
-                                    let t = Double(local / usable) * song.duration
-                                    moveMarker(sec.id, t)
-                                    select(sec.id)
-                                })
-                                .onTapGesture { select(sec.id) }
+                            TimelineHeaderCell(title: "TRACKS", subtitle: "\(song.stems.count) stems")
+                                .frame(width: headerWidth, height: rulerHeight)
+                            TimelineRuler(song: song)
+                                .frame(width: timelineWidth, height: rulerHeight)
                         }
-                        let px = 130 + usable * CGFloat(playhead / max(0.001, song.duration))
-                        Rectangle().fill(Color.white).frame(width: 1.5).offset(x: px)
+
+                        HStack(spacing: 0) {
+                            TimelineHeaderCell(title: "ARRANGEMENT", subtitle: "drag markers")
+                                .frame(width: headerWidth, height: arrangementHeight)
+                            ArrangementLane(
+                                song: song,
+                                selectedID: selectedID,
+                                width: timelineWidth,
+                                select: select,
+                                moveMarker: moveMarker
+                            )
+                            .frame(width: timelineWidth, height: arrangementHeight)
+                        }
+
+                        ForEach(song.stems) { stem in
+                            HStack(spacing: 0) {
+                                LogicTrackHeader(stem: stem) { edit in
+                                    updateStem(stem, edit)
+                                }
+                                .frame(width: headerWidth, height: rowHeight)
+
+                                WaveLane(
+                                    stem: stem,
+                                    width: timelineWidth,
+                                    duration: max(0.001, song.duration)
+                                )
+                                .frame(width: timelineWidth, height: rowHeight)
+                            }
+                        }
                     }
+                    .frame(width: totalWidth, height: totalHeight, alignment: .topLeading)
+
+                    let playheadX = headerWidth + timelineWidth * CGFloat(playhead / max(0.001, song.duration))
+                    Rectangle()
+                        .fill(Color.white.opacity(0.92))
+                        .frame(width: 1.5, height: totalHeight)
+                        .offset(x: playheadX)
+                        .allowsHitTesting(false)
                 }
                 .contentShape(Rectangle())
-                .simultaneousGesture(DragGesture(minimumDistance: 0).onEnded { value in
-                    let usable = max(1, baseWidth - 130)
-                    let local = max(0, min(usable, value.location.x - 130))
-                    seek(Double(local / usable) * song.duration)
-                })
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 0)
+                        .onEnded { value in
+                            guard value.location.x >= headerWidth else { return }
+                            let local = max(0, min(timelineWidth, value.location.x - headerWidth))
+                            seek(Double(local / timelineWidth) * song.duration)
+                        }
+                )
             }
-            .background(RoundedRectangle(cornerRadius: 18).fill(Color.black.opacity(0.28)))
-            .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color.white.opacity(0.09)))
+            .background(RoundedRectangle(cornerRadius: 17).fill(Color.black.opacity(0.34)))
+            .overlay(RoundedRectangle(cornerRadius: 17).stroke(Color.white.opacity(0.10)))
+            .clipShape(RoundedRectangle(cornerRadius: 17))
+        }
+    }
+}
+
+struct TimelineHeaderCell: View {
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title).font(.system(size: 10, weight: .black)).tracking(0.7)
+            Text(subtitle).font(.system(size: 9, weight: .medium)).foregroundColor(.secondary)
+        }
+        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .background(Color.white.opacity(0.045))
+        .overlay(alignment: .trailing) { Rectangle().fill(Color.white.opacity(0.08)).frame(width: 1) }
+        .overlay(alignment: .bottom) { Rectangle().fill(Color.white.opacity(0.07)).frame(height: 1) }
+    }
+}
+
+struct TimelineRuler: View {
+    let song: SongProject
+
+    var body: some View {
+        Canvas { ctx, size in
+            let secondsPerBeat = 60 / max(30, song.bpm)
+            let secondsPerBar = secondsPerBeat * Double(max(1, song.meterTop))
+            let bars = max(1, Int(ceil(song.duration / secondsPerBar)))
+
+            for bar in 0...bars {
+                let time = Double(bar) * secondsPerBar
+                let x = size.width * CGFloat(time / max(0.001, song.duration))
+
+                var line = Path()
+                line.move(to: CGPoint(x: x, y: 18))
+                line.addLine(to: CGPoint(x: x, y: size.height))
+                ctx.stroke(line, with: .color(.white.opacity(0.22)), lineWidth: 1)
+
+                ctx.draw(
+                    Text("\(bar + 1)")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(.secondary),
+                    at: CGPoint(x: x + 11, y: 10)
+                )
+            }
+        }
+        .background(Color.white.opacity(0.025))
+        .overlay(alignment: .bottom) { Rectangle().fill(Color.white.opacity(0.07)).frame(height: 1) }
+    }
+}
+
+struct ArrangementLane: View {
+    let song: SongProject
+    let selectedID: UUID?
+    let width: CGFloat
+    let select: (UUID) -> Void
+    let moveMarker: (UUID, Double) -> Void
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            Color.white.opacity(0.018)
+
+            ForEach(Array(song.sections.enumerated()), id: \.element.id) { index, section in
+                let nextStart = index + 1 < song.sections.count ? song.sections[index + 1].start : max(song.duration, section.end)
+                let startX = width * CGFloat(section.start / max(0.001, song.duration))
+                let endX = width * CGFloat(nextStart / max(0.001, song.duration))
+                let blockWidth = max(42, endX - startX - 2)
+                let selected = selectedID == section.id
+
+                Text(section.name.uppercased())
+                    .font(.system(size: 10, weight: .black))
+                    .lineLimit(1)
+                    .padding(.horizontal, 10)
+                    .frame(width: blockWidth, height: 34, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(selected ? Color.accentColor.opacity(0.64) : Color.white.opacity(0.075))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(selected ? Color.accentColor.opacity(0.92) : Color.white.opacity(0.09))
+                    )
+                    .offset(x: startX + 1, y: 9)
+                    .contentShape(Rectangle())
+                    .onTapGesture { select(section.id) }
+                    .gesture(
+                        DragGesture(minimumDistance: 2)
+                            .onChanged { value in
+                                let x = max(0, min(width, startX + value.translation.width))
+                                moveMarker(section.id, Double(x / width) * song.duration)
+                                select(section.id)
+                            }
+                    )
+            }
+        }
+        .overlay(alignment: .bottom) { Rectangle().fill(Color.white.opacity(0.07)).frame(height: 1) }
+    }
+}
+
+struct LogicTrackHeader: View {
+    let stem: StemTrack
+    let update: ((inout StemTrack) -> Void) -> Void
+
+    private var routeLabel: String {
+        switch stem.effectiveRoute {
+        case .music: return "MUSIC"
+        case .click: return "CLICK"
+        case .reference: return "REFERENCE"
         }
     }
 
-    private func ruler(width: CGFloat) -> some View {
-        Canvas { ctx, size in
-            let w = max(1, size.width - 130)
-            let beats = max(1, Int(song.duration / (60 / max(30, song.bpm))))
-            for b in 0...beats {
-                if b % max(1, song.meterTop) == 0 {
-                    let x = 130 + w * CGFloat(Double(b) / Double(beats))
-                    var p = Path(); p.move(to: CGPoint(x: x, y: 16)); p.addLine(to: CGPoint(x: x, y: 30))
-                    ctx.stroke(p, with: .color(.white.opacity(0.35)), lineWidth: 1)
-                    ctx.draw(Text("\(b / max(1, song.meterTop) + 1)").font(.system(size: 7)).foregroundColor(.secondary), at: CGPoint(x: x + 8, y: 9))
-                }
+    private var routeColor: Color {
+        switch stem.effectiveRoute {
+        case .music: return .blue
+        case .click: return .cyan
+        case .reference: return .orange
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 9) {
+            RoundedRectangle(cornerRadius: 2)
+                .fill(routeColor)
+                .frame(width: 4)
+                .padding(.vertical, 10)
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text(stem.name)
+                    .font(.system(size: 11.5, weight: .bold))
+                    .lineLimit(1)
+                Text(routeLabel)
+                    .font(.system(size: 8.5, weight: .black))
+                    .tracking(0.7)
+                    .foregroundColor(routeColor)
             }
-        }.frame(width: width, height: 31)
+
+            Spacer(minLength: 5)
+
+            HStack(spacing: 5) {
+                Button("M") { update { $0.muted.toggle() } }
+                    .buttonStyle(TrackToggleStyle(active: stem.muted, tint: .orange))
+                Button("S") { update { $0.solo.toggle() } }
+                    .buttonStyle(TrackToggleStyle(active: stem.solo, tint: .yellow))
+            }
+        }
+        .padding(.horizontal, 10)
+        .background(Color.white.opacity(0.035))
+        .overlay(alignment: .trailing) { Rectangle().fill(Color.white.opacity(0.08)).frame(width: 1) }
+        .overlay(alignment: .bottom) { Rectangle().fill(Color.white.opacity(0.06)).frame(height: 1) }
+    }
+}
+
+struct TrackToggleStyle: ButtonStyle {
+    let active: Bool
+    let tint: Color
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 9, weight: .black))
+            .foregroundColor(active ? .black : .secondary)
+            .frame(width: 28, height: 27)
+            .background(
+                RoundedRectangle(cornerRadius: 7)
+                    .fill(active ? tint : Color.white.opacity(configuration.isPressed ? 0.11 : 0.055))
+            )
+            .overlay(RoundedRectangle(cornerRadius: 7).stroke(Color.white.opacity(0.08)))
     }
 }
 
@@ -620,58 +904,140 @@ struct WaveLane: View {
     let stem: StemTrack
     let width: CGFloat
     let duration: Double
+
+    private var waveformColor: Color {
+        switch stem.effectiveRoute {
+        case .music: return .white
+        case .click: return .cyan
+        case .reference: return .orange
+        }
+    }
+
     var body: some View {
         Canvas { ctx, size in
-            guard stem.waveform.count > 1 else { return }
             let mid = size.height / 2
-            let n = stem.waveform.count
-            var path = Path()
-            for i in 0..<n {
-                let x = CGFloat(i) / CGFloat(n - 1) * size.width
-                let amp = CGFloat(stem.waveform[i]) * (size.height * 0.42)
-                path.move(to: CGPoint(x: x, y: mid - amp))
-                path.addLine(to: CGPoint(x: x, y: mid + amp))
+
+            var center = Path()
+            center.move(to: CGPoint(x: 0, y: mid))
+            center.addLine(to: CGPoint(x: size.width, y: mid))
+            ctx.stroke(center, with: .color(.white.opacity(0.06)), lineWidth: 1)
+
+            guard stem.waveform.count > 1 else { return }
+            let count = stem.waveform.count
+            var waveform = Path()
+
+            for index in 0..<count {
+                let x = CGFloat(index) / CGFloat(count - 1) * size.width
+                let amp = CGFloat(stem.waveform[index]) * (size.height * 0.39)
+                waveform.move(to: CGPoint(x: x, y: mid - amp))
+                waveform.addLine(to: CGPoint(x: x, y: mid + amp))
             }
-            ctx.stroke(path, with: .color(.white.opacity(0.62)), lineWidth: 0.75)
-        }.frame(width: width).background(Color.white.opacity(0.018))
+
+            ctx.stroke(
+                waveform,
+                with: .color(waveformColor.opacity(stem.muted ? 0.22 : 0.72)),
+                lineWidth: 0.82
+            )
+        }
+        .frame(width: width)
+        .background(Color.white.opacity(0.012))
+        .overlay(alignment: .bottom) { Rectangle().fill(Color.white.opacity(0.06)).frame(height: 1) }
     }
 }
 
-struct SectionInspector: View {
+struct LogicSectionInspector: View {
     @EnvironmentObject var store: ProjectStore
     @EnvironmentObject var audio: AudioEngineController
     let section: SectionMarker
 
     var body: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
-                LabelText("SELECTED")
-                Text(section.name.uppercased()).font(.system(size: 15, weight: .bold))
-            }.frame(width: 130, alignment: .leading)
-            TimeField(title: "START", value: section.start) { v in edit { $0.start = v } }
-            TimeField(title: "LOOP A", value: section.loopStart) { v in edit { $0.loopStart = v } }
-            TimeField(title: "LOOP B", value: section.loopEnd) { v in edit { $0.loopEnd = v } }
-            Button("START = PLAYHEAD") { edit { $0.start = audio.currentTime } }.buttonStyle(SmallButton(primary: false))
-            Button("A = PLAYHEAD") { edit { $0.loopStart = audio.currentTime } }.buttonStyle(SmallButton(primary: false))
-            Button("B = PLAYHEAD") { edit { $0.loopEnd = audio.currentTime } }.buttonStyle(SmallButton(primary: false))
-            Button(section.verified ? "VERIFIED ✓" : "VERIFY CUT") { edit { $0.verified = true } }.buttonStyle(SmallButton(primary: section.verified))
-        }.padding(12).background(Card(corner: 17))
+        VStack(alignment: .leading, spacing: 15) {
+            VStack(alignment: .leading, spacing: 5) {
+                LabelText("SECTION INSPECTOR")
+                Text(section.name.uppercased())
+                    .font(.system(size: 22, weight: .bold))
+                    .lineLimit(2)
+            }
+
+            Divider().opacity(0.22)
+
+            Toggle(
+                "Loopable",
+                isOn: Binding(
+                    get: { section.loopable },
+                    set: { value in edit { $0.loopable = value } }
+                )
+            )
+
+            InspectorTimeRow(title: "SECTION START", value: section.start) { value in
+                edit { $0.start = value }
+            } setToPlayhead: {
+                edit { $0.start = audio.currentTime }
+            }
+
+            InspectorTimeRow(title: "LOOP IN", value: section.loopStart) { value in
+                edit { $0.loopStart = value }
+            } setToPlayhead: {
+                edit { $0.loopStart = audio.currentTime }
+            }
+
+            InspectorTimeRow(title: "LOOP OUT", value: section.loopEnd) { value in
+                edit { $0.loopEnd = value }
+            } setToPlayhead: {
+                edit { $0.loopEnd = audio.currentTime }
+            }
+
+            Divider().opacity(0.22)
+
+            Button(section.verified ? "CUT VERIFIED ✓" : "VERIFY CUT") {
+                edit { $0.verified = true }
+            }
+            .buttonStyle(SmallButton(primary: section.verified))
+
+            Button("DELETE SECTION") {
+                store.removeSection(section.id)
+            }
+            .buttonStyle(DangerButton())
+
+            Spacer()
+        }
+        .padding(17)
+        .background(Card(corner: 18))
     }
 
     private func edit(_ body: (inout SectionMarker) -> Void) {
-        var s = section; body(&s); store.updateSection(s)
+        var updated = section
+        body(&updated)
+        store.updateSection(updated)
     }
 }
 
-struct TimeField: View {
+struct InspectorTimeRow: View {
     let title: String
     let value: Double
     let set: (Double) -> Void
+    let setToPlayhead: () -> Void
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 7) {
             LabelText(title)
-            TextField("", value: Binding(get: { value }, set: { set(max(0, $0)) }), format: .number.precision(.fractionLength(3)))
-                .textFieldStyle(.roundedBorder).frame(width: 90)
+            TextField(
+                "",
+                value: Binding(get: { value }, set: { set(max(0, $0)) }),
+                format: .number.precision(.fractionLength(3))
+            )
+            .textFieldStyle(.roundedBorder)
+            .font(.system(size: 13, weight: .semibold, design: .monospaced))
+
+            HStack(spacing: 5) {
+                Button("−10 ms") { set(max(0, value - 0.010)) }
+                    .buttonStyle(SmallButton(primary: false))
+                Button("+10 ms") { set(value + 0.010) }
+                    .buttonStyle(SmallButton(primary: false))
+            }
+
+            Button("SET TO PLAYHEAD") { setToPlayhead() }
+                .buttonStyle(SmallButton(primary: false))
         }
     }
 }
