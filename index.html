@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v174" />
+  <meta name="ipcdj-build" content="persistent-launch-v175" />
   <title>IPCDJ Worship | Ministerio de Alabanza</title>
   <meta name="description" content="Próximas canciones, preparación y estrenos del Ministerio de Alabanza de IPCDJ." />
   <link rel="canonical" href="https://worship.ipcdj.org/" />
@@ -953,6 +953,8 @@
       --cover-image:none;
       --cover-pos-x:50%;
       --cover-pos-y:50%;
+      --cover-frame-height:0px;
+      --subject-stable-height:auto;
       --cover-base-opacity:.76;
       --cover-detail-opacity:.42;
       --cover-edge-opacity:.50;
@@ -989,10 +991,13 @@
 
     .current .cover-native-fallback{
       position:absolute;
-      inset:-34px;
+      top:-34px;
+      left:-34px;
+      right:auto;
+      bottom:auto;
       z-index:0;
       width:calc(100% + 68px);
-      height:calc(100% + 68px);
+      height:max(calc(100% + 68px),calc(var(--cover-frame-height) + 68px));
       max-width:none;
       object-fit:cover;
       object-position:var(--cover-pos-x) var(--cover-pos-y);
@@ -1014,7 +1019,11 @@
     .current::before{
       content:"";
       position:absolute;
-      inset:-34px;
+      top:-34px;
+      left:-34px;
+      right:-34px;
+      bottom:auto;
+      height:max(calc(100% + 68px),calc(var(--cover-frame-height) + 68px));
       z-index:0;
       pointer-events:none;
       background-image:var(--cover-image);
@@ -1045,7 +1054,11 @@
 
     .current .cover-detail{
       position:absolute;
-      inset:-4px;
+      top:-4px;
+      left:-4px;
+      right:-4px;
+      bottom:auto;
+      height:max(calc(100% + 8px),calc(var(--cover-frame-height) + 8px));
       z-index:0;
       pointer-events:none;
       background-image:var(--cover-image);
@@ -1081,7 +1094,11 @@
 
     .current .cover-edge-detail{
       position:absolute;
-      inset:-3px;
+      top:-3px;
+      left:-3px;
+      right:-3px;
+      bottom:auto;
+      height:max(calc(100% + 6px),calc(var(--cover-frame-height) + 6px));
       z-index:0;
       pointer-events:none;
       background-image:var(--cover-image);
@@ -1111,7 +1128,7 @@
       top:0;
       right:0;
       width:var(--subject-width);
-      height:var(--subject-height);
+      height:var(--subject-stable-height,var(--subject-height));
       z-index:2;
       pointer-events:none;
       background-image:var(--cover-image);
@@ -1229,7 +1246,7 @@
         top:0;
         right:var(--subject-mobile-right);
         width:var(--subject-mobile-width);
-        height:var(--subject-mobile-height);
+        height:var(--subject-stable-height,var(--subject-mobile-height));
         z-index:2;
         background-size:var(--subject-mobile-bg-size) auto;
         background-position:var(--subject-mobile-bg-x) var(--subject-mobile-bg-y);
@@ -7893,6 +7910,45 @@
       renderedCurrentSongKey=emptyKey;
     }
 
+    function syncLifecycleStableCoverFrame(card){
+      if(!card)return;
+      const rect=card.getBoundingClientRect();
+      if(!(rect.width>0&&rect.height>0))return;
+
+      const timeline=card.querySelector(".timeline");
+      let referenceHeight=rect.height;
+
+      // In the compact Estrenado state the timeline is visually collapsed, but its
+      // scrollHeight still exposes the full release-layout footprint. Add that
+      // footprint back only for artwork composition so the visible crop remains
+      // aligned with the preceding HOY · ESTRENO state.
+      if(card.classList.contains("phase-released")&&timeline){
+        const timelineHeight=Math.max(0,Number(timeline.scrollHeight)||0);
+        referenceHeight+=timelineHeight+12;
+      }
+
+      const currentWidth=Math.round(rect.width);
+      const priorWidth=Number(card.dataset.coverFrameWidth)||0;
+      const priorHeight=Number(card.dataset.coverFrameHeight)||0;
+      const widthChanged=!priorWidth||Math.abs(currentWidth-priorWidth)>8;
+      const stableHeight=Math.ceil(widthChanged?referenceHeight:Math.max(referenceHeight,priorHeight));
+
+      card.dataset.coverFrameWidth=String(currentWidth);
+      card.dataset.coverFrameHeight=String(stableHeight);
+      card.style.setProperty("--cover-frame-height",stableHeight+"px");
+
+      const mobile=window.matchMedia("(max-width:640px)").matches;
+      const subjectHeightVar=getComputedStyle(card).getPropertyValue(
+        mobile?"--subject-mobile-height":"--subject-height"
+      ).trim();
+      const pct=parseFloat(subjectHeightVar);
+      if(Number.isFinite(pct)&&subjectHeightVar.includes("%")){
+        card.style.setProperty("--subject-stable-height",Math.max(1,stableHeight*(pct/100)).toFixed(2)+"px");
+      }else{
+        card.style.removeProperty("--subject-stable-height");
+      }
+    }
+
     function renderCurrentSongCard(card,song,now){
       if(!card)return;
       const phase=getPhase(song,now);
@@ -7903,6 +7959,8 @@
       card.classList.toggle("phase-release",phase.key==="release");
       card.classList.toggle("phase-released",phase.key==="released");
       card.dataset.phase=phase.key;
+      syncLifecycleStableCoverFrame(card);
+      requestAnimationFrame(()=>{ if(card.isConnected)syncLifecycleStableCoverFrame(card); });
 
       const prepControlsHidden=phase.key==="release"||phase.key==="released";
       ["countdown-wrap","progress-wrap"].forEach(role=>{
@@ -8065,6 +8123,10 @@
       renderIntroduced(now);
     }
 
+
+    window.addEventListener("resize",()=>{
+      document.querySelectorAll("[data-current-song-card]").forEach(syncLifecycleStableCoverFrame);
+    },{passive:true});
 
     let futureCardObserver=null;
 
