@@ -1008,6 +1008,9 @@ test('estreno arrival intensifies artwork glow and retires countdown smoothly', 
   expect(source).toContain('border-color:var(--stage-border)');
   expect(source).toContain('background:var(--stage-accent)');
   expect(source).toContain('var(--stage-glow)');
+  expect(source).toContain('.current.phase-release::after');
+  expect(source).toContain('rgba(3,6,10,.52)');
+  expect(source).toContain('backdrop-filter:blur(10px) saturate(1.05)');
   expect(source).toContain('rgba(var(--cover-c1),.48)');
   expect(source).toContain('rgba(var(--cover-c2),.40)');
   expect(source).toContain('rgba(var(--cover-c3),.30)');
