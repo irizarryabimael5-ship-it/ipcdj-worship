@@ -624,7 +624,6 @@ final class AudioEngineController: ObservableObject {
     }
 
     private func installVisualTap() {
-        reverb.removeTap(onBus: 0)
         reverb.installTap(onBus: 0, bufferSize: 1024, format: nil) { [weak self] buffer, _ in
             self?.consumeVisualBuffer(buffer)
         }
