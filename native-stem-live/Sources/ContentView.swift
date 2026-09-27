@@ -9,14 +9,14 @@ struct ContentView: View {
     @State private var whatsNew = false
     @State private var quickClick = false
     @StateObject private var migration = LegacyMigrationManager()
-    private let version = "0.6.2"
+    private let version = "0.6.3"
 
     var body: some View {
         ZStack {
-            LivingColorView(metrics: audio.visual, enabled: store.livingColorEnabled, intensity: store.livingColorIntensity)
+            LivingColorView(metrics: audio.visual, enabled: store.livingColorEnabled, intensity: store.livingColorIntensity, playing: audio.isPlaying)
                 .ignoresSafeArea()
             HStack(spacing: 14) {
-                Sidebar().frame(width: 218)
+                Sidebar().frame(width: 248)
                 VStack(spacing: 12) {
                     Header()
                     Group {
@@ -79,12 +79,13 @@ struct Sidebar: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
-                RoundedRectangle(cornerRadius: 12).fill(.white)
-                    .frame(width: 40, height: 40)
-                    .overlay(Text("S").foregroundColor(.black).font(.system(size: 18, weight: .black)))
+                Image(nsImage: NSApplication.shared.applicationIconImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 42, height: 42)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("STEM LIVE").font(.system(size: 12, weight: .black)).tracking(1.1)
-                    Text("Native Performance").font(.system(size: 9)).foregroundColor(.secondary)
+                    Text("STEM LIVE").font(.system(size: 14, weight: .black)).tracking(0.9)
+                    Text("Native Performance").font(.system(size: 11, weight: .medium)).foregroundColor(.secondary)
                 }
                 Spacer()
             }.padding(15)
@@ -92,9 +93,9 @@ struct Sidebar: View {
             if let song = store.currentSong {
                 VStack(alignment: .leading, spacing: 4) {
                     LabelText("CURRENT SONG")
-                    Text(song.title).font(.system(size: 14, weight: .bold)).lineLimit(1)
+                    Text(song.title).font(.system(size: 16, weight: .bold)).lineLimit(1)
                     Text("\(song.bpm, specifier: "%.1f") BPM · \(song.meterText)")
-                        .font(.system(size: 9)).foregroundColor(.secondary)
+                        .font(.system(size: 11)).foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading).padding(13)
                 .background(Card(corner: 17)).padding(.horizontal, 9)
@@ -116,8 +117,8 @@ struct Sidebar: View {
                                     .overlay(Text("\(idx + 1)").font(.system(size: 9, weight: .black))
                                         .foregroundColor(store.currentSongID == song.id ? .black : .white))
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(song.title).font(.system(size: 10, weight: .bold)).lineLimit(1)
-                                    Text("\(song.stems.count) stems").font(.system(size: 8)).foregroundColor(.secondary)
+                                    Text(song.title).font(.system(size: 12, weight: .bold)).lineLimit(1)
+                                    Text("\(song.stems.count) stems").font(.system(size: 10)).foregroundColor(.secondary)
                                 }
                                 Spacer()
                             }.padding(9)
@@ -130,12 +131,12 @@ struct Sidebar: View {
             VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 6) {
                     Circle().fill(audio.isPlaying ? .green : .gray).frame(width: 6, height: 6)
-                    Text(audio.engineStatus).font(.system(size: 8)).foregroundColor(.secondary).lineLimit(1)
+                    Text(audio.engineStatus).font(.system(size: 10, weight: .medium)).foregroundColor(.secondary).lineLimit(1)
                 }
-                Text("Native 0.6.2").font(.system(size: 8)).foregroundColor(.secondary.opacity(0.7))
+                Text("Native 0.6.3").font(.system(size: 9, weight: .medium)).foregroundColor(.secondary.opacity(0.8))
             }.frame(maxWidth: .infinity, alignment: .leading).padding(14)
         }
-        .background(RoundedRectangle(cornerRadius: 26).fill(.regularMaterial.opacity(0.72)))
+        .background(RoundedRectangle(cornerRadius: 26).fill(.regularMaterial.opacity(0.50)))
         .overlay(RoundedRectangle(cornerRadius: 26).stroke(Color.white.opacity(0.09)))
     }
 }
@@ -147,10 +148,10 @@ struct Header: View {
     var body: some View {
         HStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(store.currentSong?.title ?? "No Song").font(.system(size: 19, weight: .bold)).lineLimit(1)
+                Text(store.currentSong?.title ?? "No Song").font(.system(size: 22, weight: .bold)).lineLimit(1)
                 if let s = store.currentSong {
                     Text("\(s.bpm, specifier: "%.1f") BPM · \(s.meterText) · \(formatTime(s.duration)) · \(s.stems.filter{$0.effectiveRoute == .music}.count) live stems")
-                        .font(.system(size: 9)).foregroundColor(.secondary)
+                        .font(.system(size: 11)).foregroundColor(.secondary)
                 }
             }
             Spacer()
@@ -159,19 +160,19 @@ struct Header: View {
                     ImmediateTabButton(title: page.rawValue, active: store.page == page) {
                         store.page = page
                     }
-                    .frame(width: 63, height: 37)
+                    .frame(width: 78, height: 40)
                 }
             }.padding(4).background(RoundedRectangle(cornerRadius: 15).fill(Color.black.opacity(0.30)))
             Spacer()
             HStack(spacing: 6) {
                 Circle().fill(audio.engineStatus.contains("error") ? .orange : .green).frame(width: 6, height: 6)
                 Text(audio.engineStatus.contains("error") ? "CHECK" : "READY")
-                    .font(.system(size: 8, weight: .black)).tracking(1)
+                    .font(.system(size: 10, weight: .black)).tracking(0.8)
                     .foregroundColor(audio.engineStatus.contains("error") ? .orange : .green)
             }.padding(.horizontal, 12).frame(height: 34).background(Card(corner: 12))
         }
-        .padding(.horizontal, 17).frame(height: 74)
-        .background(RoundedRectangle(cornerRadius: 23).fill(.regularMaterial.opacity(0.72)))
+        .padding(.horizontal, 19).frame(height: 80)
+        .background(RoundedRectangle(cornerRadius: 23).fill(.regularMaterial.opacity(0.50)))
         .overlay(RoundedRectangle(cornerRadius: 23).stroke(Color.white.opacity(0.09)))
     }
 }
@@ -697,8 +698,17 @@ struct SystemPage: View {
                     VStack(alignment: .leading, spacing: 14) {
                         LabelText("ROUTING")
                         Picker("Output", selection: Binding(get: { song.outputMode }, set: { mode in
+                            let previous = song.outputMode
                             store.mutateCurrent { $0.outputMode = mode }
-                            if let current = store.currentSong { try? audio.prepare(song: current) }
+                            guard let current = store.currentSong else { return }
+                            do {
+                                try audio.applyRouting(song: current)
+                                preflightMessage = "Routing switched safely to \(mode.rawValue). The CoreAudio graph stayed online."
+                            } catch {
+                                store.mutateCurrent { $0.outputMode = previous }
+                                if let reverted = store.currentSong { try? audio.applyRouting(song: reverted) }
+                                preflightMessage = error.localizedDescription
+                            }
                         })) {
                             ForEach(OutputMode.allCases) { Text($0.rawValue).tag($0) }
                         }.pickerStyle(.segmented)
@@ -707,8 +717,17 @@ struct SystemPage: View {
                             Divider().opacity(0.25)
                             LabelText("MONO DOWNMIX")
                             Picker("Downmix", selection: Binding(get: { song.effectiveMonoDownmixMode }, set: { mode in
+                                let previous = song.monoDownmixMode
                                 store.mutateCurrent { $0.monoDownmixMode = mode }
-                                if let current = store.currentSong { try? audio.prepare(song: current) }
+                                guard let current = store.currentSong else { return }
+                                do {
+                                    try audio.applyRouting(song: current)
+                                    preflightMessage = "Mono downmix changed without restarting playback."
+                                } catch {
+                                    store.mutateCurrent { $0.monoDownmixMode = previous }
+                                    if let reverted = store.currentSong { try? audio.applyRouting(song: reverted) }
+                                    preflightMessage = error.localizedDescription
+                                }
                             })) {
                                 ForEach(MonoDownmixMode.allCases) { Text($0.rawValue).tag($0) }
                             }
@@ -768,12 +787,12 @@ struct PreflightValue: View {
         VStack(alignment: .leading, spacing: 4) {
             LabelText(title)
             Text(value)
-                .font(.system(size: 10, weight: .bold))
+                .font(.system(size: 12, weight: .bold))
                 .foregroundColor(accent)
                 .lineLimit(2)
         }
         .padding(10)
-        .frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.035)))
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.06)))
     }
@@ -783,8 +802,8 @@ struct PageHeading: View {
     let title: String, subtitle: String
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(title).font(.system(size: 34, weight: .bold))
-            Text(subtitle).font(.system(size: 10)).foregroundColor(.secondary)
+            Text(title).font(.system(size: 36, weight: .bold))
+            Text(subtitle).font(.system(size: 12, weight: .medium)).foregroundColor(.secondary)
         }.padding(.horizontal, 5)
     }
 }
@@ -792,7 +811,7 @@ struct PageHeading: View {
 struct Card: View {
     var corner: CGFloat = 21
     var body: some View {
-        RoundedRectangle(cornerRadius: corner).fill(.regularMaterial.opacity(0.58))
+        RoundedRectangle(cornerRadius: corner).fill(.regularMaterial.opacity(0.44))
             .overlay(RoundedRectangle(cornerRadius: corner).stroke(Color.white.opacity(0.09)))
     }
 }
@@ -800,7 +819,7 @@ struct Card: View {
 struct LabelText: View {
     let text: String
     init(_ text: String) { self.text = text }
-    var body: some View { Text(text).font(.system(size: 8, weight: .black)).tracking(1.2).foregroundColor(.secondary) }
+    var body: some View { Text(text).font(.system(size: 10, weight: .black)).tracking(0.9).foregroundColor(.secondary) }
 }
 
 struct TabButton: ButtonStyle {
@@ -817,7 +836,7 @@ struct TabButton: ButtonStyle {
 struct SmallButton: ButtonStyle {
     let primary: Bool
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label.font(.system(size: 8, weight: .black)).tracking(0.4)
+        configuration.label.font(.system(size: 10, weight: .black)).tracking(0.25)
             .foregroundColor(primary ? .black : .white)
             .padding(.horizontal, 13).frame(minHeight: 39)
             .background(RoundedRectangle(cornerRadius: 11).fill(primary ? Color.white : Color.white.opacity(0.055)))
@@ -838,7 +857,7 @@ struct BigControl: ButtonStyle {
 
 struct DangerButton: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label.font(.system(size: 8, weight: .black)).foregroundColor(.pink)
+        configuration.label.font(.system(size: 10, weight: .black)).foregroundColor(.pink)
             .padding(.horizontal, 13).frame(minHeight: 40)
             .background(RoundedRectangle(cornerRadius: 11).fill(Color.pink.opacity(0.07)))
             .overlay(RoundedRectangle(cornerRadius: 11).stroke(Color.pink.opacity(0.25)))
@@ -872,15 +891,15 @@ struct WhatsNew: View {
                 RoundedRectangle(cornerRadius: 15).fill(.white).frame(width: 52, height: 52)
                     .overlay(Text("S").foregroundColor(.black).font(.system(size: 23, weight: .black)))
                 VStack(alignment: .leading) {
-                    Text("What's New in STEM Live 0.6.2").font(.system(size: 23, weight: .bold))
-                    Text("Migration & Identity Foundation").foregroundColor(.secondary)
+                    Text("What's New in STEM Live 0.6.3").font(.system(size: 23, weight: .bold))
+                    Text("Stability, Clarity & Live Color").foregroundColor(.secondary)
                 }
             }
-            UpdateRow("01", "One-click workspace tabs", "Top navigation now uses native first-click AppKit controls and the animated background is permanently excluded from hit testing.")
-            UpdateRow("02", "Real app identity", "STEM Live Native now ships with its own macOS app icon in Finder, Applications, Spotlight and the Dock.")
-            UpdateRow("03", "Legacy Alpha migration", "A guided migration reads the existing Legacy Alpha Chrome profile, transfers songs, lyrics, sections and embedded stem blobs, then rebuilds them inside the native media library.")
-            UpdateRow("04", "Managed media library", "New stem imports are copied into STEM Live Native's Application Support media library instead of depending on wherever the original file happened to be.")
-            UpdateRow("05", "DMG install guard", "Running directly from a mounted DMG is now blocked with clear install guidance so there is only one working copy in Applications.")
+            UpdateRow("01", "Crash-safe live routing", "Stereo and Music L / Click R now share one permanent CoreAudio graph. Switching modes changes matrix coefficients instead of destroying and rebuilding the graph.")
+            UpdateRow("02", "Logic-style Arrange workspace", "Waveform tracks, arrangement markers, ruler, transport and section inspector have been reorganized around a real timeline-first editing workflow.")
+            UpdateRow("03", "Readable live typography", "Critical labels, section names, buttons and status information are larger and spaced for stage use.")
+            UpdateRow("04", "Living Color 2", "The stage background now wakes from black with music-sensitive blue, indigo, purple, cyan and transient accents, then decays back to black with playback.")
+            UpdateRow("05", "Ventura-ready icon", "The macOS icon is rebuilt as an unmasked full-square asset so Ventura applies its own native icon shape cleanly.")
             Spacer()
             HStack { Spacer(); Button("START TESTING") { dismiss() }.buttonStyle(SmallButton(primary: true)) }
         }.padding(24).background(Color.black.opacity(0.96))
