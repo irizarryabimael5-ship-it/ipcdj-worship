@@ -373,7 +373,7 @@ struct ArrangePage: View {
     }
 
     private func importStems() {
-        guard store.currentSong != nil else { return }
+        guard let songID = store.currentSong?.id else { return }
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
@@ -389,8 +389,7 @@ struct ArrangePage: View {
                         ? .click
                         : ((lower.contains("original") || lower.contains("master") || lower.contains("full mix")) ? .reference : .music)
                     let stemID = UUID()
-                    if let songID = store.currentSong?.id,
-                       let managed = try? MediaLibrary.copyIntoLibrary(source: url, songID: songID, stemID: stemID),
+                    if let managed = try? MediaLibrary.copyIntoLibrary(source: url, songID: songID, stemID: stemID),
                        let managedResult = try? WaveformBuilder.inspect(url: managed) {
                         built.append(StemTrack(
                             id: stemID,
