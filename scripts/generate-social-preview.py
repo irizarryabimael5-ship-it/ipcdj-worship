@@ -304,7 +304,16 @@ def render():
     draw.text((950,584),"IPCDJ",font=ImageFont.truetype(BOLD,23),fill=(185,216,232,105))
 
     out=canvas.convert("RGB")
-    out.save(OUTPUT,"JPEG",quality=90,optimize=True,progressive=True,subsampling=0)
+    srgb_profile=ImageCms.ImageCmsProfile(ImageCms.createProfile("sRGB")).tobytes()
+    out.save(
+        OUTPUT,
+        "JPEG",
+        quality=90,
+        optimize=True,
+        progressive=True,
+        subsampling=0,
+        icc_profile=srgb_profile
+    )
     if out.size != (1200,630):
         raise SystemExit("Unexpected social preview size")
     if OUTPUT.stat().st_size > 400_000:
