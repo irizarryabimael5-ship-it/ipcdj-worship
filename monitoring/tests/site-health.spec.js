@@ -1122,6 +1122,9 @@ test('release day amplifies the page ambient field from the song palette', async
     const field=document.querySelector('.ambient-field-active')||document.querySelector('.ambient-field');
     if(!field)return null;
     const blob=field.querySelector('.ambient-blob');
+    const settle=document.createElement('style');
+    settle.textContent='.ambient-field,.ambient-field::before,.ambient-blob{transition:none!important;animation:none!important}';
+    document.head.appendChild(settle);
 
     field.style.setProperty('--ambient-c1','88,57,44');
     field.style.setProperty('--ambient-c2','179,111,62');
@@ -1146,6 +1149,7 @@ test('release day amplifies the page ambient field from the song palette', async
     };
 
     document.documentElement.classList.remove('ipcdj-ambient-release');
+    settle.remove();
     return result;
   });
 
@@ -1197,6 +1201,9 @@ test('v174 dominant artwork color drives release ambience', async ({ page, reque
   const visual=await page.evaluate(async()=>{
     const field=document.querySelector('.ambient-field-active')||document.querySelector('.ambient-field');
     if(!field)return null;
+    const settle=document.createElement('style');
+    settle.textContent='.ambient-field,.ambient-field::before,.ambient-blob{transition:none!important;animation:none!important}';
+    document.head.appendChild(settle);
     field.style.setProperty('--ambient-dominant','36,76,118');
     field.style.setProperty('--ambient-c1','36,76,118');
     field.style.setProperty('--ambient-c2','46,82,120');
@@ -1211,6 +1218,7 @@ test('v174 dominant artwork color drives release ambience', async ({ page, reque
       filter:halo.filter||halo.webkitFilter
     };
     document.documentElement.classList.remove('ipcdj-ambient-release');
+    settle.remove();
     return result;
   });
 
@@ -1254,8 +1262,9 @@ test('v175 keeps artwork composition stable when Estrenado card compacts', async
   const result=await page.evaluate(async()=>{
     const card=document.createElement('section');
     card.className='card current phase-released';
-    card.style.width='760px';
+    card.style.width=Math.max(240,Math.min(760,window.innerWidth-32))+'px';
     card.style.setProperty('--subject-height','37%');
+    card.style.setProperty('--subject-mobile-height','34%');
     card.style.setProperty('--cover-image','none');
     card.innerHTML=`
       <img class="cover-native-fallback" alt="" />
@@ -1295,7 +1304,9 @@ test('v175 keeps artwork composition stable when Estrenado card compacts', async
     const frameHeight=parseFloat(style.getPropertyValue('--cover-frame-height'))||0;
     const subjectHeight=parseFloat(getComputedStyle(card.querySelector('.cover-subject-detail')).height)||0;
     const nativeHeight=parseFloat(getComputedStyle(card.querySelector('.cover-native-fallback')).height)||0;
-    const expectedSubject=frameHeight*.37;
+    const mobile=window.matchMedia('(max-width:640px)').matches;
+    const expectedPercent=mobile?.34:.37;
+    const expectedSubject=frameHeight*expectedPercent;
 
     card.remove();
 
@@ -1305,7 +1316,8 @@ test('v175 keeps artwork composition stable when Estrenado card compacts', async
       frameHeight,
       subjectHeight,
       nativeHeight,
-      expectedSubject
+      expectedSubject,
+      expectedPercent
     };
   });
 
@@ -1319,14 +1331,15 @@ test('v175 keeps artwork composition stable when Estrenado card compacts', async
 
 test('v176 lifecycle UI transitions cleanly through Después, prep, release, Estrenado and introduced', async ({ page }) => {
   await openHealthyPage(page);
-  await page.waitForFunction(() => !!window.IPCDJ_CATALOG);
+  await page.waitForFunction(() => !!window.IPCDJ_CATALOG && !!window.IPCDJ_CATALOG_TEST);
 
   const result = await page.evaluate(async () => {
     const waitPaint = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     const renderAt = async iso => {
       const ts = Date.parse(iso);
-      renderCurrent(ts);
+      const snapshot=window.IPCDJ_CATALOG_TEST.renderAt(ts);
       await waitPaint();
+
       const current=[...document.querySelectorAll('#current-song-cards [data-current-song-card]')].map(node=>({
         id:node.dataset.songId,
         phase:node.dataset.phase,
@@ -1336,72 +1349,93 @@ test('v176 lifecycle UI transitions cleanly through Después, prep, release, Est
       const upcoming=[...document.querySelectorAll('#upcoming-songs [data-song-id]')].map(node=>node.dataset.songId);
       const introduced=[...document.querySelectorAll('#introduced-songs .recent strong')].map(node=>node.textContent?.trim()||'');
       const duplicateIds=[...document.querySelectorAll('[id]')].map(n=>n.id).filter((id,i,a)=>a.indexOf(id)!==i);
+
       return {
         current,upcoming,introduced,duplicateIds,
+        snapshot:{
+          current:[...snapshot.current],
+          upcoming:[...snapshot.upcoming],
+          introduced:[...snapshot.introduced],
+          phases:{...snapshot.phases}
+        },
         nodes:document.querySelectorAll('*').length,
         width:document.documentElement.scrollWidth,
         viewport:document.documentElement.clientWidth
       };
     };
 
-    const checkpoints={
-      beforeActive:await renderAt('2026-09-28T05:59:59-04:00'),
-      afterActive:await renderAt('2026-09-28T06:00:01-04:00'),
-      releaseStart:await renderAt('2026-10-25T00:00:01-04:00'),
-      justBeforeSettled:await renderAt('2026-10-25T11:29:59-04:00'),
-      settled:await renderAt('2026-10-25T11:30:00-04:00'),
-      introduced:await renderAt('2026-10-27T00:00:01-04:00')
-    };
+    try{
+      const checkpoints={
+        beforeActive:await renderAt('2026-09-28T05:59:59-04:00'),
+        afterActive:await renderAt('2026-09-28T06:00:01-04:00'),
+        releaseStart:await renderAt('2026-10-25T00:00:01-04:00'),
+        justBeforeSettled:await renderAt('2026-10-25T11:29:59-04:00'),
+        settled:await renderAt('2026-10-25T11:30:00-04:00'),
+        introduced:await renderAt('2026-10-27T00:00:01-04:00')
+      };
 
-    const stressStart=performance.now();
-    const stressTimes=[
-      '2026-09-28T05:59:59-04:00','2026-09-28T06:00:01-04:00',
-      '2026-10-25T00:00:01-04:00','2026-10-25T11:29:59-04:00',
-      '2026-10-25T11:30:00-04:00','2026-10-27T00:00:01-04:00'
-    ];
-    for(let round=0;round<12;round++){
-      renderCurrent(Date.parse(stressTimes[round%stressTimes.length]));
+      const stressStart=performance.now();
+      const stressTimes=[
+        '2026-09-28T05:59:59-04:00','2026-09-28T06:00:01-04:00',
+        '2026-10-25T00:00:01-04:00','2026-10-25T11:29:59-04:00',
+        '2026-10-25T11:30:00-04:00','2026-10-27T00:00:01-04:00'
+      ];
+      for(let round=0;round<12;round++){
+        window.IPCDJ_CATALOG_TEST.renderAt(Date.parse(stressTimes[round%stressTimes.length]));
+      }
+      await waitPaint();
+      const stressMs=performance.now()-stressStart;
+
+      return {
+        checkpoints,
+        stressMs,
+        finalNodes:document.querySelectorAll('*').length,
+        finalCurrentCount:document.querySelectorAll('#current-song-cards [data-current-song-card]').length,
+        lockHeld:window.IPCDJ_CATALOG_TEST.locked()
+      };
+    }finally{
+      window.IPCDJ_CATALOG_TEST.resume();
     }
-    await waitPaint();
-    const stressMs=performance.now()-stressStart;
-    return {
-      checkpoints,
-      stressMs,
-      finalNodes:document.querySelectorAll('*').length,
-      finalCurrentCount:document.querySelectorAll('#current-song-cards [data-current-song-card]').length
-    };
   });
 
   expect(result.checkpoints.beforeActive.upcoming).toContain('glorioso-dia');
   expect(result.checkpoints.beforeActive.current.map(x=>x.id)).not.toContain('glorioso-dia');
+  expect(result.checkpoints.beforeActive.snapshot.upcoming).toContain('glorioso-dia');
+
   expect(result.checkpoints.afterActive.upcoming).not.toContain('glorioso-dia');
   expect(result.checkpoints.afterActive.current.map(x=>x.id)).toContain('glorioso-dia');
+  expect(result.checkpoints.afterActive.snapshot.current).toContain('glorioso-dia');
 
   const releaseCard=result.checkpoints.releaseStart.current.find(x=>x.id==='glorioso-dia');
   expect(releaseCard).toBeTruthy();
   expect(releaseCard.phase).toBe('release');
   expect(releaseCard.status).toBe('HOY · ESTRENO');
+  expect(result.checkpoints.releaseStart.snapshot.phases['glorioso-dia']).toBe('release');
 
   const preSettled=result.checkpoints.justBeforeSettled.current.find(x=>x.id==='glorioso-dia');
+  expect(preSettled).toBeTruthy();
   expect(preSettled.phase).toBe('release');
 
   const settled=result.checkpoints.settled.current.find(x=>x.id==='glorioso-dia');
+  expect(settled).toBeTruthy();
   expect(settled.phase).toBe('released');
   expect(settled.status).toBe('ESTRENADO');
   expect(settled.title).toBe('ESTRENO COMPLETADO');
+  expect(result.checkpoints.settled.snapshot.phases['glorioso-dia']).toBe('released');
 
   expect(result.checkpoints.introduced.current.map(x=>x.id)).not.toContain('glorioso-dia');
   expect(result.checkpoints.introduced.introduced).toContain('Glorioso Día');
+  expect(result.checkpoints.introduced.snapshot.introduced).toContain('glorioso-dia');
 
   for(const state of Object.values(result.checkpoints)){
     expect(state.duplicateIds).toEqual([]);
     expect(state.width).toBeLessThanOrEqual(state.viewport+2);
   }
+  expect(result.lockHeld).toBe(true);
   expect(result.stressMs).toBeLessThan(2500);
   expect(result.finalCurrentCount).toBeLessThanOrEqual(2);
   expect(result.finalNodes).toBeLessThan(1800);
 });
-
 test('v176 rendering stays sRGB-authored and resilient across browser/device profiles', async ({ page, request }, testInfo) => {
   await openHealthyPage(page);
   const sourceResponse=await request.get('/?v176-platform-rendering='+Date.now(),{
@@ -1426,7 +1460,10 @@ test('v176 rendering stays sRGB-authored and resilient across browser/device pro
     const cardStyle=card?getComputedStyle(card):null;
     return {
       colorScheme:root.colorScheme,
-      bodyBackground:body.backgroundColor,
+      bodyBackgroundColor:body.backgroundColor,
+      bodyBackgroundImage:body.backgroundImage,
+      rootBackgroundColor:root.backgroundColor,
+      rootBackgroundImage:root.backgroundImage,
       cardBackground:cardStyle?.backgroundColor||'',
       scrollWidth:document.documentElement.scrollWidth,
       clientWidth:document.documentElement.clientWidth,
@@ -1438,7 +1475,13 @@ test('v176 rendering stays sRGB-authored and resilient across browser/device pro
   });
 
   expect(audit.colorScheme).toContain('dark');
-  expect(audit.bodyBackground).not.toBe('rgba(0, 0, 0, 0)');
+  expect(
+    audit.bodyBackgroundImage!=='none' ||
+    audit.rootBackgroundImage!=='none' ||
+    audit.bodyBackgroundColor!=='rgba(0, 0, 0, 0)' ||
+    audit.rootBackgroundColor!=='rgba(0, 0, 0, 0)'
+  ).toBe(true);
+  expect(audit.bodyBackgroundImage).toContain('gradient');
   expect(audit.filterSupported).toBe(true);
   expect(audit.scrollWidth).toBeLessThanOrEqual(audit.clientWidth+2);
   for(const palette of audit.palettes){
