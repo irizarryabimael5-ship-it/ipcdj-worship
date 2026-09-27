@@ -1,8 +1,8 @@
-name: Build STEM Live Native 0.6.2
+name: Build STEM Live Native 0.6.3
 
 on:
   push:
-    branches: [stem-live-native-062]
+    branches: [stem-live-native-063]
     paths:
       - 'native-stem-live/**'
       - '.github/workflows/stem-live-native.yml'
@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: stem-live-native-062
+          ref: stem-live-native-063
 
       - uses: actions/setup-go@v5
         with:
@@ -47,6 +47,15 @@ jobs:
           lipo -create build/helpers/legacy-migrator-arm64 build/helpers/legacy-migrator-x86_64 -output build/helpers/legacy-migrator
           chmod +x build/helpers/legacy-migrator
           lipo -info build/helpers/legacy-migrator
+
+      - name: Static stability audit
+        run: |
+          set -euo pipefail
+          if grep -R -nE 'try!|fatalError\\(|\\.first!|\\.last!|raw\\.baseAddress!| as! ' Sources; then
+            echo "Unsafe force operation found in native source."
+            exit 1
+          fi
+          grep -R -n '0.6.3' Info.plist Sources/ContentView.swift >/dev/null
 
       - name: Generate native macOS app icon
         run: |
@@ -84,65 +93,66 @@ jobs:
               ) else { throw NSError(domain: "Icon", code: 1) }
 
               rep.size = NSSize(width: size, height: size)
+              guard let context = NSGraphicsContext(bitmapImageRep: rep) else {
+                  throw NSError(domain: "Icon", code: 2)
+              }
+
               NSGraphicsContext.saveGraphicsState()
-              guard let context = NSGraphicsContext(bitmapImageRep: rep) else { throw NSError(domain: "Icon", code: 2) }
               NSGraphicsContext.current = context
 
-              let s = CGFloat(size)
-              NSColor.clear.setFill()
-              NSRect(x: 0, y: 0, width: s, height: s).fill()
+              let side = CGFloat(size)
+              let full = NSRect(x: 0, y: 0, width: side, height: side)
 
-              let outer = NSBezierPath(
-                  roundedRect: NSRect(x: s * 0.055, y: s * 0.055, width: s * 0.89, height: s * 0.89),
-                  xRadius: s * 0.23,
-                  yRadius: s * 0.23
-              )
-              let bg = NSGradient(colors: [
-                  NSColor(calibratedRed: 0.015, green: 0.017, blue: 0.024, alpha: 1),
-                  NSColor(calibratedRed: 0.025, green: 0.032, blue: 0.050, alpha: 1)
+              // Full square artwork. Do not pre-mask the macOS icon; Ventura supplies
+              // the platform shape, corner radius and system shadow itself.
+              let background = NSGradient(colors: [
+                  NSColor(calibratedRed: 0.018, green: 0.024, blue: 0.052, alpha: 1),
+                  NSColor(calibratedRed: 0.035, green: 0.044, blue: 0.105, alpha: 1),
+                  NSColor(calibratedRed: 0.060, green: 0.035, blue: 0.110, alpha: 1)
               ])!
-              bg.draw(in: outer, angle: 90)
+              background.draw(in: full, angle: 82)
 
-              let glow = NSBezierPath(
-                  ovalIn: NSRect(x: s * 0.05, y: s * -0.12, width: s * 0.95, height: s * 0.70)
+              let glowRect = NSRect(
+                  x: side * 0.08,
+                  y: side * 0.08,
+                  width: side * 0.84,
+                  height: side * 0.84
               )
-              let glowGradient = NSGradient(colors: [
-                  NSColor(calibratedRed: 0.02, green: 0.48, blue: 1.0, alpha: 0.90),
-                  NSColor(calibratedRed: 0.42, green: 0.26, blue: 0.98, alpha: 0.46),
-                  NSColor.clear
+              let glow = NSGradient(colors: [
+                  NSColor(calibratedRed: 0.06, green: 0.50, blue: 1.0, alpha: 0.72),
+                  NSColor(calibratedRed: 0.42, green: 0.24, blue: 0.96, alpha: 0.42),
+                  NSColor(calibratedRed: 0.10, green: 0.10, blue: 0.20, alpha: 0.0)
               ])!
-              glowGradient.draw(in: glow, relativeCenterPosition: NSPoint(x: 0, y: -0.20))
+              glow.draw(
+                  in: NSBezierPath(ovalIn: glowRect),
+                  relativeCenterPosition: NSPoint(x: -0.08, y: 0.08)
+              )
 
-              let line = NSBezierPath()
-              line.lineWidth = max(1.0, s * 0.028)
-              line.lineCapStyle = .round
-              let cx = s * 0.50
-              let cy = s * 0.47
-              let xs: [CGFloat] = [-0.24, -0.16, -0.08, 0, 0.08, 0.16, 0.24]
-              let hs: [CGFloat] = [0.13, 0.25, 0.38, 0.50, 0.34, 0.22, 0.11]
-              for (x, h) in zip(xs, hs) {
-                  line.move(to: NSPoint(x: cx + s * x, y: cy - s * h * 0.5))
-                  line.line(to: NSPoint(x: cx + s * x, y: cy + s * h * 0.5))
+              // One simple, scalable waveform mark.
+              let waveform = NSBezierPath()
+              waveform.lineWidth = max(1.25, side * 0.036)
+              waveform.lineCapStyle = .round
+
+              let centerX = side * 0.50
+              let centerY = side * 0.50
+              let xs: [CGFloat] = [-0.245, -0.175, -0.105, -0.035, 0.035, 0.105, 0.175, 0.245]
+              let heights: [CGFloat] = [0.17, 0.31, 0.47, 0.62, 0.54, 0.39, 0.26, 0.14]
+
+              for (x, height) in zip(xs, heights) {
+                  waveform.move(to: NSPoint(x: centerX + side * x, y: centerY - side * height * 0.5))
+                  waveform.line(to: NSPoint(x: centerX + side * x, y: centerY + side * height * 0.5))
               }
-              NSColor.white.withAlphaComponent(0.96).setStroke()
-              line.stroke()
 
-              let mark = "S" as NSString
-              let attrs: [NSAttributedString.Key: Any] = [
-                  .font: NSFont.systemFont(ofSize: s * 0.22, weight: .black),
-                  .foregroundColor: NSColor.white.withAlphaComponent(0.96)
-              ]
-              let markSize = mark.size(withAttributes: attrs)
-              mark.draw(
-                  at: NSPoint(x: s * 0.50 - markSize.width * 0.5, y: s * 0.165 - markSize.height * 0.5),
-                  withAttributes: attrs
-              )
+              NSColor.white.withAlphaComponent(0.98).setStroke()
+              waveform.stroke()
 
               NSGraphicsContext.restoreGraphicsState()
-              guard let png = rep.representation(using: .png, properties: [:]) else { throw NSError(domain: "Icon", code: 3) }
 
-              let names = specs.filter { $0.1 == size }.map { $0.0 }
-              for name in names {
+              guard let png = rep.representation(using: .png, properties: [:]) else {
+                  throw NSError(domain: "Icon", code: 3)
+              }
+
+              for name in specs.filter({ $0.1 == size }).map({ $0.0 }) {
                   try png.write(to: out.appendingPathComponent(name))
               }
           }
@@ -185,7 +195,7 @@ jobs:
           chmod +x "$APP/Contents/MacOS/STEM Live Native" "$APP/Contents/Resources/bin/legacy-migrator"
 
           plutil -lint "$APP/Contents/Info.plist"
-          test "$(plutil -extract CFBundleShortVersionString raw "$APP/Contents/Info.plist")" = "0.6.2"
+          test "$(plutil -extract CFBundleShortVersionString raw "$APP/Contents/Info.plist")" = "0.6.3"
           test "$(plutil -extract CFBundleIconFile raw "$APP/Contents/Info.plist")" = "AppIcon"
           file "$APP/Contents/Resources/AppIcon.icns"
           lipo -info "$APP/Contents/MacOS/STEM Live Native"
@@ -204,9 +214,9 @@ jobs:
             --component "$APP" \
             --install-location /Applications \
             --identifier org.ipcdj.stemlive.nativepreview.pkg \
-            --version 0.6.2 \
-            build/STEM_Live_Native_0.6.2.pkg
-          xar -tf build/STEM_Live_Native_0.6.2.pkg
+            --version 0.6.3 \
+            build/STEM_Live_Native_0.6.3.pkg
+          xar -tf build/STEM_Live_Native_0.6.3.pkg
 
           rm -rf build/dmg-stage
           mkdir -p build/dmg-stage
@@ -220,29 +230,29 @@ jobs:
           TXT
 
           hdiutil create \
-            -volname 'STEM Live Native 0.6.2' \
+            -volname 'STEM Live Native 0.6.3' \
             -srcfolder build/dmg-stage \
             -ov -format UDZO \
-            build/STEM_Live_Native_0.6.2.dmg
-          hdiutil verify build/STEM_Live_Native_0.6.2.dmg
+            build/STEM_Live_Native_0.6.3.dmg
+          hdiutil verify build/STEM_Live_Native_0.6.3.dmg
 
-          ditto -c -k --keepParent "$APP" build/STEM_Live_Native_0.6.2_App.zip
-          ditto -c -k build/STEM_Live_Native_0.6.2.pkg build/STEM_Live_Native_0.6.2_PKG.zip
+          ditto -c -k --keepParent "$APP" build/STEM_Live_Native_0.6.3_App.zip
+          ditto -c -k build/STEM_Live_Native_0.6.3.pkg build/STEM_Live_Native_0.6.3_PKG.zip
 
           shasum -a 256 \
-            build/STEM_Live_Native_0.6.2.dmg \
-            build/STEM_Live_Native_0.6.2.pkg \
-            build/STEM_Live_Native_0.6.2_App.zip \
-            build/STEM_Live_Native_0.6.2_PKG.zip | tee build/SHA256.txt
+            build/STEM_Live_Native_0.6.3.dmg \
+            build/STEM_Live_Native_0.6.3.pkg \
+            build/STEM_Live_Native_0.6.3_App.zip \
+            build/STEM_Live_Native_0.6.3_PKG.zip | tee build/SHA256.txt
 
       - name: Upload native release
         uses: actions/upload-artifact@v4
         with:
-          name: STEM-Live-Native-0.6.2
+          name: STEM-Live-Native-0.6.3
           path: |
-            native-stem-live/build/STEM_Live_Native_0.6.2.dmg
-            native-stem-live/build/STEM_Live_Native_0.6.2.pkg
-            native-stem-live/build/STEM_Live_Native_0.6.2_PKG.zip
-            native-stem-live/build/STEM_Live_Native_0.6.2_App.zip
+            native-stem-live/build/STEM_Live_Native_0.6.3.dmg
+            native-stem-live/build/STEM_Live_Native_0.6.3.pkg
+            native-stem-live/build/STEM_Live_Native_0.6.3_PKG.zip
+            native-stem-live/build/STEM_Live_Native_0.6.3_App.zip
             native-stem-live/build/SHA256.txt
           if-no-files-found: error
