@@ -47,7 +47,7 @@ struct ImmediateTabButton: NSViewRepresentable {
         button.isBordered = false
         button.focusRingType = .none
         button.wantsLayer = true
-        button.font = NSFont.systemFont(ofSize: 9, weight: .heavy)
+        button.font = NSFont.systemFont(ofSize: 10.5, weight: .heavy)
         button.alignment = .center
         button.setButtonType(.momentaryPushIn)
         button.toolTip = title
@@ -82,10 +82,10 @@ struct InstallLocationGate: View {
             ZStack {
                 Color.black.opacity(0.82).ignoresSafeArea()
                 VStack(spacing: 16) {
-                    RoundedRectangle(cornerRadius: 18)
-                        .fill(.white)
-                        .frame(width: 64, height: 64)
-                        .overlay(Text("S").font(.system(size: 28, weight: .black)).foregroundColor(.black))
+                    Image(nsImage: NSApplication.shared.applicationIconImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 68, height: 68)
                     Text("Install STEM Live Native")
                         .font(.system(size: 26, weight: .bold))
                     Text("You're running the app directly from the disk image. For a stable live-performance installation, drag STEM Live Native into Applications and replace the existing copy, then eject the disk image and open the app from Applications.")
