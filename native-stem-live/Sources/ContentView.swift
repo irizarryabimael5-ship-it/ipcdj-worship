@@ -1129,7 +1129,7 @@ struct SystemPage: View {
             }
 
             if let song = store.currentSong {
-                let report = audio.preflight(song: song)
+                let report = audio.cachedPreflight(song: song)
                 HStack(alignment: .top, spacing: 12) {
                     VStack(alignment: .leading, spacing: 13) {
                         HStack {
