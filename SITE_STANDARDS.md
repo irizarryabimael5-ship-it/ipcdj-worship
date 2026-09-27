@@ -3158,3 +3158,17 @@ Watchdog:
 - Verify `--ambient-dominant` and `--cover-dominant` feed release atmosphere.
 - Verify the deterministic Dios de Milagros blue fallback.
 - Verify the preview source requests `navigator.audioSession.type="playback"`.
+
+
+## Lifecycle-stable artwork composition v175
+
+- The current-song artwork composition must not visibly re-crop when lifecycle content collapses from preparation / `HOY · ESTRENO` into compact `ESTRENADO`.
+- Percentage `background-position` / `object-position` values alone are not sufficient because the browser recalculates their offset when the card height changes.
+- Each current card maintains a runtime `--cover-frame-height` representing at least the full release-layout visual footprint.
+- In `phase-released`, the hidden timeline's intrinsic `scrollHeight` is added back to the artwork-only frame; the card itself remains compact.
+- The blurred native cover, CSS fallback cover, detail layer, and edge-detail layer use `max(current card height, --cover-frame-height)` so their composition does not shrink with the released card.
+- The isolated subject layer receives `--subject-stable-height` derived from the same preserved frame and the catalog's desktop/mobile subject-height percentage.
+- Content/UI height is still allowed to collapse. Only the artwork coordinate system remains stable.
+- Width changes greater than 8 px reset/recalculate the preserved frame so desktop/mobile resizing and device rotation do not retain stale geometry.
+- All song-specific crop/subject settings remain catalog-owned. Do not add per-phase or per-song CSS position hacks.
+- Watchdog coverage must simulate a compact `phase-released` card and verify the preserved cover frame, native cover height, and subject height remain based on the full release footprint.
