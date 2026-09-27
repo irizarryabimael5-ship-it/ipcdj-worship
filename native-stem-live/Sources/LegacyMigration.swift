@@ -236,7 +236,9 @@ final class LegacyMigrationManager: ObservableObject {
     }
 
     var shouldOfferMigration: Bool {
-        legacyAvailable && state != .complete
+        legacyAvailable &&
+        !UserDefaults.standard.bool(forKey: "stemlive.native.legacyMigrationCompleted") &&
+        state != .complete
     }
 
     private var legacyProfileURL: URL {
@@ -331,6 +333,7 @@ final class LegacyMigrationManager: ObservableObject {
                     }.value
 
                     store.installMigratedSongs(result.songs)
+                    UserDefaults.standard.set(true, forKey: "stemlive.native.legacyMigrationCompleted")
                     self.state = .complete
                     self.message = "Legacy Alpha migration complete."
                     self.detail = "\(result.songs.count) song(s) and \(result.importedStemCount) stem file(s) imported." +
