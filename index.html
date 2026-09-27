@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v170" />
+  <meta name="ipcdj-build" content="persistent-launch-v171" />
   <title>IPCDJ Worship | Ministerio de Alabanza</title>
   <meta name="description" content="Próximas canciones, preparación y estrenos del Ministerio de Alabanza de IPCDJ." />
   <link rel="canonical" href="https://worship.ipcdj.org/" />
@@ -1334,10 +1334,9 @@
       opacity:0;
       transform:scale(.982);
       background:
-        radial-gradient(circle at 50% 10%,rgba(42,224,126,.72) 0%,rgba(42,224,126,.34) 22%,rgba(42,224,126,.10) 42%,rgba(42,224,126,0) 64%),
-        radial-gradient(circle at 10% 22%,rgba(var(--cover-c1),.72) 0%,rgba(var(--cover-c1),.30) 25%,rgba(var(--cover-c1),0) 58%),
-        radial-gradient(circle at 90% 24%,rgba(var(--cover-c2),.68) 0%,rgba(var(--cover-c2),.29) 29%,rgba(var(--cover-c2),0) 61%),
-        radial-gradient(circle at 50% 94%,rgba(var(--cover-c3),.62) 0%,rgba(var(--cover-c3),.24) 32%,rgba(var(--cover-c3),0) 66%);
+        radial-gradient(circle at 10% 20%,rgba(var(--cover-c1),.84) 0%,rgba(var(--cover-c1),.38) 26%,rgba(var(--cover-c1),.10) 46%,rgba(var(--cover-c1),0) 66%),
+        radial-gradient(circle at 90% 24%,rgba(var(--cover-c2),.80) 0%,rgba(var(--cover-c2),.36) 30%,rgba(var(--cover-c2),.10) 50%,rgba(var(--cover-c2),0) 68%),
+        radial-gradient(circle at 50% 92%,rgba(var(--cover-c3),.74) 0%,rgba(var(--cover-c3),.32) 34%,rgba(var(--cover-c3),.08) 52%,rgba(var(--cover-c3),0) 72%);
       filter:blur(20px) saturate(1.42) brightness(1.06);
       -webkit-filter:blur(20px) saturate(1.42) brightness(1.06);
       transition:
@@ -1463,16 +1462,16 @@
     }
 
     .current.phase-release{
-      border-color:rgba(42,224,126,.82);
+      border-color:var(--stage-border);
       box-shadow:
         0 24px 68px rgba(0,0,0,.36),
-        0 0 30px rgba(42,224,126,.46),
-        0 0 62px rgba(42,224,126,.34),
-        0 0 38px rgba(var(--cover-c1),.42),
-        0 0 82px rgba(var(--cover-c2),.34),
-        0 0 126px rgba(var(--cover-c3),.26),
+        0 0 22px var(--stage-glow),
+        0 0 44px var(--stage-glow),
+        0 0 42px rgba(var(--cover-c1),.48),
+        0 0 88px rgba(var(--cover-c2),.40),
+        0 0 132px rgba(var(--cover-c3),.30),
         inset 0 1px 0 rgba(255,255,255,.13),
-        inset 0 0 0 1px rgba(42,224,126,.26);
+        inset 0 0 0 1px var(--stage-border);
     }
 
     .current.phase-release .release-aura{
@@ -1493,37 +1492,36 @@
 
     .current.phase-release .status{
       background:
-        linear-gradient(110deg,rgba(42,224,126,.42),rgba(var(--cover-c1),.34),rgba(var(--cover-c2),.30),rgba(42,224,126,.28));
-      border-color:rgba(42,224,126,.90);
-      color:#fff;
+        linear-gradient(110deg,var(--stage-soft),rgba(var(--cover-c1),.24),rgba(var(--cover-c2),.20),var(--stage-soft));
+      border-color:var(--stage-border);
+      color:var(--stage-text);
       box-shadow:
         inset 0 1px 0 rgba(255,255,255,.18),
-        0 0 16px rgba(42,224,126,.72),
-        0 0 34px rgba(42,224,126,.54),
-        0 0 24px rgba(var(--cover-c1),.56),
-        0 0 48px rgba(var(--cover-c2),.42);
+        0 0 14px var(--stage-accent),
+        0 0 28px var(--stage-glow),
+        0 0 24px rgba(var(--cover-c1),.42),
+        0 0 46px rgba(var(--cover-c2),.34);
       text-shadow:
-        0 0 8px rgba(42,224,126,.96),
-        0 0 18px rgba(42,224,126,.72),
-        0 0 30px rgba(var(--cover-c2),.54);
+        0 0 8px var(--stage-accent),
+        0 0 18px var(--stage-glow),
+        0 0 28px rgba(var(--cover-c2),.40);
       transform:translateY(-1px);
     }
 
     .current.phase-release .song-name{
       color:#fff;
       text-shadow:
-        0 0 10px rgba(42,224,126,.58),
-        0 0 22px rgba(42,224,126,.40),
-        0 0 18px rgba(var(--cover-c1),.56),
-        0 0 38px rgba(var(--cover-c2),.42),
+        0 0 9px var(--stage-glow),
+        0 0 16px rgba(var(--cover-c1),.60),
+        0 0 34px rgba(var(--cover-c2),.46),
         0 3px 18px rgba(0,0,0,.72);
     }
 
     .current.phase-release .artist{
-      color:#f4fff8;
+      color:var(--stage-text);
       text-shadow:
-        0 0 10px rgba(42,224,126,.44),
-        0 0 18px rgba(var(--cover-c2),.40),
+        0 0 9px var(--stage-glow),
+        0 0 18px rgba(var(--cover-c2),.38),
         0 2px 12px rgba(0,0,0,.68);
     }
 
@@ -1535,70 +1533,68 @@
       transform:none;
       visibility:visible;
       border-width:1px;
-      border-color:rgba(42,224,126,.74);
+      border-color:var(--stage-border);
       background:
-        linear-gradient(110deg,rgba(42,224,126,.28),rgba(var(--cover-c1),.34),rgba(var(--cover-c2),.26),rgba(42,224,126,.20),rgba(8,11,17,.58));
+        linear-gradient(110deg,var(--stage-soft),rgba(var(--cover-c1),.30),rgba(var(--cover-c2),.24),rgba(8,11,17,.58));
       box-shadow:
         inset 0 1px 0 rgba(255,255,255,.13),
-        0 0 20px rgba(42,224,126,.44),
-        0 0 42px rgba(42,224,126,.30),
-        0 0 30px rgba(var(--cover-c1),.30),
-        0 0 62px rgba(var(--cover-c2),.24);
+        0 0 18px var(--stage-glow),
+        0 0 36px var(--stage-glow),
+        0 0 30px rgba(var(--cover-c1),.34),
+        0 0 62px rgba(var(--cover-c2),.28);
       transition-delay:0s,0s,0s,.22s,0s,0s,0s,0s,0s;
     }
 
     .current.phase-release .post-release-kicker{
-      color:#eafff2;
+      color:var(--stage-text);
       text-shadow:
-        0 0 8px rgba(42,224,126,.98),
-        0 0 18px rgba(42,224,126,.74),
-        0 0 30px rgba(var(--cover-c2),.52);
+        0 0 8px var(--stage-accent),
+        0 0 18px var(--stage-glow),
+        0 0 30px rgba(var(--cover-c2),.44);
     }
 
     .current.phase-release .post-release-title{
       color:#fff;
       text-shadow:
-        0 0 10px rgba(42,224,126,.58),
-        0 0 20px rgba(42,224,126,.38),
-        0 0 16px rgba(var(--cover-c1),.58),
-        0 0 34px rgba(var(--cover-c2),.46);
+        0 0 9px var(--stage-glow),
+        0 0 16px rgba(var(--cover-c1),.60),
+        0 0 34px rgba(var(--cover-c2),.48);
     }
 
     .current.phase-release .post-release-note{
       color:#f2fff7;
       text-shadow:
-        0 0 10px rgba(42,224,126,.28),
+        0 0 8px var(--stage-glow),
         0 0 16px rgba(var(--cover-c2),.28);
     }
 
     .current.phase-release .timeline-item.estreno.active-phase{
-      border-color:rgba(42,224,126,.72);
+      border-color:var(--stage-border);
       background:
-        linear-gradient(90deg,rgba(42,224,126,.24),rgba(var(--cover-c1),.26),rgba(var(--cover-c2),.20),rgba(255,255,255,.02));
+        linear-gradient(90deg,var(--stage-soft),rgba(var(--cover-c1),.22),rgba(var(--cover-c2),.17),rgba(255,255,255,.02));
       box-shadow:
-        inset 3px 0 0 rgb(42,224,126),
-        0 0 16px rgba(42,224,126,.48),
-        0 0 34px rgba(42,224,126,.30),
-        0 0 22px rgba(var(--cover-c1),.34),
-        0 0 48px rgba(var(--cover-c2),.26);
+        inset 3px 0 0 var(--stage-accent),
+        0 0 16px var(--stage-glow),
+        0 0 32px var(--stage-glow),
+        0 0 22px rgba(var(--cover-c1),.32),
+        0 0 46px rgba(var(--cover-c2),.24);
     }
 
     .current.phase-release .timeline-item.estreno.active-phase .timeline-label,
     .current.phase-release .timeline-item.estreno.active-phase .timeline-date{
       color:#fff;
       text-shadow:
-        0 0 8px rgba(42,224,126,.72),
-        0 0 16px rgba(42,224,126,.48),
+        0 0 8px var(--stage-glow),
         0 0 12px rgba(var(--cover-c1),.56),
         0 0 26px rgba(var(--cover-c2),.40);
     }
 
     .current.phase-release .timeline-item.estreno.active-phase .timeline-label::before{
-      background:rgb(42,224,126);
+      background:var(--stage-accent);
       box-shadow:
-        0 0 10px rgba(42,224,126,.98),
-        0 0 22px rgba(42,224,126,.76),
-        0 0 34px rgba(var(--cover-c2),.52);
+        0 0 10px var(--stage-accent),
+        0 0 22px var(--stage-glow),
+        0 0 34px rgba(var(--cover-c2),.46);
     }
 
     .current.phase-release .countdown-wrap,
