@@ -3240,3 +3240,39 @@ Watchdog:
 - The published Open Graph URL carries a version query to force social-crawler cache refresh after design changes.
 - Social-preview generation owns JPEG byte validation; website health owns exact `index.html` + `sw.js` deployment validation. Do not couple website health to the exact social-image hash because lifecycle snapshot generation may legitimately update that file.
 - When the social workflow commits a changed preview, it verifies the generated JPEG reaches the live domain and then dispatches the full website-health workflow against the final main-branch head.
+
+
+## System-wide lifecycle, rendering and social-preview hardening v179
+
+### Lifecycle correctness
+- The managed-song lifecycle watchdog must explicitly exercise:
+  - Después / not-yet-active;
+  - active Próxima canción;
+  - Aprendizaje;
+  - Preparación final;
+  - HOY · ESTRENO;
+  - ESTRENADO at exactly `releaseAt + 30 minutes`;
+  - Introducciones recientes after the authored introducedAt boundary.
+- The completed release title remains `ESTRENO COMPLETADO` in all caps.
+- No duplicate DOM IDs, horizontal overflow, or duplicated current-song cards may appear at any lifecycle checkpoint.
+
+### Layout/performance
+- Artwork-frame preservation is required across lifecycle compaction, but geometry measurement must not run on every countdown/render tick.
+- `scheduleLifecycleStableCoverFrame()` coalesces frame work through one requestAnimationFrame per card and only schedules on lifecycle phase change, first frame initialization, or viewport resize.
+- Redundant CSS custom-property writes are skipped when stable-frame values have not changed.
+- The synthetic lifecycle stress watchdog keeps the existing strict 2.5-second budget; optimize runtime before relaxing this budget.
+
+### Cross-platform rendering
+- Authored IPCDJ colors remain sRGB for predictable Safari/WebKit/Chromium/Firefox output.
+- Do not branch authored palettes by `color-gamut`; wide-gamut capability is diagnostic only.
+- Preserve dark `color-scheme`, `-webkit-text-size-adjust:100%`, glass fallbacks, reduced-transparency/data/motion behavior, higher-contrast support, and forced-colors accessibility.
+- Release ambient tests must distinguish normal full-intensity rendering from deliberate reduced-motion/reduced-data fallbacks; accessibility preferences are not regressions.
+- The normal release target remains the full-intensity ambient values. Reduced modes keep visible cover color while lowering compositing cost.
+
+### WhatsApp / social preview
+- The social image is a real 1200×630 browser-rendered snapshot of the IPCDJ Worship landing page, not a decorative approximation.
+- Capture uses Chromium with forced sRGB, 2× device scale downsampled to 1200×630, embedded sRGB ICC profile, optimized progressive JPEG, and real current-song artwork/runtime state.
+- Capture freezes animations but uses `reduced_motion="no-preference"` so normal authored color intensity is preserved.
+- The hero subtitle may use two clean lines; do not intentionally crop it to a single ellipsized line.
+- Open Graph / Twitter metadata uses the versioned `social-preview-v176.jpg?v=179` URL, 1200×630 dimensions, JPEG type, absolute HTTPS paths, and crawler-accessible robots policy.
+- The social-preview workflow may regenerate the JPEG after source changes and must dispatch the final website-health run on the generated main head.
