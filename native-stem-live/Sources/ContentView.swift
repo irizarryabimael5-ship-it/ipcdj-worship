@@ -710,6 +710,11 @@ struct LogicTimelineView: View {
                     }
                     .frame(width: totalWidth, height: totalHeight, alignment: .topLeading)
 
+                    TimelineGrid(song: song)
+                        .frame(width: timelineWidth, height: max(1, totalHeight - rulerHeight))
+                        .offset(x: headerWidth, y: rulerHeight)
+                        .allowsHitTesting(false)
+
                     let playheadX = headerWidth + timelineWidth * CGFloat(playhead / max(0.001, song.duration))
                     Rectangle()
                         .fill(Color.white.opacity(0.92))
@@ -730,6 +735,32 @@ struct LogicTimelineView: View {
             .background(RoundedRectangle(cornerRadius: 17).fill(Color.black.opacity(0.34)))
             .overlay(RoundedRectangle(cornerRadius: 17).stroke(Color.white.opacity(0.10)))
             .clipShape(RoundedRectangle(cornerRadius: 17))
+        }
+    }
+}
+
+struct TimelineGrid: View {
+    let song: SongProject
+
+    var body: some View {
+        Canvas { ctx, size in
+            let beat = 60 / max(30, song.bpm)
+            let totalBeats = max(1, Int(ceil(song.duration / beat)))
+
+            for index in 0...totalBeats {
+                let time = Double(index) * beat
+                let x = size.width * CGFloat(time / max(0.001, song.duration))
+                let isBar = index % max(1, song.meterTop) == 0
+
+                var path = Path()
+                path.move(to: CGPoint(x: x, y: 0))
+                path.addLine(to: CGPoint(x: x, y: size.height))
+                ctx.stroke(
+                    path,
+                    with: .color(.white.opacity(isBar ? 0.085 : 0.028)),
+                    lineWidth: isBar ? 1 : 0.7
+                )
+            }
         }
     }
 }
