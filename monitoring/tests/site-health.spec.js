@@ -996,3 +996,81 @@ test('social share preview is crawler-ready', async ({ page, request }) => {
   await page.goto('/?social-health='+nonce,{waitUntil:'domcontentloaded'});
   await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content','https://worship.ipcdj.org/social-preview.png');
 });
+
+
+test('estreno arrival intensifies artwork glow and retires countdown smoothly', async ({ page, request }) => {
+  const sourceResponse=await request.get('/?estreno-arrival-health='+Date.now(),{
+    headers:{'cache-control':'no-cache'}
+  });
+  expect(sourceResponse.ok()).toBe(true);
+  const source=await sourceResponse.text();
+  expect(source).toContain('class="release-aura"');
+  expect(source).toContain('rgba(var(--cover-c1),.30)');
+  expect(source).toContain('rgba(var(--cover-c2),.24)');
+  expect(source).toContain('max-height 1.05s');
+  expect(source).toContain('prepControlsHidden=phase.key==="release"||phase.key==="released"');
+
+  await openHealthyPage(page);
+
+  const visual=await page.evaluate(async () => {
+    const card=document.createElement('section');
+    card.className='card current phase-release';
+    card.innerHTML=`
+      <div class="release-aura" aria-hidden="true"></div>
+      <div class="status">HOY · ESTRENO</div>
+      <h2 class="song-name">Prueba</h2>
+      <p class="artist">IPCDJ</p>
+      <div class="post-release-banner">
+        <span class="post-release-kicker">ESTRENO</span>
+        <strong class="post-release-title">Hoy es el día</strong>
+        <span class="post-release-note">Prueba</span>
+      </div>
+      <div class="countdown-wrap">00</div>
+      <div class="progress-wrap">100%</div>
+      <div class="timeline-item estreno active-phase">
+        <div class="timeline-label">Estreno</div>
+        <div class="timeline-date">Hoy</div>
+      </div>
+    `;
+    document.body.appendChild(card);
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+
+    const aura=getComputedStyle(card.querySelector('.release-aura'));
+    const countdown=getComputedStyle(card.querySelector('.countdown-wrap'));
+    const progress=getComputedStyle(card.querySelector('.progress-wrap'));
+    const banner=getComputedStyle(card.querySelector('.post-release-banner'));
+    const status=getComputedStyle(card.querySelector('.status'));
+    const timeline=getComputedStyle(card.querySelector('.timeline-item.estreno'));
+    const cardStyle=getComputedStyle(card);
+
+    const result={
+      auraOpacity:Number(aura.opacity),
+      countdownOpacity:Number(countdown.opacity),
+      countdownMaxHeight:countdown.maxHeight,
+      countdownTransition:countdown.transitionProperty,
+      countdownDuration:countdown.transitionDuration,
+      progressOpacity:Number(progress.opacity),
+      bannerOpacity:Number(banner.opacity),
+      bannerVisibility:banner.visibility,
+      cardShadow:cardStyle.boxShadow,
+      statusShadow:status.boxShadow,
+      statusTextShadow:status.textShadow,
+      timelineShadow:timeline.boxShadow
+    };
+    card.remove();
+    return result;
+  });
+
+  expect(visual.auraOpacity).toBeGreaterThan(.8);
+  expect(visual.countdownOpacity).toBe(0);
+  expect(visual.countdownMaxHeight).toBe('0px');
+  expect(visual.countdownTransition).toContain('opacity');
+  expect(visual.countdownDuration).not.toBe('0s');
+  expect(visual.progressOpacity).toBe(0);
+  expect(visual.bannerOpacity).toBe(1);
+  expect(visual.bannerVisibility).toBe('visible');
+  expect(visual.cardShadow).not.toBe('none');
+  expect(visual.statusShadow).not.toBe('none');
+  expect(visual.statusTextShadow).not.toBe('none');
+  expect(visual.timelineShadow).not.toBe('none');
+});
