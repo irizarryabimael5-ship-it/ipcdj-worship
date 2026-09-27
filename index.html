@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="persistent-launch-v178" />
+  <meta name="ipcdj-build" content="persistent-launch-v179" />
   <title>IPCDJ Worship | Ministerio de Alabanza</title>
   <meta name="description" content="Próximas canciones, preparación y estrenos del Ministerio de Alabanza de IPCDJ." />
   <link rel="canonical" href="https://worship.ipcdj.org/" />
@@ -14,19 +14,19 @@
   <meta property="og:title" content="IPCDJ Worship | Ministerio de Alabanza" />
   <meta property="og:description" content="Próximas canciones, preparación y estrenos del Ministerio de Alabanza de IPCDJ." />
   <meta property="og:url" content="https://worship.ipcdj.org/" />
-  <meta property="og:image" content="https://worship.ipcdj.org/social-preview-v176.jpg?v=178" />
-  <meta property="og:image:url" content="https://worship.ipcdj.org/social-preview-v176.jpg?v=178" />
-  <meta property="og:image:secure_url" content="https://worship.ipcdj.org/social-preview-v176.jpg?v=178" />
+  <meta property="og:image" content="https://worship.ipcdj.org/social-preview-v176.jpg?v=179" />
+  <meta property="og:image:url" content="https://worship.ipcdj.org/social-preview-v176.jpg?v=179" />
+  <meta property="og:image:secure_url" content="https://worship.ipcdj.org/social-preview-v176.jpg?v=179" />
   <meta property="og:image:type" content="image/jpeg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:image:alt" content="Vista previa de IPCDJ Worship — Ministerio de Alabanza" />
-  <link rel="image_src" href="https://worship.ipcdj.org/social-preview-v176.jpg?v=178" />
-  <meta itemprop="image" content="https://worship.ipcdj.org/social-preview-v176.jpg?v=178" />
+  <link rel="image_src" href="https://worship.ipcdj.org/social-preview-v176.jpg?v=179" />
+  <meta itemprop="image" content="https://worship.ipcdj.org/social-preview-v176.jpg?v=179" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="IPCDJ Worship | Ministerio de Alabanza" />
   <meta name="twitter:description" content="Próximas canciones, preparación y estrenos del Ministerio de Alabanza de IPCDJ." />
-  <meta name="twitter:image" content="https://worship.ipcdj.org/social-preview-v176.jpg?v=178" />
+  <meta name="twitter:image" content="https://worship.ipcdj.org/social-preview-v176.jpg?v=179" />
   <meta name="twitter:image:alt" content="IPCDJ Worship — Ministerio de Alabanza" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
@@ -7996,9 +7996,13 @@
       const widthChanged=!priorWidth||Math.abs(currentWidth-priorWidth)>8;
       const stableHeight=Math.ceil(widthChanged?referenceHeight:Math.max(referenceHeight,priorHeight));
 
-      card.dataset.coverFrameWidth=String(currentWidth);
-      card.dataset.coverFrameHeight=String(stableHeight);
-      card.style.setProperty("--cover-frame-height",stableHeight+"px");
+      // Avoid redundant style writes; on WebKit/iPad these writes otherwise force
+      // extra style/layout work during lifecycle polling even when geometry is unchanged.
+      if(priorWidth!==currentWidth)card.dataset.coverFrameWidth=String(currentWidth);
+      if(priorHeight!==stableHeight){
+        card.dataset.coverFrameHeight=String(stableHeight);
+        card.style.setProperty("--cover-frame-height",stableHeight+"px");
+      }
 
       const mobile=window.matchMedia("(max-width:640px)").matches;
       const subjectHeightVar=getComputedStyle(card).getPropertyValue(
@@ -8006,10 +8010,23 @@
       ).trim();
       const pct=parseFloat(subjectHeightVar);
       if(Number.isFinite(pct)&&subjectHeightVar.includes("%")){
-        card.style.setProperty("--subject-stable-height",Math.max(1,stableHeight*(pct/100)).toFixed(2)+"px");
-      }else{
+        const subjectHeight=Math.max(1,stableHeight*(pct/100)).toFixed(2)+"px";
+        if(card.style.getPropertyValue("--subject-stable-height")!==subjectHeight){
+          card.style.setProperty("--subject-stable-height",subjectHeight);
+        }
+      }else if(card.style.getPropertyValue("--subject-stable-height")){
         card.style.removeProperty("--subject-stable-height");
       }
+    }
+
+    const lifecycleCoverFrameQueue=new WeakSet();
+    function scheduleLifecycleStableCoverFrame(card){
+      if(!card||lifecycleCoverFrameQueue.has(card))return;
+      lifecycleCoverFrameQueue.add(card);
+      requestAnimationFrame(()=>{
+        lifecycleCoverFrameQueue.delete(card);
+        if(card.isConnected)syncLifecycleStableCoverFrame(card);
+      });
     }
 
     function renderCurrentSongCard(card,song,now){
@@ -8022,8 +8039,9 @@
       card.classList.toggle("phase-release",phase.key==="release");
       card.classList.toggle("phase-released",phase.key==="released");
       card.dataset.phase=phase.key;
-      syncLifecycleStableCoverFrame(card);
-      requestAnimationFrame(()=>{ if(card.isConnected)syncLifecycleStableCoverFrame(card); });
+      if(previousPhase!==phase.key||!card.dataset.coverFrameHeight){
+        scheduleLifecycleStableCoverFrame(card);
+      }
 
       const prepControlsHidden=phase.key==="release"||phase.key==="released";
       ["countdown-wrap","progress-wrap"].forEach(role=>{
@@ -8188,7 +8206,7 @@
 
 
     window.addEventListener("resize",()=>{
-      document.querySelectorAll("[data-current-song-card]").forEach(syncLifecycleStableCoverFrame);
+      document.querySelectorAll("[data-current-song-card]").forEach(scheduleLifecycleStableCoverFrame);
     },{passive:true});
 
     let futureCardObserver=null;
