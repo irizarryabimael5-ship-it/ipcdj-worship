@@ -88,9 +88,7 @@ final class ProjectStore: ObservableObject {
     }
 
     func renameCurrentSong(_ title: String) {
-        let clean = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !clean.isEmpty else { return }
-        mutateCurrent { $0.title = clean }
+        mutateCurrent { $0.title = title }
     }
 
     func installMigratedSongs(_ imported: [SongProject]) {
