@@ -680,47 +680,75 @@
       text-wrap:pretty;
     }
 
+    /* v181 primary navigation:
+       Apple-inspired floating glass anatomy with a clear selection material,
+       persistent labels + glyphs, and compact icon-above-label adaptation. */
     .site-nav{
       position:relative;
       z-index:8;
-      width:min(100%,720px);
-      margin:0 auto 20px;
+      width:min(100%,760px);
+      margin:0 auto 24px;
       padding:0;
       border:0;
-      border-radius:0;
       background:transparent;
-      box-shadow:none;
     }
 
     .site-tablist{
+      position:relative;
+      isolation:isolate;
       display:grid;
       grid-auto-flow:column;
       grid-auto-columns:minmax(0,1fr);
       align-items:stretch;
-      gap:0;
+      gap:6px;
       min-width:0;
-      padding:0;
-      border:0;
-      border-bottom:1px solid rgba(255,255,255,.18);
-      background:transparent;
+      padding:6px;
+      border:1px solid rgba(255,255,255,.105);
+      border-radius:20px;
+      background:
+        linear-gradient(180deg,rgba(20,29,45,.78) 0%,rgba(8,13,23,.69) 100%);
+      -webkit-backdrop-filter:blur(24px) saturate(1.34);
+      backdrop-filter:blur(24px) saturate(1.34);
+      box-shadow:
+        0 18px 44px rgba(0,0,0,.24),
+        inset 0 1px 0 rgba(255,255,255,.075),
+        0 0 0 1px rgba(0,0,0,.16);
+      overflow:hidden;
+    }
+
+    .site-tablist::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      z-index:0;
+      pointer-events:none;
+      border-radius:inherit;
+      background:
+        radial-gradient(80% 110% at 50% -28%,rgba(143,176,255,.105),transparent 58%),
+        linear-gradient(180deg,rgba(255,255,255,.035),transparent 44%);
     }
 
     .site-tab{
       position:relative;
+      z-index:1;
       min-width:0;
-      min-height:46px;
-      padding:10px 10px 12px;
-      border:0;
-      border-radius:0;
+      min-height:52px;
+      padding:10px 12px;
+      border:1px solid transparent;
+      border-radius:15px;
       appearance:none;
       -webkit-appearance:none;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:9px;
       background:transparent;
       color:#aeb8c7;
       font:inherit;
       font-size:.79rem;
-      line-height:1.15;
-      font-weight:700;
-      letter-spacing:.003em;
+      line-height:1.12;
+      font-weight:720;
+      letter-spacing:.002em;
       text-align:center;
       white-space:normal;
       overflow-wrap:normal;
@@ -728,54 +756,101 @@
       cursor:pointer;
       -webkit-tap-highlight-color:transparent;
       touch-action:manipulation;
-      transition:color .16s ease,opacity .16s ease;
+      transform:translateZ(0);
+      transition:
+        color .18s ease,
+        background-color .18s ease,
+        border-color .18s ease,
+        box-shadow .18s ease,
+        transform .14s ease;
     }
 
-    .site-tab::after{
-      content:"";
-      position:absolute;
-      left:8%;
-      right:8%;
-      bottom:-1px;
-      height:2px;
-      border-radius:999px;
-      background:#8fb0ff;
-      opacity:0;
-      transform:scaleX(.72);
-      transform-origin:center;
-      transition:opacity .16s ease,transform .16s ease;
+    .site-tab-icon{
+      flex:0 0 auto;
+      width:20px;
+      height:20px;
+      display:grid;
+      place-items:center;
+      color:#8794a8;
+      opacity:.9;
+      transition:color .18s ease,opacity .18s ease,filter .18s ease,transform .18s ease;
+    }
+
+    .site-tab-icon svg{
+      width:100%;
+      height:100%;
+      display:block;
+      overflow:visible;
+      fill:none;
+      stroke:currentColor;
+      stroke-width:1.8;
+      stroke-linecap:round;
+      stroke-linejoin:round;
+      pointer-events:none;
+    }
+
+    .site-tab-label{
+      min-width:0;
+      display:block;
+      text-wrap:balance;
     }
 
     .site-tab:hover{
-      color:#edf2f8;
+      color:#eef3fa;
+      border-color:rgba(255,255,255,.08);
+      background:rgba(255,255,255,.045);
+    }
+
+    .site-tab:hover .site-tab-icon{
+      color:#c3ccda;
+      opacity:1;
+    }
+
+    .site-tab:active{
+      transform:scale(.985);
     }
 
     .site-tab[aria-selected="true"]{
       color:#ffffff;
-      font-weight:820;
+      font-weight:800;
+      border-color:rgba(151,181,255,.33);
+      background:
+        linear-gradient(180deg,rgba(134,169,255,.225) 0%,rgba(78,108,185,.145) 100%);
+      box-shadow:
+        0 8px 22px rgba(0,0,0,.27),
+        inset 0 1px 0 rgba(255,255,255,.135),
+        inset 0 -1px 0 rgba(86,121,216,.10),
+        0 0 24px rgba(86,125,226,.075);
     }
 
-    .site-tab[aria-selected="true"]::after{
+    .site-tab[aria-selected="true"] .site-tab-icon{
+      color:#a9c2ff;
       opacity:1;
-      transform:scaleX(1);
+      filter:drop-shadow(0 0 8px rgba(116,158,255,.26));
+      transform:translateY(-.25px);
     }
 
-    .site-tab[data-special-event="true"]::before{
+    .site-tab[data-special-event="true"]::after{
       content:"";
       position:absolute;
       top:9px;
       right:9px;
-      width:4px;
-      height:4px;
+      width:5px;
+      height:5px;
       border-radius:50%;
       background:#7ce9ad;
-      box-shadow:none;
+      box-shadow:0 0 10px rgba(124,233,173,.48);
+    }
+
+    .site-tab[data-special-event="true"][aria-selected="true"]::after{
+      background:#98f4bd;
+      box-shadow:0 0 12px rgba(124,233,173,.66);
     }
 
     .site-tab:focus-visible{
-      outline:2px solid rgba(143,176,255,.88);
-      outline-offset:-2px;
-      border-radius:7px;
+      outline:2px solid rgba(157,187,255,.96);
+      outline-offset:2px;
+      border-color:rgba(157,187,255,.46);
     }
 
     .site-tab-panel{
@@ -2904,10 +2979,19 @@
     }
 
     @media (max-width:520px){
-      .site-nav{width:100%;margin-bottom:16px}
-      .site-tab{min-height:44px;padding:9px 5px 11px;font-size:.71rem}
-      .site-tab::after{left:7%;right:7%}
-      .site-tab[data-special-event="true"]::before{top:8px;right:5px}
+      .site-nav{width:100%;margin-bottom:18px}
+      .site-tablist{gap:4px;padding:5px;border-radius:18px}
+      .site-tab{
+        min-height:58px;
+        padding:8px 5px 7px;
+        border-radius:13px;
+        flex-direction:column;
+        gap:4px;
+        font-size:.68rem;
+        line-height:1.05;
+      }
+      .site-tab-icon{width:19px;height:19px}
+      .site-tab[data-special-event="true"]::after{top:7px;right:7px}
       .countdown-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
       .countdown-unit{min-height:64px}
       .progress-top{
@@ -2920,8 +3004,9 @@
     }
 
     @media (max-width:340px){
-      .site-tab{font-size:.64rem;padding-inline:4px}
-      .site-tab[data-special-event="true"]::before{width:4px;height:4px;top:5px;right:4px}
+      .site-tab{min-height:56px;font-size:.61rem;padding:7px 2px 6px;gap:3px}
+      .site-tab-icon{width:18px;height:18px}
+      .site-tab[data-special-event="true"]::after{width:4px;height:4px;top:6px;right:5px}
     }
 
     @media (max-width:280px){
@@ -2935,8 +3020,9 @@
       .brand-sub{display:block;margin:.12em 0 0}
       .eyebrow{font-size:.66rem;padding:6px 8px}
       .site-nav{margin-bottom:14px}
-      .site-tab{min-height:42px;padding:8px 3px 10px;font-size:.59rem;letter-spacing:0}
-      .site-tab::after{left:5%;right:5%}
+      .site-tablist{gap:3px;padding:4px;border-radius:16px}
+      .site-tab{min-height:54px;padding:6px 2px 5px;border-radius:12px;font-size:.56rem;letter-spacing:0;gap:2px}
+      .site-tab-icon{width:17px;height:17px}
       .platform{padding:10px 11px;gap:9px}
       .playlist-card .platform{
         padding:7px 5px;
@@ -3158,19 +3244,40 @@
     @media (prefers-contrast:more){
       :root{--line:rgba(255,255,255,.18);--muted:#c4cada}
       .card,.song-row,.timeline-item,.platform{border-width:1px}
+      .site-tablist{border-color:rgba(255,255,255,.28);background:rgba(8,13,23,.93)}
+      .site-tab{color:#e2e8f2}
+      .site-tab[aria-selected="true"]{
+        border-color:#a9c2ff;
+        background:rgba(93,126,211,.34);
+        box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
+      }
     }
 
     @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
       .card{background:rgba(11,15,24,.97)}
       .platform,.song-row,.timeline-item,.recent,.countdown-wrap,.progress-wrap{background-color:rgba(10,14,23,.88)}
       .eyebrow,.pull-refresh{background:rgba(10,14,23,.98)}
+      .site-tablist{background:rgba(8,13,23,.96)}
     }
 
     @media (forced-colors:active){
-      .card,.platform,.song-row,.timeline-item,.recent,.countdown-wrap,.progress-wrap,.pull-refresh{
+      .card,.platform,.song-row,.timeline-item,.recent,.countdown-wrap,.progress-wrap,.pull-refresh,.site-tablist{
         border:1px solid CanvasText;
         box-shadow:none;
       }
+      .site-tab{
+        forced-color-adjust:auto;
+        color:CanvasText;
+        border:1px solid transparent;
+        background:Canvas;
+        box-shadow:none;
+      }
+      .site-tab[aria-selected="true"]{
+        color:HighlightText;
+        background:Highlight;
+        border-color:Highlight;
+      }
+      .site-tab-icon{color:currentColor;filter:none!important}
       .status,.song-date,.recent .date{
         border:1px solid CanvasText;
       }
@@ -3193,7 +3300,8 @@
       html.ipcdj-ambient-release .ambient-field-active::before{opacity:.60!important;transform:none!important}
       .ambient-blob{animation:none!important}
       .inline-preview,.preview-button{transition:none!important}
-      .site-tab{transition:none!important}
+      .site-tab,.site-tab-icon{transition:none!important}
+      .site-tab:active{transform:none!important}
       .platform{transition:none}
       .progress-fill{transition:none}
       .progress-wrap{transition:none}
@@ -3663,8 +3771,18 @@
 
     <nav class="site-nav" aria-label="Secciones principales">
       <div class="site-tablist" id="site-tablist" role="tablist" aria-label="Secciones de IPCDJ Worship">
-        <button class="site-tab" id="tab-inicio" type="button" role="tab" aria-selected="true" aria-controls="panel-inicio" tabindex="0" data-site-tab="inicio">Inicio</button>
-        <button class="site-tab" id="tab-worship-semanal" type="button" role="tab" aria-selected="false" aria-controls="panel-worship-semanal" tabindex="-1" data-site-tab="worship-semanal">Worship semanal</button>
+        <button class="site-tab" id="tab-inicio" type="button" role="tab" aria-selected="true" aria-controls="panel-inicio" tabindex="0" data-site-tab="inicio">
+          <span class="site-tab-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false"><path d="M4 10.5 12 4l8 6.5v8.25A1.25 1.25 0 0 1 18.75 20h-4.5v-5.5h-4.5V20h-4.5A1.25 1.25 0 0 1 4 18.75Z"/></svg>
+          </span>
+          <span class="site-tab-label">Inicio</span>
+        </button>
+        <button class="site-tab" id="tab-worship-semanal" type="button" role="tab" aria-selected="false" aria-controls="panel-worship-semanal" tabindex="-1" data-site-tab="worship-semanal">
+          <span class="site-tab-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false"><path d="M7 3.75v2.5M17 3.75v2.5M4.5 8.25h15M6.25 5h11.5A1.75 1.75 0 0 1 19.5 6.75v11A1.75 1.75 0 0 1 17.75 19.5H6.25a1.75 1.75 0 0 1-1.75-1.75v-11A1.75 1.75 0 0 1 6.25 5Z"/><path d="M13.75 11.25v4.1a1.65 1.65 0 1 1-1.1-1.56l3.1-.78"/></svg>
+          </span>
+          <span class="site-tab-label">Worship semanal</span>
+        </button>
       </div>
     </nav>
 
@@ -3788,6 +3906,24 @@
 
     const siteTabButton=key=>document.querySelector('[data-site-tab="'+CSS.escape(key)+'"]');
 
+    const SITE_TAB_ICONS=Object.freeze({
+      inicio:'<svg viewBox="0 0 24 24" focusable="false"><path d="M4 10.5 12 4l8 6.5v8.25A1.25 1.25 0 0 1 18.75 20h-4.5v-5.5h-4.5V20h-4.5A1.25 1.25 0 0 1 4 18.75Z"/></svg>',
+      "worship-semanal":'<svg viewBox="0 0 24 24" focusable="false"><path d="M7 3.75v2.5M17 3.75v2.5M4.5 8.25h15M6.25 5h11.5A1.75 1.75 0 0 1 19.5 6.75v11A1.75 1.75 0 0 1 17.75 19.5H6.25a1.75 1.75 0 0 1-1.75-1.75v-11A1.75 1.75 0 0 1 6.25 5Z"/><path d="M13.75 11.25v4.1a1.65 1.65 0 1 1-1.1-1.56l3.1-.78"/></svg>',
+      event:'<svg viewBox="0 0 24 24" focusable="false"><path d="m12 3 1.35 4.15L17.5 8.5l-4.15 1.35L12 14l-1.35-4.15L6.5 8.5l4.15-1.35L12 3Z"/><path d="m18.25 14.5.7 2.05 2.05.7-2.05.7-.7 2.05-.7-2.05-2.05-.7 2.05-.7.7-2.05Z"/></svg>'
+    });
+
+    function setSiteTabContent(tab,key,label){
+      if(!tab)return;
+      const icon=document.createElement("span");
+      icon.className="site-tab-icon";
+      icon.setAttribute("aria-hidden","true");
+      icon.innerHTML=SITE_TAB_ICONS[key]||SITE_TAB_ICONS.event;
+      const text=document.createElement("span");
+      text.className="site-tab-label";
+      text.textContent=label;
+      tab.replaceChildren(icon,text);
+    }
+
     function visibleSiteTabs(){
       if(!siteTabList)return [];
       return [...siteTabList.querySelectorAll('[role="tab"]:not([hidden])')];
@@ -3836,7 +3972,7 @@
       tab.setAttribute("tabindex","-1");
       tab.dataset.siteTab=event.key;
       tab.dataset.specialEvent="true";
-      tab.textContent=event.label;
+      setSiteTabContent(tab,event.key,event.label);
       siteTabList.appendChild(tab);
 
       const panel=document.createElement("section");
