@@ -43,7 +43,16 @@ jobs:
         run: |
           set -euo pipefail
           cd legacy-migrator
-          go mod tidy
+          for attempt in 1 2 3; do
+            if go mod tidy; then
+              break
+            fi
+            if [ "$attempt" = "3" ]; then
+              exit 1
+            fi
+            echo "Go module verification timed out; retrying in $((attempt * 4)) seconds…"
+            sleep $((attempt * 4))
+          done
           mkdir -p ../build/helpers
           GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o ../build/helpers/legacy-migrator-arm64 .
           GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o ../build/helpers/legacy-migrator-x86_64 .
