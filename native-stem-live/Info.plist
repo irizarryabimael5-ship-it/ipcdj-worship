@@ -11,8 +11,8 @@
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>LSApplicationCategoryType</key><string>public.app-category.music</string>
-  <key>CFBundleShortVersionString</key><string>0.6.5</string>
-  <key>CFBundleVersion</key><string>650</string>
+  <key>CFBundleShortVersionString</key><string>0.6.6</string>
+  <key>CFBundleVersion</key><string>660</string>
   <key>LSMinimumSystemVersion</key><string>13.0</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>NSPrincipalClass</key><string>NSApplication</string>
