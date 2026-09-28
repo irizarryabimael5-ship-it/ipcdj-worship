@@ -436,6 +436,15 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
 
   await weeklyTab.click();
   await expect(weeklyTab).toHaveAttribute('aria-selected', 'true');
+  await page.waitForFunction(() => {
+    const tab=document.getElementById('tab-worship-semanal');
+    const selection=document.querySelector('.site-tab-selection');
+    if(!tab||!selection)return false;
+    const tabRect=tab.getBoundingClientRect();
+    const selectionRect=selection.getBoundingClientRect();
+    return Math.abs(selectionRect.left-tabRect.left)<=1.5 &&
+      Math.abs(selectionRect.width-tabRect.width)<=1.5;
+  });
   const weeklySelectedVisual=await page.evaluate(()=>{
     const tab=document.getElementById('tab-worship-semanal');
     const selection=document.querySelector('.site-tab-selection');
@@ -481,6 +490,15 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(eventTab.locator('.site-tab-icon')).toHaveCount(1);
   await expect(eventTab.locator('.site-tab-label')).toHaveText('Campaña GU 2026');
   await eventTab.click();
+  await page.waitForFunction(() => {
+    const tab=document.getElementById('tab-campana-gu-2026');
+    const selection=document.querySelector('.site-tab-selection');
+    if(!tab||!selection)return false;
+    const tabRect=tab.getBoundingClientRect();
+    const selectionRect=selection.getBoundingClientRect();
+    return Math.abs(selectionRect.left-tabRect.left)<=1.5 &&
+      Math.abs(selectionRect.width-tabRect.width)<=1.5;
+  });
 
   const eventSelectedVisual=await page.evaluate(()=>{
     const tab=document.getElementById('tab-campana-gu-2026');
@@ -588,6 +606,8 @@ test('v182 primary navigation uses one moving selection lens instead of button c
   expect(source).toContain('--site-tab-selection-x');
   expect(source).toContain('--site-tab-selection-width');
   expect(source).toContain('function syncSiteTabSelection()');
+  expect(source).toContain('transition:');
+  expect(source).toContain('transform .24s cubic-bezier(.22,.72,.18,1)');
   expect(source).toContain('ResizeObserver(syncSiteTabSelection)');
   expect(source).toContain('syncSelection:()=>syncSiteTabSelection()');
   expect(source).toContain('.site-tab[aria-selected="true"]');
