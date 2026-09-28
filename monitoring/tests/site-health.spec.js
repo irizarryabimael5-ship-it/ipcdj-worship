@@ -327,6 +327,7 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
     const widths=tabs.map(tab=>tab.getBoundingClientRect().width);
     const heights=tabs.map(tab=>tab.getBoundingClientRect().height);
     const navRect=nav.getBoundingClientRect();
+    const listRect=tablist.getBoundingClientRect();
     const listAfter=getComputedStyle(tablist,'::after');
     const tabStyles=tabs.map(tab=>{
       const style=getComputedStyle(tab);
@@ -350,6 +351,7 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
       navBeforeHero:!!(nav.compareDocumentPosition(hero)&Node.DOCUMENT_POSITION_FOLLOWING),
       position:getComputedStyle(nav).position,
       navWidth:navRect.width,
+      tablistWidth:listRect.width,
       viewportWidth:window.innerWidth,
       widths,
       heights,
@@ -363,7 +365,14 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   expect(navLayout.navBeforeHero).toBe(true);
   expect(navLayout.position).toBe('relative');
   expect(navLayout.navWidth).toBeLessThanOrEqual(navLayout.viewportWidth);
-  expect(Math.max(...navLayout.widths)-Math.min(...navLayout.widths)).toBeLessThanOrEqual(1.5);
+  expect(navLayout.tablistWidth).toBeLessThanOrEqual(navLayout.navWidth);
+  if(navLayout.viewportWidth<=520){
+    expect(Math.max(...navLayout.widths)-Math.min(...navLayout.widths)).toBeLessThanOrEqual(1.5);
+  }else{
+    expect(navLayout.tablistWidth).toBeLessThan(navLayout.navWidth);
+    expect(Math.min(...navLayout.widths)).toBeGreaterThanOrEqual(118);
+    expect(Math.max(...navLayout.widths)).toBeLessThanOrEqual(220);
+  }
   expect(Math.max(...navLayout.heights)-Math.min(...navLayout.heights)).toBeLessThanOrEqual(1.5);
   expect(Math.min(...navLayout.heights)).toBeGreaterThanOrEqual(44);
   expect(navLayout.baselineHeight).toBeGreaterThanOrEqual(1);
@@ -547,6 +556,9 @@ test('v183 primary navigation uses true text-first tab-view anatomy', async ({ r
   expect(source).toContain('/* v183 primary navigation:');
   expect(source).toContain('a true tab-view strip: text-first tabs share one baseline');
   expect(source).toContain('.site-tablist::after');
+  expect(source).toContain('width:max-content');
+  expect(source).toContain('min-width:118px');
+  expect(source).toContain('flex:1 1 0');
   expect(source).toContain('border-radius:11px 11px 0 0');
   expect(source).toContain('.site-tab[aria-selected="true"]');
   expect(source).toContain('.site-tab[aria-selected="true"]::before');
