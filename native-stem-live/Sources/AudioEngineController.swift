@@ -44,7 +44,6 @@ final class AudioEngineController: ObservableObject {
 
     private var engine = AVAudioEngine()
     private var musicMixer = AVAudioMixerNode()
-    private var reverb = AVAudioUnitReverb()
     private var musicRouter = AVAudioMixerNode()
     private var clickMixer = AVAudioMixerNode()
     private var clickNode = AVAudioPlayerNode()
@@ -65,11 +64,8 @@ final class AudioEngineController: ObservableObject {
     private var accentClickBuffer: AVAudioPCMBuffer?
     private var subdivisionClickBuffer: AVAudioPCMBuffer?
 
-    private var visualLow: Float = 0
-    private var visualPrev: Float = 0
-    private var visualLastPublish: CFAbsoluteTime = 0
-    private var visualPeak: Double = 0.08
     private var visualSmooth = VisualMetrics()
+    private var lastVisualLevel: Double = 0
 
     private let graphLock = NSRecursiveLock()
     private var gainRampTimer: DispatchSourceTimer?
@@ -168,7 +164,6 @@ final class AudioEngineController: ObservableObject {
 
         engine = AVAudioEngine()
         musicMixer = AVAudioMixerNode()
-        reverb = AVAudioUnitReverb()
         musicRouter = AVAudioMixerNode()
         clickMixer = AVAudioMixerNode()
         clickNode = AVAudioPlayerNode()
@@ -190,26 +185,19 @@ final class AudioEngineController: ObservableObject {
         }
 
         engine.attach(musicMixer)
-        engine.attach(reverb)
         engine.attach(musicRouter)
         engine.attach(clickMixer)
         engine.attach(clickNode)
-
-        reverb.loadFactoryPreset(.mediumHall)
-        reverb.wetDryMix = 0
-
-        engine.connect(musicMixer, to: reverb, format: stereo)
 
         if song.outputMode == .split {
             let matrix = try instantiateMatrixMixer()
             monoMatrix = matrix
             engine.attach(matrix)
-            engine.connect(reverb, to: matrix, format: stereo)
+            engine.connect(musicMixer, to: matrix, format: stereo)
             engine.connect(matrix, to: musicRouter, format: stereo)
         } else {
-            // The normal stereo path intentionally contains no MatrixMixer.
-            // It is the shortest AVAudioEngine path for maximum reliability and fidelity.
-            engine.connect(reverb, to: musicRouter, format: stereo)
+            // Transparent stereo path: no effect unit, no matrix, no lossy stage.
+            engine.connect(musicMixer, to: musicRouter, format: stereo)
         }
 
         engine.connect(musicRouter, to: engine.mainMixerNode, format: nil)
@@ -248,7 +236,6 @@ final class AudioEngineController: ObservableObject {
 
         musicMixer.outputVolume = 1
         musicRouter.outputVolume = 1
-        installVisualTap()
         let negotiatedClickFormat = clickNode.outputFormat(forBus: 0)
         guard negotiatedClickFormat.channelCount == 1,
               abs(negotiatedClickFormat.sampleRate - sr) < 0.5 else {
@@ -399,7 +386,6 @@ final class AudioEngineController: ObservableObject {
         for player in players.values { player.stop() }
         clickNode.stop()
         musicMixer.outputVolume = 1
-        reverb.wetDryMix = 0
 
         let startHost = mach_absolute_time() + AVAudioTime.hostTime(forSeconds: 0.14)
         let when = AVAudioTime(hostTime: startHost)
@@ -522,7 +508,6 @@ final class AudioEngineController: ObservableObject {
 
         fadeStopWorkItem?.cancel()
         fadeStopWorkItem = nil
-        reverb.wetDryMix = 12
 
         rampMusic(to: 0, duration: max(1.0, seconds)) { [weak self] in
             guard let self else { return }
@@ -552,11 +537,14 @@ final class AudioEngineController: ObservableObject {
         DispatchQueue.main.async {
             self.isPlaying = false
             self.currentTime = immediate ? 0 : t
-            if immediate { self.visual = VisualMetrics() }
+            if immediate {
+                self.visual = VisualMetrics()
+                self.visualSmooth = VisualMetrics()
+                self.lastVisualLevel = 0
+            }
         }
         if immediate {
             musicMixer.outputVolume = 1
-            reverb.wetDryMix = 0
         }
     }
 
@@ -616,6 +604,9 @@ final class AudioEngineController: ObservableObject {
             let t = self.transportPosition()
             let song = self.activeSong
             let duration = song?.duration ?? 0
+            if let song {
+                self.updateVisualFromWaveforms(song: song, time: t)
+            }
             let generation = self.transportGeneration
             var loopTarget: Double?
 
@@ -794,66 +785,64 @@ final class AudioEngineController: ObservableObject {
         return buffer
     }
 
-    private func installVisualTap() {
-        reverb.installTap(onBus: 0, bufferSize: 1024, format: nil) { [weak self] buffer, _ in
-            self?.consumeVisualBuffer(buffer)
+    private func updateVisualFromWaveforms(song: SongProject, time: Double) {
+        let live = song.stems.filter { stem in
+            stem.effectiveRoute == .music && !stem.muted && !stem.waveform.isEmpty
         }
-    }
-
-    private func consumeVisualBuffer(_ buffer: AVAudioPCMBuffer) {
-        guard let ptr = buffer.floatChannelData?[0] else { return }
-        let n = Int(buffer.frameLength)
-        guard n > 8 else { return }
-
-        var sum: Double = 0
-        var lowSum: Double = 0
-        var highSum: Double = 0
-        var fluxSum: Double = 0
-        var low = visualLow
-        var prev = visualPrev
-        let alpha: Float = 0.055
-
-        var i = 0
-        while i < n {
-            let x = ptr[i]
-            low += alpha * (x - low)
-            let high = x - prev
-            let flux = max(0, abs(x) - abs(prev))
-            sum += Double(x * x)
-            lowSum += Double(low * low)
-            highSum += Double(high * high)
-            fluxSum += Double(flux)
-            prev = x
-            i += 2
+        guard !live.isEmpty, song.duration > 0 else {
+            DispatchQueue.main.async { [weak self] in
+                self?.visual = VisualMetrics()
+            }
+            return
         }
-        visualLow = low
-        visualPrev = prev
-        let count = Double(max(1, n / 2))
-        let rms = sqrt(sum / count)
-        let lowRMS = sqrt(lowSum / count)
-        let highRMS = sqrt(highSum / count)
-        visualPeak = max(rms, visualPeak * 0.996)
-        let level = (rms / max(0.04, visualPeak * 0.94)).clamped(0...1)
-        let bass = (lowRMS / max(0.0001, rms)).clamped(0...1)
-        let air = (highRMS / max(0.0001, rms * 1.7)).clamped(0...1)
-        let mid = max(0, 1 - bass * 0.72 - air * 0.52).clamped(0...1)
-        let transient = (fluxSum / count * 18).clamped(0...1)
 
-        let now = CFAbsoluteTimeGetCurrent()
-        guard now - visualLastPublish >= 0.05 else { return }
-        visualLastPublish = now
-        let raw = VisualMetrics(level: level, bass: bass, mid: mid, air: air, transient: transient)
+        var peak: Double = 0
+        var average: Double = 0
+        var contributors = 0
+
+        for stem in live {
+            let normalized = (time / max(0.001, song.duration)).clamped(0...1)
+            let index = min(
+                stem.waveform.count - 1,
+                max(0, Int(normalized * Double(stem.waveform.count - 1)))
+            )
+            let value = Double(stem.waveform[index]).clamped(0...1)
+            peak = max(peak, value)
+            average += value
+            contributors += 1
+        }
+
+        guard contributors > 0 else { return }
+        average /= Double(contributors)
+
+        // This meter uses the actual precomputed waveform envelopes rather than
+        // touching AVAudioEngine's realtime render thread. That keeps Living Color
+        // music-reactive without installing a render tap in the live audio path.
+        let level = (peak * 0.68 + average * 0.32).clamped(0...1)
+        let delta = max(0, level - lastVisualLevel)
+        lastVisualLevel = level
+
         func approach(_ current: Double, _ target: Double, attack: Double, release: Double) -> Double {
             let tau = target > current ? attack : release
-            let dt = 0.05
+            let dt = 1.0 / 30.0
             let a = 1 - exp(-dt / max(0.001, tau))
             return current + (target - current) * a
         }
-        visualSmooth.level = approach(visualSmooth.level, raw.level, attack: 0.28, release: 1.90)
-        visualSmooth.bass = approach(visualSmooth.bass, raw.bass, attack: 0.34, release: 1.15)
-        visualSmooth.mid = approach(visualSmooth.mid, raw.mid, attack: 0.34, release: 1.15)
-        visualSmooth.air = approach(visualSmooth.air, raw.air, attack: 0.30, release: 1.00)
-        visualSmooth.transient = approach(visualSmooth.transient, raw.transient, attack: 0.16, release: 0.72)
+
+        let raw = VisualMetrics(
+            level: level,
+            bass: pow(level, 1.15).clamped(0...1),
+            mid: (0.22 + level * 0.78).clamped(0...1),
+            air: (0.12 + delta * 3.1).clamped(0...1),
+            transient: (delta * 4.8).clamped(0...1)
+        )
+
+        visualSmooth.level = approach(visualSmooth.level, raw.level, attack: 0.16, release: 1.4)
+        visualSmooth.bass = approach(visualSmooth.bass, raw.bass, attack: 0.22, release: 1.0)
+        visualSmooth.mid = approach(visualSmooth.mid, raw.mid, attack: 0.20, release: 0.9)
+        visualSmooth.air = approach(visualSmooth.air, raw.air, attack: 0.12, release: 0.65)
+        visualSmooth.transient = approach(visualSmooth.transient, raw.transient, attack: 0.08, release: 0.42)
+
         let metrics = visualSmooth
         DispatchQueue.main.async { [weak self] in
             self?.visual = metrics
