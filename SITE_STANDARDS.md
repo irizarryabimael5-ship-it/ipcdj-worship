@@ -3276,3 +3276,15 @@ Watchdog:
 - The hero subtitle may use two clean lines; do not intentionally crop it to a single ellipsized line.
 - Open Graph / Twitter metadata uses the versioned `social-preview-v176.jpg?v=179` URL, 1200×630 dimensions, JPEG type, absolute HTTPS paths, and crawler-accessible robots policy.
 - The social-preview workflow may regenerate the JPEG after source changes and must dispatch the final website-health run on the generated main head.
+
+
+## Deterministic lifecycle and performance watchdog refinement
+
+- Visual release-state watchdogs must use `IPCDJ_CATALOG_TEST.renderAt(...)` to lock the real runtime to a known release timestamp before reading ambient styles. Manually adding a release CSS class while the live one-second clock is running is not a valid test because production rendering may immediately restore the current real-world phase.
+- Ambient tests continue to enforce the full release-state cover colors, release root class, active field, broad halo, blob rendering, and reduced-motion/reduced-data fallbacks.
+- Lifecycle performance is measured in three independent budgets:
+  - forced cross-phase synchronous rendering: 12 jumps under 3000 ms total and under 250 ms average;
+  - production-like same-phase countdown cadence: 30 one-second-equivalent ticks under 1500 ms total and under 50 ms average;
+  - two-frame compositor/paint settling: under 1000 ms.
+- Separating synchronous update cost from compositor scheduling prevents CI/WebKit frame scheduling from being misreported as application CPU lag while still enforcing strict real-time cadence performance.
+- Functional lifecycle, duplicate-ID, overflow, current-card-count and DOM-size checks remain mandatory alongside the performance budgets.
