@@ -1,8 +1,8 @@
-name: Build STEM Live Native 0.6.3
+name: Build STEM Live Native 0.6.4
 
 on:
   push:
-    branches: [stem-live-native-063]
+    branches: [stem-live-native-064]
     paths:
       - 'native-stem-live/**'
       - '.github/workflows/stem-live-native.yml'
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: stem-live-native-063
+  group: stem-live-native-064
   cancel-in-progress: true
 
 jobs:
@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: stem-live-native-063
+          ref: stem-live-native-064
 
       - uses: actions/setup-go@v5
         with:
@@ -59,7 +59,18 @@ jobs:
             echo "Unsafe force operation found in native source."
             exit 1
           fi
-          grep -R -n '0.6.3' Info.plist Sources/ContentView.swift >/dev/null
+          grep -R -n '0.6.4' Info.plist Sources/ContentView.swift >/dev/null
+
+      - name: Runtime multistem audio smoke test
+        run: |
+          set -euo pipefail
+          mkdir -p build/smoke
+          xcrun swiftc -O \
+            -framework AVFoundation -framework AudioToolbox \
+            Smoke/AudioGraphSmoke.swift \
+            -o build/smoke/audio-graph-smoke
+          build/smoke/audio-graph-smoke | tee build/smoke/audio-graph-smoke.log
+          grep -q 'STEM LIVE AUDIO SMOKE TEST PASSED' build/smoke/audio-graph-smoke.log
 
       - name: Generate native macOS app icon
         run: |
@@ -199,7 +210,7 @@ jobs:
           chmod +x "$APP/Contents/MacOS/STEM Live Native" "$APP/Contents/Resources/bin/legacy-migrator"
 
           plutil -lint "$APP/Contents/Info.plist"
-          test "$(plutil -extract CFBundleShortVersionString raw "$APP/Contents/Info.plist")" = "0.6.3"
+          test "$(plutil -extract CFBundleShortVersionString raw "$APP/Contents/Info.plist")" = "0.6.4"
           test "$(plutil -extract CFBundleIconFile raw "$APP/Contents/Info.plist")" = "AppIcon"
           file "$APP/Contents/Resources/AppIcon.icns"
           lipo -info "$APP/Contents/MacOS/STEM Live Native"
@@ -218,9 +229,9 @@ jobs:
             --component "$APP" \
             --install-location /Applications \
             --identifier org.ipcdj.stemlive.nativepreview.pkg \
-            --version 0.6.3 \
-            build/STEM_Live_Native_0.6.3.pkg
-          xar -tf build/STEM_Live_Native_0.6.3.pkg
+            --version 0.6.4 \
+            build/STEM_Live_Native_0.6.4.pkg
+          xar -tf build/STEM_Live_Native_0.6.4.pkg
 
           rm -rf build/dmg-stage
           mkdir -p build/dmg-stage
@@ -234,29 +245,29 @@ jobs:
           TXT
 
           hdiutil create \
-            -volname 'STEM Live Native 0.6.3' \
+            -volname 'STEM Live Native 0.6.4' \
             -srcfolder build/dmg-stage \
             -ov -format UDZO \
-            build/STEM_Live_Native_0.6.3.dmg
-          hdiutil verify build/STEM_Live_Native_0.6.3.dmg
+            build/STEM_Live_Native_0.6.4.dmg
+          hdiutil verify build/STEM_Live_Native_0.6.4.dmg
 
-          ditto -c -k --keepParent "$APP" build/STEM_Live_Native_0.6.3_App.zip
-          ditto -c -k build/STEM_Live_Native_0.6.3.pkg build/STEM_Live_Native_0.6.3_PKG.zip
+          ditto -c -k --keepParent "$APP" build/STEM_Live_Native_0.6.4_App.zip
+          ditto -c -k build/STEM_Live_Native_0.6.4.pkg build/STEM_Live_Native_0.6.4_PKG.zip
 
           shasum -a 256 \
-            build/STEM_Live_Native_0.6.3.dmg \
-            build/STEM_Live_Native_0.6.3.pkg \
-            build/STEM_Live_Native_0.6.3_App.zip \
-            build/STEM_Live_Native_0.6.3_PKG.zip | tee build/SHA256.txt
+            build/STEM_Live_Native_0.6.4.dmg \
+            build/STEM_Live_Native_0.6.4.pkg \
+            build/STEM_Live_Native_0.6.4_App.zip \
+            build/STEM_Live_Native_0.6.4_PKG.zip | tee build/SHA256.txt
 
       - name: Upload native release
         uses: actions/upload-artifact@v4
         with:
-          name: STEM-Live-Native-0.6.3
+          name: STEM-Live-Native-0.6.4
           path: |
-            native-stem-live/build/STEM_Live_Native_0.6.3.dmg
-            native-stem-live/build/STEM_Live_Native_0.6.3.pkg
-            native-stem-live/build/STEM_Live_Native_0.6.3_PKG.zip
-            native-stem-live/build/STEM_Live_Native_0.6.3_App.zip
+            native-stem-live/build/STEM_Live_Native_0.6.4.dmg
+            native-stem-live/build/STEM_Live_Native_0.6.4.pkg
+            native-stem-live/build/STEM_Live_Native_0.6.4_PKG.zip
+            native-stem-live/build/STEM_Live_Native_0.6.4_App.zip
             native-stem-live/build/SHA256.txt
           if-no-files-found: error
