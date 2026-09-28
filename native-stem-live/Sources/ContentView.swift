@@ -606,8 +606,12 @@ struct QuickClick: View {
         let now = Date.timeIntervalSinceReferenceDate
         tapTimes = (tapTimes + [now]).filter { now - $0 <= 3.0 }
         guard tapTimes.count >= 2 else { return }
-        let intervals = zip(tapTimes.dropFirst(), tapTimes).map { $0 - $1 }
-        let useful = intervals.filter { $0 > 0.20 && $0 < 2.0 }
+        var intervals: [Double] = []
+        for index in 1..<tapTimes.count {
+            let value = tapTimes[index] - tapTimes[index - 1]
+            if value > 0.20 && value < 2.0 { intervals.append(value) }
+        }
+        let useful = intervals
         guard !useful.isEmpty else { return }
         let average = useful.reduce(0, +) / Double(useful.count)
         change {
@@ -619,31 +623,71 @@ struct QuickClick: View {
 
 struct SetPage: View {
     @EnvironmentObject var store: ProjectStore
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             PageHeading(title: "Set", subtitle: "Songs for the current performance.")
-            HStack {
-                Button("+ NEW SONG") { store.addSong() }.buttonStyle(SmallButton(primary: true))
+
+            HStack(spacing: 10) {
+                Button("+ NEW SONG") { store.addSong() }
+                    .buttonStyle(SmallButton(primary: true))
+
+                if let song = store.currentSong {
+                    LabelText("CURRENT TITLE")
+                    TextField(
+                        "Song title",
+                        text: Binding(
+                            get: { song.title },
+                            set: { store.renameCurrentSong($0) }
+                        )
+                    )
+                    .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: 330)
+                }
+
                 Spacer()
             }
+
             ScrollView {
                 LazyVStack(spacing: 9) {
                     ForEach(Array(store.songs.enumerated()), id: \.element.id) { idx, song in
                         Button { store.selectSong(song.id) } label: {
                             HStack {
-                                Text(String(format: "%02d", idx + 1)).font(.system(size: 16, weight: .black)).foregroundColor(.secondary)
+                                Text(String(format: "%02d", idx + 1))
+                                    .font(.system(size: 16, weight: .black))
+                                    .foregroundColor(.secondary)
                                 VStack(alignment: .leading) {
                                     Text(song.title).font(.system(size: 16, weight: .bold))
-                                    Text("\(song.bpm, specifier: "%.1f") BPM · \(song.stems.count) stems · \(song.sections.count) sections").font(.caption).foregroundColor(.secondary)
+                                    Text("\(song.bpm, specifier: "%.1f") BPM · \(song.stems.count) stems · \(song.sections.count) sections")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
                                 }
                                 Spacer()
-                            }.padding(17).background(Card(corner: 18))
-                        }.buttonStyle(.plain)
+                            }
+                            .padding(17)
+                            .background(Card(corner: 18))
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            Button("Open in Live") {
+                                store.selectSong(song.id)
+                                store.page = .live
+                            }
+                            Button("Open in Arrange") {
+                                store.selectSong(song.id)
+                                store.page = .arrange
+                            }
+                            Button("Open in Mix") {
+                                store.selectSong(song.id)
+                                store.page = .mix
+                            }
+                        }
                     }
                 }
             }
             Spacer()
-        }.padding(5)
+        }
+        .padding(5)
     }
 }
 
@@ -1439,72 +1483,368 @@ struct InspectorTimeRow: View {
 struct MixPage: View {
     @EnvironmentObject var store: ProjectStore
     @EnvironmentObject var audio: AudioEngineController
+
     var body: some View {
         VStack(alignment: .leading, spacing: 13) {
-            PageHeading(title: "Mix", subtitle: "Native stem levels, mute and solo.")
+            PageHeading(title: "Mix", subtitle: "Stem names, routing, level, mute, solo and sync status.")
+
             if let song = store.currentSong {
                 ScrollView {
                     VStack(spacing: 8) {
                         ForEach(song.stems) { stem in
                             HStack(spacing: 12) {
-                                VStack(alignment: .leading) {
-                                    Text(stem.name).font(.system(size: 11, weight: .bold))
-                                    Text(stem.effectiveRoute == .reference ? "REFERENCE · EXCLUDED" : (stem.effectiveRoute == .click ? "CLICK · EXCLUDED FROM MUSIC" : "LIVE STEM"))
-                                        .font(.system(size: 10, weight: .black))
-                                        .foregroundColor(stem.effectiveRoute == .reference ? .orange : (stem.effectiveRoute == .click ? .cyan : .secondary))
-                                }.frame(width: 260, alignment: .leading)
-                                Slider(value: Binding(get: { stem.volume }, set: { v in update(stem) { $0.volume = v } }), in: 0...1.5)
-                                Button("M") { update(stem) { $0.muted.toggle() } }.buttonStyle(SmallButton(primary: stem.muted))
-                                Button("S") { update(stem) { $0.solo.toggle() } }.buttonStyle(SmallButton(primary: stem.solo))
-                            }.padding(13).background(Card(corner: 16))
+                                VStack(alignment: .leading, spacing: 4) {
+                                    TextField(
+                                        "Stem name",
+                                        text: Binding(
+                                            get: { stem.name },
+                                            set: { value in
+                                                update(stem) { $0.name = value }
+                                            }
+                                        )
+                                    )
+                                    .textFieldStyle(.plain)
+                                    .font(.system(size: 12, weight: .bold))
+
+                                    HStack(spacing: 6) {
+                                        Text(routeLabel(stem))
+                                            .font(.system(size: 9.5, weight: .black))
+                                            .foregroundColor(routeColor(stem))
+                                        if stem.effectiveSourceOffset > 0.0001 {
+                                            Text("SYNC +\(stem.effectiveSourceOffset, specifier: "%.3f")s")
+                                                .font(.system(size: 9.5, weight: .black))
+                                                .foregroundColor(.cyan)
+                                        }
+                                        if let confidence = stem.syncConfidence {
+                                            Text("\(Int((confidence * 100).rounded()))%")
+                                                .font(.system(size: 9.5, weight: .bold))
+                                                .foregroundColor(.secondary)
+                                        }
+                                    }
+                                }
+                                .frame(width: 260, alignment: .leading)
+
+                                Picker("", selection: Binding(
+                                    get: { stem.effectiveRoute },
+                                    set: { route in update(stem) { $0.route = route; $0.reference = route == .reference } }
+                                )) {
+                                    Text("Music").tag(StemRoute.music)
+                                    Text("Click").tag(StemRoute.click)
+                                    Text("Reference").tag(StemRoute.reference)
+                                }
+                                .frame(width: 125)
+
+                                Slider(
+                                    value: Binding(
+                                        get: { stem.volume },
+                                        set: { v in update(stem) { $0.volume = v } }
+                                    ),
+                                    in: 0...1.5
+                                )
+
+                                Text("\(Int((stem.volume * 100).rounded()))%")
+                                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                    .foregroundColor(.secondary)
+                                    .frame(width: 45)
+
+                                Button("M") { update(stem) { $0.muted.toggle() } }
+                                    .buttonStyle(SmallButton(primary: stem.muted))
+                                Button("S") { update(stem) { $0.solo.toggle() } }
+                                    .buttonStyle(SmallButton(primary: stem.solo))
+                            }
+                            .padding(13)
+                            .background(Card(corner: 16))
+                            .contextMenu {
+                                Button(stem.muted ? "Unmute" : "Mute") {
+                                    update(stem) { $0.muted.toggle() }
+                                }
+                                Button(stem.solo ? "Unsolo" : "Solo") {
+                                    update(stem) { $0.solo.toggle() }
+                                }
+                                Divider()
+                                Button("Route as Music") {
+                                    update(stem) { $0.route = .music; $0.reference = false }
+                                }
+                                Button("Route as Click") {
+                                    update(stem) { $0.route = .click; $0.reference = false }
+                                }
+                                Button("Route as Reference") {
+                                    update(stem) { $0.route = .reference; $0.reference = true }
+                                }
+                                if stem.effectiveSourceOffset > 0.0001 {
+                                    Divider()
+                                    Button("Reset Sync Offset") {
+                                        update(stem) {
+                                            $0.sourceOffsetSeconds = nil
+                                            $0.syncConfidence = nil
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
-            } else { EmptyState(title: "No song", subtitle: "Import stems in ARRANGE.") }
+            } else {
+                EmptyState(title: "No song", subtitle: "Import stems in ARRANGE.")
+            }
             Spacer()
-        }.padding(5)
+        }
+        .padding(5)
     }
+
     private func update(_ stem: StemTrack, _ body: (inout StemTrack) -> Void) {
         store.mutateCurrent { song in
-            if let i = song.stems.firstIndex(where: { $0.id == stem.id }) { body(&song.stems[i]) }
+            if let index = song.stems.firstIndex(where: { $0.id == stem.id }) {
+                body(&song.stems[index])
+            }
         }
-        if let s = store.currentSong { audio.applyStemState(s) }
+        if let current = store.currentSong {
+            audio.reloadIfNeeded(song: current)
+        }
+    }
+
+    private func routeLabel(_ stem: StemTrack) -> String {
+        switch stem.effectiveRoute {
+        case .music: return "LIVE STEM"
+        case .click: return "CLICK · EXCLUDED FROM MUSIC"
+        case .reference: return "REFERENCE · EXCLUDED"
+        }
+    }
+
+    private func routeColor(_ stem: StemTrack) -> Color {
+        switch stem.effectiveRoute {
+        case .music: return .secondary
+        case .click: return .cyan
+        case .reference: return .orange
+        }
     }
 }
 
 struct ClickPage: View {
     @EnvironmentObject var store: ProjectStore
     @EnvironmentObject var audio: AudioEngineController
+    @EnvironmentObject var performance: AudioPerformanceState
+    @State private var tapTimes: [TimeInterval] = []
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            PageHeading(title: "Click", subtitle: "Native host-clock click for split-output performance.")
+            PageHeading(title: "Click", subtitle: "Stage metronome · independent tempo, subdivisions, accent, swing and right-channel routing.")
+
             if let song = store.currentSong {
                 HStack(alignment: .top, spacing: 12) {
+                    VStack(spacing: 16) {
+                        ClickPulseView(song: song)
+                            .frame(maxWidth: .infinity, minHeight: 260)
+
+                        HStack(spacing: 10) {
+                            Toggle("Generated Click", isOn: Binding(
+                                get: { song.click.enabled },
+                                set: { v in change { $0.enabled = v } }
+                            ))
+                            .toggleStyle(.switch)
+
+                            Button("PREVIEW CLICK") {
+                                audio.previewClick(song: store.currentSong ?? song)
+                            }
+                            .buttonStyle(SmallButton(primary: true))
+                        }
+                    }
+                    .padding(18)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Card())
+
                     VStack(alignment: .leading, spacing: 14) {
-                        Toggle("Generated Click", isOn: bind(song.click.enabled) { $0.enabled = $1 }).toggleStyle(.switch)
-                        Picker("Sound", selection: bind(song.click.preset) { $0.preset = $1 }) {
+                        LabelText("TEMPO SOURCE")
+                        Picker("", selection: Binding(
+                            get: { song.click.effectiveTempoMode },
+                            set: { mode in
+                                change {
+                                    $0.tempoMode = mode
+                                    if mode == .custom && $0.customBPM == nil { $0.customBPM = song.bpm }
+                                }
+                            }
+                        )) {
+                            ForEach(ClickTempoMode.allCases) { Text($0.rawValue).tag($0) }
+                        }
+                        .pickerStyle(.segmented)
+
+                        HStack(spacing: 8) {
+                            TextField(
+                                "",
+                                value: Binding(
+                                    get: { song.click.effectiveBPM(songBPM: song.bpm) },
+                                    set: { value in
+                                        change {
+                                            $0.tempoMode = .custom
+                                            $0.customBPM = value.clamped(30...300)
+                                        }
+                                    }
+                                ),
+                                format: .number.precision(.fractionLength(1))
+                            )
+                            .textFieldStyle(.roundedBorder)
+                            .font(.system(size: 15, weight: .bold, design: .monospaced))
+                            .frame(width: 86)
+                            Text("BPM")
+                                .font(.system(size: 10, weight: .black))
+                                .foregroundColor(.secondary)
+                            Button("−1") { setCustomBPM(song.click.effectiveBPM(songBPM: song.bpm) - 1) }
+                                .buttonStyle(SmallButton(primary: false))
+                            Button("+1") { setCustomBPM(song.click.effectiveBPM(songBPM: song.bpm) + 1) }
+                                .buttonStyle(SmallButton(primary: false))
+                            Button("TAP TEMPO") { registerTap() }
+                                .buttonStyle(SmallButton(primary: false))
+                        }
+
+                        Divider().opacity(0.22)
+                        LabelText("CLICK CHARACTER")
+                        Picker("Sound", selection: Binding(
+                            get: { song.click.preset },
+                            set: { value in change { $0.preset = value } }
+                        )) {
                             ForEach(ClickPreset.allCases) { Text($0.rawValue).tag($0) }
                         }
-                        Button("PREVIEW CLICK") { audio.previewClick(song: store.currentSong ?? song) }.buttonStyle(SmallButton(primary: true))
-                    }.padding(18).frame(maxWidth: .infinity, alignment: .leading).background(Card())
-                    VStack(alignment: .leading, spacing: 16) {
-                        SettingSlider(title: "LEVEL", value: song.click.levelDB, range: -30...0, suffix: "dB") { v in change { $0.levelDB = v } }
-                        SettingSlider(title: "ACCENT", value: song.click.accentDB, range: -3...9, suffix: "dB") { v in change { $0.accentDB = v } }
-                        SettingSlider(title: "GRID NUDGE", value: song.click.offsetMS, range: -500...500, suffix: "ms") { v in change { $0.offsetMS = v } }
-                        HStack { Toggle("1/8", isOn: bind(song.click.eighths) { c,v in c.eighths = v; if v { c.sixteenths = false } }); Toggle("1/16", isOn: bind(song.click.sixteenths) { c,v in c.sixteenths = v; if v { c.eighths = false } }) }
-                    }.padding(18).frame(width: 390).background(Card())
+
+                        Picker("Division", selection: Binding(
+                            get: { song.click.division },
+                            set: { value in change { $0.setDivision(value) } }
+                        )) {
+                            ForEach(ClickDivision.allCases) { Text($0.rawValue).tag($0) }
+                        }
+                        .pickerStyle(.segmented)
+
+                        SettingSlider(title: "LEVEL", value: song.click.levelDB, range: -30...0, suffix: "dB") {
+                            value in change { $0.levelDB = value }
+                        }
+
+                        Toggle("Accent first beat of each bar", isOn: Binding(
+                            get: { song.click.effectiveAccentEnabled },
+                            set: { value in change { $0.accentEnabled = value } }
+                        ))
+                        .toggleStyle(.switch)
+
+                        if song.click.effectiveAccentEnabled {
+                            SettingSlider(title: "ACCENT", value: song.click.accentDB, range: -6...9, suffix: "dB") {
+                                value in change { $0.accentDB = value }
+                            }
+                        }
+
+                        if song.click.division != .quarter {
+                            SettingSlider(title: "SUBDIVISION LEVEL", value: song.click.effectiveSubdivisionLevelDB, range: -18...0, suffix: "dB") {
+                                value in change { $0.subdivisionLevelDB = value }
+                            }
+                            SettingSlider(title: "SWING", value: song.click.effectiveSwingPercent, range: 0...35, suffix: "%") {
+                                value in change { $0.swingPercent = value }
+                            }
+                        }
+
+                        SettingSlider(title: "GRID NUDGE", value: song.click.offsetMS, range: -500...500, suffix: "ms") {
+                            value in change { $0.offsetMS = value }
+                        }
+
+                        Divider().opacity(0.22)
+                        HStack {
+                            LabelText("LIVE OUTPUT")
+                            Spacer()
+                            Text(song.outputMode == .split ? "RIGHT · CLICK" : "PREVIEW ONLY")
+                                .font(.system(size: 10, weight: .black))
+                                .foregroundColor(song.outputMode == .split ? .cyan : .secondary)
+                        }
+                    }
+                    .padding(18)
+                    .frame(width: 470, alignment: .leading)
+                    .background(Card())
                 }
+            } else {
+                EmptyState(title: "No song", subtitle: "Create or select a song to configure click.")
             }
             Spacer()
-        }.padding(5)
+        }
+        .padding(5)
     }
 
-    private func bind<T>(_ value: T, _ setter: @escaping (inout ClickSettings, T) -> Void) -> Binding<T> {
-        Binding(get: { value }, set: { v in change { setter(&$0, v) } })
-    }
     private func change(_ body: (inout ClickSettings) -> Void) {
         store.mutateCurrent { body(&$0.click) }
-        if let s = store.currentSong { audio.applyStemState(s) }
+        if let current = store.currentSong { audio.applyStemState(current) }
+    }
+
+    private func setCustomBPM(_ value: Double) {
+        change {
+            $0.tempoMode = .custom
+            $0.customBPM = value.clamped(30...300)
+        }
+    }
+
+    private func registerTap() {
+        let now = Date.timeIntervalSinceReferenceDate
+        tapTimes = (tapTimes + [now]).filter { now - $0 <= 3.0 }
+        guard tapTimes.count >= 2 else { return }
+        var intervals: [Double] = []
+        for index in 1..<tapTimes.count {
+            let value = tapTimes[index] - tapTimes[index - 1]
+            if value > 0.20 && value < 2.0 { intervals.append(value) }
+        }
+        guard !intervals.isEmpty else { return }
+        setCustomBPM(60 / (intervals.reduce(0, +) / Double(intervals.count)))
+    }
+}
+
+struct ClickPulseView: View {
+    @EnvironmentObject var audio: AudioEngineController
+    @EnvironmentObject var performance: AudioPerformanceState
+    let song: SongProject
+
+    var body: some View {
+        let bpm = song.click.effectiveBPM(songBPM: song.bpm)
+        let quarter = 60 / max(30, bpm)
+        let beatFloat = performance.currentTime / quarter
+        let beatIndex = max(0, Int(floor(beatFloat)))
+        let phase = beatFloat - floor(beatFloat)
+        let downbeat = beatIndex % max(1, song.meterTop) == 0
+        let pulse = audio.isPlaying ? max(0, 1 - phase * 4.5) : 0
+        let colors = performanceColors(.aurora)
+
+        VStack(spacing: 22) {
+            ZStack {
+                Circle()
+                    .fill((downbeat ? colors.1 : colors.0).opacity(audio.isPlaying ? 0.10 + pulse * 0.20 : 0.045))
+                    .frame(width: 180, height: 180)
+                    .scaleEffect(1 + pulse * 0.09)
+                Circle()
+                    .stroke((downbeat ? colors.2 : colors.3).opacity(audio.isPlaying ? 0.28 + pulse * 0.55 : 0.12), lineWidth: 2)
+                    .frame(width: 142, height: 142)
+                    .scaleEffect(1 + pulse * 0.045)
+                Image(systemName: "metronome.fill")
+                    .font(.system(size: 49, weight: .medium))
+                    .foregroundColor(.white.opacity(audio.isPlaying ? 0.72 + pulse * 0.28 : 0.46))
+            }
+
+            Text("\(bpm, specifier: "%.1f") BPM")
+                .font(.system(size: 27, weight: .black, design: .rounded))
+                .monospacedDigit()
+
+            HStack(spacing: 9) {
+                ForEach(0..<max(1, song.meterTop), id: \.self) { index in
+                    Circle()
+                        .fill(index == beatIndex % max(1, song.meterTop) && audio.isPlaying ? Color.white : Color.white.opacity(0.12))
+                        .frame(width: index == 0 ? 10 : 8, height: index == 0 ? 10 : 8)
+                }
+            }
+
+            Text(song.click.effectiveTempoMode == .custom ? "CUSTOM CLICK TEMPO" : "FOLLOWING SONG TEMPO")
+                .font(.system(size: 9.5, weight: .black))
+                .tracking(0.8)
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 22)
+                .fill(Color.black.opacity(0.16))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 22)
+                .stroke(Color.white.opacity(0.07))
+        )
     }
 }
 
@@ -1517,164 +1857,237 @@ struct SystemPage: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                PageHeading(title: "System", subtitle: "CoreAudio fidelity, routing and stage appearance.")
+                PageHeading(title: "System", subtitle: "CoreAudio fidelity, routing, performance appearance and view behavior.")
                 Spacer()
-                Button("WHAT'S NEW…") { whatsNew = true }.buttonStyle(SmallButton(primary: false))
+                Button("WHAT'S NEW…") { whatsNew = true }
+                    .buttonStyle(SmallButton(primary: false))
             }
 
             if let song = store.currentSong {
                 let report = audio.cachedPreflight(song: song)
-                HStack(alignment: .top, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 13) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                LabelText("STRICT AUDIO PREFLIGHT")
-                                Text(report.transparentReady ? "TRANSPARENT PATH READY" : (report.srcActive ? "SAMPLE-RATE CONVERSION ACTIVE" : "REVIEW AUDIO PATH"))
-                                    .font(.system(size: 17, weight: .bold))
-                                    .foregroundColor(report.transparentReady ? .green : .orange)
-                            }
-                            Spacer()
-                            Image(systemName: report.transparentReady ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
-                                .font(.system(size: 24))
-                                .foregroundColor(report.transparentReady ? .green : .orange)
-                        }
 
-                        HStack(spacing: 8) {
-                            PreflightValue(title: "SOURCE RATE", value: report.sourceRateText)
-                            PreflightValue(title: "SOURCE DEPTH", value: report.sourceBitText)
-                            PreflightValue(title: "CHANNELS", value: report.sourceChannelText)
-                            PreflightValue(title: "FORMAT", value: report.sourceFormatText)
-                        }
-
-                        Divider().opacity(0.25)
-
-                        if let device = report.device {
-                            HStack(spacing: 8) {
-                                PreflightValue(title: "OUTPUT DEVICE", value: device.name)
-                                PreflightValue(title: "DEVICE RATE", value: formatSampleRate(device.sampleRate))
-                                PreflightValue(title: "BUFFER", value: "\(device.bufferFrames) frames")
-                                PreflightValue(title: "SRC", value: report.srcActive ? "ACTIVE" : "NONE", accent: report.srcActive ? .orange : .green)
-                            }
-
-                            if report.canMatchDevice, let target = report.recommendedProjectRate {
-                                Button("MATCH DEVICE TO \(formatSampleRate(target))") {
-                                    do {
-                                        try audio.matchDeviceToProjectRate(song: song)
-                                        preflightMessage = "Output device matched to \(formatSampleRate(target)). Recheck the preflight status above."
-                                    } catch {
-                                        preflightMessage = error.localizedDescription
+                ScrollView {
+                    VStack(spacing: 12) {
+                        HStack(alignment: .top, spacing: 12) {
+                            VStack(alignment: .leading, spacing: 13) {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        LabelText("STRICT AUDIO PREFLIGHT")
+                                        Text(report.transparentReady ? "TRANSPARENT LOSSLESS-SOURCE PATH READY" : (report.srcActive ? "SAMPLE-RATE CONVERSION ACTIVE" : "REVIEW AUDIO PATH"))
+                                            .font(.system(size: 16, weight: .bold))
+                                            .foregroundColor(report.transparentReady ? .green : .orange)
                                     }
-                                }.buttonStyle(SmallButton(primary: true))
-                            }
-                        }
-
-                        if let error = report.error {
-                            Text(error).font(.system(size: 11)).foregroundColor(.orange)
-                        }
-                        if let preflightMessage {
-                            Text(preflightMessage).font(.system(size: 11)).foregroundColor(.secondary).lineSpacing(3)
-                        }
-
-                        Text(report.allLossless
-                             ? "All live stems are lossless source formats. STEM Live performs no lossy encode/decode stage."
-                             : "One or more live stems are not identified as a lossless source format.")
-                            .font(.system(size: 11))
-                            .foregroundColor(report.allLossless ? .secondary : .orange)
-                            .lineSpacing(3)
-                    }
-                    .padding(18).frame(maxWidth: .infinity, alignment: .leading).background(Card())
-
-                    VStack(alignment: .leading, spacing: 14) {
-                        LabelText("ROUTING")
-                        Picker("Output", selection: Binding(get: { song.outputMode }, set: { mode in
-                            guard !audio.isPlaying else {
-                                preflightMessage = "Stop playback before changing the output mode. 0.6.4 intentionally blocks live graph reconstruction."
-                                return
-                            }
-
-                            let previous = song.outputMode
-                            store.mutateCurrent { $0.outputMode = mode }
-                            guard let current = store.currentSong else { return }
-
-                            do {
-                                try audio.changeOutputMode(song: current)
-                                audio.refreshPreflight(song: current)
-                                preflightMessage = "Output changed to \(mode.rawValue). The audio graph was rebuilt while stopped."
-                            } catch {
-                                store.mutateCurrent { $0.outputMode = previous }
-                                if let reverted = store.currentSong {
-                                    try? audio.changeOutputMode(song: reverted)
+                                    Spacer()
+                                    Image(systemName: report.transparentReady ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
+                                        .font(.system(size: 24))
+                                        .foregroundColor(report.transparentReady ? .green : .orange)
                                 }
-                                preflightMessage = error.localizedDescription
-                            }
-                        })) {
-                            ForEach(OutputMode.allCases) { Text($0.rawValue).tag($0) }
-                        }
-                        .pickerStyle(.segmented)
-                        .disabled(audio.isPlaying)
 
-                        if song.outputMode == .split {
-                            Divider().opacity(0.25)
-                            LabelText("MONO DOWNMIX")
-                            Picker("Downmix", selection: Binding(get: { song.effectiveMonoDownmixMode }, set: { mode in
-                                let previous = song.monoDownmixMode
-                                store.mutateCurrent { $0.monoDownmixMode = mode }
-                                guard let current = store.currentSong else { return }
-                                do {
-                                    try audio.applyRouting(song: current)
-                                    preflightMessage = "Mono downmix coefficients updated safely."
-                                } catch {
-                                    store.mutateCurrent { $0.monoDownmixMode = previous }
-                                    if let reverted = store.currentSong { try? audio.applyRouting(song: reverted) }
-                                    preflightMessage = error.localizedDescription
+                                HStack(spacing: 8) {
+                                    PreflightValue(title: "SOURCE RATE", value: report.sourceRateText)
+                                    PreflightValue(title: "SOURCE DEPTH", value: report.sourceBitText)
+                                    PreflightValue(title: "CHANNELS", value: report.sourceChannelText)
+                                    PreflightValue(title: "FORMAT", value: report.sourceFormatText)
                                 }
-                            })) {
-                                ForEach(MonoDownmixMode.allCases) { Text($0.rawValue).tag($0) }
+
+                                Divider().opacity(0.25)
+
+                                if let device = report.device {
+                                    HStack(spacing: 8) {
+                                        PreflightValue(title: "OUTPUT DEVICE", value: device.name)
+                                        PreflightValue(title: "DEVICE RATE", value: formatSampleRate(device.sampleRate))
+                                        PreflightValue(title: "BUFFER", value: "\(device.bufferFrames) frames")
+                                        PreflightValue(title: "SRC", value: report.srcActive ? "ACTIVE" : "NONE", accent: report.srcActive ? .orange : .green)
+                                    }
+
+                                    if report.canMatchDevice, let target = report.recommendedProjectRate {
+                                        Button("MATCH DEVICE TO \(formatSampleRate(target))") {
+                                            do {
+                                                try audio.matchDeviceToProjectRate(song: song)
+                                                preflightMessage = "Output device matched to \(formatSampleRate(target))."
+                                            } catch {
+                                                preflightMessage = error.localizedDescription
+                                            }
+                                        }
+                                        .buttonStyle(SmallButton(primary: true))
+                                    }
+                                }
+
+                                if let error = report.error {
+                                    Text(error).font(.system(size: 11)).foregroundColor(.orange)
+                                }
+                                if let preflightMessage {
+                                    Text(preflightMessage)
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.secondary)
+                                        .lineSpacing(3)
+                                }
+
+                                Text(report.allLossless
+                                     ? "All live stems are lossless source formats. STEM Live performs no lossy transcoding. AVAudioEngine mixes native floating-point PCM; this is transparent processing, not a lossy codec, and is not described as bit-perfect."
+                                     : "One or more live stems are not identified as a lossless source format.")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(report.allLossless ? .secondary : .orange)
+                                    .lineSpacing(3)
                             }
+                            .padding(18)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Card())
 
-                            Text("Safe Sum is the default: L and R feed an Apple AUMatrixMixer at -6.02 dB each, preserving headroom for correlated stereo material. Equal Power is louder but may clip on highly correlated mixes. Left/Right Only bypass stereo summing for phase-sensitive sources.")
-                                .font(.system(size: 11)).foregroundColor(.secondary).lineSpacing(4)
+                            VStack(alignment: .leading, spacing: 14) {
+                                LabelText("ROUTING")
+                                Picker("Output", selection: Binding(
+                                    get: { song.outputMode },
+                                    set: { mode in changeOutput(mode, song: song) }
+                                )) {
+                                    ForEach(OutputMode.allCases) { Text($0.rawValue).tag($0) }
+                                }
+                                .pickerStyle(.segmented)
+                                .disabled(audio.isPlaying)
+
+                                if song.outputMode == .split {
+                                    Divider().opacity(0.25)
+                                    LabelText("MONO DOWNMIX")
+                                    Picker("Downmix", selection: Binding(
+                                        get: { song.effectiveMonoDownmixMode },
+                                        set: { mode in changeDownmix(mode, song: song) }
+                                    )) {
+                                        ForEach(MonoDownmixMode.allCases) { Text($0.rawValue).tag($0) }
+                                    }
+
+                                    Text("Safe Sum feeds L and R to program LEFT at 0.5 each (−6.02 dB per channel), preserving correlated-signal headroom. Equal Power uses 0.707 each and is louder but can clip correlated material. Left/Right Only avoid summing for phase-sensitive sources. Program RIGHT is held at zero; generated click is routed separately to RIGHT.")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.secondary)
+                                        .lineSpacing(4)
+                                }
+
+                                Divider().opacity(0.25)
+                                LabelText("ENGINE")
+                                Text("AVAudioEngine / CoreAudio")
+                                    .font(.system(size: 18, weight: .bold))
+                                Text(audio.engineStatus)
+                                    .foregroundColor(audio.engineStatus.contains("error") ? .orange : .green)
+                                    .font(.system(size: 10, weight: .semibold))
+                            }
+                            .padding(18)
+                            .frame(width: 430, alignment: .leading)
+                            .background(Card())
                         }
 
-                        LabelText("ENGINE")
-                        Text("AVAudioEngine / CoreAudio").font(.system(size: 18, weight: .bold))
-                        Text(audio.engineStatus)
-                            .foregroundColor(audio.engineStatus.contains("error") ? .orange : .green)
-                            .font(.system(size: 10, weight: .semibold))
+                        HStack(alignment: .top, spacing: 12) {
+                            VStack(alignment: .leading, spacing: 14) {
+                                HStack {
+                                    LabelText("LIVING COLOR")
+                                    Spacer()
+                                    Toggle("", isOn: Binding(
+                                        get: { store.livingColorEnabled },
+                                        set: { store.livingColorEnabled = $0; store.save() }
+                                    ))
+                                    .toggleStyle(.switch)
+                                }
+
+                                Picker("Palette", selection: Binding(
+                                    get: { store.livingColorPalette },
+                                    set: { store.livingColorPalette = $0; store.save() }
+                                )) {
+                                    ForEach(LivingColorPalette.allCases) { Text($0.rawValue).tag($0) }
+                                }
+
+                                SettingSlider(title: "GLOBAL INTENSITY", value: store.livingColorIntensity, range: 0.25...1.15, suffix: "") {
+                                    store.livingColorIntensity = $0
+                                    store.save()
+                                }
+                                SettingSlider(title: "CARD COLOR", value: store.livingColorCardAmount, range: 0...1.2, suffix: "") {
+                                    store.livingColorCardAmount = $0
+                                    store.save()
+                                }
+                                SettingSlider(title: "AMBIENT MOTION", value: store.livingColorMotion, range: 0...1.25, suffix: "") {
+                                    store.livingColorMotion = $0
+                                    store.save()
+                                }
+
+                                Text("Color follows cached offline musical analysis and Core Animation interpolation. No realtime audio tap is installed in the live render graph.")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.secondary)
+                                    .lineSpacing(4)
+                            }
+                            .padding(18)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Card())
+
+                            VStack(alignment: .leading, spacing: 13) {
+                                LabelText("VIEW & STAGE LAYOUT")
+                                Toggle("Show setlist sidebar", isOn: Binding(
+                                    get: { store.sidebarVisible },
+                                    set: { store.setSidebarVisible($0) }
+                                ))
+                                Toggle("Show song title in top header", isOn: Binding(
+                                    get: { store.showSongInHeader },
+                                    set: { store.showSongInHeader = $0; store.save() }
+                                ))
+                                Toggle("Focused Live Mode", isOn: Binding(
+                                    get: { store.focusMode },
+                                    set: { store.setFocusMode($0) }
+                                ))
+
+                                Text("Focused Live Mode removes nonessential chrome and keeps the stage controls, click access and section destinations dominant.")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.secondary)
+                                    .lineSpacing(4)
+
+                                Button("RESET VIEW SETTINGS") {
+                                    store.resetViewPreferences()
+                                }
+                                .buttonStyle(SmallButton(primary: false))
+                            }
+                            .padding(18)
+                            .frame(width: 430, alignment: .leading)
+                            .background(Card())
+                        }
                     }
-                    .padding(18).frame(width: 410, alignment: .leading).background(Card())
-                }
-
-                HStack(alignment: .top, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 14) {
-                        LabelText("STAGE APPEARANCE")
-                        Toggle("Living Color", isOn: Binding(get: { store.livingColorEnabled }, set: {
-                            store.livingColorEnabled = $0; store.save()
-                        })).toggleStyle(.switch)
-                        SettingSlider(title: "INTENSITY", value: store.livingColorIntensity, range: 0.25...1.15, suffix: "") {
-                            store.livingColorIntensity = $0; store.save()
-                        }
-                        Text("Music metrics update around 20 Hz. Core Animation performs the visual interpolation; the UI never determines audio timing.")
-                            .font(.system(size: 11)).foregroundColor(.secondary).lineSpacing(4)
-                    }.padding(18).frame(maxWidth: .infinity, alignment: .leading).background(Card())
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        LabelText("WHAT THE STATUS MEANS")
-                        Text("TRANSPARENT PATH READY")
-                            .font(.system(size: 11, weight: .bold)).foregroundColor(.green)
-                        Text("Lossless source files are present and every live stem matches the hardware sample rate, so no sample-rate conversion is required.")
-                            .font(.system(size: 11)).foregroundColor(.secondary).lineSpacing(4)
-                        Text("SRC ACTIVE")
-                            .font(.system(size: 11, weight: .bold)).foregroundColor(.orange)
-                        Text("At least one live stem differs from the output device rate. Playback remains native Float32, but CoreAudio must resample that source.")
-                            .font(.system(size: 11)).foregroundColor(.secondary).lineSpacing(4)
-                    }.padding(18).frame(width: 410, alignment: .leading).background(Card())
                 }
             } else {
                 EmptyState(title: "No song loaded", subtitle: "Create a song and import stems to run audio preflight.")
             }
             Spacer()
-        }.padding(5)
+        }
+        .padding(5)
+    }
+
+    private func changeOutput(_ mode: OutputMode, song: SongProject) {
+        guard !audio.isPlaying else {
+            preflightMessage = "Stop playback before changing output mode. The live graph is intentionally not reconstructed while running."
+            return
+        }
+
+        let previous = song.outputMode
+        store.mutateCurrent { $0.outputMode = mode }
+        guard let current = store.currentSong else { return }
+
+        do {
+            try audio.changeOutputMode(song: current)
+            audio.refreshPreflight(song: current)
+            preflightMessage = "Output changed to \(mode.rawValue)."
+        } catch {
+            store.mutateCurrent { $0.outputMode = previous }
+            if let reverted = store.currentSong { try? audio.changeOutputMode(song: reverted) }
+            preflightMessage = error.localizedDescription
+        }
+    }
+
+    private func changeDownmix(_ mode: MonoDownmixMode, song: SongProject) {
+        let previous = song.monoDownmixMode
+        store.mutateCurrent { $0.monoDownmixMode = mode }
+        guard let current = store.currentSong else { return }
+
+        do {
+            try audio.applyRouting(song: current)
+            preflightMessage = "Mono downmix coefficients updated safely."
+        } catch {
+            store.mutateCurrent { $0.monoDownmixMode = previous }
+            if let reverted = store.currentSong { try? audio.applyRouting(song: reverted) }
+            preflightMessage = error.localizedDescription
+        }
     }
 }
 
