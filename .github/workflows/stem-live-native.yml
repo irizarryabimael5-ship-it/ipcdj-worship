@@ -64,7 +64,7 @@ jobs:
       - name: Static stability audit
         run: |
           set -euo pipefail
-          if grep -R -nE 'try!|fatalError\\(|\\.first!|\\.last!|raw\\.baseAddress!| as! ' Sources; then
+          if grep -R -nE 'try!|fatalError[(]|[.]first!|[.]last!|raw[.]baseAddress!| as! ' Sources; then
             echo "Unsafe force operation found in native source."
             exit 1
           fi
@@ -85,7 +85,7 @@ jobs:
           grep -n 'AudioPerformanceState' Sources/AudioEngineController.swift >/dev/null
           test -f Sources/StemSyncAnalyzer.swift
           test -f Sources/StemNaming.swift
-          grep -n 'visualEnvelope' Sources/WaveformBuilder.swift >/dev/null
+          grep -n 'VisualAnalysisSample' Sources/WaveformBuilder.swift >/dev/null
 
       - name: Runtime multistem audio smoke test
         run: |
