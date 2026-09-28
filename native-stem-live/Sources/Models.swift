@@ -8,6 +8,24 @@ struct VisualMetrics: Equatable, Sendable {
     var transient: Double = 0
 }
 
+struct VisualAnalysisSample: Codable, Hashable, Sendable {
+    var level: Float
+    var bass: Float
+    var mid: Float
+    var air: Float
+    var transient: Float
+
+    var metrics: VisualMetrics {
+        VisualMetrics(
+            level: Double(level),
+            bass: Double(bass),
+            mid: Double(mid),
+            air: Double(air),
+            transient: Double(transient)
+        )
+    }
+}
+
 enum WorkspacePage: String, CaseIterable, Identifiable, Codable, Sendable {
     case live = "LIVE"
     case set = "SET"
@@ -57,6 +75,34 @@ enum ClickPreset: String, Codable, CaseIterable, Identifiable, Sendable {
     var id: String { rawValue }
 }
 
+enum ClickTempoMode: String, Codable, CaseIterable, Identifiable, Sendable {
+    case followSong = "Follow Song"
+    case custom = "Custom"
+    var id: String { rawValue }
+}
+
+enum ClickDivision: String, CaseIterable, Identifiable, Sendable {
+    case quarter = "1/4"
+    case eighth = "1/8"
+    case sixteenth = "1/16"
+    var id: String { rawValue }
+    var stepsPerQuarter: Int {
+        switch self {
+        case .quarter: return 1
+        case .eighth: return 2
+        case .sixteenth: return 4
+        }
+    }
+}
+
+enum LivingColorPalette: String, Codable, CaseIterable, Identifiable, Sendable {
+    case aurora = "Aurora"
+    case ocean = "Ocean"
+    case violet = "Violet"
+    case warmStage = "Warm Stage"
+    var id: String { rawValue }
+}
+
 struct StemTrack: Identifiable, Codable, Hashable, Sendable {
     var id = UUID()
     var name: String
@@ -69,8 +115,22 @@ struct StemTrack: Identifiable, Codable, Hashable, Sendable {
     var waveform: [Float] = []
     var duration: Double = 0
 
+    // Added in 0.6.6 as optional fields so every 0.6.5 project decodes unchanged.
+    var originalName: String? = nil
+    var sourceOffsetSeconds: Double? = nil
+    var syncConfidence: Double? = nil
+    var visualEnvelope: [VisualAnalysisSample]? = nil
+
     var effectiveRoute: StemRoute {
         route ?? (reference ? .reference : .music)
+    }
+
+    var effectiveSourceOffset: Double {
+        max(0, sourceOffsetSeconds ?? 0)
+    }
+
+    var effectiveDuration: Double {
+        max(0, duration - effectiveSourceOffset)
     }
 }
 
@@ -94,6 +154,34 @@ struct ClickSettings: Codable, Hashable, Sendable {
     var eighths: Bool = false
     var sixteenths: Bool = false
     var offsetMS: Double = 0
+
+    // Optional 0.6.6 settings preserve decoding of 0.6.5 projects.
+    var tempoMode: ClickTempoMode? = nil
+    var customBPM: Double? = nil
+    var accentEnabled: Bool? = nil
+    var subdivisionLevelDB: Double? = nil
+    var swingPercent: Double? = nil
+
+    var effectiveTempoMode: ClickTempoMode { tempoMode ?? .followSong }
+    var effectiveAccentEnabled: Bool { accentEnabled ?? true }
+    var effectiveSubdivisionLevelDB: Double { subdivisionLevelDB ?? -5 }
+    var effectiveSwingPercent: Double { (swingPercent ?? 0).clamped(0...35) }
+
+    func effectiveBPM(songBPM: Double) -> Double {
+        let value = effectiveTempoMode == .custom ? (customBPM ?? songBPM) : songBPM
+        return value.clamped(30...300)
+    }
+
+    var division: ClickDivision {
+        if sixteenths { return .sixteenth }
+        if eighths { return .eighth }
+        return .quarter
+    }
+
+    mutating func setDivision(_ value: ClickDivision) {
+        eighths = value == .eighth
+        sixteenths = value == .sixteenth
+    }
 }
 
 struct SongProject: Identifiable, Codable, Hashable, Sendable {
@@ -112,7 +200,7 @@ struct SongProject: Identifiable, Codable, Hashable, Sendable {
     var createdAt = Date()
 
     var duration: Double {
-        stems.filter { $0.effectiveRoute != .reference }.map(\.duration).max() ?? 0
+        stems.filter { $0.effectiveRoute != .reference }.map(\.effectiveDuration).max() ?? 0
     }
 
     var meterText: String { "\(meterTop)/\(meterBottom)" }
