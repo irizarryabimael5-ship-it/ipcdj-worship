@@ -115,6 +115,16 @@ struct Sidebar: View {
                     Text("Native Performance").font(.system(size: 11, weight: .medium)).foregroundColor(.secondary)
                 }
                 Spacer()
+                Button {
+                    store.setSidebarVisible(false)
+                } label: {
+                    Image(systemName: "sidebar.left")
+                        .font(.system(size: 12, weight: .semibold))
+                        .frame(width: 28, height: 28)
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(.secondary)
+                .help("Hide Setlist Sidebar")
             }.padding(15)
 
             if let song = store.currentSong {
@@ -149,7 +159,22 @@ struct Sidebar: View {
                                 }
                                 Spacer()
                             }.padding(9)
-                        }.buttonStyle(.plain)
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            Button("Open in Live") {
+                                store.selectSong(song.id)
+                                store.page = .live
+                            }
+                            Button("Open in Arrange") {
+                                store.selectSong(song.id)
+                                store.page = .arrange
+                            }
+                            Button("Open in Mix") {
+                                store.selectSong(song.id)
+                                store.page = .mix
+                            }
+                        }
                     }
                 }.padding(.horizontal, 8)
             }
@@ -160,7 +185,7 @@ struct Sidebar: View {
                     Circle().fill(audio.isPlaying ? .green : .gray).frame(width: 6, height: 6)
                     Text(audio.engineStatus).font(.system(size: 10, weight: .medium)).foregroundColor(.secondary).lineLimit(1)
                 }
-                Text("Native 0.6.5").font(.system(size: 10.5, weight: .medium)).foregroundColor(.secondary.opacity(0.8))
+                Text("Native 0.6.6").font(.system(size: 10.5, weight: .medium)).foregroundColor(.secondary.opacity(0.8))
             }.frame(maxWidth: .infinity, alignment: .leading).padding(14)
         }
         .background(RoundedRectangle(cornerRadius: 26).fill(.regularMaterial.opacity(0.50)))
@@ -174,6 +199,18 @@ struct Header: View {
 
     var body: some View {
         HStack(spacing: 14) {
+            if !store.sidebarVisible {
+                Button {
+                    store.setSidebarVisible(true)
+                } label: {
+                    Image(systemName: "sidebar.left")
+                        .font(.system(size: 13, weight: .semibold))
+                        .frame(width: 32, height: 32)
+                }
+                .buttonStyle(SmallButton(primary: false))
+                .help("Show Setlist Sidebar")
+            }
+
             VStack(alignment: .leading, spacing: 3) {
                 LabelText("WORKSPACE")
                 Text(store.showSongInHeader ? (store.currentSong?.title ?? "No Song") : store.page.rawValue)
@@ -2198,24 +2235,42 @@ struct EmptyState: View {
 
 struct WhatsNew: View {
     let dismiss: () -> Void
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 15) {
             HStack(spacing: 12) {
-                RoundedRectangle(cornerRadius: 15).fill(.white).frame(width: 52, height: 52)
+                RoundedRectangle(cornerRadius: 15)
+                    .fill(.white)
+                    .frame(width: 52, height: 52)
                     .overlay(Text("S").foregroundColor(.black).font(.system(size: 23, weight: .black)))
                 VStack(alignment: .leading) {
-                    Text("What's New in STEM Live 0.6.5").font(.system(size: 23, weight: .bold))
-                    Text("Playback Crash Fix").foregroundColor(.secondary)
+                    Text("What's New in STEM Live 0.6.6")
+                        .font(.system(size: 23, weight: .bold))
+                    Text("Performance · Living Color · Click · Sync")
+                        .foregroundColor(.secondary)
                 }
             }
-            UpdateRow("01", "Play-button crash fixed", "The generated click is mono, but the previous click player could negotiate a stereo output format. AVAudioPlayerNode rejects a scheduled buffer whose channel count does not match its node format. 0.6.5 explicitly pins the click node to mono before any click buffer can be scheduled.")
-            UpdateRow("02", "Click scheduling hardened", "Generated clicks are validated against the negotiated node format and scheduled on the player sample timeline. A mismatch disables the click instead of reaching an invalid playback call.")
-            UpdateRow("03", "Transparent music path", "The live music path no longer contains the reverb unit. Stereo playback is Player → Music Mixer → Output Router; there is no lossy encoding stage.")
-            UpdateRow("04", "Living Color off the render thread", "Stage color now follows the song's precomputed waveform envelope instead of installing a realtime tap in the live audio graph.")
-            UpdateRow("05", "Persistent diagnostics", "STEM Live now writes its own flushed runtime audio breadcrumbs, including the exact operation reached before a termination, so a future OS-level abort is no longer invisible.")
-            Spacer()
-            HStack { Spacer(); Button("START TESTING") { dismiss() }.buttonStyle(SmallButton(primary: true)) }
-        }.padding(24).background(Color.black.opacity(0.96))
+
+            ScrollView {
+                VStack(spacing: 8) {
+                    UpdateRow("01", "Faster UI foundation", "Project persistence moved off the interaction path and high-frequency playhead/color state is isolated so it no longer invalidates unrelated app chrome.")
+                    UpdateRow("02", "Living Color 2", "All LIVE section cards can breathe with the music. New imports receive offline multi-band energy analysis; no realtime visualization tap was added to the audio render thread.")
+                    UpdateRow("03", "Tempo + professional click", "Arrange now edits song BPM directly. Click can follow the song or use its own BPM, with Tap Tempo, divisions, accent, subdivision level, swing, nudge and a live beat animation.")
+                    UpdateRow("04", "Auto Sync restored", "ARRANGE can correlate analyzed stem envelopes offline and apply non-destructive source trims with confidence instead of time-stretching the music.")
+                    UpdateRow("05", "Smarter import + Mix", "Stem filenames are professionally normalized, generic song titles can be inferred from common filenames, and names remain editable in MIX.")
+                    UpdateRow("06", "Stage views + shortcuts", "Hide the setlist, use Focused Live Mode, keep transport available across workspaces, use richer menus/right-click actions, and rely on Space for Play/Pause instead of tab focus.")
+                    UpdateRow("07", "Audio checks tightened", "The production music path stays dry. CI now mirrors it and verifies stereo preservation, split-channel isolation, downmix behavior and the explicit mono click format.")
+                }
+            }
+
+            HStack {
+                Spacer()
+                Button("START 0.6.6") { dismiss() }
+                    .buttonStyle(SmallButton(primary: true))
+            }
+        }
+        .padding(24)
+        .background(Color.black.opacity(0.96))
     }
 }
 
