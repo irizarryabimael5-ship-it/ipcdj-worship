@@ -8,6 +8,8 @@ struct LivingColorView: NSViewRepresentable {
     var metrics: VisualMetrics
     var enabled: Bool
     var intensity: Double
+    var palette: LivingColorPalette = .aurora
+    var motion: Double = 0.72
     var playing: Bool
 
     func makeNSView(context: Context) -> LivingColorNSView {
@@ -15,7 +17,7 @@ struct LivingColorView: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: LivingColorNSView, context: Context) {
-        nsView.apply(metrics: metrics, enabled: enabled, intensity: intensity, playing: playing)
+        nsView.apply(metrics: metrics, enabled: enabled, intensity: intensity, palette: palette, motion: motion, playing: playing)
     }
 }
 
@@ -106,7 +108,7 @@ final class LivingColorNSView: NSView {
         CATransaction.commit()
     }
 
-    func apply(metrics: VisualMetrics, enabled: Bool, intensity: Double, playing: Bool) {
+    func apply(metrics: VisualMetrics, enabled: Bool, intensity: Double, palette: LivingColorPalette, motion: Double, playing: Bool) {
         let enabledPlaying = enabled && playing
         let now = CACurrentMediaTime()
         let dt = min(0.15, max(0.01, now - lastTime))
@@ -125,11 +127,11 @@ final class LivingColorNSView: NSView {
             ? min(1, (0.17 + pow(smoothed.level, 0.72) * 0.83) * strength)
             : 0
 
-        let palette = colors(for: smoothed)
-        let primary = palette.0
-        let secondary = palette.1
-        let accent = palette.2
-        let bright = palette.3
+        let colors = colors(for: smoothed, palette: palette)
+        let primary = colors.0
+        let secondary = colors.1
+        let accent = colors.2
+        let bright = colors.3
 
         CATransaction.begin()
         if !enabledPlaying && wasPlaying {
@@ -169,21 +171,21 @@ final class LivingColorNSView: NSView {
         airGlow.opacity = Float(alive * (0.18 + smoothed.air * 0.36))
         transientGlow.opacity = Float(alive * smoothed.transient * 0.34)
 
-        let motion = CGFloat(alive)
+        let motionAmount = CGFloat(alive * max(0, min(1.25, motion)))
         ambient.position = CGPoint(
-            x: bounds.midX + CGFloat(smoothed.mid - 0.45) * 18 * motion,
-            y: bounds.midY + CGFloat(smoothed.level - 0.45) * 12 * motion
+            x: bounds.midX + CGFloat(smoothed.mid - 0.45) * 18 * motionAmount,
+            y: bounds.midY + CGFloat(smoothed.level - 0.45) * 12 * motionAmount
         )
         bassGlow.position = CGPoint(
-            x: bounds.midX - bounds.width * 0.18 + CGFloat(smoothed.bass - 0.45) * 24 * motion,
-            y: bounds.midY - bounds.height * 0.09 + CGFloat(smoothed.level - 0.40) * 16 * motion
+            x: bounds.midX - bounds.width * 0.18 + CGFloat(smoothed.bass - 0.45) * 24 * motionAmount,
+            y: bounds.midY - bounds.height * 0.09 + CGFloat(smoothed.level - 0.40) * 16 * motionAmount
         )
         airGlow.position = CGPoint(
-            x: bounds.midX + bounds.width * 0.18 + CGFloat(smoothed.air - 0.40) * 24 * motion,
-            y: bounds.midY + bounds.height * 0.10 + CGFloat(smoothed.air - 0.35) * 15 * motion
+            x: bounds.midX + bounds.width * 0.18 + CGFloat(smoothed.air - 0.40) * 24 * motionAmount,
+            y: bounds.midY + bounds.height * 0.10 + CGFloat(smoothed.air - 0.35) * 15 * motionAmount
         )
         transientGlow.position = CGPoint(
-            x: bounds.midX + CGFloat(smoothed.transient - 0.25) * 16 * motion,
+            x: bounds.midX + CGFloat(smoothed.transient - 0.25) * 16 * motionAmount,
             y: bounds.midY + bounds.height * 0.20
         )
 
@@ -200,20 +202,35 @@ final class LivingColorNSView: NSView {
         return current + (target - current) * a
     }
 
-    /// A restrained Apple-like performance palette:
-    /// quiet -> blue/indigo, mids -> purple, air -> cyan, transients -> pink.
-    private func colors(for m: VisualMetrics) -> (NSColor, NSColor, NSColor, NSColor) {
+    /// Palette selection changes hue language only; musical energy remains driven
+    /// by the same cached analysis envelope.
+    private func colors(for m: VisualMetrics, palette: LivingColorPalette) -> (NSColor, NSColor, NSColor, NSColor) {
         let blue = NSColor(calibratedRed: 0.04, green: 0.48, blue: 1.00, alpha: 1)
         let indigo = NSColor(calibratedRed: 0.34, green: 0.32, blue: 0.96, alpha: 1)
         let purple = NSColor(calibratedRed: 0.69, green: 0.30, blue: 0.96, alpha: 1)
         let cyan = NSColor(calibratedRed: 0.12, green: 0.79, blue: 0.98, alpha: 1)
         let pink = NSColor(calibratedRed: 1.00, green: 0.25, blue: 0.51, alpha: 1)
         let orange = NSColor(calibratedRed: 1.00, green: 0.55, blue: 0.08, alpha: 1)
+        let gold = NSColor(calibratedRed: 1.00, green: 0.72, blue: 0.18, alpha: 1)
+        let teal = NSColor(calibratedRed: 0.08, green: 0.72, blue: 0.70, alpha: 1)
 
-        let primary = blend(blue, indigo, amount: min(0.64, m.mid * 0.58 + m.level * 0.10))
-        let secondary = blend(indigo, purple, amount: min(0.72, m.mid * 0.54 + m.bass * 0.20))
-        let accent = blend(purple, m.transient > 0.36 ? pink : orange, amount: min(0.46, m.transient * 0.42 + m.bass * 0.12))
-        let bright = blend(blue, cyan, amount: min(0.82, 0.32 + m.air * 0.56))
+        let base: (NSColor, NSColor, NSColor, NSColor)
+        switch palette {
+        case .aurora:
+            base = (blue, indigo, purple, cyan)
+        case .ocean:
+            base = (blue, cyan, teal, NSColor(calibratedRed: 0.38, green: 0.90, blue: 1.00, alpha: 1))
+        case .violet:
+            base = (indigo, purple, pink, cyan)
+        case .warmStage:
+            base = (indigo, purple, orange, gold)
+        }
+
+        let primary = blend(base.0, base.1, amount: min(0.64, m.mid * 0.58 + m.level * 0.10))
+        let secondary = blend(base.1, base.2, amount: min(0.72, m.mid * 0.54 + m.bass * 0.20))
+        let transientTarget = palette == .warmStage ? gold : pink
+        let accent = blend(base.2, m.transient > 0.36 ? transientTarget : orange, amount: min(0.46, m.transient * 0.42 + m.bass * 0.12))
+        let bright = blend(base.0, base.3, amount: min(0.82, 0.32 + m.air * 0.56))
         return (primary, secondary, accent, bright)
     }
 
