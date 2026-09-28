@@ -414,6 +414,12 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
 
   await weeklyTab.click();
   await expect(weeklyTab).toHaveAttribute('aria-selected', 'true');
+  await page.waitForFunction(() => {
+    const tab=document.getElementById('tab-worship-semanal');
+    if(!tab)return false;
+    const before=getComputedStyle(tab,'::before');
+    return Number(before.opacity)>.9 && (parseFloat(before.height)||0)>=3;
+  });
   const weeklySelectedVisual=await weeklyTab.evaluate(tab=>{
     const style=getComputedStyle(tab);
     const before=getComputedStyle(tab,'::before');
@@ -456,6 +462,18 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(eventTab.locator('.site-tab-label')).toHaveText('Campaña GU 2026');
   await expect(eventTab.locator('.site-tab-icon')).toHaveCount(0);
   await eventTab.click();
+  await page.waitForFunction(() => {
+    const tab=document.getElementById('tab-campana-gu-2026');
+    if(!tab)return false;
+    const before=getComputedStyle(tab,'::before');
+    const label=tab.querySelector('.site-tab-label');
+    const dot=label?getComputedStyle(label,'::after'):null;
+    return Number(before.opacity)>.9 &&
+      (parseFloat(before.height)||0)>=3 &&
+      !!dot &&
+      dot.display==='inline-block' &&
+      (parseFloat(dot.width)||0)>=4;
+  });
 
   const eventSelectedVisual=await eventTab.evaluate(tab=>{
     const style=getComputedStyle(tab);
