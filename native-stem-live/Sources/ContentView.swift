@@ -9,7 +9,7 @@ struct ContentView: View {
     @State private var whatsNew = false
     @State private var quickClick = false
     @StateObject private var migration = LegacyMigrationManager()
-    private let version = "0.6.4"
+    private let version = "0.6.5"
 
     var body: some View {
         ZStack {
@@ -133,7 +133,7 @@ struct Sidebar: View {
                     Circle().fill(audio.isPlaying ? .green : .gray).frame(width: 6, height: 6)
                     Text(audio.engineStatus).font(.system(size: 10, weight: .medium)).foregroundColor(.secondary).lineLimit(1)
                 }
-                Text("Native 0.6.4").font(.system(size: 10.5, weight: .medium)).foregroundColor(.secondary.opacity(0.8))
+                Text("Native 0.6.5").font(.system(size: 10.5, weight: .medium)).foregroundColor(.secondary.opacity(0.8))
             }.frame(maxWidth: .infinity, alignment: .leading).padding(14)
         }
         .background(RoundedRectangle(cornerRadius: 26).fill(.regularMaterial.opacity(0.50)))
@@ -1428,15 +1428,15 @@ struct WhatsNew: View {
                 RoundedRectangle(cornerRadius: 15).fill(.white).frame(width: 52, height: 52)
                     .overlay(Text("S").foregroundColor(.black).font(.system(size: 23, weight: .black)))
                 VStack(alignment: .leading) {
-                    Text("What's New in STEM Live 0.6.4").font(.system(size: 23, weight: .bold))
-                    Text("Playback Recovery Release").foregroundColor(.secondary)
+                    Text("What's New in STEM Live 0.6.5").font(.system(size: 23, weight: .bold))
+                    Text("Playback Crash Fix").foregroundColor(.secondary)
                 }
             }
-            UpdateRow("01", "Playback path simplified", "Stereo playback no longer passes through AUMatrixMixer at all. The normal path is now Player → Mixer → Reverb → Output router.")
-            UpdateRow("02", "Safer multistem start", "File segments are queued at player sample-time zero and every stem starts against one common future host clock, avoiding mixed scheduling timelines.")
-            UpdateRow("03", "Split topology corrected", "AUMatrixMixer is now created only for Music L / Click R and its input/output element counts are explicitly configured before the graph is connected.")
-            UpdateRow("04", "Routing stability gate", "Stereo ↔ split changes are intentionally blocked during playback. Stop first, switch mode, then resume; no live graph reconstruction is allowed in this release.")
-            UpdateRow("05", "Runtime audio smoke test", "The release pipeline now renders generated multistem audio through both the direct stereo graph and the split matrix graph before the DMG is published.")
+            UpdateRow("01", "Play-button crash fixed", "The generated click is mono, but the previous click player could negotiate a stereo output format. AVAudioPlayerNode rejects a scheduled buffer whose channel count does not match its node format. 0.6.5 explicitly pins the click node to mono before any click buffer can be scheduled.")
+            UpdateRow("02", "Click scheduling hardened", "Generated clicks are validated against the negotiated node format and scheduled on the player sample timeline. A mismatch disables the click instead of reaching an invalid playback call.")
+            UpdateRow("03", "Transparent music path", "The live music path no longer contains the reverb unit. Stereo playback is Player → Music Mixer → Output Router; there is no lossy encoding stage.")
+            UpdateRow("04", "Living Color off the render thread", "Stage color now follows the song's precomputed waveform envelope instead of installing a realtime tap in the live audio graph.")
+            UpdateRow("05", "Persistent diagnostics", "STEM Live now writes its own flushed runtime audio breadcrumbs, including the exact operation reached before a termination, so a future OS-level abort is no longer invisible.")
             Spacer()
             HStack { Spacer(); Button("START TESTING") { dismiss() }.buttonStyle(SmallButton(primary: true)) }
         }.padding(24).background(Color.black.opacity(0.96))
