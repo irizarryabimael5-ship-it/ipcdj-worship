@@ -9,16 +9,24 @@ struct ContentView: View {
     @State private var whatsNew = false
     @State private var quickClick = false
     @StateObject private var migration = LegacyMigrationManager()
-    private let version = "0.6.5"
+    private let version = "0.6.6"
 
     var body: some View {
         ZStack {
-            LivingColorView(metrics: audio.visual, enabled: store.livingColorEnabled, intensity: store.livingColorIntensity, playing: audio.isPlaying)
-                .ignoresSafeArea()
-            HStack(spacing: 14) {
-                Sidebar().frame(width: 248)
-                VStack(spacing: 12) {
-                    Header()
+            PerformanceBackdrop()
+
+            HStack(spacing: store.focusMode ? 0 : 14) {
+                if store.sidebarVisible && !store.focusMode {
+                    Sidebar()
+                        .frame(width: 248)
+                        .transition(.move(edge: .leading).combined(with: .opacity))
+                }
+
+                VStack(spacing: store.focusMode ? 0 : 12) {
+                    if !store.focusMode {
+                        Header()
+                    }
+
                     Group {
                         switch store.page {
                         case .live: LivePage(quickClick: $quickClick)
@@ -32,7 +40,7 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
-            .padding(14)
+            .padding(store.focusMode ? 8 : 14)
 
             if migration.shouldOfferMigration && migration.state != .preparing && migration.state != .exporting && migration.state != .importing {
                 VStack {
@@ -54,7 +62,7 @@ struct ContentView: View {
                 lastSeenVersion = version
                 whatsNew = false
             }
-            .frame(width: 640, height: 520)
+            .frame(width: 680, height: 590)
         }
         .sheet(isPresented: $migration.showMigration) {
             LegacyMigrationSheet(migration: migration)
@@ -69,6 +77,25 @@ struct ContentView: View {
         .onChange(of: store.currentSongID) { _ in
             if let song = store.currentSong { audio.reloadIfNeeded(song: song) }
         }
+    }
+}
+
+struct PerformanceBackdrop: View {
+    @EnvironmentObject var store: ProjectStore
+    @EnvironmentObject var audio: AudioEngineController
+    @EnvironmentObject var performance: AudioPerformanceState
+
+    var body: some View {
+        LivingColorView(
+            metrics: performance.visual,
+            enabled: store.livingColorEnabled,
+            intensity: store.livingColorIntensity,
+            palette: store.livingColorPalette,
+            motion: store.livingColorMotion,
+            playing: audio.isPlaying
+        )
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
     }
 }
 
@@ -146,32 +173,72 @@ struct Header: View {
     @EnvironmentObject var audio: AudioEngineController
 
     var body: some View {
-        HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(store.currentSong?.title ?? "No Song").font(.system(size: 22, weight: .bold)).lineLimit(1)
-                if let s = store.currentSong {
-                    Text("\(s.bpm, specifier: "%.1f") BPM · \(s.meterText) · \(formatTime(s.duration)) · \(s.stems.filter{$0.effectiveRoute == .music}.count) live stems")
-                        .font(.system(size: 11)).foregroundColor(.secondary)
+        HStack(spacing: 14) {
+            VStack(alignment: .leading, spacing: 3) {
+                LabelText("WORKSPACE")
+                Text(store.showSongInHeader ? (store.currentSong?.title ?? "No Song") : store.page.rawValue)
+                    .font(.system(size: 20, weight: .bold))
+                    .lineLimit(1)
+                if !store.showSongInHeader, let song = store.currentSong {
+                    Text("\(song.bpm, specifier: "%.1f") BPM · \(song.meterText) · \(song.stems.filter{$0.effectiveRoute == .music}.count) live stems")
+                        .font(.system(size: 10.5, weight: .medium))
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
                 }
             }
-            Spacer()
+            .frame(minWidth: 180, alignment: .leading)
+
+            Spacer(minLength: 6)
+
             HStack(spacing: 3) {
                 ForEach(WorkspacePage.allCases) { page in
                     ImmediateTabButton(title: page.rawValue, active: store.page == page) {
                         store.page = page
                     }
-                    .frame(width: 78, height: 40)
+                    .frame(width: 76, height: 40)
                 }
-            }.padding(4).background(RoundedRectangle(cornerRadius: 15).fill(Color.black.opacity(0.30)))
-            Spacer()
+            }
+            .padding(4)
+            .background(RoundedRectangle(cornerRadius: 15).fill(Color.black.opacity(0.30)))
+
+            Spacer(minLength: 6)
+
+            if let song = store.currentSong {
+                HStack(spacing: 5) {
+                    Button {
+                        audio.togglePlay(song: song)
+                    } label: {
+                        Image(systemName: audio.isPlaying ? "pause.fill" : "play.fill")
+                            .font(.system(size: 11, weight: .bold))
+                            .frame(width: 30, height: 30)
+                    }
+                    .buttonStyle(BigControl(primary: true))
+                    .help("Play/Pause · Space")
+
+                    Button {
+                        audio.stop(immediate: true)
+                    } label: {
+                        Image(systemName: "stop.fill")
+                            .font(.system(size: 9, weight: .bold))
+                            .frame(width: 27, height: 30)
+                    }
+                    .buttonStyle(BigControl(primary: false))
+                    .help("Stop · Command-.")
+                }
+            }
+
             HStack(spacing: 6) {
                 Circle().fill(audio.engineStatus.contains("error") ? .orange : .green).frame(width: 6, height: 6)
                 Text(audio.engineStatus.contains("error") ? "CHECK" : "READY")
                     .font(.system(size: 10, weight: .black)).tracking(0.8)
                     .foregroundColor(audio.engineStatus.contains("error") ? .orange : .green)
-            }.padding(.horizontal, 12).frame(height: 34).background(Card(corner: 12))
+            }
+            .padding(.horizontal, 11)
+            .frame(height: 34)
+            .background(Card(corner: 12))
         }
-        .padding(.horizontal, 19).frame(height: 80)
+        .padding(.horizontal, 18)
+        .frame(height: 78)
         .background(RoundedRectangle(cornerRadius: 23).fill(.regularMaterial.opacity(0.50)))
         .overlay(RoundedRectangle(cornerRadius: 23).stroke(Color.white.opacity(0.09)))
     }
@@ -180,13 +247,14 @@ struct Header: View {
 struct LivePage: View {
     @EnvironmentObject var store: ProjectStore
     @EnvironmentObject var audio: AudioEngineController
+    @EnvironmentObject var performance: AudioPerformanceState
     @Binding var quickClick: Bool
 
     private var song: SongProject? { store.currentSong }
 
     private var active: SectionMarker? {
         guard let song else { return nil }
-        return song.sections.last(where: { $0.start <= audio.currentTime }) ?? song.sections.first
+        return song.sections.last(where: { $0.start <= performance.currentTime }) ?? song.sections.first
     }
 
     private var nextSection: SectionMarker? {
@@ -197,12 +265,12 @@ struct LivePage: View {
     }
 
     var body: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: store.focusMode ? 10 : 14) {
             HStack(spacing: 22) {
                 VStack(alignment: .leading, spacing: 5) {
                     LabelText(audio.isPlaying ? "NOW PLAYING" : "READY")
                     Text(active?.name.uppercased() ?? "NO SECTION")
-                        .font(.system(size: 31, weight: .bold))
+                        .font(.system(size: store.focusMode ? 34 : 31, weight: .bold))
                         .lineLimit(1)
                 }
 
@@ -220,7 +288,7 @@ struct LivePage: View {
                 Spacer()
 
                 VStack(alignment: .trailing, spacing: 3) {
-                    Text(formatTime(audio.currentTime))
+                    Text(formatTime(performance.currentTime))
                         .font(.system(size: 38, weight: .black, design: .rounded))
                         .monospacedDigit()
                     Text("SPACE · PLAY / PAUSE")
@@ -235,7 +303,7 @@ struct LivePage: View {
 
                 if song?.outputMode == .split {
                     Button("QUICK CLICK") {
-                        withAnimation(.easeOut(duration: 0.16)) { quickClick.toggle() }
+                        quickClick.toggle()
                     }
                     .buttonStyle(SmallButton(primary: quickClick))
                 }
@@ -246,11 +314,10 @@ struct LivePage: View {
 
             if quickClick, let song, song.outputMode == .split {
                 QuickClick(song: song)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
             if let song {
-                let columns = [GridItem(.adaptive(minimum: 270), spacing: 12)]
+                let columns = [GridItem(.adaptive(minimum: store.focusMode ? 310 : 270), spacing: 12)]
                 ScrollView {
                     LazyVGrid(columns: columns, spacing: 12) {
                         ForEach(song.sections) { section in
@@ -262,11 +329,29 @@ struct LivePage: View {
                                 SectionCard(
                                     section: section,
                                     active: isActive,
-                                    metrics: isActive ? audio.visual : VisualMetrics(),
-                                    playing: audio.isPlaying
+                                    metrics: performance.visual,
+                                    playing: audio.isPlaying,
+                                    palette: store.livingColorPalette,
+                                    colorAmount: store.livingColorCardAmount
                                 )
                             }
                             .buttonStyle(.plain)
+                            .contextMenu {
+                                Button("Jump to \(section.name)") {
+                                    store.selectedSectionID = section.id
+                                    audio.jumpToSection(section, song: song)
+                                }
+                                Button(section.loopable && audio.loopEnabled ? "Disable Loop" : "Loop This Section") {
+                                    store.selectedSectionID = section.id
+                                    audio.jumpToSection(section, song: song)
+                                    audio.setLoopEnabled(!(section.loopable && audio.loopEnabled))
+                                }
+                                Divider()
+                                Button("Edit in Arrange") {
+                                    store.selectedSectionID = section.id
+                                    store.page = .arrange
+                                }
+                            }
                         }
                     }
                     .padding(2)
@@ -304,7 +389,7 @@ struct LivePage: View {
                                 .font(.system(size: 11, weight: .semibold, design: .monospaced))
                                 .foregroundColor(.secondary)
                         }
-                        ProgressView(value: song.duration > 0 ? audio.currentTime / song.duration : 0)
+                        ProgressView(value: song.duration > 0 ? performance.currentTime / song.duration : 0)
                     }
                     .padding(.horizontal, 8)
                     .frame(maxWidth: .infinity)
@@ -318,7 +403,7 @@ struct LivePage: View {
                 .background(Card(corner: 18))
             }
         }
-        .padding(4)
+        .padding(store.focusMode ? 0 : 4)
     }
 }
 
@@ -327,15 +412,16 @@ struct SectionCard: View {
     let active: Bool
     let metrics: VisualMetrics
     let playing: Bool
+    let palette: LivingColorPalette
+    let colorAmount: Double
 
     var body: some View {
-        let level = playing ? max(0.16, metrics.level) : 0
-        let blue = Color(red: 0.04, green: 0.48, blue: 1.0)
-        let purple = Color(red: 0.69, green: 0.30, blue: 0.96)
-        let cyan = Color(red: 0.12, green: 0.79, blue: 0.98)
-        let pink = Color(red: 1.0, green: 0.25, blue: 0.51)
-        let accentA = metrics.mid > metrics.bass ? purple : blue
-        let accentB = metrics.transient > 0.38 ? pink : cyan
+        let colors = performanceColors(palette)
+        let level = playing ? max(0.08, metrics.level) : 0
+        let activeStrength = active ? 1.0 : 0.30
+        let energy = level * activeStrength * colorAmount.clamped(0...1.2)
+        let accentA = metrics.mid > metrics.bass ? colors.1 : colors.0
+        let accentB = metrics.transient > 0.38 ? colors.2 : colors.3
 
         VStack(alignment: .leading, spacing: 10) {
             HStack {
@@ -362,7 +448,7 @@ struct SectionCard: View {
                 }
             }
             .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
-            .foregroundColor(active && playing ? .white.opacity(0.86) : .secondary)
+            .foregroundColor(active && playing ? .white.opacity(0.88) : .secondary)
         }
         .padding(20)
         .frame(minHeight: 166, maxHeight: 190)
@@ -370,14 +456,14 @@ struct SectionCard: View {
         .background {
             ZStack {
                 RoundedRectangle(cornerRadius: 22)
-                    .fill(Color.black.opacity(active ? 0.18 : 0.30))
+                    .fill(Color.black.opacity(active ? 0.18 : 0.28))
 
-                if active && playing {
+                if playing {
                     LinearGradient(
                         colors: [
-                            accentA.opacity(0.46 + level * 0.28),
-                            accentB.opacity(0.20 + level * 0.22),
-                            Color.black.opacity(0.10)
+                            accentA.opacity((active ? 0.30 : 0.075) + energy * (active ? 0.42 : 0.16)),
+                            accentB.opacity((active ? 0.13 : 0.045) + energy * (active ? 0.30 : 0.10)),
+                            Color.black.opacity(active ? 0.08 : 0.18)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -389,12 +475,46 @@ struct SectionCard: View {
         .overlay(
             RoundedRectangle(cornerRadius: 22)
                 .stroke(
-                    active && playing ? accentA.opacity(0.72) : Color.white.opacity(active ? 0.20 : 0.09),
+                    playing
+                        ? accentA.opacity(active ? 0.70 : 0.10 + energy * 0.28)
+                        : Color.white.opacity(active ? 0.20 : 0.09),
                     lineWidth: active ? 1.5 : 1
                 )
         )
-        .scaleEffect(active ? 1.0 : 0.995)
-        .animation(.easeOut(duration: playing ? 0.18 : 1.6), value: playing)
+        .scaleEffect(active ? 1.0 : 0.997)
+    }
+}
+
+private func performanceColors(_ palette: LivingColorPalette) -> (Color, Color, Color, Color) {
+    switch palette {
+    case .aurora:
+        return (
+            Color(red: 0.04, green: 0.48, blue: 1.0),
+            Color(red: 0.69, green: 0.30, blue: 0.96),
+            Color(red: 1.0, green: 0.25, blue: 0.51),
+            Color(red: 0.12, green: 0.79, blue: 0.98)
+        )
+    case .ocean:
+        return (
+            Color(red: 0.04, green: 0.48, blue: 1.0),
+            Color(red: 0.12, green: 0.79, blue: 0.98),
+            Color(red: 0.08, green: 0.72, blue: 0.70),
+            Color(red: 0.38, green: 0.90, blue: 1.0)
+        )
+    case .violet:
+        return (
+            Color(red: 0.34, green: 0.32, blue: 0.96),
+            Color(red: 0.69, green: 0.30, blue: 0.96),
+            Color(red: 1.0, green: 0.25, blue: 0.51),
+            Color(red: 0.12, green: 0.79, blue: 0.98)
+        )
+    case .warmStage:
+        return (
+            Color(red: 0.34, green: 0.32, blue: 0.96),
+            Color(red: 0.69, green: 0.30, blue: 0.96),
+            Color(red: 1.0, green: 0.55, blue: 0.08),
+            Color(red: 1.0, green: 0.72, blue: 0.18)
+        )
     }
 }
 
@@ -402,21 +522,99 @@ struct QuickClick: View {
     @EnvironmentObject var store: ProjectStore
     @EnvironmentObject var audio: AudioEngineController
     let song: SongProject
+    @State private var tapTimes: [TimeInterval] = []
+
     var body: some View {
-        HStack(spacing: 13) {
-            Toggle("CLICK", isOn: Binding(get: { song.click.enabled }, set: { v in store.mutateCurrent { $0.click.enabled = v }; refresh() })).toggleStyle(.switch)
-            Picker("Sound", selection: Binding(get: { song.click.preset }, set: { v in store.mutateCurrent { $0.click.preset = v }; refresh() })) {
+        HStack(spacing: 11) {
+            Toggle("CLICK", isOn: Binding(
+                get: { song.click.enabled },
+                set: { v in change { $0.enabled = v } }
+            ))
+            .toggleStyle(.switch)
+
+            Picker("", selection: Binding(
+                get: { song.click.effectiveTempoMode },
+                set: { v in
+                    change {
+                        $0.tempoMode = v
+                        if v == .custom && $0.customBPM == nil { $0.customBPM = song.bpm }
+                    }
+                }
+            )) {
+                ForEach(ClickTempoMode.allCases) { Text($0.rawValue).tag($0) }
+            }
+            .frame(width: 130)
+
+            TextField(
+                "",
+                value: Binding(
+                    get: { song.click.effectiveBPM(songBPM: song.bpm) },
+                    set: { v in change { $0.tempoMode = .custom; $0.customBPM = v.clamped(30...300) } }
+                ),
+                format: .number.precision(.fractionLength(1))
+            )
+            .textFieldStyle(.roundedBorder)
+            .frame(width: 66)
+
+            Text("BPM").font(.system(size: 9.5, weight: .black)).foregroundColor(.secondary)
+
+            Button("TAP") { registerTap() }
+                .buttonStyle(SmallButton(primary: false))
+
+            Picker("", selection: Binding(
+                get: { song.click.division },
+                set: { v in change { $0.setDivision(v) } }
+            )) {
+                ForEach(ClickDivision.allCases) { Text($0.rawValue).tag($0) }
+            }
+            .frame(width: 76)
+
+            Picker("", selection: Binding(
+                get: { song.click.preset },
+                set: { v in change { $0.preset = v } }
+            )) {
                 ForEach(ClickPreset.allCases) { Text($0.rawValue).tag($0) }
-            }.frame(width: 180)
-            Slider(value: Binding(get: { song.click.levelDB }, set: { v in store.mutateCurrent { $0.click.levelDB = v }; refresh() }), in: -30...0).frame(width: 160)
-            Text("\(song.click.levelDB, specifier: "%.1f") dB").font(.system(size: 10.5, weight: .medium)).monospacedDigit().frame(width: 60)
-            Toggle("1/8", isOn: Binding(get: { song.click.eighths }, set: { v in store.mutateCurrent { $0.click.eighths = v; if v { $0.click.sixteenths = false } }; refresh() }))
-            Toggle("1/16", isOn: Binding(get: { song.click.sixteenths }, set: { v in store.mutateCurrent { $0.click.sixteenths = v; if v { $0.click.eighths = false } }; refresh() }))
-            Spacer()
-            Button("PREVIEW") { audio.previewClick(song: store.currentSong ?? song) }.buttonStyle(SmallButton(primary: true))
-        }.padding(13).background(Card(corner: 17))
+            }
+            .frame(width: 145)
+
+            Slider(value: Binding(
+                get: { song.click.levelDB },
+                set: { v in change { $0.levelDB = v } }
+            ), in: -30...0)
+            .frame(minWidth: 100, maxWidth: 150)
+
+            Text("\(song.click.levelDB, specifier: "%.1f") dB")
+                .font(.system(size: 10.5, weight: .medium))
+                .monospacedDigit()
+                .frame(width: 58)
+
+            Spacer(minLength: 4)
+
+            Button("PREVIEW") { audio.previewClick(song: store.currentSong ?? song) }
+                .buttonStyle(SmallButton(primary: true))
+        }
+        .padding(12)
+        .background(Card(corner: 17))
     }
-    private func refresh() { if let s = store.currentSong { audio.applyStemState(s) } }
+
+    private func change(_ body: (inout ClickSettings) -> Void) {
+        store.mutateCurrent { body(&$0.click) }
+        if let current = store.currentSong { audio.applyStemState(current) }
+    }
+
+    private func registerTap() {
+        let now = Date.timeIntervalSinceReferenceDate
+        tapTimes = (tapTimes + [now]).filter { now - $0 <= 3.0 }
+        guard tapTimes.count >= 2 else { return }
+        let intervals = zip(tapTimes.dropFirst(), tapTimes).map { $0 - $1 }
+        let useful = intervals.filter { $0 > 0.20 && $0 < 2.0 }
+        guard !useful.isEmpty else { return }
+        let average = useful.reduce(0, +) / Double(useful.count)
+        change {
+            $0.tempoMode = .custom
+            $0.customBPM = (60 / average).clamped(30...300)
+        }
+    }
 }
 
 struct SetPage: View {
