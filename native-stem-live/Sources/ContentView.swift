@@ -650,8 +650,11 @@ struct SetPage: View {
 struct ArrangePage: View {
     @EnvironmentObject var store: ProjectStore
     @EnvironmentObject var audio: AudioEngineController
+    @EnvironmentObject var performance: AudioPerformanceState
     @State private var zoom: Double = 1.25
     @State private var newSectionName = "VERSE"
+    @State private var syncMessage: String?
+    @State private var analysisMessage: String?
 
     private var selected: SectionMarker? {
         guard let song = store.currentSong else { return nil }
@@ -661,14 +664,46 @@ struct ArrangePage: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .center) {
-                PageHeading(title: "Arrange", subtitle: "Timeline-first editing · waveforms, arrangement markers and millisecond cut control.")
+                PageHeading(title: "Arrange", subtitle: "Timeline-first editing · waveforms, tempo, sync and millisecond cut control.")
                 Spacer()
+                if let analysisMessage {
+                    Text(analysisMessage)
+                        .font(.system(size: 10.5, weight: .semibold))
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .frame(maxWidth: 250, alignment: .trailing)
+                }
+                Button("ANALYZE COLOR") { analyzeColor() }
+                    .buttonStyle(SmallButton(primary: false))
+                    .disabled(audio.isPlaying)
+                Button("AUTO SYNC") { runAutoSync() }
+                    .buttonStyle(SmallButton(primary: false))
+                    .disabled(audio.isPlaying)
                 Button("IMPORT STEMS") { importStems() }
                     .buttonStyle(SmallButton(primary: true))
+                    .disabled(audio.isPlaying)
                 Button("+ SECTION @ PLAYHEAD") {
-                    store.addSection(name: newSectionName, at: audio.currentTime)
+                    store.addSection(name: newSectionName, at: performance.currentTime)
                 }
                 .buttonStyle(SmallButton(primary: false))
+            }
+
+            if let syncMessage {
+                HStack(spacing: 8) {
+                    Image(systemName: "waveform.path.ecg")
+                        .foregroundColor(.cyan)
+                    Text(syncMessage)
+                        .font(.system(size: 10.5, weight: .medium))
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    if store.currentSong?.stems.contains(where: { $0.effectiveSourceOffset > 0.0001 }) == true {
+                        Button("RESET SYNC") { resetSync() }
+                            .buttonStyle(SmallButton(primary: false))
+                    }
+                }
+                .padding(.horizontal, 12)
+                .frame(minHeight: 38)
+                .background(Card(corner: 13))
             }
 
             if let song = store.currentSong {
@@ -679,7 +714,7 @@ struct ArrangePage: View {
                         song: song,
                         zoom: zoom,
                         selectedID: store.selectedSectionID,
-                        playhead: audio.currentTime,
+                        playhead: performance.currentTime,
                         seek: { time in
                             audio.seek(song: song, to: time, smooth: false)
                         },
@@ -725,7 +760,7 @@ struct ArrangePage: View {
     }
 
     private func importStems() {
-        guard let songID = store.currentSong?.id else { return }
+        guard let targetSong = store.currentSong, !audio.isPlaying else { return }
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
@@ -733,13 +768,16 @@ struct ArrangePage: View {
         guard panel.runModal() == .OK else { return }
 
         let urls = panel.urls
+        let fileNames = urls.map(\.lastPathComponent)
+        let displayNames = StemNaming.uniqueDisplayNames(for: fileNames)
+        let suggestedTitle = StemNaming.suggestedSongTitle(from: fileNames)
+        let songID = targetSong.id
+        analysisMessage = "Importing and analyzing \(urls.count) stem\(urls.count == 1 ? "" : "s")…"
+
         DispatchQueue.global(qos: .userInitiated).async {
             var built: [StemTrack] = []
-            for url in urls where FileManager.default.fileExists(atPath: url.path) {
-                let lower = url.deletingPathExtension().lastPathComponent.lowercased()
-                let route: StemRoute = (lower.contains("click") || lower.contains("cue"))
-                    ? .click
-                    : ((lower.contains("original") || lower.contains("master") || lower.contains("full mix")) ? .reference : .music)
+            for (position, url) in urls.enumerated() where FileManager.default.fileExists(atPath: url.path) {
+                let suggestion = StemNaming.suggestion(for: url.lastPathComponent)
                 let stemID = UUID()
 
                 do {
@@ -748,12 +786,14 @@ struct ArrangePage: View {
                     built.append(
                         StemTrack(
                             id: stemID,
-                            name: url.deletingPathExtension().lastPathComponent,
+                            name: position < displayNames.count ? displayNames[position] : suggestion.displayName,
                             path: managed.path,
-                            reference: route == .reference,
-                            route: route,
+                            reference: suggestion.route == .reference,
+                            route: suggestion.route,
                             waveform: inspected.waveform,
-                            duration: inspected.duration
+                            duration: inspected.duration,
+                            originalName: url.deletingPathExtension().lastPathComponent,
+                            visualEnvelope: inspected.visual
                         )
                     )
                 } catch {
@@ -762,27 +802,109 @@ struct ArrangePage: View {
             }
 
             DispatchQueue.main.async {
-                store.mutateCurrent { $0.stems.append(contentsOf: built) }
-                if let current = store.currentSong {
+                store.mutateSong(songID) { song in
+                    song.stems.append(contentsOf: built)
+                    if let suggestedTitle,
+                       StemNaming.isGenericSongTitle(song.title) {
+                        song.title = suggestedTitle
+                    }
+                }
+
+                analysisMessage = built.isEmpty
+                    ? "No stems were imported."
+                    : "Imported \(built.count) · names and Living Color analysis ready."
+
+                if store.currentSongID == songID, let current = store.currentSong {
                     do {
                         try audio.prepare(song: current)
                     } catch {
-                        // Engine status already communicates the failure; the imported project remains intact.
+                        analysisMessage = "Imported, but audio prepare reported: \(error.localizedDescription)"
+                    }
+                    if built.count >= 2 {
+                        runAutoSync()
                     }
                 }
             }
         }
     }
+
+    private func analyzeColor() {
+        guard let song = store.currentSong, !audio.isPlaying else { return }
+        let songID = song.id
+        let stems = song.stems
+        analysisMessage = "Analyzing musical energy offline…"
+
+        DispatchQueue.global(qos: .utility).async {
+            var updates: [UUID: (Double, [Float], [VisualAnalysisSample])] = [:]
+            for stem in stems {
+                let url = URL(fileURLWithPath: stem.path)
+                guard FileManager.default.fileExists(atPath: url.path),
+                      let inspected = try? WaveformBuilder.inspect(url: url) else { continue }
+                updates[stem.id] = (inspected.duration, inspected.waveform, inspected.visual)
+            }
+
+            DispatchQueue.main.async {
+                store.mutateSong(songID) { target in
+                    for index in target.stems.indices {
+                        guard let value = updates[target.stems[index].id] else { continue }
+                        target.stems[index].duration = value.0
+                        target.stems[index].waveform = value.1
+                        target.stems[index].visualEnvelope = value.2
+                    }
+                }
+                analysisMessage = "Living Color analysis updated for \(updates.count) stem\(updates.count == 1 ? "" : "s")."
+                if let current = store.currentSong { audio.applyStemState(current) }
+            }
+        }
+    }
+
+    private func runAutoSync() {
+        guard let song = store.currentSong, !audio.isPlaying else { return }
+        let songID = song.id
+        syncMessage = "Analyzing stem alignment offline…"
+        DispatchQueue.global(qos: .userInitiated).async {
+            let result = StemSyncAnalyzer.analyze(song: song)
+            DispatchQueue.main.async {
+                store.mutateSong(songID) { target in
+                    for index in target.stems.indices {
+                        let id = target.stems[index].id
+                        if let offset = result.offsets[id] {
+                            target.stems[index].sourceOffsetSeconds = offset
+                        }
+                        if let confidence = result.confidences[id] {
+                            target.stems[index].syncConfidence = confidence
+                        }
+                    }
+                }
+                syncMessage = result.message
+                if let current = store.currentSong { audio.applyStemState(current) }
+            }
+        }
+    }
+
+    private func resetSync() {
+        store.mutateCurrent { song in
+            for index in song.stems.indices {
+                song.stems[index].sourceOffsetSeconds = nil
+                song.stems[index].syncConfidence = nil
+            }
+        }
+        syncMessage = "Automatic source trims reset."
+        if let current = store.currentSong { audio.applyStemState(current) }
+    }
 }
 
 struct ArrangeTransport: View {
+    @EnvironmentObject var store: ProjectStore
     @EnvironmentObject var audio: AudioEngineController
+    @EnvironmentObject var performance: AudioPerformanceState
     let song: SongProject
     @Binding var zoom: Double
     @Binding var newSectionName: String
+    @State private var tapTimes: [TimeInterval] = []
 
     var body: some View {
-        HStack(spacing: 11) {
+        HStack(spacing: 10) {
             Button {
                 audio.togglePlay(song: song)
             } label: {
@@ -800,7 +922,7 @@ struct ArrangeTransport: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 LabelText("POSITION")
-                Text(formatTime(audio.currentTime))
+                Text(formatTime(performance.currentTime))
                     .font(.system(size: 16, weight: .bold, design: .monospaced))
                     .monospacedDigit()
             }
@@ -808,10 +930,29 @@ struct ArrangeTransport: View {
 
             Divider().frame(height: 34).opacity(0.22)
 
-            VStack(alignment: .leading, spacing: 2) {
-                LabelText("TEMPO")
-                Text("\(song.bpm, specifier: "%.1f") BPM")
-                    .font(.system(size: 13, weight: .bold))
+            HStack(spacing: 5) {
+                VStack(alignment: .leading, spacing: 2) {
+                    LabelText("SONG TEMPO")
+                    TextField(
+                        "",
+                        value: Binding(
+                            get: { song.bpm },
+                            set: { setBPM($0) }
+                        ),
+                        format: .number.precision(.fractionLength(1))
+                    )
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+                    .frame(width: 72)
+                }
+                VStack(spacing: 3) {
+                    Button("+") { setBPM(song.bpm + 1) }
+                    Button("−") { setBPM(song.bpm - 1) }
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 11, weight: .black))
+                Button("TAP") { registerTap() }
+                    .buttonStyle(SmallButton(primary: false))
             }
 
             VStack(alignment: .leading, spacing: 2) {
@@ -824,7 +965,7 @@ struct ArrangeTransport: View {
 
             LabelText("ZOOM")
             Slider(value: $zoom, in: 1...10)
-                .frame(width: 170)
+                .frame(width: 145)
             Button("FIT") { zoom = 1 }
                 .buttonStyle(SmallButton(primary: false))
 
@@ -833,15 +974,34 @@ struct ArrangeTransport: View {
             TextField("Section name", text: $newSectionName)
                 .textFieldStyle(.roundedBorder)
                 .font(.system(size: 12))
-                .frame(width: 150)
+                .frame(width: 138)
 
             Text("SPACE = PLAY / PAUSE")
-                .font(.system(size: 10, weight: .bold))
+                .font(.system(size: 9.5, weight: .bold))
                 .foregroundColor(.secondary)
         }
-        .padding(.horizontal, 13)
-        .frame(minHeight: 58)
+        .padding(.horizontal, 12)
+        .frame(minHeight: 60)
         .background(Card(corner: 16))
+    }
+
+    private func setBPM(_ value: Double) {
+        let bpm = value.clamped(30...300)
+        store.mutateCurrent { $0.bpm = bpm }
+        if let current = store.currentSong { audio.applyStemState(current) }
+    }
+
+    private func registerTap() {
+        let now = Date.timeIntervalSinceReferenceDate
+        tapTimes = (tapTimes + [now]).filter { now - $0 <= 3.0 }
+        guard tapTimes.count >= 2 else { return }
+        var intervals: [Double] = []
+        for index in 1..<tapTimes.count {
+            let value = tapTimes[index] - tapTimes[index - 1]
+            if value > 0.20 && value < 2.0 { intervals.append(value) }
+        }
+        guard !intervals.isEmpty else { return }
+        setBPM(60 / (intervals.reduce(0, +) / Double(intervals.count)))
     }
 }
 
@@ -1155,9 +1315,14 @@ struct WaveLane: View {
             let count = stem.waveform.count
             var waveform = Path()
 
-            for index in 0..<count {
-                let x = CGFloat(index) / CGFloat(count - 1) * size.width
-                let amp = CGFloat(stem.waveform[index]) * (size.height * 0.39)
+            let trimRatio = stem.duration > 0 ? (stem.effectiveSourceOffset / stem.duration).clamped(0...0.999) : 0
+            let startIndex = min(count - 1, max(0, Int(Double(count - 1) * trimRatio)))
+            let visibleCount = max(2, count - startIndex)
+
+            for visibleIndex in 0..<visibleCount {
+                let sourceIndex = min(count - 1, startIndex + visibleIndex)
+                let x = CGFloat(visibleIndex) / CGFloat(visibleCount - 1) * size.width
+                let amp = CGFloat(stem.waveform[sourceIndex]) * (size.height * 0.39)
                 waveform.move(to: CGPoint(x: x, y: mid - amp))
                 waveform.addLine(to: CGPoint(x: x, y: mid + amp))
             }
@@ -1176,7 +1341,7 @@ struct WaveLane: View {
 
 struct LogicSectionInspector: View {
     @EnvironmentObject var store: ProjectStore
-    @EnvironmentObject var audio: AudioEngineController
+    @EnvironmentObject var performance: AudioPerformanceState
     let section: SectionMarker
 
     var body: some View {
@@ -1201,19 +1366,19 @@ struct LogicSectionInspector: View {
             InspectorTimeRow(title: "SECTION START", value: section.start) { value in
                 edit { $0.start = value }
             } setToPlayhead: {
-                edit { $0.start = audio.currentTime }
+                edit { $0.start = performance.currentTime }
             }
 
             InspectorTimeRow(title: "LOOP IN", value: section.loopStart) { value in
                 edit { $0.loopStart = value }
             } setToPlayhead: {
-                edit { $0.loopStart = audio.currentTime }
+                edit { $0.loopStart = performance.currentTime }
             }
 
             InspectorTimeRow(title: "LOOP OUT", value: section.loopEnd) { value in
                 edit { $0.loopEnd = value }
             } setToPlayhead: {
-                edit { $0.loopEnd = audio.currentTime }
+                edit { $0.loopEnd = performance.currentTime }
             }
 
             Divider().opacity(0.22)
