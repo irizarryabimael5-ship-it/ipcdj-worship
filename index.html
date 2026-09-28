@@ -7827,7 +7827,8 @@
         .map((song,index)=>({song,index,phase:getPhase(song,now)}))
         .filter(({song,phase})=>{
           const start=new Date(song.activeFrom).getTime();
-          return now>=start&&phase.key!=="complete";
+          const rollover=new Date(song.rolloverAt||song.introducedAt).getTime();
+          return now>=start&&now<rollover&&phase.key!=="complete";
         })
         .sort((a,b)=>{
           const aPost=a.phase.key==="release"||a.phase.key==="released";
