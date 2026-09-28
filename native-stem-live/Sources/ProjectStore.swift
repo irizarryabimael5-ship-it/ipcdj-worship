@@ -57,6 +57,12 @@ final class ProjectStore: ObservableObject {
         save()
     }
 
+    func mutateSong(_ id: UUID, _ body: (inout SongProject) -> Void) {
+        guard let idx = songs.firstIndex(where: { $0.id == id }) else { return }
+        body(&songs[idx])
+        save()
+    }
+
     func selectSong(_ id: UUID) {
         currentSongID = id
         selectedSectionID = songs.first(where: { $0.id == id })?.sections.first?.id
