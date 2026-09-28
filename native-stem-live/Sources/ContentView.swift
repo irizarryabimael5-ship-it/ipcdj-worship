@@ -1827,6 +1827,7 @@ struct ClickPage: View {
 }
 
 struct ClickPulseView: View {
+    @EnvironmentObject var store: ProjectStore
     @EnvironmentObject var audio: AudioEngineController
     @EnvironmentObject var performance: AudioPerformanceState
     let song: SongProject
@@ -1839,7 +1840,7 @@ struct ClickPulseView: View {
         let phase = beatFloat - floor(beatFloat)
         let downbeat = beatIndex % max(1, song.meterTop) == 0
         let pulse = audio.isPlaying ? max(0, 1 - phase * 4.5) : 0
-        let colors = performanceColors(.aurora)
+        let colors = performanceColors(store.livingColorPalette)
 
         VStack(spacing: 22) {
             ZStack {
