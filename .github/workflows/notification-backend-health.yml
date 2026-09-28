@@ -36,9 +36,13 @@ jobs:
           IPCDJ_PUSH_API_ORIGIN: ${{ vars.IPCDJ_PUSH_API_ORIGIN }}
         run: node notifications/scripts/backend-smoke.mjs
 
-      - name: Backend dormant
+      - name: Pre-activation backend smoke test
         if: steps.state.outputs.enabled != 'true'
-        run: echo "Notification backend health check skipped because public notifications are disabled."
+        env:
+          IPCDJ_PUSH_API_ORIGIN: https://ipcdj-worship-push.ipcdjofficial.workers.dev
+        run: |
+          echo "Public notifications remain disabled; validating the deployed Worker before activation."
+          node notifications/scripts/backend-smoke.mjs
 
       - name: Open or update backend alert
         if: failure()
