@@ -10,6 +10,8 @@ enum STEMLiveAudioError: LocalizedError {
     case splitRequiresStereoOutput(Int)
     case routingChangeWhilePlaying
     case invalidStemFormat(String)
+    case invalidClickFormat
+    case noPlayableStems
 
     var errorDescription: String? {
         switch self {
@@ -23,6 +25,10 @@ enum STEMLiveAudioError: LocalizedError {
             return "Stop playback before changing Stereo Music / Music L / Click R. This stability gate prevents live graph reconstruction."
         case let .invalidStemFormat(name):
             return "\(name) has an invalid audio format and was not connected."
+        case .invalidClickFormat:
+            return "The generated click could not create a stable mono CoreAudio format."
+        case .noPlayableStems:
+            return "No valid live stem could be scheduled for playback."
         }
     }
 }
@@ -209,7 +215,17 @@ final class AudioEngineController: ObservableObject {
         engine.connect(musicRouter, to: engine.mainMixerNode, format: nil)
         musicRouter.pan = 0
 
-        engine.connect(clickNode, to: clickMixer, format: nil)
+        // IMPORTANT: generated click buffers are mono. AVAudioPlayerNode requires
+        // a scheduled buffer's channel count to match the node's output format.
+        // Leaving this connection as nil allowed CoreAudio to negotiate stereo,
+        // then the first mono click scheduled at Play could terminate the process.
+        guard let clickFormat = AVAudioFormat(
+            standardFormatWithSampleRate: sr,
+            channels: 1
+        ) else {
+            throw STEMLiveAudioError.invalidClickFormat
+        }
+        engine.connect(clickNode, to: clickMixer, format: clickFormat)
         engine.connect(clickMixer, to: engine.mainMixerNode, format: nil)
         clickMixer.pan = 1
 
@@ -233,6 +249,12 @@ final class AudioEngineController: ObservableObject {
         musicMixer.outputVolume = 1
         musicRouter.outputVolume = 1
         installVisualTap()
+        let negotiatedClickFormat = clickNode.outputFormat(forBus: 0)
+        guard negotiatedClickFormat.channelCount == 1,
+              abs(negotiatedClickFormat.sampleRate - sr) < 0.5 else {
+            throw STEMLiveAudioError.invalidClickFormat
+        }
+
         rebuildClickBuffers(song: song)
         engine.prepare()
         try engine.start()
@@ -341,20 +363,37 @@ final class AudioEngineController: ObservableObject {
     func play(song: SongProject, from offset: Double? = nil) {
         graphLock.lock()
         defer { graphLock.unlock() }
+
+        RuntimeDiagnostics.mark("PLAY requested · \(song.title) · mode=\(song.outputMode.rawValue)")
         fadeStopWorkItem?.cancel()
         fadeStopWorkItem = nil
+
         do {
             reloadIfNeeded(song: song)
-            if !engine.isRunning { try engine.start() }
+            if !engine.isRunning {
+                RuntimeDiagnostics.mark("PLAY engine.start begin")
+                try engine.start()
+                RuntimeDiagnostics.mark("PLAY engine.start success")
+            }
+
+            let start = max(
+                0,
+                min(
+                    offset ?? pausedPosition,
+                    song.duration > 0 ? song.duration : Double.greatestFiniteMagnitude
+                )
+            )
+            try scheduleAll(song: song, offset: start)
         } catch {
-            DispatchQueue.main.async { self.engineStatus = "Audio error · \(error.localizedDescription)" }
-            return
+            RuntimeDiagnostics.mark("PLAY blocked · \(error.localizedDescription)")
+            DispatchQueue.main.async {
+                self.engineStatus = "Audio error · \(error.localizedDescription)"
+                self.isPlaying = false
+            }
         }
-        let start = max(0, min(offset ?? pausedPosition, song.duration > 0 ? song.duration : Double.greatestFiniteMagnitude))
-        scheduleAll(song: song, offset: start)
     }
 
-    private func scheduleAll(song: SongProject, offset: Double) {
+    private func scheduleAll(song: SongProject, offset: Double) throws {
         graphLock.lock()
         defer { graphLock.unlock() }
         for player in players.values { player.stop() }
@@ -389,19 +428,19 @@ final class AudioEngineController: ObservableObject {
                 at: nil,
                 completionHandler: nil
             )
-            player.prepare(withFrameCount: min(count, 32_768))
             scheduled += 1
         }
 
         guard scheduled > 0 else {
-            publishStatus("Playback blocked · no valid music stems are scheduled")
-            return
+            throw STEMLiveAudioError.noPlayableStems
         }
 
+        RuntimeDiagnostics.mark("PLAY scheduled \(scheduled) music stems")
         for stem in song.stems where stem.effectiveRoute == .music {
             guard let player = players[stem.id], files[stem.id] != nil else { continue }
             player.play(at: when)
         }
+        RuntimeDiagnostics.mark("PLAY music players started")
         anchorHost = startHost
         anchorOffset = offset
         pausedPosition = offset
@@ -416,6 +455,7 @@ final class AudioEngineController: ObservableObject {
         }
         startTransportTimer()
         startClickScheduler()
+        RuntimeDiagnostics.mark("PLAY transport live")
     }
 
     func pause() {
@@ -459,11 +499,19 @@ final class AudioEngineController: ObservableObject {
         if smooth {
             rampMusic(to: 0, duration: 0.055) { [weak self] in
                 guard let self else { return }
-                self.scheduleAll(song: song, offset: target)
-                self.rampMusic(to: 1, duration: 0.085, completion: nil)
+                do {
+                    try self.scheduleAll(song: song, offset: target)
+                    self.rampMusic(to: 1, duration: 0.085, completion: nil)
+                } catch {
+                    self.publishStatus("Seek error · \(error.localizedDescription)")
+                }
             }
         } else {
-            scheduleAll(song: song, offset: target)
+            do {
+                try scheduleAll(song: song, offset: target)
+            } catch {
+                publishStatus("Seek error · \(error.localizedDescription)")
+            }
         }
     }
 
@@ -618,6 +666,7 @@ final class AudioEngineController: ObservableObject {
     private func startClickScheduler() {
         stopClickScheduler()
         guard let song = activeSong, song.outputMode == .split, song.click.enabled else { return }
+        RuntimeDiagnostics.mark("CLICK scheduler start · mono=\(clickNode.outputFormat(forBus: 0).channelCount)ch @ \(clickNode.outputFormat(forBus: 0).sampleRate)")
         let timer = DispatchSource.makeTimerSource(queue: DispatchQueue.global(qos: .userInteractive))
         timer.schedule(deadline: .now(), repeating: .milliseconds(80), leeway: .milliseconds(5))
         timer.setEventHandler { [weak self] in self?.scheduleClicksAhead() }
@@ -633,43 +682,86 @@ final class AudioEngineController: ObservableObject {
     private func scheduleClicksAhead() {
         graphLock.lock()
         defer { graphLock.unlock() }
-        guard transportRunning, let song = activeSong, song.outputMode == .split, song.click.enabled,
-              let normal = normalClickBuffer, let accent = accentClickBuffer, let sub = subdivisionClickBuffer else { return }
-        let bpm = max(30, song.bpm)
-        let quarter = 60.0 / bpm
-        let div = song.click.sixteenths ? 4 : (song.click.eighths ? 2 : 1)
-        let step = quarter / Double(div)
-        let offset = song.click.offsetMS / 1000
-        let nowHost = mach_absolute_time()
-        let horizonHost = nowHost + AVAudioTime.hostTime(forSeconds: 0.9)
-        let signature = "\(anchorHost)-\(div)-\(offset)-\(song.bpm)"
-        if signature != lastClickSignature {
-            lastClickSignature = signature
-            let nowPos = max(0, transportPosition() - offset)
-            nextClickIndex = max(0, Int(ceil(nowPos / step)))
+
+        guard transportRunning,
+              let song = activeSong,
+              song.outputMode == .split,
+              song.click.enabled,
+              let normal = normalClickBuffer,
+              let accent = accentClickBuffer,
+              let sub = subdivisionClickBuffer else { return }
+
+        let output = clickNode.outputFormat(forBus: 0)
+        guard output.channelCount == 1,
+              output.sampleRate > 0,
+              normal.format.channelCount == output.channelCount,
+              accent.format.channelCount == output.channelCount,
+              sub.format.channelCount == output.channelCount,
+              abs(normal.format.sampleRate - output.sampleRate) < 0.5,
+              abs(accent.format.sampleRate - output.sampleRate) < 0.5,
+              abs(sub.format.sampleRate - output.sampleRate) < 0.5 else {
+            publishStatus("Click disabled · CoreAudio click format mismatch")
+            stopClickScheduler()
+            return
         }
 
+        if !clickNode.isPlaying {
+            clickNode.play()
+        }
+        guard let nodeTime = clickNode.lastRenderTime else { return }
+
+        let bpm = max(30, song.bpm)
+        let quarter = 60.0 / bpm
+        let division = song.click.sixteenths ? 4 : (song.click.eighths ? 2 : 1)
+        let step = quarter / Double(division)
+        let offset = song.click.offsetMS / 1000
+        let nowPosition = transportPosition()
+        let horizon = nowPosition + 0.70
+        let signature = "\(transportGeneration)-\(division)-\(offset)-\(song.bpm)"
+
+        if signature != lastClickSignature {
+            lastClickSignature = signature
+            nextClickIndex = max(0, Int(ceil((nowPosition - offset) / step)))
+        }
+
+        let sampleRate = output.sampleRate
         var guardCount = 0
         while guardCount < 32 {
             let beatTime = Double(nextClickIndex) * step + offset
-            let delta = beatTime - anchorOffset
-            let host = anchorHost + AVAudioTime.hostTime(forSeconds: delta)
-            if host > horizonHost { break }
-            if host > nowHost + AVAudioTime.hostTime(forSeconds: 0.012) {
-                let isQuarter = nextClickIndex % div == 0
-                let quarterIndex = nextClickIndex / div
+            if beatTime > horizon { break }
+
+            let delta = beatTime - nowPosition
+            if delta > 0.020 {
+                let targetSample = nodeTime.sampleTime + AVAudioFramePosition((delta * sampleRate).rounded())
+                let isQuarter = nextClickIndex % division == 0
+                let quarterIndex = nextClickIndex / division
                 let isAccent = isQuarter && quarterIndex % max(1, song.meterTop) == 0
                 let buffer = isAccent ? accent : (isQuarter ? normal : sub)
-                clickNode.scheduleBuffer(buffer, at: AVAudioTime(hostTime: host), options: [], completionHandler: nil)
-                if !clickNode.isPlaying { clickNode.play() }
+                clickNode.scheduleBuffer(
+                    buffer,
+                    at: AVAudioTime(sampleTime: targetSample, atRate: sampleRate),
+                    options: [],
+                    completionHandler: nil
+                )
             }
+
             nextClickIndex += 1
             guardCount += 1
         }
     }
 
     private func rebuildClickBuffers(song: SongProject) {
-        let sr = hardwareSampleRate
+        let nodeFormat = clickNode.outputFormat(forBus: 0)
+        let sr = nodeFormat.sampleRate > 0 ? nodeFormat.sampleRate : hardwareSampleRate
+        guard nodeFormat.channelCount == 1, sr > 0 else {
+            normalClickBuffer = nil
+            accentClickBuffer = nil
+            subdivisionClickBuffer = nil
+            clickMixer.outputVolume = 0
+            publishStatus("Click unavailable · mono node format was not negotiated")
+            return
+        }
+
         normalClickBuffer = makeClickBuffer(sampleRate: sr, preset: song.click.preset, accent: false, subdivision: false, accentDB: song.click.accentDB)
         accentClickBuffer = makeClickBuffer(sampleRate: sr, preset: song.click.preset, accent: true, subdivision: false, accentDB: song.click.accentDB)
         subdivisionClickBuffer = makeClickBuffer(sampleRate: sr, preset: song.click.preset, accent: false, subdivision: true, accentDB: song.click.accentDB)
