@@ -9,7 +9,7 @@ struct ContentView: View {
     @State private var whatsNew = false
     @State private var quickClick = false
     @StateObject private var migration = LegacyMigrationManager()
-    private let version = "0.6.3"
+    private let version = "0.6.4"
 
     var body: some View {
         ZStack {
@@ -133,7 +133,7 @@ struct Sidebar: View {
                     Circle().fill(audio.isPlaying ? .green : .gray).frame(width: 6, height: 6)
                     Text(audio.engineStatus).font(.system(size: 10, weight: .medium)).foregroundColor(.secondary).lineLimit(1)
                 }
-                Text("Native 0.6.3").font(.system(size: 10.5, weight: .medium)).foregroundColor(.secondary.opacity(0.8))
+                Text("Native 0.6.4").font(.system(size: 10.5, weight: .medium)).foregroundColor(.secondary.opacity(0.8))
             }.frame(maxWidth: .infinity, alignment: .leading).padding(14)
         }
         .background(RoundedRectangle(cornerRadius: 26).fill(.regularMaterial.opacity(0.50)))
@@ -1224,20 +1224,31 @@ struct SystemPage: View {
                     VStack(alignment: .leading, spacing: 14) {
                         LabelText("ROUTING")
                         Picker("Output", selection: Binding(get: { song.outputMode }, set: { mode in
+                            guard !audio.isPlaying else {
+                                preflightMessage = "Stop playback before changing the output mode. 0.6.4 intentionally blocks live graph reconstruction."
+                                return
+                            }
+
                             let previous = song.outputMode
                             store.mutateCurrent { $0.outputMode = mode }
                             guard let current = store.currentSong else { return }
+
                             do {
-                                try audio.applyRouting(song: current)
-                                preflightMessage = "Routing switched safely to \(mode.rawValue). The CoreAudio graph stayed online."
+                                try audio.changeOutputMode(song: current)
+                                audio.refreshPreflight(song: current)
+                                preflightMessage = "Output changed to \(mode.rawValue). The audio graph was rebuilt while stopped."
                             } catch {
                                 store.mutateCurrent { $0.outputMode = previous }
-                                if let reverted = store.currentSong { try? audio.applyRouting(song: reverted) }
+                                if let reverted = store.currentSong {
+                                    try? audio.changeOutputMode(song: reverted)
+                                }
                                 preflightMessage = error.localizedDescription
                             }
                         })) {
                             ForEach(OutputMode.allCases) { Text($0.rawValue).tag($0) }
-                        }.pickerStyle(.segmented)
+                        }
+                        .pickerStyle(.segmented)
+                        .disabled(audio.isPlaying)
 
                         if song.outputMode == .split {
                             Divider().opacity(0.25)
@@ -1248,7 +1259,7 @@ struct SystemPage: View {
                                 guard let current = store.currentSong else { return }
                                 do {
                                     try audio.applyRouting(song: current)
-                                    preflightMessage = "Mono downmix changed without restarting playback."
+                                    preflightMessage = "Mono downmix coefficients updated safely."
                                 } catch {
                                     store.mutateCurrent { $0.monoDownmixMode = previous }
                                     if let reverted = store.currentSong { try? audio.applyRouting(song: reverted) }
@@ -1417,15 +1428,15 @@ struct WhatsNew: View {
                 RoundedRectangle(cornerRadius: 15).fill(.white).frame(width: 52, height: 52)
                     .overlay(Text("S").foregroundColor(.black).font(.system(size: 23, weight: .black)))
                 VStack(alignment: .leading) {
-                    Text("What's New in STEM Live 0.6.3").font(.system(size: 23, weight: .bold))
-                    Text("Stability, Clarity & Live Color").foregroundColor(.secondary)
+                    Text("What's New in STEM Live 0.6.4").font(.system(size: 23, weight: .bold))
+                    Text("Playback Recovery Release").foregroundColor(.secondary)
                 }
             }
-            UpdateRow("01", "Crash-safe live routing", "Stereo and Music L / Click R now share one permanent CoreAudio graph. Switching modes changes matrix coefficients instead of destroying and rebuilding the graph.")
-            UpdateRow("02", "Logic-style Arrange workspace", "Waveform tracks, arrangement markers, ruler, transport and section inspector have been reorganized around a real timeline-first editing workflow.")
-            UpdateRow("03", "Readable live typography", "Critical labels, section names, buttons and status information are larger and spaced for stage use.")
-            UpdateRow("04", "Living Color 2", "The stage background now wakes from black with music-sensitive blue, indigo, purple, cyan and transient accents, then decays back to black with playback.")
-            UpdateRow("05", "Ventura-ready icon", "The macOS icon is rebuilt as an unmasked full-square asset so Ventura applies its own native icon shape cleanly.")
+            UpdateRow("01", "Playback path simplified", "Stereo playback no longer passes through AUMatrixMixer at all. The normal path is now Player → Mixer → Reverb → Output router.")
+            UpdateRow("02", "Safer multistem start", "File segments are queued at player sample-time zero and every stem starts against one common future host clock, avoiding mixed scheduling timelines.")
+            UpdateRow("03", "Split topology corrected", "AUMatrixMixer is now created only for Music L / Click R and its input/output element counts are explicitly configured before the graph is connected.")
+            UpdateRow("04", "Routing stability gate", "Stereo ↔ split changes are intentionally blocked during playback. Stop first, switch mode, then resume; no live graph reconstruction is allowed in this release.")
+            UpdateRow("05", "Runtime audio smoke test", "The release pipeline now renders generated multistem audio through both the direct stereo graph and the split matrix graph before the DMG is published.")
             Spacer()
             HStack { Spacer(); Button("START TESTING") { dismiss() }.buttonStyle(SmallButton(primary: true)) }
         }.padding(24).background(Color.black.opacity(0.96))
