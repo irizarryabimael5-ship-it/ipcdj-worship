@@ -1397,12 +1397,14 @@ test('v176 lifecycle UI transitions cleanly through Después, prep, release, Est
       const checkpoints={
         beforeActive:await renderAt('2026-09-28T05:59:59-04:00'),
         afterActive:await renderAt('2026-09-28T06:00:01-04:00'),
+        diosIntroduced:await renderAt('2026-09-29T00:00:01-04:00'),
         learning:await renderAt('2026-10-12T12:00:00-04:00'),
         finalPrep:await renderAt('2026-10-20T12:00:00-04:00'),
         releaseStart:await renderAt('2026-10-25T00:00:01-04:00'),
         justBeforeSettled:await renderAt('2026-10-25T11:29:59-04:00'),
         settled:await renderAt('2026-10-25T11:30:00-04:00'),
-        introduced:await renderAt('2026-10-27T00:00:01-04:00')
+        introduced:await renderAt('2026-10-27T00:00:01-04:00'),
+        noFallarasReleased:await renderAt('2026-11-08T11:30:00-05:00')
       };
 
       const stressTimes=[
@@ -1446,11 +1448,19 @@ test('v176 lifecycle UI transitions cleanly through Después, prep, release, Est
 
   expect(result.checkpoints.beforeActive.upcoming).toContain('glorioso-dia');
   expect(result.checkpoints.beforeActive.current.map(x=>x.id)).not.toContain('glorioso-dia');
+  expect(result.checkpoints.beforeActive.current.map(x=>x.id)).toContain('dios-de-milagros');
   expect(result.checkpoints.beforeActive.snapshot.upcoming).toContain('glorioso-dia');
 
   expect(result.checkpoints.afterActive.upcoming).not.toContain('glorioso-dia');
   expect(result.checkpoints.afterActive.current.map(x=>x.id)).toContain('glorioso-dia');
+  expect(result.checkpoints.afterActive.current.map(x=>x.id)).not.toContain('dios-de-milagros');
+  expect(result.checkpoints.afterActive.introduced).not.toContain('Dios De Milagros');
   expect(result.checkpoints.afterActive.snapshot.current).toContain('glorioso-dia');
+  expect(result.checkpoints.afterActive.snapshot.current).not.toContain('dios-de-milagros');
+  expect(result.checkpoints.afterActive.snapshot.introduced).not.toContain('dios-de-milagros');
+
+  expect(result.checkpoints.diosIntroduced.introduced).toContain('Dios De Milagros');
+  expect(result.checkpoints.diosIntroduced.snapshot.introduced).toContain('dios-de-milagros');
   const afterActiveCard=result.checkpoints.afterActive.current.find(x=>x.id==='glorioso-dia');
   expect(afterActiveCard).toBeTruthy();
   expect(afterActiveCard.phase).toBe('upcoming');
@@ -1485,6 +1495,13 @@ test('v176 lifecycle UI transitions cleanly through Después, prep, release, Est
   expect(result.checkpoints.introduced.current.map(x=>x.id)).not.toContain('glorioso-dia');
   expect(result.checkpoints.introduced.introduced).toContain('Glorioso Día');
   expect(result.checkpoints.introduced.snapshot.introduced).toContain('glorioso-dia');
+
+  const noFallarasReleased=result.checkpoints.noFallarasReleased.current.find(x=>x.id==='no-fallaras');
+  expect(noFallarasReleased).toBeTruthy();
+  expect(noFallarasReleased.phase).toBe('released');
+  expect(noFallarasReleased.status).toBe('ESTRENADO');
+  expect(noFallarasReleased.title).toBe('ESTRENO COMPLETADO');
+  expect(result.checkpoints.noFallarasReleased.snapshot.phases['no-fallaras']).toBe('released');
 
   for(const state of Object.values(result.checkpoints)){
     expect(state.duplicateIds).toEqual([]);
