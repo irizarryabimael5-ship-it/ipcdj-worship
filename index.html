@@ -680,14 +680,15 @@
       text-wrap:pretty;
     }
 
-    /* v183 primary navigation:
-       a true tab-view strip: text-first tabs share one baseline, while only
-       the selected tab rises from that line as a compact connected surface. */
+    /* v184 primary navigation:
+       professional line tabs inspired by mature web design systems:
+       transparent items, one shared baseline, one unmistakable active indicator,
+       and no raised/button-like tab chrome. */
     .site-nav{
       position:relative;
       z-index:8;
       width:min(100%,760px);
-      margin:0 auto 22px;
+      margin:0 auto 24px;
       padding:0;
       border:0;
       background:transparent;
@@ -702,7 +703,7 @@
       margin:0 auto;
       align-items:stretch;
       justify-content:center;
-      gap:2px;
+      gap:clamp(16px,2.6vw,34px);
       min-width:0;
       padding:0 4px;
       border:0;
@@ -720,32 +721,38 @@
       bottom:0;
       height:1px;
       pointer-events:none;
-      background:rgba(255,255,255,.145);
+      background:linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255,255,255,.10) 10%,
+        rgba(255,255,255,.10) 90%,
+        transparent 100%
+      );
     }
 
     .site-tab{
       position:relative;
       z-index:1;
       flex:0 1 auto;
-      min-width:118px;
-      max-width:220px;
+      min-width:94px;
+      max-width:210px;
       min-height:46px;
-      margin:0 0 -1px;
-      padding:10px 14px 11px;
-      border:1px solid transparent;
-      border-radius:11px 11px 0 0;
+      margin:0;
+      padding:0 5px 12px;
+      border:0;
+      border-radius:0;
       appearance:none;
       -webkit-appearance:none;
       display:flex;
-      align-items:center;
+      align-items:flex-end;
       justify-content:center;
       background:transparent;
       box-shadow:none;
-      color:#9ea9b9;
+      color:#96a2b4;
       font:inherit;
-      font-size:.80rem;
-      line-height:1.15;
-      font-weight:690;
+      font-size:.81rem;
+      line-height:1.12;
+      font-weight:680;
       letter-spacing:.001em;
       text-align:center;
       white-space:nowrap;
@@ -754,75 +761,73 @@
       cursor:pointer;
       -webkit-tap-highlight-color:transparent;
       touch-action:manipulation;
-      transform:translateZ(0);
-      transition:
-        color .16s ease,
-        background-color .16s ease,
-        border-color .16s ease,
-        box-shadow .16s ease,
-        transform .12s ease;
+      transition:color .16s ease,opacity .16s ease;
+    }
+
+    .site-tab::before{
+      content:"";
+      position:absolute;
+      z-index:2;
+      left:10%;
+      right:10%;
+      bottom:-1px;
+      height:3px;
+      border-radius:999px;
+      pointer-events:none;
+      background:linear-gradient(90deg,#7698ff 0%,#9fb8ff 100%);
+      box-shadow:0 0 12px rgba(107,146,255,.34);
+      opacity:0;
+      transform:scaleX(.58);
+      transform-origin:center;
+      transition:opacity .16s ease,transform .18s cubic-bezier(.2,.7,.2,1);
     }
 
     .site-tab-label{
       min-width:0;
+      max-width:100%;
       display:block;
       text-wrap:balance;
     }
 
-    .site-tab:hover{
-      color:#e8edf5;
-      background:rgba(255,255,255,.035);
-    }
-
-    .site-tab:active{
-      transform:translateY(1px);
+    .site-tab:hover:not([aria-selected="true"]){
+      color:#d5deeb;
     }
 
     .site-tab[aria-selected="true"]{
-      z-index:2;
       color:#ffffff;
-      font-weight:800;
-      border-color:rgba(255,255,255,.125);
-      border-bottom-color:transparent;
-      background:
-        linear-gradient(180deg,rgba(28,40,61,.86) 0%,rgba(12,19,31,.82) 100%);
-      box-shadow:
-        0 -6px 18px rgba(0,0,0,.13),
-        inset 0 1px 0 rgba(255,255,255,.075);
+      font-weight:820;
+      background:transparent;
+      box-shadow:none;
+      text-shadow:0 0 18px rgba(127,158,255,.12);
     }
 
     .site-tab[aria-selected="true"]::before{
-      content:"";
-      position:absolute;
-      left:18%;
-      right:18%;
-      top:-1px;
-      height:2px;
-      border-radius:999px 999px 0 0;
-      background:#91afff;
-      box-shadow:0 0 10px rgba(105,146,255,.26);
+      opacity:1;
+      transform:scaleX(1);
     }
 
-    .site-tab[data-special-event="true"]::after{
+    .site-tab[data-special-event="true"] .site-tab-label::after{
       content:"";
-      position:absolute;
-      top:9px;
-      right:9px;
+      display:inline-block;
       width:5px;
       height:5px;
+      margin-left:7px;
       border-radius:50%;
+      vertical-align:middle;
+      transform:translateY(-1px);
       background:#7ce9ad;
-      box-shadow:0 0 9px rgba(124,233,173,.40);
+      box-shadow:0 0 8px rgba(124,233,173,.40);
     }
 
-    .site-tab[data-special-event="true"][aria-selected="true"]::after{
+    .site-tab[data-special-event="true"][aria-selected="true"] .site-tab-label::after{
       background:#9bf5bf;
-      box-shadow:0 0 10px rgba(124,233,173,.54);
+      box-shadow:0 0 9px rgba(124,233,173,.52);
     }
 
     .site-tab:focus-visible{
       outline:2px solid rgba(157,187,255,.96);
       outline-offset:-3px;
+      border-radius:8px;
     }
 
     .site-tab-panel{
@@ -2952,19 +2957,18 @@
 
     @media (max-width:520px){
       .site-nav{width:100%;margin-bottom:18px}
-      .site-tablist{width:100%;gap:1px;padding-inline:2px}
+      .site-tablist{width:100%;gap:0;padding-inline:0}
       .site-tab{
         flex:1 1 0;
         min-width:0;
         max-width:none;
         min-height:46px;
-        padding:9px 6px 10px;
-        border-radius:10px 10px 0 0;
+        padding:0 4px 11px;
         font-size:.69rem;
         line-height:1.08;
         white-space:normal;
       }
-      .site-tab[data-special-event="true"]::after{top:7px;right:5px}
+      .site-tab::before{left:8%;right:8%;height:3px}
       .countdown-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
       .countdown-unit{min-height:64px}
       .progress-top{
@@ -2977,8 +2981,9 @@
     }
 
     @media (max-width:340px){
-      .site-tab{min-height:45px;font-size:.61rem;padding:8px 3px 9px}
-      .site-tab[data-special-event="true"]::after{width:4px;height:4px;top:6px;right:4px}
+      .site-tab{min-height:45px;font-size:.61rem;padding:0 2px 10px}
+      .site-tab::before{left:6%;right:6%}
+      .site-tab[data-special-event="true"] .site-tab-label::after{width:4px;height:4px;margin-left:5px}
     }
 
     @media (max-width:280px){
@@ -2993,7 +2998,8 @@
       .eyebrow{font-size:.66rem;padding:6px 8px}
       .site-nav{margin-bottom:14px}
       .site-tablist{gap:0;padding-inline:0}
-      .site-tab{min-height:44px;padding:7px 2px 8px;border-radius:9px 9px 0 0;font-size:.56rem;letter-spacing:0}
+      .site-tab{min-height:44px;padding:0 1px 9px;font-size:.56rem;letter-spacing:0}
+      .site-tab::before{left:5%;right:5%;height:3px}
       .platform{padding:10px 11px;gap:9px}
       .playlist-card .platform{
         padding:7px 5px;
@@ -3217,11 +3223,11 @@
       .card,.song-row,.timeline-item,.platform{border-width:1px}
       .site-tablist::after{background:rgba(255,255,255,.34)}
       .site-tab{color:#e2e8f2}
-      .site-tab[aria-selected="true"]{
-        border-color:rgba(169,194,255,.72);
-        border-bottom-color:transparent;
-        background:rgba(33,48,74,.94);
-        box-shadow:inset 0 1px 0 rgba(255,255,255,.12);
+      .site-tab[aria-selected="true"]{color:#ffffff;text-shadow:none}
+      .site-tab[aria-selected="true"]::before{
+        height:4px;
+        background:#b8caff;
+        box-shadow:none;
       }
     }
 
@@ -3243,10 +3249,13 @@
         box-shadow:none;
       }
       .site-tab[aria-selected="true"]{
-        color:HighlightText;
+        color:Highlight;
+        background:Canvas;
+        text-shadow:none;
+      }
+      .site-tab[aria-selected="true"]::before{
         background:Highlight;
-        border:1px solid Highlight;
-        border-bottom-color:Highlight;
+        box-shadow:none;
       }
       .site-tablist::after{background:CanvasText}
       .status,.song-date,.recent .date{
@@ -3271,8 +3280,7 @@
       html.ipcdj-ambient-release .ambient-field-active::before{opacity:.60!important;transform:none!important}
       .ambient-blob{animation:none!important}
       .inline-preview,.preview-button{transition:none!important}
-      .site-tab{transition:none!important}
-      .site-tab:active{transform:none!important}
+      .site-tab,.site-tab::before{transition:none!important}
       .platform{transition:none}
       .progress-fill{transition:none}
       .progress-wrap{transition:none}
