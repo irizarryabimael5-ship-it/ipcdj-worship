@@ -1398,7 +1398,7 @@ test('v176 lifecycle UI transitions cleanly through Después, prep, release, Est
     try{
       const checkpoints={
         beforeActive:await renderAt('2026-09-28T05:59:59-04:00'),
-        afterActive:await renderAt('2026-09-28T06:00:01-04:00'),
+        afterActive:await renderAt('2026-09-28T06:00:00-04:00'),
         diosIntroduced:await renderAt('2026-09-29T00:00:01-04:00'),
         learning:await renderAt('2026-10-12T12:00:00-04:00'),
         finalPrep:await renderAt('2026-10-20T12:00:00-04:00'),
