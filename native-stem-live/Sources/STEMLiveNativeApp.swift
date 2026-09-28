@@ -8,6 +8,7 @@ struct STEMLiveNativeApp: App {
 
     init() {
         NSWindow.allowsAutomaticWindowTabbing = false
+        RuntimeDiagnostics.install()
     }
 
     var body: some Scene {
