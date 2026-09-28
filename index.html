@@ -696,10 +696,12 @@
     .site-tablist{
       position:relative;
       isolation:isolate;
-      display:grid;
-      grid-auto-flow:column;
-      grid-auto-columns:minmax(0,1fr);
+      display:flex;
+      width:max-content;
+      max-width:100%;
+      margin:0 auto;
       align-items:stretch;
+      justify-content:center;
       gap:2px;
       min-width:0;
       padding:0 4px;
@@ -724,7 +726,9 @@
     .site-tab{
       position:relative;
       z-index:1;
-      min-width:0;
+      flex:0 1 auto;
+      min-width:118px;
+      max-width:220px;
       min-height:46px;
       margin:0 0 -1px;
       padding:10px 14px 11px;
@@ -744,7 +748,7 @@
       font-weight:690;
       letter-spacing:.001em;
       text-align:center;
-      white-space:normal;
+      white-space:nowrap;
       overflow-wrap:normal;
       word-break:normal;
       cursor:pointer;
@@ -2948,13 +2952,17 @@
 
     @media (max-width:520px){
       .site-nav{width:100%;margin-bottom:18px}
-      .site-tablist{gap:1px;padding-inline:2px}
+      .site-tablist{width:100%;gap:1px;padding-inline:2px}
       .site-tab{
+        flex:1 1 0;
+        min-width:0;
+        max-width:none;
         min-height:46px;
         padding:9px 6px 10px;
         border-radius:10px 10px 0 0;
         font-size:.69rem;
         line-height:1.08;
+        white-space:normal;
       }
       .site-tab[data-special-event="true"]::after{top:7px;right:5px}
       .countdown-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
