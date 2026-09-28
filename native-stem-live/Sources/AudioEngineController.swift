@@ -33,14 +33,30 @@ enum STEMLiveAudioError: LocalizedError {
     }
 }
 
+final class AudioPerformanceState: ObservableObject {
+    @Published fileprivate(set) var currentTime: Double = 0
+    @Published fileprivate(set) var visual = VisualMetrics()
+}
+
 final class AudioEngineController: ObservableObject {
     @Published private(set) var isPlaying = false
-    @Published private(set) var currentTime: Double = 0
-    @Published private(set) var visual = VisualMetrics()
     @Published private(set) var engineStatus = "Audio idle"
     @Published private(set) var preflightGeneration = 0
     @Published private(set) var latestPreflight: AudioPreflightReport?
     @Published private(set) var loopEnabled = false
+
+    // High-frequency transport/visual state is intentionally isolated from the
+    // controller's slower configuration state. This prevents a 30 Hz playhead
+    // from invalidating every view that only needs routing/status information.
+    let performance = AudioPerformanceState()
+    var currentTime: Double {
+        get { performance.currentTime }
+        set { performance.currentTime = newValue }
+    }
+    var visual: VisualMetrics {
+        get { performance.visual }
+        set { performance.visual = newValue }
+    }
 
     private var engine = AVAudioEngine()
     private var musicMixer = AVAudioMixerNode()
@@ -396,7 +412,8 @@ final class AudioEngineController: ObservableObject {
             let rate = file.processingFormat.sampleRate
             guard rate > 0 else { continue }
 
-            let frame = AVAudioFramePosition((offset * rate).rounded(.down))
+            let sourceTime = offset + stem.effectiveSourceOffset
+            let frame = AVAudioFramePosition((sourceTime * rate).rounded(.down))
             guard frame >= 0, frame < file.length else { continue }
 
             let remaining = file.length - frame
@@ -698,14 +715,15 @@ final class AudioEngineController: ObservableObject {
 
         guard let nodeTime = clickNode.lastRenderTime else { return }
 
-        let bpm = max(30, song.bpm)
+        let bpm = song.click.effectiveBPM(songBPM: song.bpm)
         let quarter = 60.0 / bpm
-        let division = song.click.sixteenths ? 4 : (song.click.eighths ? 2 : 1)
+        let division = song.click.division.stepsPerQuarter
         let step = quarter / Double(division)
         let offset = song.click.offsetMS / 1000
+        let swing = song.click.effectiveSwingPercent / 100
         let nowPosition = transportPosition()
         let horizon = nowPosition + 0.70
-        let signature = "\(transportGeneration)-\(division)-\(offset)-\(song.bpm)"
+        let signature = "\(transportGeneration)-\(division)-\(offset)-\(bpm)-\(swing)-\(song.click.effectiveAccentEnabled)"
 
         if signature != lastClickSignature {
             lastClickSignature = signature
@@ -716,7 +734,10 @@ final class AudioEngineController: ObservableObject {
         var guardCount = 0
         var scheduledAny = false
         while guardCount < 32 {
-            let beatTime = Double(nextClickIndex) * step + offset
+            let baseBeatTime = Double(nextClickIndex) * step + offset
+            let isOffSubdivision = division > 1 && nextClickIndex % division != 0 && nextClickIndex % 2 == 1
+            let swingDelay = isOffSubdivision ? step * swing : 0
+            let beatTime = baseBeatTime + swingDelay
             if beatTime > horizon { break }
 
             let delta = beatTime - nowPosition
@@ -724,7 +745,7 @@ final class AudioEngineController: ObservableObject {
                 let targetSample = nodeTime.sampleTime + AVAudioFramePosition((delta * sampleRate).rounded())
                 let isQuarter = nextClickIndex % division == 0
                 let quarterIndex = nextClickIndex / division
-                let isAccent = isQuarter && quarterIndex % max(1, song.meterTop) == 0
+                let isAccent = song.click.effectiveAccentEnabled && isQuarter && quarterIndex % max(1, song.meterTop) == 0
                 let buffer = isAccent ? accent : (isQuarter ? normal : sub)
                 clickNode.scheduleBuffer(
                     buffer,
@@ -756,13 +777,13 @@ final class AudioEngineController: ObservableObject {
             return
         }
 
-        normalClickBuffer = makeClickBuffer(sampleRate: sr, preset: song.click.preset, accent: false, subdivision: false, accentDB: song.click.accentDB)
-        accentClickBuffer = makeClickBuffer(sampleRate: sr, preset: song.click.preset, accent: true, subdivision: false, accentDB: song.click.accentDB)
-        subdivisionClickBuffer = makeClickBuffer(sampleRate: sr, preset: song.click.preset, accent: false, subdivision: true, accentDB: song.click.accentDB)
+        normalClickBuffer = makeClickBuffer(sampleRate: sr, preset: song.click.preset, accent: false, subdivision: false, accentDB: song.click.accentDB, subdivisionDB: song.click.effectiveSubdivisionLevelDB)
+        accentClickBuffer = makeClickBuffer(sampleRate: sr, preset: song.click.preset, accent: true, subdivision: false, accentDB: song.click.accentDB, subdivisionDB: song.click.effectiveSubdivisionLevelDB)
+        subdivisionClickBuffer = makeClickBuffer(sampleRate: sr, preset: song.click.preset, accent: false, subdivision: true, accentDB: song.click.accentDB, subdivisionDB: song.click.effectiveSubdivisionLevelDB)
         clickMixer.outputVolume = song.outputMode == .split && song.click.enabled ? dbToLinear(song.click.levelDB) : 0
     }
 
-    private func makeClickBuffer(sampleRate: Double, preset: ClickPreset, accent: Bool, subdivision: Bool, accentDB: Double) -> AVAudioPCMBuffer? {
+    private func makeClickBuffer(sampleRate: Double, preset: ClickPreset, accent: Bool, subdivision: Bool, accentDB: Double, subdivisionDB: Double) -> AVAudioPCMBuffer? {
         let spec: (freq: Double, accent: Double, duration: Double, harmonic: Double)
         switch preset {
         case .softWood: spec = (720, 920, 0.050, 0.16)
@@ -773,6 +794,7 @@ final class AudioEngineController: ObservableObject {
         let freq = (accent ? spec.accent : spec.freq) * (subdivision ? 0.82 : 1.0)
         let dur = spec.duration * (subdivision ? 0.72 : 1.0)
         let accentGain = accent ? min(2.2, pow(10, accentDB / 20)) : 1
+        let subdivisionGain = subdivision ? min(1.0, pow(10, subdivisionDB / 20)) : 1
         let frames = AVAudioFrameCount(max(64, Int(sampleRate * dur)))
         guard let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1),
               let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames) else { return nil }
@@ -783,14 +805,18 @@ final class AudioEngineController: ObservableObject {
             let env = exp(-t * (subdivision ? 78 : 58))
             let fundamental = sin(2 * .pi * freq * t)
             let harmonic = sin(2 * .pi * freq * 1.52 * t) * spec.harmonic
-            dst[i] = Float((fundamental + harmonic) * env * (subdivision ? 0.38 : 0.62) * accentGain)
+            dst[i] = Float((fundamental + harmonic) * env * (subdivision ? 0.62 : 0.62) * accentGain * subdivisionGain)
         }
         return buffer
     }
 
     private func updateVisualFromWaveforms(song: SongProject, time: Double) {
+        let anySolo = song.stems.contains { $0.effectiveRoute == .music && $0.solo }
         let live = song.stems.filter { stem in
-            stem.effectiveRoute == .music && !stem.muted && !stem.waveform.isEmpty
+            stem.effectiveRoute == .music &&
+            !stem.muted &&
+            (!anySolo || stem.solo) &&
+            (!stem.waveform.isEmpty || !(stem.visualEnvelope ?? []).isEmpty)
         }
         guard !live.isEmpty, song.duration > 0 else {
             DispatchQueue.main.async { [weak self] in
@@ -799,30 +825,45 @@ final class AudioEngineController: ObservableObject {
             return
         }
 
-        var peak: Double = 0
-        var average: Double = 0
+        var levelPeak = 0.0
+        var levelAverage = 0.0
+        var bass = 0.0
+        var mid = 0.0
+        var air = 0.0
+        var transient = 0.0
         var contributors = 0
 
         for stem in live {
-            let normalized = (time / max(0.001, song.duration)).clamped(0...1)
-            let index = min(
-                stem.waveform.count - 1,
-                max(0, Int(normalized * Double(stem.waveform.count - 1)))
-            )
-            let value = Double(stem.waveform[index]).clamped(0...1)
-            peak = max(peak, value)
-            average += value
+            let sourceTime = time + stem.effectiveSourceOffset
+            guard sourceTime >= 0, sourceTime <= stem.duration else { continue }
+            let normalized = (sourceTime / max(0.001, stem.duration)).clamped(0...1)
+
+            if let envelope = stem.visualEnvelope, !envelope.isEmpty {
+                let index = min(envelope.count - 1, max(0, Int(normalized * Double(envelope.count - 1))))
+                let sample = envelope[index].metrics
+                levelPeak = max(levelPeak, sample.level)
+                levelAverage += sample.level
+                bass += sample.bass
+                mid += sample.mid
+                air += sample.air
+                transient = max(transient, sample.transient)
+            } else if !stem.waveform.isEmpty {
+                let index = min(stem.waveform.count - 1, max(0, Int(normalized * Double(stem.waveform.count - 1))))
+                let value = Double(stem.waveform[index]).clamped(0...1)
+                levelPeak = max(levelPeak, value)
+                levelAverage += value
+                bass += pow(value, 1.15)
+                mid += value
+                let delta = max(0, value - lastVisualLevel)
+                air += min(1, 0.12 + delta * 3.1)
+                transient = max(transient, min(1, delta * 4.8))
+            }
             contributors += 1
         }
 
         guard contributors > 0 else { return }
-        average /= Double(contributors)
-
-        // This meter uses the actual precomputed waveform envelopes rather than
-        // touching AVAudioEngine's realtime render thread. That keeps Living Color
-        // music-reactive without installing a render tap in the live audio path.
-        let level = (peak * 0.68 + average * 0.32).clamped(0...1)
-        let delta = max(0, level - lastVisualLevel)
+        let count = Double(contributors)
+        let level = (levelPeak * 0.62 + (levelAverage / count) * 0.38).clamped(0...1)
         lastVisualLevel = level
 
         func approach(_ current: Double, _ target: Double, attack: Double, release: Double) -> Double {
@@ -834,17 +875,17 @@ final class AudioEngineController: ObservableObject {
 
         let raw = VisualMetrics(
             level: level,
-            bass: pow(level, 1.15).clamped(0...1),
-            mid: (0.22 + level * 0.78).clamped(0...1),
-            air: (0.12 + delta * 3.1).clamped(0...1),
-            transient: (delta * 4.8).clamped(0...1)
+            bass: (bass / count).clamped(0...1),
+            mid: (mid / count).clamped(0...1),
+            air: (air / count).clamped(0...1),
+            transient: transient.clamped(0...1)
         )
 
-        visualSmooth.level = approach(visualSmooth.level, raw.level, attack: 0.16, release: 1.4)
-        visualSmooth.bass = approach(visualSmooth.bass, raw.bass, attack: 0.22, release: 1.0)
-        visualSmooth.mid = approach(visualSmooth.mid, raw.mid, attack: 0.20, release: 0.9)
-        visualSmooth.air = approach(visualSmooth.air, raw.air, attack: 0.12, release: 0.65)
-        visualSmooth.transient = approach(visualSmooth.transient, raw.transient, attack: 0.08, release: 0.42)
+        visualSmooth.level = approach(visualSmooth.level, raw.level, attack: 0.14, release: 1.25)
+        visualSmooth.bass = approach(visualSmooth.bass, raw.bass, attack: 0.20, release: 0.94)
+        visualSmooth.mid = approach(visualSmooth.mid, raw.mid, attack: 0.18, release: 0.86)
+        visualSmooth.air = approach(visualSmooth.air, raw.air, attack: 0.14, release: 0.72)
+        visualSmooth.transient = approach(visualSmooth.transient, raw.transient, attack: 0.075, release: 0.40)
 
         let metrics = visualSmooth
         DispatchQueue.main.async { [weak self] in
