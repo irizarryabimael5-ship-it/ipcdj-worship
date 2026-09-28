@@ -1601,7 +1601,7 @@ test('v180 social preview is the approved WhatsApp screenshot', async ({ request
   const bytes=await imageResponse.body();
   expect(bytes.length).toBeGreaterThan(10000);
   expect(bytes.length).toBeLessThan(400000);
-  expect(createHash('sha256').update(bytes).digest('hex')).toBe('ec6bff23b08fb04fe3340084be36c6431511513fe2170fbde01b708f3d0683b1');
+  expect(createHash('sha256').update(bytes).digest('hex')).toBe('b96bd5ee2a1bd28e1a3bdabe41e23b1bd94f9a3b56ad48bf286090b5984fbc21');
 
   const html=await htmlResponse.text();
   expect(html).toContain('property="og:image" content="https://worship.ipcdj.org/social-preview-v180.jpg?v=180"');

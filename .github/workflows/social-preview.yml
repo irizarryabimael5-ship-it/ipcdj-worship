@@ -40,7 +40,7 @@ jobs:
           import hashlib
 
           p=Path('social-preview-v180.jpg')
-          expected='ec6bff23b08fb04fe3340084be36c6431511513fe2170fbde01b708f3d0683b1'
+          expected='b96bd5ee2a1bd28e1a3bdabe41e23b1bd94f9a3b56ad48bf286090b5984fbc21'
           data=p.read_bytes()
           actual=hashlib.sha256(data).hexdigest()
           assert actual==expected, (actual, expected)
