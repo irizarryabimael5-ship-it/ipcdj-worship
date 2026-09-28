@@ -1,29 +1,25 @@
-name: IPCDJ Social Preview Build
+name: IPCDJ Social Preview Verify
 
 on:
   push:
     branches: [main]
     paths:
       - 'index.html'
-      - 'scripts/generate-social-preview.py'
+      - 'social-preview-v180.jpg'
       - '.github/workflows/social-preview.yml'
-  schedule:
-    - cron: '13 * * * *'
   workflow_dispatch:
 
 permissions:
-  contents: write
-  actions: write
+  contents: read
 
 concurrency:
   group: ipcdj-social-preview
   cancel-in-progress: true
 
 jobs:
-  render-preview:
-    if: github.event_name == 'schedule' || github.actor != 'github-actions[bot]'
+  verify-preview:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -33,71 +29,36 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install preview dependencies
-        run: |
-          python -m pip install --disable-pip-version-check pillow==11.3.0 playwright==1.55.0
-          python -m playwright install --with-deps chromium
+      - name: Install preview validator
+        run: python -m pip install --disable-pip-version-check pillow==11.3.0
 
-      - name: Render sRGB browser landing snapshot
-        run: python scripts/generate-social-preview.py
-
-      - name: Validate preview
+      - name: Validate approved WhatsApp preview
         run: |
           python - <<'PY'
           from PIL import Image
           from pathlib import Path
-          p=Path('social-preview-v176.jpg')
+          import hashlib
+
+          p=Path('social-preview-v180.jpg')
+          expected='ec6bff23b08fb04fe3340084be36c6431511513fe2170fbde01b708f3d0683b1'
+          data=p.read_bytes()
+          actual=hashlib.sha256(data).hexdigest()
+          assert actual==expected, (actual, expected)
+
           im=Image.open(p)
+          im.load()
           assert im.size==(1200,630), im.size
           assert im.mode=='RGB', im.mode
           assert im.info.get('icc_profile'), 'missing embedded ICC profile'
-          assert 10_000 < p.stat().st_size < 400_000, p.stat().st_size
-          print('social preview ok', im.size, p.stat().st_size, 'icc', len(im.info['icc_profile']))
+          assert 10_000 < len(data) < 400_000, len(data)
+
+          html=Path('index.html').read_text(encoding='utf-8')
+          image_url='https://worship.ipcdj.org/social-preview-v180.jpg?v=180'
+          assert f'property="og:image" content="{image_url}"' in html
+          assert f'property="og:image:url" content="{image_url}"' in html
+          assert f'property="og:image:secure_url" content="{image_url}"' in html
+          assert f'name="twitter:image" content="{image_url}"' in html
+          assert f'rel="image_src" href="{image_url}"' in html
+          assert f'itemprop="image" content="{image_url}"' in html
+          print('approved WhatsApp preview verified', im.size, len(data), actual)
           PY
-
-      - name: Commit generated preview
-        id: commit_preview
-        run: |
-          if git diff --quiet -- social-preview-v176.jpg && git ls-files --error-unmatch social-preview-v176.jpg >/dev/null 2>&1; then
-            echo "Preview unchanged."
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add social-preview-v176.jpg
-          git commit -m "Generate v179 browser landing snapshot [skip social-preview]"
-          git fetch origin main
-          git rebase origin/main
-          git push
-          echo "changed=true" >> "$GITHUB_OUTPUT"
-
-      - name: Verify generated preview is live
-        if: steps.commit_preview.outputs.changed == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          EXPECTED="$(sha256sum social-preview-v176.jpg | awk '{print $1}')"
-          echo "Waiting for generated social preview: $EXPECTED"
-          for attempt in $(seq 1 36); do
-            nonce="${GITHUB_RUN_ID}-${attempt}"
-            if curl -fsSL --max-time 20 -H 'Cache-Control: no-cache' \
-              "https://worship.ipcdj.org/social-preview-v176.jpg?social-deploy=${nonce}" \
-              -o /tmp/ipcdj-social-live; then
-              LIVE="$(sha256sum /tmp/ipcdj-social-live | awk '{print $1}')"
-              if [ "$LIVE" = "$EXPECTED" ]; then
-                echo "Generated preview is live on attempt $attempt."
-                exit 0
-              fi
-              echo "Attempt $attempt: live=$LIVE expected=$EXPECTED"
-            fi
-            sleep 10
-          done
-          echo "Timed out waiting for generated social preview deployment."
-          exit 1
-
-      - name: Dispatch final website health on generated head
-        if: steps.commit_preview.outputs.changed == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh workflow run site-health.yml --ref main

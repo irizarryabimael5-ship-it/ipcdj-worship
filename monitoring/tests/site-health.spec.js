@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { createHash } from 'node:crypto';
 
 const isBenignOptionalProviderError = message => {
   const text = String(message || '');
@@ -960,7 +961,7 @@ test('social share preview is crawler-ready', async ({ page, request }) => {
   for(const userAgent of crawlers){
     const [htmlResponse,imageResponse,robotsResponse]=await Promise.all([
       request.get('/?social-health='+nonce,{headers:{'cache-control':'no-cache','user-agent':userAgent}}),
-      request.get('/social-preview-v176.jpg?social-health='+nonce,{headers:{'cache-control':'no-cache','user-agent':userAgent}}),
+      request.get('/social-preview-v180.jpg?social-health='+nonce,{headers:{'cache-control':'no-cache','user-agent':userAgent}}),
       request.get('/robots.txt?social-health='+nonce,{headers:{'cache-control':'no-cache','user-agent':userAgent}})
     ]);
     expect(htmlResponse.ok()).toBe(true);
@@ -978,14 +979,14 @@ test('social share preview is crawler-ready', async ({ page, request }) => {
     expect(ogIndex).toBeLessThan(2500);
     expect(html).toContain('prefix="og: https://ogp.me/ns#"');
     expect(html).toContain('property="og:site_name" content="IPCDJ Worship"');
-    expect(html).toContain('property="og:image" content="https://worship.ipcdj.org/social-preview-v176.jpg?v=179"');
-    expect(html).toContain('property="og:image:url" content="https://worship.ipcdj.org/social-preview-v176.jpg?v=179"');
-    expect(html).toContain('property="og:image:secure_url" content="https://worship.ipcdj.org/social-preview-v176.jpg?v=179"');
+    expect(html).toContain('property="og:image" content="https://worship.ipcdj.org/social-preview-v180.jpg?v=180"');
+    expect(html).toContain('property="og:image:url" content="https://worship.ipcdj.org/social-preview-v180.jpg?v=180"');
+    expect(html).toContain('property="og:image:secure_url" content="https://worship.ipcdj.org/social-preview-v180.jpg?v=180"');
     expect(html).toContain('property="og:image:type" content="image/jpeg"');
     expect(html).toContain('property="og:image:width" content="1200"');
     expect(html).toContain('property="og:image:height" content="630"');
-    expect(html).toContain('rel="image_src" href="https://worship.ipcdj.org/social-preview-v176.jpg?v=179"');
-    expect(html).toContain('itemprop="image" content="https://worship.ipcdj.org/social-preview-v176.jpg?v=179"');
+    expect(html).toContain('rel="image_src" href="https://worship.ipcdj.org/social-preview-v180.jpg?v=180"');
+    expect(html).toContain('itemprop="image" content="https://worship.ipcdj.org/social-preview-v180.jpg?v=180"');
     expect(html).toContain('name="twitter:card" content="summary_large_image"');
 
     const robots=await robotsResponse.text();
@@ -994,7 +995,7 @@ test('social share preview is crawler-ready', async ({ page, request }) => {
   }
 
   await page.goto('/?social-health='+nonce,{waitUntil:'domcontentloaded'});
-  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content','https://worship.ipcdj.org/social-preview-v176.jpg?v=179');
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content','https://worship.ipcdj.org/social-preview-v180.jpg?v=180');
 });
 
 
@@ -1589,11 +1590,10 @@ test('v176 rendering stays sRGB-authored and resilient across browser/device pro
   expect(['chromium-desktop','firefox-desktop','webkit-desktop','chromium-mobile','webkit-mobile','webkit-compact-mobile','webkit-tablet']).toContain(testInfo.project.name);
 });
 
-test('v179 social preview is a full-color browser-rendered landing snapshot', async ({ request }) => {
-  const [imageResponse,htmlResponse,generatorResponse]=await Promise.all([
-    request.get('/social-preview-v176.jpg?health='+Date.now(),{headers:{'cache-control':'no-cache'}}),
-    request.get('/?social-v179='+Date.now(),{headers:{'cache-control':'no-cache','user-agent':'facebookexternalhit/1.1'}}),
-    request.get('/scripts/generate-social-preview.py?health='+Date.now(),{headers:{'cache-control':'no-cache'}})
+test('v180 social preview is the approved WhatsApp screenshot', async ({ request }) => {
+  const [imageResponse,htmlResponse]=await Promise.all([
+    request.get('/social-preview-v180.jpg?health='+Date.now(),{headers:{'cache-control':'no-cache'}}),
+    request.get('/?social-v180='+Date.now(),{headers:{'cache-control':'no-cache','user-agent':'WhatsApp/2.25.25.85 A'}})
   ]);
 
   expect(imageResponse.ok()).toBe(true);
@@ -1601,22 +1601,13 @@ test('v179 social preview is a full-color browser-rendered landing snapshot', as
   const bytes=await imageResponse.body();
   expect(bytes.length).toBeGreaterThan(10000);
   expect(bytes.length).toBeLessThan(400000);
+  expect(createHash('sha256').update(bytes).digest('hex')).toBe('ec6bff23b08fb04fe3340084be36c6431511513fe2170fbde01b708f3d0683b1');
 
   const html=await htmlResponse.text();
-  expect(html).toContain('property="og:image" content="https://worship.ipcdj.org/social-preview-v176.jpg?v=179"');
+  expect(html).toContain('property="og:image" content="https://worship.ipcdj.org/social-preview-v180.jpg?v=180"');
   expect(html).toContain('property="og:image:type" content="image/jpeg"');
   expect(html).toContain('property="og:image:width" content="1200"');
   expect(html).toContain('property="og:image:height" content="630"');
   expect(html).toContain('name="twitter:card" content="summary_large_image"');
-
-  expect(generatorResponse.ok()).toBe(true);
-  const generator=await generatorResponse.text();
-  expect(generator).toContain('from playwright.sync_api import sync_playwright');
-  expect(generator).toContain('--force-color-profile=srgb');
-  expect(generator).toContain('reduced_motion="no-preference"');
-  expect(generator).toContain('-webkit-line-clamp:2');
-  expect(generator).toContain('#current-song-cards [data-current-song-card]');
-  expect(generator).toContain('browser-landing-snapshot-v179');
-  expect(generator).toContain('ImageCms.createProfile("sRGB")');
-  expect(generator).toContain('social-preview-v176.jpg');
+  expect(html).toContain('name="twitter:image" content="https://worship.ipcdj.org/social-preview-v180.jpg?v=180"');
 });
