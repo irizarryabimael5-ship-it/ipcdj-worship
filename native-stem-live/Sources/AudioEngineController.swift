@@ -696,9 +696,6 @@ final class AudioEngineController: ObservableObject {
             return
         }
 
-        if !clickNode.isPlaying {
-            clickNode.play()
-        }
         guard let nodeTime = clickNode.lastRenderTime else { return }
 
         let bpm = max(30, song.bpm)
@@ -717,6 +714,7 @@ final class AudioEngineController: ObservableObject {
 
         let sampleRate = output.sampleRate
         var guardCount = 0
+        var scheduledAny = false
         while guardCount < 32 {
             let beatTime = Double(nextClickIndex) * step + offset
             if beatTime > horizon { break }
@@ -734,10 +732,15 @@ final class AudioEngineController: ObservableObject {
                     options: [],
                     completionHandler: nil
                 )
+                scheduledAny = true
             }
 
             nextClickIndex += 1
             guardCount += 1
+        }
+
+        if scheduledAny && !clickNode.isPlaying {
+            clickNode.play()
         }
     }
 
