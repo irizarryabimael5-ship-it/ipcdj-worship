@@ -680,9 +680,10 @@
       text-wrap:pretty;
     }
 
-    /* v181 primary navigation:
-       Apple-inspired floating glass anatomy with a clear selection material,
-       persistent labels + glyphs, and compact icon-above-label adaptation. */
+    /* v182 primary navigation:
+       one floating navigation surface + one moving selection lens.
+       Tabs themselves stay visually quiet so the navigation reads as a system,
+       not a row of independent buttons. */
     .site-nav{
       position:relative;
       z-index:8;
@@ -700,19 +701,19 @@
       grid-auto-flow:column;
       grid-auto-columns:minmax(0,1fr);
       align-items:stretch;
-      gap:6px;
+      gap:4px;
       min-width:0;
       padding:6px;
       border:1px solid rgba(255,255,255,.105);
       border-radius:20px;
       background:
-        linear-gradient(180deg,rgba(20,29,45,.78) 0%,rgba(8,13,23,.69) 100%);
-      -webkit-backdrop-filter:blur(24px) saturate(1.34);
-      backdrop-filter:blur(24px) saturate(1.34);
+        linear-gradient(180deg,rgba(18,27,42,.78) 0%,rgba(7,12,21,.71) 100%);
+      -webkit-backdrop-filter:blur(24px) saturate(1.30);
+      backdrop-filter:blur(24px) saturate(1.30);
       box-shadow:
-        0 18px 44px rgba(0,0,0,.24),
+        0 18px 44px rgba(0,0,0,.23),
         inset 0 1px 0 rgba(255,255,255,.075),
-        0 0 0 1px rgba(0,0,0,.16);
+        0 0 0 1px rgba(0,0,0,.14);
       overflow:hidden;
     }
 
@@ -724,17 +725,63 @@
       pointer-events:none;
       border-radius:inherit;
       background:
-        radial-gradient(80% 110% at 50% -28%,rgba(143,176,255,.105),transparent 58%),
-        linear-gradient(180deg,rgba(255,255,255,.035),transparent 44%);
+        radial-gradient(72% 105% at 50% -30%,rgba(143,176,255,.095),transparent 60%),
+        linear-gradient(180deg,rgba(255,255,255,.03),transparent 46%);
+    }
+
+    .site-tab-selection{
+      --site-tab-selection-x:6px;
+      --site-tab-selection-width:0px;
+      position:absolute;
+      z-index:1;
+      top:6px;
+      bottom:6px;
+      left:0;
+      width:var(--site-tab-selection-width);
+      transform:translate3d(var(--site-tab-selection-x),0,0);
+      border:1px solid rgba(151,181,255,.30);
+      border-radius:15px;
+      pointer-events:none;
+      opacity:0;
+      background:
+        radial-gradient(110% 130% at 50% -22%,rgba(168,194,255,.20),transparent 54%),
+        linear-gradient(180deg,rgba(116,151,238,.18) 0%,rgba(55,82,151,.105) 100%);
+      -webkit-backdrop-filter:blur(16px) saturate(1.18);
+      backdrop-filter:blur(16px) saturate(1.18);
+      box-shadow:
+        0 8px 21px rgba(0,0,0,.22),
+        inset 0 1px 0 rgba(255,255,255,.12),
+        inset 0 -1px 0 rgba(91,127,218,.08),
+        0 0 22px rgba(86,125,226,.065);
+      transition:
+        transform .24s cubic-bezier(.22,.72,.18,1),
+        width .24s cubic-bezier(.22,.72,.18,1),
+        opacity .14s ease;
+    }
+
+    .site-tab-selection[data-ready="true"]{
+      opacity:1;
+    }
+
+    .site-tab-selection::after{
+      content:"";
+      position:absolute;
+      left:22%;
+      right:22%;
+      bottom:3px;
+      height:1px;
+      border-radius:999px;
+      background:linear-gradient(90deg,transparent,rgba(164,191,255,.76),transparent);
+      box-shadow:0 0 8px rgba(112,154,255,.34);
     }
 
     .site-tab{
       position:relative;
-      z-index:1;
+      z-index:2;
       min-width:0;
       min-height:52px;
       padding:10px 12px;
-      border:1px solid transparent;
+      border:0;
       border-radius:15px;
       appearance:none;
       -webkit-appearance:none;
@@ -743,11 +790,12 @@
       justify-content:center;
       gap:9px;
       background:transparent;
-      color:#aeb8c7;
+      box-shadow:none;
+      color:#9ea9b9;
       font:inherit;
       font-size:.79rem;
       line-height:1.12;
-      font-weight:720;
+      font-weight:690;
       letter-spacing:.002em;
       text-align:center;
       white-space:normal;
@@ -759,9 +807,7 @@
       transform:translateZ(0);
       transition:
         color .18s ease,
-        background-color .18s ease,
-        border-color .18s ease,
-        box-shadow .18s ease,
+        opacity .18s ease,
         transform .14s ease;
     }
 
@@ -771,8 +817,8 @@
       height:20px;
       display:grid;
       place-items:center;
-      color:#8794a8;
-      opacity:.9;
+      color:#7f8b9e;
+      opacity:.88;
       transition:color .18s ease,opacity .18s ease,filter .18s ease,transform .18s ease;
     }
 
@@ -796,13 +842,11 @@
     }
 
     .site-tab:hover{
-      color:#eef3fa;
-      border-color:rgba(255,255,255,.08);
-      background:rgba(255,255,255,.045);
+      color:#e7edf6;
     }
 
     .site-tab:hover .site-tab-icon{
-      color:#c3ccda;
+      color:#bcc6d5;
       opacity:1;
     }
 
@@ -813,20 +857,12 @@
     .site-tab[aria-selected="true"]{
       color:#ffffff;
       font-weight:800;
-      border-color:rgba(151,181,255,.33);
-      background:
-        linear-gradient(180deg,rgba(134,169,255,.225) 0%,rgba(78,108,185,.145) 100%);
-      box-shadow:
-        0 8px 22px rgba(0,0,0,.27),
-        inset 0 1px 0 rgba(255,255,255,.135),
-        inset 0 -1px 0 rgba(86,121,216,.10),
-        0 0 24px rgba(86,125,226,.075);
     }
 
     .site-tab[aria-selected="true"] .site-tab-icon{
-      color:#a9c2ff;
+      color:#aec5ff;
       opacity:1;
-      filter:drop-shadow(0 0 8px rgba(116,158,255,.26));
+      filter:drop-shadow(0 0 8px rgba(116,158,255,.24));
       transform:translateY(-.25px);
     }
 
@@ -839,18 +875,17 @@
       height:5px;
       border-radius:50%;
       background:#7ce9ad;
-      box-shadow:0 0 10px rgba(124,233,173,.48);
+      box-shadow:0 0 10px rgba(124,233,173,.44);
     }
 
     .site-tab[data-special-event="true"][aria-selected="true"]::after{
-      background:#98f4bd;
-      box-shadow:0 0 12px rgba(124,233,173,.66);
+      background:#9bf5bf;
+      box-shadow:0 0 12px rgba(124,233,173,.62);
     }
 
     .site-tab:focus-visible{
       outline:2px solid rgba(157,187,255,.96);
-      outline-offset:2px;
-      border-color:rgba(157,187,255,.46);
+      outline-offset:-1px;
     }
 
     .site-tab-panel{
@@ -2980,7 +3015,8 @@
 
     @media (max-width:520px){
       .site-nav{width:100%;margin-bottom:18px}
-      .site-tablist{gap:4px;padding:5px;border-radius:18px}
+      .site-tablist{gap:3px;padding:5px;border-radius:18px}
+      .site-tab-selection{top:5px;bottom:5px;border-radius:13px}
       .site-tab{
         min-height:58px;
         padding:8px 5px 7px;
@@ -3020,7 +3056,8 @@
       .brand-sub{display:block;margin:.12em 0 0}
       .eyebrow{font-size:.66rem;padding:6px 8px}
       .site-nav{margin-bottom:14px}
-      .site-tablist{gap:3px;padding:4px;border-radius:16px}
+      .site-tablist{gap:2px;padding:4px;border-radius:16px}
+      .site-tab-selection{top:4px;bottom:4px;border-radius:12px}
       .site-tab{min-height:54px;padding:6px 2px 5px;border-radius:12px;font-size:.56rem;letter-spacing:0;gap:2px}
       .site-tab-icon{width:17px;height:17px}
       .platform{padding:10px 11px;gap:9px}
@@ -3223,13 +3260,16 @@
 
     @media (prefers-reduced-transparency: reduce){
       .future-artwork-blur,.future-artwork-ghost{display:none!important}
-      .card,.eyebrow,.pull-refresh{
+      .card,.eyebrow,.pull-refresh,.site-tablist,.site-tab-selection{
         backdrop-filter:none;
         -webkit-backdrop-filter:none;
       }
       .card{background:rgba(11,15,24,.96)}
       .eyebrow{background:rgba(20,27,44,.94)}
       .pull-refresh{background:rgba(10,14,23,.98)}
+      .site-tablist{background:rgba(8,13,23,.96)}
+      .site-tab-selection{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(58,82,144,.46)}
+      .site-tab-selection{background:rgba(74,103,177,.34)}
     }
 
     @media (prefers-reduced-data: reduce){
@@ -3246,10 +3286,10 @@
       .card,.song-row,.timeline-item,.platform{border-width:1px}
       .site-tablist{border-color:rgba(255,255,255,.28);background:rgba(8,13,23,.93)}
       .site-tab{color:#e2e8f2}
-      .site-tab[aria-selected="true"]{
+      .site-tab-selection{
         border-color:#a9c2ff;
-        background:rgba(93,126,211,.34);
-        box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
+        background:rgba(93,126,211,.38);
+        box-shadow:inset 0 0 0 1px rgba(255,255,255,.10);
       }
     }
 
@@ -3265,18 +3305,19 @@
         border:1px solid CanvasText;
         box-shadow:none;
       }
+      .site-tab-selection{
+        forced-color-adjust:auto;
+        background:Highlight;
+        border:1px solid Highlight;
+        box-shadow:none!important;
+      }
       .site-tab{
         forced-color-adjust:auto;
         color:CanvasText;
-        border:1px solid transparent;
-        background:Canvas;
+        background:transparent;
         box-shadow:none;
       }
-      .site-tab[aria-selected="true"]{
-        color:HighlightText;
-        background:Highlight;
-        border-color:Highlight;
-      }
+      .site-tab[aria-selected="true"]{color:HighlightText}
       .site-tab-icon{color:currentColor;filter:none!important}
       .status,.song-date,.recent .date{
         border:1px solid CanvasText;
@@ -3300,7 +3341,7 @@
       html.ipcdj-ambient-release .ambient-field-active::before{opacity:.60!important;transform:none!important}
       .ambient-blob{animation:none!important}
       .inline-preview,.preview-button{transition:none!important}
-      .site-tab,.site-tab-icon{transition:none!important}
+      .site-tab,.site-tab-icon,.site-tab-selection{transition:none!important}
       .site-tab:active{transform:none!important}
       .platform{transition:none}
       .progress-fill{transition:none}
@@ -3771,6 +3812,7 @@
 
     <nav class="site-nav" aria-label="Secciones principales">
       <div class="site-tablist" id="site-tablist" role="tablist" aria-label="Secciones de IPCDJ Worship">
+        <span class="site-tab-selection" id="site-tab-selection" aria-hidden="true"></span>
         <button class="site-tab" id="tab-inicio" type="button" role="tab" aria-selected="true" aria-controls="panel-inicio" tabindex="0" data-site-tab="inicio">
           <span class="site-tab-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" focusable="false"><path d="M4 10.5 12 4l8 6.5v8.25A1.25 1.25 0 0 1 18.75 20h-4.5v-5.5h-4.5V20h-4.5A1.25 1.25 0 0 1 4 18.75Z"/></svg>
@@ -3891,7 +3933,31 @@
     // disappear at midnight immediately after their event window ends.
     const siteTabList=document.getElementById("site-tablist");
     const siteTabPanels=document.getElementById("site-tab-panels");
+    const siteTabSelection=document.getElementById("site-tab-selection");
     let activeSiteTabKey="inicio";
+    let siteTabSelectionFrame=0;
+
+    function syncSiteTabSelection(){
+      if(!siteTabList||!siteTabSelection)return;
+      cancelAnimationFrame(siteTabSelectionFrame);
+      siteTabSelectionFrame=requestAnimationFrame(()=>{
+        const selected=siteTabList.querySelector('[role="tab"][aria-selected="true"]:not([hidden])');
+        if(!selected){
+          siteTabSelection.removeAttribute("data-ready");
+          return;
+        }
+        const listRect=siteTabList.getBoundingClientRect();
+        const tabRect=selected.getBoundingClientRect();
+        if(tabRect.width<=0||listRect.width<=0){
+          siteTabSelection.removeAttribute("data-ready");
+          return;
+        }
+        const x=tabRect.left-listRect.left;
+        siteTabSelection.style.setProperty("--site-tab-selection-x",x.toFixed(2)+"px");
+        siteTabSelection.style.setProperty("--site-tab-selection-width",tabRect.width.toFixed(2)+"px");
+        siteTabSelection.dataset.ready="true";
+      });
+    }
 
     const SPECIAL_EVENT_TABS=[
       {
@@ -3955,6 +4021,7 @@
       });
 
       activeSiteTabKey=key;
+      syncSiteTabSelection();
       if(focus)button.focus({preventScroll:true});
       return true;
     }
@@ -4022,6 +4089,8 @@
 
       if(!siteTabButton(activeSiteTabKey)){
         activateSiteTab("inicio");
+      }else{
+        syncSiteTabSelection();
       }
       return visibleSiteTabs().map(tab=>tab.dataset.siteTab);
     }
@@ -4052,9 +4121,22 @@
     syncSpecialEventTabs(Date.now());
     activateSiteTab("inicio");
 
+    if(siteTabList){
+      if("ResizeObserver" in window){
+        const siteTabResizeObserver=new ResizeObserver(syncSiteTabSelection);
+        siteTabResizeObserver.observe(siteTabList);
+      }else{
+        window.addEventListener("resize",syncSiteTabSelection,{passive:true});
+      }
+      if(document.fonts?.ready){
+        document.fonts.ready.then(syncSiteTabSelection).catch(()=>{});
+      }
+    }
+
     window.IPCDJ_NAV=Object.freeze({
       activate:key=>activateSiteTab(String(key||"")),
       syncSpecialEvents:now=>syncSpecialEventTabs(now),
+      syncSelection:()=>syncSiteTabSelection(),
       getActiveKey:()=>activeSiteTabKey,
       getVisibleTabs:()=>visibleSiteTabs().map(tab=>tab.dataset.siteTab)
     });

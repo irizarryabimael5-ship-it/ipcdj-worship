@@ -309,6 +309,7 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await openHealthyPage(page);
 
   await page.waitForFunction(() => !!window.IPCDJ_NAV);
+  await page.waitForFunction(() => document.querySelector('.site-tab-selection')?.dataset.ready === 'true');
 
   const tablist = page.getByRole('tablist', { name: 'Secciones de IPCDJ Worship' });
   const homeTab = page.locator('#tab-inicio');
@@ -321,15 +322,20 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   const navLayout = await page.evaluate(() => {
     const nav = document.querySelector('.site-nav');
     const tablist = document.querySelector('.site-tablist');
+    const selection = document.querySelector('.site-tab-selection');
     const hero = document.querySelector('.hero');
-    if (!nav || !tablist || !hero) return null;
+    if (!nav || !tablist || !selection || !hero) return null;
     const tabs = [...nav.querySelectorAll('[role="tab"]')];
     const widths = tabs.map(tab => tab.getBoundingClientRect().width);
     const heights = tabs.map(tab => tab.getBoundingClientRect().height);
     const navRect = nav.getBoundingClientRect();
+    const listRect = tablist.getBoundingClientRect();
+    const selectionRect = selection.getBoundingClientRect();
     const listStyle = getComputedStyle(tablist);
+    const selectionStyle = getComputedStyle(selection);
     const tabStyles = tabs.map(tab => {
       const style=getComputedStyle(tab);
+      const rect=tab.getBoundingClientRect();
       const icon=tab.querySelector('.site-tab-icon');
       const label=tab.querySelector('.site-tab-label');
       return {
@@ -339,16 +345,18 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
         flexDirection:style.flexDirection,
         backgroundImage:style.backgroundImage,
         backgroundColor:style.backgroundColor,
-        borderColor:style.borderColor,
-        borderRadius:parseFloat(style.borderRadius)||0,
         boxShadow:style.boxShadow,
+        borderRadius:parseFloat(style.borderRadius)||0,
         color:style.color,
         iconCount:icon?1:0,
         labelCount:label?1:0,
         iconColor:icon?getComputedStyle(icon).color:'',
-        iconWidth:icon?icon.getBoundingClientRect().width:0
+        iconWidth:icon?icon.getBoundingClientRect().width:0,
+        left:rect.left,
+        width:rect.width
       };
     });
+    const selected=tabStyles.find(tab=>tab.selected);
     return {
       navBeforeHero: !!(nav.compareDocumentPosition(hero) & Node.DOCUMENT_POSITION_FOLLOWING),
       position: getComputedStyle(nav).position,
@@ -361,6 +369,19 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
       listBackground:listStyle.backgroundImage,
       listShadow:listStyle.boxShadow,
       backdrop:listStyle.backdropFilter||listStyle.webkitBackdropFilter||'none',
+      selection:{
+        ready:selection.dataset.ready==='true',
+        left:selectionRect.left,
+        right:selectionRect.right,
+        width:selectionRect.width,
+        opacity:Number(selectionStyle.opacity),
+        backgroundImage:selectionStyle.backgroundImage,
+        boxShadow:selectionStyle.boxShadow,
+        borderRadius:parseFloat(selectionStyle.borderRadius)||0,
+        listLeft:listRect.left,
+        listRight:listRect.right
+      },
+      selected,
       tabStyles
     };
   });
@@ -376,6 +397,15 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   expect(navLayout.listBorder).not.toBe('0px');
   expect(navLayout.listBackground).toContain('gradient');
   expect(navLayout.listShadow).not.toBe('none');
+  expect(navLayout.selection.ready).toBe(true);
+  expect(navLayout.selection.opacity).toBeGreaterThan(.9);
+  expect(navLayout.selection.backgroundImage).toContain('gradient');
+  expect(navLayout.selection.boxShadow).not.toBe('none');
+  expect(navLayout.selection.borderRadius).toBeGreaterThanOrEqual(12);
+  expect(navLayout.selection.left).toBeGreaterThanOrEqual(navLayout.selection.listLeft);
+  expect(navLayout.selection.right).toBeLessThanOrEqual(navLayout.selection.listRight+.5);
+  expect(Math.abs(navLayout.selection.left-navLayout.selected.left)).toBeLessThanOrEqual(1.5);
+  expect(Math.abs(navLayout.selection.width-navLayout.selected.width)).toBeLessThanOrEqual(1.5);
   for(const tab of navLayout.tabStyles){
     expect(tab.display).toBe('flex');
     expect(tab.borderRadius).toBeGreaterThanOrEqual(12);
@@ -383,13 +413,12 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
     expect(tab.labelCount).toBe(1);
     expect(tab.iconWidth).toBeGreaterThanOrEqual(17);
     expect(tab.flexDirection).toBe(navLayout.viewportWidth<=520?'column':'row');
+    expect(tab.backgroundImage).toBe('none');
+    expect(tab.boxShadow).toBe('none');
   }
   const initialSelected=navLayout.tabStyles.find(tab=>tab.key==='inicio');
   const initialWeekly=navLayout.tabStyles.find(tab=>tab.key==='worship-semanal');
   expect(initialSelected?.selected).toBe(true);
-  expect(initialSelected?.backgroundImage).toContain('gradient');
-  expect(initialSelected?.boxShadow).not.toBe('none');
-  expect(initialSelected?.backgroundImage).not.toBe(initialWeekly?.backgroundImage);
   expect(initialSelected?.iconColor).not.toBe(initialWeekly?.iconColor);
 
   await expect(homeTab).toHaveAttribute('aria-selected', 'true');
@@ -407,17 +436,27 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
 
   await weeklyTab.click();
   await expect(weeklyTab).toHaveAttribute('aria-selected', 'true');
-  const weeklySelectedVisual=await weeklyTab.evaluate(tab=>{
-    const style=getComputedStyle(tab);
-    const icon=tab.querySelector('.site-tab-icon');
+  const weeklySelectedVisual=await page.evaluate(()=>{
+    const tab=document.getElementById('tab-worship-semanal');
+    const selection=document.querySelector('.site-tab-selection');
+    if(!tab||!selection)return null;
+    const tabRect=tab.getBoundingClientRect();
+    const selectionRect=selection.getBoundingClientRect();
+    const tabStyle=getComputedStyle(tab);
     return {
-      backgroundImage:style.backgroundImage,
-      boxShadow:style.boxShadow,
-      iconColor:icon?getComputedStyle(icon).color:''
+      leftDelta:Math.abs(selectionRect.left-tabRect.left),
+      widthDelta:Math.abs(selectionRect.width-tabRect.width),
+      tabBackground:tabStyle.backgroundImage,
+      tabShadow:tabStyle.boxShadow,
+      selectionBackground:getComputedStyle(selection).backgroundImage
     };
   });
-  expect(weeklySelectedVisual.backgroundImage).toContain('gradient');
-  expect(weeklySelectedVisual.boxShadow).not.toBe('none');
+  expect(weeklySelectedVisual).not.toBeNull();
+  expect(weeklySelectedVisual.leftDelta).toBeLessThanOrEqual(1.5);
+  expect(weeklySelectedVisual.widthDelta).toBeLessThanOrEqual(1.5);
+  expect(weeklySelectedVisual.tabBackground).toBe('none');
+  expect(weeklySelectedVisual.tabShadow).toBe('none');
+  expect(weeklySelectedVisual.selectionBackground).toContain('gradient');
   await expect(weeklyPanel).toBeVisible();
   await expect(homePanel).toBeHidden();
   await expect(weeklyPanel.getByText('Próximamente')).toBeVisible();
@@ -443,16 +482,21 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(eventTab.locator('.site-tab-label')).toHaveText('Campaña GU 2026');
   await eventTab.click();
 
-  const eventSelectedVisual=await eventTab.evaluate(tab=>{
-    const style=getComputedStyle(tab);
+  const eventSelectedVisual=await page.evaluate(()=>{
+    const tab=document.getElementById('tab-campana-gu-2026');
+    const selection=document.querySelector('.site-tab-selection');
+    if(!tab||!selection)return null;
+    const tabRect=tab.getBoundingClientRect();
+    const selectionRect=selection.getBoundingClientRect();
     return {
-      backgroundImage:style.backgroundImage,
-      boxShadow:style.boxShadow,
+      leftDelta:Math.abs(selectionRect.left-tabRect.left),
+      widthDelta:Math.abs(selectionRect.width-tabRect.width),
       afterBackground:getComputedStyle(tab,'::after').backgroundColor
     };
   });
-  expect(eventSelectedVisual.backgroundImage).toContain('gradient');
-  expect(eventSelectedVisual.boxShadow).not.toBe('none');
+  expect(eventSelectedVisual).not.toBeNull();
+  expect(eventSelectedVisual.leftDelta).toBeLessThanOrEqual(1.5);
+  expect(eventSelectedVisual.widthDelta).toBeLessThanOrEqual(1.5);
   expect(eventSelectedVisual.afterBackground).not.toBe('rgba(0, 0, 0, 0)');
 
   const eventPanel = page.locator('#panel-campana-gu-2026');
@@ -533,20 +577,25 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
 });
 
 
-test('v181 primary navigation uses resilient floating-glass tab anatomy', async ({ request }) => {
-  const response=await request.get('/?v181-nav-source='+Date.now(),{headers:{'cache-control':'no-cache'}});
+test('v182 primary navigation uses one moving selection lens instead of button chrome', async ({ request }) => {
+  const response=await request.get('/?v182-nav-source='+Date.now(),{headers:{'cache-control':'no-cache'}});
   expect(response.ok()).toBe(true);
   const source=await response.text();
 
-  expect(source).toContain('/* v181 primary navigation:');
-  expect(source).toContain('backdrop-filter:blur(24px) saturate(1.34)');
-  expect(source).toContain('.site-tab-icon');
-  expect(source).toContain('.site-tab-label');
+  expect(source).toContain('/* v182 primary navigation:');
+  expect(source).toContain('one floating navigation surface + one moving selection lens');
+  expect(source).toContain('class="site-tab-selection"');
+  expect(source).toContain('--site-tab-selection-x');
+  expect(source).toContain('--site-tab-selection-width');
+  expect(source).toContain('function syncSiteTabSelection()');
+  expect(source).toContain('ResizeObserver(syncSiteTabSelection)');
+  expect(source).toContain('syncSelection:()=>syncSiteTabSelection()');
   expect(source).toContain('.site-tab[aria-selected="true"]');
   expect(source).toContain('SITE_TAB_ICONS=Object.freeze');
   expect(source).toContain('setSiteTabContent(tab,event.key,event.label)');
   expect(source).toContain('@media (max-width:520px)');
   expect(source).toContain('flex-direction:column');
+  expect(source).toContain('@media (prefers-reduced-transparency: reduce)');
   expect(source).toContain('@media (prefers-contrast:more)');
   expect(source).toContain('@media (forced-colors:active)');
   expect(source).toContain('@media (prefers-reduced-motion: reduce)');
