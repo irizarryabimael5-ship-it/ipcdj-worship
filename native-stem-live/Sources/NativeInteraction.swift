@@ -25,6 +25,7 @@ struct WindowConfigurator: NSViewRepresentable {
 
 final class ImmediateNSButton: NSButton {
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+    override var acceptsFirstResponder: Bool { false }
 }
 
 struct ImmediateTabButton: NSViewRepresentable {
