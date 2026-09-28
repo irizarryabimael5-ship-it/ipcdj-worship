@@ -39,10 +39,11 @@ jobs:
       - name: Pre-activation backend smoke test
         if: steps.state.outputs.enabled != 'true'
         env:
-          IPCDJ_PUSH_API_ORIGIN: https://ipcdj-worship-push.ipcdjofficial.workers.dev
+          CONFIGURED_API_ORIGIN: ${{ vars.IPCDJ_PUSH_API_ORIGIN }}
         run: |
-          echo "Public notifications remain disabled; validating the deployed Worker before activation."
-          node notifications/scripts/backend-smoke.mjs
+          ORIGIN="${CONFIGURED_API_ORIGIN:-https://ipcdj-worship-push.ipcdjofficial.workers.dev}"
+          echo "Public notifications remain disabled; validating backend at $ORIGIN before activation."
+          IPCDJ_PUSH_API_ORIGIN="$ORIGIN" node notifications/scripts/backend-smoke.mjs
 
       - name: Open or update backend alert
         if: failure()
@@ -67,7 +68,7 @@ jobs:
             }
 
       - name: Close recovered backend alert
-        if: success() && steps.state.outputs.enabled == 'true'
+        if: success()
         uses: actions/github-script@v7
         with:
           script: |
