@@ -348,7 +348,7 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
       };
     });
     return {
-      navBeforeHero:!!(nav.compareDocumentPosition(hero)&Node.DOCUMENT_POSITION_FOLLOWING),
+      heroBeforeNav:!!(hero.compareDocumentPosition(nav)&Node.DOCUMENT_POSITION_FOLLOWING),
       position:getComputedStyle(nav).position,
       navWidth:navRect.width,
       tablistWidth:listRect.width,
@@ -362,7 +362,7 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   });
 
   expect(navLayout).not.toBeNull();
-  expect(navLayout.navBeforeHero).toBe(true);
+  expect(navLayout.heroBeforeNav).toBe(true);
   expect(navLayout.position).toBe('relative');
   expect(navLayout.navWidth).toBeLessThanOrEqual(navLayout.viewportWidth);
   expect(navLayout.tablistWidth).toBeLessThanOrEqual(navLayout.navWidth);
@@ -554,6 +554,7 @@ test('v183 primary navigation uses true text-first tab-view anatomy', async ({ r
   const source=await response.text();
 
   expect(source).toContain('/* v183 primary navigation:');
+  expect(source.indexOf('<header class="hero">')).toBeLessThan(source.indexOf('<nav class="site-nav"'));
   expect(source).toContain('a true tab-view strip: text-first tabs share one baseline');
   expect(source).toContain('.site-tablist::after');
   expect(source).toContain('width:max-content');
