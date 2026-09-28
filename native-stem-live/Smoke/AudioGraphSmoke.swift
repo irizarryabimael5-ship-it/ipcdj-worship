@@ -104,9 +104,13 @@ func render(mode: String, split: Bool, files: [URL]) throws {
     let mixer = AVAudioMixerNode()
     let reverb = AVAudioUnitReverb()
     let router = AVAudioMixerNode()
+    let clickMixer = AVAudioMixerNode()
+    let clickNode = AVAudioPlayerNode()
     engine.attach(mixer)
     engine.attach(reverb)
     engine.attach(router)
+    engine.attach(clickMixer)
+    engine.attach(clickNode)
 
     let format = AVAudioFormat(standardFormatWithSampleRate: 48_000, channels: 2)!
     engine.connect(mixer, to: reverb, format: format)
@@ -123,6 +127,14 @@ func render(mode: String, split: Bool, files: [URL]) throws {
     }
 
     engine.connect(router, to: engine.mainMixerNode, format: format)
+
+    guard let clickFormat = AVAudioFormat(standardFormatWithSampleRate: 48_000, channels: 1) else {
+        throw SmokeFailure.format
+    }
+    engine.connect(clickNode, to: clickMixer, format: clickFormat)
+    engine.connect(clickMixer, to: engine.mainMixerNode, format: nil)
+    clickMixer.pan = 1
+    clickMixer.outputVolume = split ? 0.35 : 0
 
     var players: [AVAudioPlayerNode] = []
     var audioFiles: [AVAudioFile] = []
@@ -149,8 +161,26 @@ func render(mode: String, split: Bool, files: [URL]) throws {
             at: nil,
             completionHandler: nil
         )
-        p.prepare(withFrameCount: 32_768)
         p.play()
+    }
+
+    if split {
+        guard let click = AVAudioPCMBuffer(pcmFormat: clickFormat, frameCapacity: 480) else {
+            throw SmokeFailure.format
+        }
+        click.frameLength = 480
+        guard let dst = click.floatChannelData?[0] else { throw SmokeFailure.format }
+        for i in 0..<Int(click.frameLength) {
+            let t = Double(i) / 48_000.0
+            dst[i] = Float(sin(2 * .pi * 880 * t) * exp(-t * 65) * 0.4)
+        }
+
+        guard clickNode.outputFormat(forBus: 0).channelCount == click.format.channelCount else {
+            throw SmokeFailure.render("split click channel mismatch")
+        }
+
+        clickNode.scheduleBuffer(click, at: nil, options: [], completionHandler: nil)
+        clickNode.play()
     }
 
     guard let output = AVAudioPCMBuffer(pcmFormat: engine.manualRenderingFormat, frameCapacity: 512) else {
