@@ -11,8 +11,11 @@ permissions:
   contents: read
   issues: write
 
+# Keep watchdog triggers independent: scheduled or manual checks must never
+# cancel the acceptance run for a newly deployed commit. Newer runs of the
+# same trigger type may still supersede stale work.
 concurrency:
-  group: ipcdj-website-health
+  group: ipcdj-website-health-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:
