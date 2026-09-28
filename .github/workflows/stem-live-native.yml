@@ -1,8 +1,8 @@
-name: Build STEM Live Native 0.6.5
+name: Build STEM Live Native 0.6.6
 
 on:
   push:
-    branches: [stem-live-native-065]
+    branches: [stem-live-native-066]
     paths:
       - 'native-stem-live/**'
       - '.github/workflows/stem-live-native.yml'
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: stem-live-native-065
+  group: stem-live-native-066
   cancel-in-progress: true
 
 jobs:
@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: stem-live-native-065
+          ref: stem-live-native-066
 
       - uses: actions/setup-go@v5
         with:
@@ -68,16 +68,24 @@ jobs:
             echo "Unsafe force operation found in native source."
             exit 1
           fi
-          grep -R -n '0.6.5' Info.plist Sources/ContentView.swift >/dev/null
+          grep -R -n '0.6.6' Info.plist Sources/ContentView.swift >/dev/null
           grep -n 'engine.connect(clickNode, to: clickMixer, format: clickFormat)' Sources/AudioEngineController.swift >/dev/null
           if grep -n 'engine.connect(clickNode, to: clickMixer, format: nil)' Sources/AudioEngineController.swift; then
             echo "Regression: generated click player must never negotiate an implicit channel format."
             exit 1
           fi
           if grep -n 'installTap' Sources/AudioEngineController.swift; then
-            echo "Regression: live audio render taps are not allowed in 0.6.5."
+            echo "Regression: live audio render taps are not allowed in 0.6.6."
             exit 1
           fi
+          if grep -nE 'AVAudioUnitReverb|AVAudioUnitEffect' Sources/AudioEngineController.swift; then
+            echo "Regression: inline effects are not allowed in the live program path."
+            exit 1
+          fi
+          grep -n 'AudioPerformanceState' Sources/AudioEngineController.swift >/dev/null
+          test -f Sources/StemSyncAnalyzer.swift
+          test -f Sources/StemNaming.swift
+          grep -n 'visualEnvelope' Sources/WaveformBuilder.swift >/dev/null
 
       - name: Runtime multistem audio smoke test
         run: |
@@ -228,7 +236,7 @@ jobs:
           chmod +x "$APP/Contents/MacOS/STEM Live Native" "$APP/Contents/Resources/bin/legacy-migrator"
 
           plutil -lint "$APP/Contents/Info.plist"
-          test "$(plutil -extract CFBundleShortVersionString raw "$APP/Contents/Info.plist")" = "0.6.5"
+          test "$(plutil -extract CFBundleShortVersionString raw "$APP/Contents/Info.plist")" = "0.6.6"
           test "$(plutil -extract CFBundleIconFile raw "$APP/Contents/Info.plist")" = "AppIcon"
           file "$APP/Contents/Resources/AppIcon.icns"
           lipo -info "$APP/Contents/MacOS/STEM Live Native"
@@ -247,9 +255,9 @@ jobs:
             --component "$APP" \
             --install-location /Applications \
             --identifier org.ipcdj.stemlive.nativepreview.pkg \
-            --version 0.6.5 \
-            build/STEM_Live_Native_0.6.5.pkg
-          xar -tf build/STEM_Live_Native_0.6.5.pkg
+            --version 0.6.6 \
+            build/STEM_Live_Native_0.6.6.pkg
+          xar -tf build/STEM_Live_Native_0.6.6.pkg
 
           rm -rf build/dmg-stage
           mkdir -p build/dmg-stage
@@ -263,29 +271,29 @@ jobs:
           TXT
 
           hdiutil create \
-            -volname 'STEM Live Native 0.6.5' \
+            -volname 'STEM Live Native 0.6.6' \
             -srcfolder build/dmg-stage \
             -ov -format UDZO \
-            build/STEM_Live_Native_0.6.5.dmg
-          hdiutil verify build/STEM_Live_Native_0.6.5.dmg
+            build/STEM_Live_Native_0.6.6.dmg
+          hdiutil verify build/STEM_Live_Native_0.6.6.dmg
 
-          ditto -c -k --keepParent "$APP" build/STEM_Live_Native_0.6.5_App.zip
-          ditto -c -k build/STEM_Live_Native_0.6.5.pkg build/STEM_Live_Native_0.6.5_PKG.zip
+          ditto -c -k --keepParent "$APP" build/STEM_Live_Native_0.6.6_App.zip
+          ditto -c -k build/STEM_Live_Native_0.6.6.pkg build/STEM_Live_Native_0.6.6_PKG.zip
 
           shasum -a 256 \
-            build/STEM_Live_Native_0.6.5.dmg \
-            build/STEM_Live_Native_0.6.5.pkg \
-            build/STEM_Live_Native_0.6.5_App.zip \
-            build/STEM_Live_Native_0.6.5_PKG.zip | tee build/SHA256.txt
+            build/STEM_Live_Native_0.6.6.dmg \
+            build/STEM_Live_Native_0.6.6.pkg \
+            build/STEM_Live_Native_0.6.6_App.zip \
+            build/STEM_Live_Native_0.6.6_PKG.zip | tee build/SHA256.txt
 
       - name: Upload native release
         uses: actions/upload-artifact@v4
         with:
-          name: STEM-Live-Native-0.6.5
+          name: STEM-Live-Native-0.6.6
           path: |
-            native-stem-live/build/STEM_Live_Native_0.6.5.dmg
-            native-stem-live/build/STEM_Live_Native_0.6.5.pkg
-            native-stem-live/build/STEM_Live_Native_0.6.5_PKG.zip
-            native-stem-live/build/STEM_Live_Native_0.6.5_App.zip
+            native-stem-live/build/STEM_Live_Native_0.6.6.dmg
+            native-stem-live/build/STEM_Live_Native_0.6.6.pkg
+            native-stem-live/build/STEM_Live_Native_0.6.6_PKG.zip
+            native-stem-live/build/STEM_Live_Native_0.6.6_App.zip
             native-stem-live/build/SHA256.txt
           if-no-files-found: error
