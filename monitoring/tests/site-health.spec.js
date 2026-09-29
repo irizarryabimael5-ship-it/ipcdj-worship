@@ -993,6 +993,17 @@ test('rotation preserves the verified Glorioso Día cover from Después into Cur
       return !!node?.classList.contains('cover-ready') && !!img?.complete && img.naturalWidth>0;
     }, null, { timeout:12000 });
 
+    // cover-ready intentionally crossfades the high-fidelity layer. Wait for the
+    // visual transition to settle before measuring it; do not relax the final
+    // opacity requirement.
+    await page.waitForFunction(() => {
+      const node=document.querySelector('[data-current-song-card][data-song-id="glorioso-dia"]');
+      const fidelity=node?.querySelector('.cover-fidelity');
+      if(!node||!fidelity)return false;
+      if(node.classList.contains('subject-ready'))return true;
+      return Number(getComputedStyle(fidelity).opacity)>=.5;
+    }, null, { timeout:3500 });
+
     const after=await current.evaluate(node=>{
       const native=node.querySelector('.cover-native-fallback');
       const fidelity=node.querySelector('.cover-fidelity');
