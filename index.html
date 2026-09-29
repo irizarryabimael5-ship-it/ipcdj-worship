@@ -136,6 +136,7 @@
 
     html.ipcdj-ios-light-launch.ipcdj-launch-site-hidden .current::before,
     html.ipcdj-ios-light-launch.ipcdj-launch-site-hidden .current .cover-detail,
+    html.ipcdj-ios-light-launch.ipcdj-launch-site-hidden .current .cover-fidelity,
     html.ipcdj-ios-light-launch.ipcdj-launch-site-hidden .current .cover-edge-detail,
     html.ipcdj-ios-light-launch.ipcdj-launch-site-hidden .current .cover-subject-detail,
     html.ipcdj-ios-light-launch.ipcdj-launch-site-hidden .inline-preview{
@@ -295,7 +296,7 @@
         const active=records.filter(record=>{
           if(!record||!record.songId||!record.url)return false;
           const start=Date.parse(record.activeFrom||"");
-          const end=Date.parse(record.introducedAt||record.rolloverAt||"");
+          const end=Date.parse(record.rolloverAt||record.introducedAt||"");
           return Number.isFinite(start)&&Number.isFinite(end)&&now>=start&&now<end;
         });
         if(!active.length)return;
@@ -1013,6 +1014,7 @@
       --cover-base-opacity:.76;
       --cover-detail-opacity:.42;
       --cover-edge-opacity:.50;
+      --cover-fidelity-opacity:.58;
       --cover-detail-blur:2.6px;
       --cover-edge-blur:1.6px;
       --subject-width:32%;
@@ -1071,6 +1073,36 @@
       display:none;
     }
 
+    /* Keep graphic/typographic artwork faithful when it moves from Después
+       into the large Current/Prep card. This is the exact same --cover-image,
+       rendered with minimal blur and masked only where copy needs contrast. */
+    .current .cover-fidelity{
+      position:absolute;
+      inset:-2px;
+      z-index:0;
+      pointer-events:none;
+      background-image:var(--cover-image);
+      background-size:cover;
+      background-position:var(--cover-pos-x) var(--cover-pos-y);
+      background-repeat:no-repeat;
+      filter:blur(.35px) saturate(1.18) brightness(1.08) contrast(1.03);
+      -webkit-filter:blur(.35px) saturate(1.18) brightness(1.08) contrast(1.03);
+      opacity:0;
+      transform:scale(1.012);
+      -webkit-mask-image:
+        linear-gradient(90deg,rgba(0,0,0,.42) 0%,rgba(0,0,0,.66) 22%,rgba(0,0,0,.90) 44%,#000 62%,#000 100%),
+        linear-gradient(180deg,#000 0%,#000 64%,rgba(0,0,0,.90) 76%,rgba(0,0,0,.62) 91%,rgba(0,0,0,.34) 100%);
+      mask-image:
+        linear-gradient(90deg,rgba(0,0,0,.42) 0%,rgba(0,0,0,.66) 22%,rgba(0,0,0,.90) 44%,#000 62%,#000 100%),
+        linear-gradient(180deg,#000 0%,#000 64%,rgba(0,0,0,.90) 76%,rgba(0,0,0,.62) 91%,rgba(0,0,0,.34) 100%);
+      -webkit-mask-composite:source-in;
+      mask-composite:intersect;
+      transition:opacity 1.15s cubic-bezier(.22,.65,.25,1);
+    }
+
+    .current.cover-ready .cover-fidelity{opacity:var(--cover-fidelity-opacity)}
+    .current.subject-ready .cover-fidelity{opacity:.26}
+
     .current::before{
       content:"";
       position:absolute;
@@ -1103,7 +1135,7 @@
       z-index:1;
     }
 
-    .current > :not(.cover-native-fallback):not(.cover-detail):not(.cover-edge-detail):not(.cover-subject-detail):not(.release-aura){
+    .current > :not(.cover-native-fallback):not(.cover-fidelity):not(.cover-detail):not(.cover-edge-detail):not(.cover-subject-detail):not(.release-aura){
       z-index:3;
     }
 
@@ -1418,6 +1450,7 @@
       .current{
         --cover-detail-blur:2.8px;
         --cover-edge-blur:1.7px;
+        --cover-fidelity-opacity:.52;
       }
       .current.cover-ready::before{opacity:.76}
       .current.cover-ready .cover-detail{opacity:.40}
@@ -1445,6 +1478,16 @@
         radial-gradient(circle at 88% 24%, rgba(var(--cover-c2),.18) 0%, rgba(var(--cover-c2),.06) 30%, rgba(var(--cover-c2),0) 54%),
         linear-gradient(180deg, rgba(4,7,12,.20) 0%, rgba(5,8,14,.38) 44%, rgba(4,7,12,.72) 100%);
       box-shadow:inset 0 0 0 1px rgba(255,255,255,.025);
+    }
+
+    /* Covers without an isolated subject keep substantially more of their
+       original light/color identity in Prep instead of being globally dimmed. */
+    .current.cover-ready:not(.subject-ready)::after{
+      background:
+        linear-gradient(90deg,rgba(4,7,12,.22) 0%,rgba(4,7,12,.11) 20%,rgba(4,7,12,.025) 38%,rgba(4,7,12,0) 52%),
+        radial-gradient(circle at 12% 14%,rgba(var(--cover-c1),.18) 0%,rgba(var(--cover-c1),.06) 27%,rgba(var(--cover-c1),0) 50%),
+        radial-gradient(circle at 88% 24%,rgba(var(--cover-c2),.15) 0%,rgba(var(--cover-c2),.05) 30%,rgba(var(--cover-c2),0) 54%),
+        linear-gradient(180deg,rgba(4,7,12,.10) 0%,rgba(5,8,14,.22) 48%,rgba(4,7,12,.50) 100%);
     }
 
     .release-aura{
@@ -3803,8 +3846,8 @@
     </section>
 
     <section class="card reveal">
-      <h2 class="section-title">Introducciones recientes</h2>
-      <p class="section-note">Canciones recientemente integradas al repertorio del ministerio.</p>
+      <h2 class="section-title">Estrenos recientes</h2>
+      <p class="section-note">Canciones ya presentadas en el servicio, con la fecha de su estreno.</p>
 
       <div class="recent-list" id="introduced-songs" aria-live="polite"></div>
     </section>
@@ -4456,7 +4499,7 @@
         releaseDayStartAt:"2026-09-27T00:00:00-04:00",
         releaseAt:"2026-09-27T11:00:00-04:00",
         releaseDayEndAt:"2026-09-28T00:00:00-04:00",
-        introducedAt:"2026-09-29T00:00:00-04:00",
+        introducedAt:"2026-09-28T06:00:00-04:00",
         rolloverAt:"2026-09-28T06:00:00-04:00",
       },
       {
@@ -4482,7 +4525,7 @@
         releaseDayStartAt:"2026-10-25T00:00:00-04:00",
         releaseAt:"2026-10-25T11:00:00-04:00",
         releaseDayEndAt:"2026-10-26T00:00:00-04:00",
-        introducedAt:"2026-10-27T00:00:00-04:00",
+        introducedAt:"2026-10-26T06:00:00-04:00",
         rolloverAt:"2026-10-26T06:00:00-04:00",
       },
       {
@@ -4509,7 +4552,7 @@
         releaseDayStartAt:"2026-11-08T00:00:00-05:00",
         releaseAt:"2026-11-08T11:00:00-05:00",
         releaseDayEndAt:"2026-11-09T00:00:00-05:00",
-        introducedAt:"2026-11-10T00:00:00-05:00",
+        introducedAt:"2026-11-09T06:00:00-05:00",
         rolloverAt:"2026-11-09T06:00:00-05:00",
       }
     ];
@@ -4694,6 +4737,16 @@
             pushIssue("error",index,b,b+" occurs before "+a+".");
           }
         });
+
+        // Rotation is atomic: leaving Current and entering recent-history happen
+        // at the same instant. Separate timestamps create a silent visibility gap.
+        if(
+          Number.isFinite(times.rolloverAt)&&
+          Number.isFinite(times.introducedAt)&&
+          times.rolloverAt!==times.introducedAt
+        ){
+          pushIssue("error",index,"introducedAt","introducedAt must exactly match rolloverAt for an atomic rotation/history handoff.");
+        }
 
         // activeFrom controls when the card becomes active/current. It may occur
         // after learningStart (for example when a previous song rolls over at 6 AM
@@ -5191,7 +5244,7 @@
           url:highResolutionArtworkUrl(url),
           activeFrom:song.activeFrom,
           rolloverAt:song.rolloverAt,
-          introducedAt:song.introducedAt||song.rolloverAt,
+          introducedAt:song.rolloverAt||song.introducedAt,
           savedAt:Date.now()
         });
         list.sort((a,b)=>(b.savedAt||0)-(a.savedAt||0));
@@ -7902,7 +7955,7 @@
       const releaseDayStart=new Date(song.releaseDayStartAt||song.releaseAt).getTime();
       const release=new Date(song.releaseAt).getTime();
       const releaseSettledAt=release+RELEASE_SETTLE_DELAY_MS;
-      const introduced=new Date(song.introducedAt||song.rolloverAt).getTime();
+      const introduced=new Date(song.rolloverAt||song.introducedAt).getTime();
 
       if(now<learningStart)return {key:"upcoming",label:"Próximamente",note:"Próxima fase · aprendizaje"};
       if(now<=learningEnd)return {key:"learning",label:"Aprendizaje",note:"Fase 1 de 3 · aprendizaje en curso"};
@@ -7990,6 +8043,7 @@
       return `
         <section class="card current reveal visible${nativeClass}" data-current-song-card data-song-id="${escapeHtml(song.id)}" data-cover-transition="staged"${nativeStyle}>
           ${nativeCover}
+          <div class="cover-fidelity" aria-hidden="true"></div>
           <div class="cover-detail" aria-hidden="true"></div>
           <div class="cover-edge-detail" aria-hidden="true"></div>
           <div class="cover-subject-detail" aria-hidden="true"></div>
@@ -8457,12 +8511,14 @@
         label:formatSongLongDate(item.introducedAt)
       }));
       const autoIntroduced=songPipeline
-        .filter(song=>now>=new Date(song.introducedAt||song.rolloverAt).getTime())
+        .filter(song=>now>=new Date(song.rolloverAt||song.introducedAt).getTime())
         .map(song=>({
           id:song.id,
           title:song.title,
           artist:song.artist,
-          introducedAt:song.introducedAt||song.rolloverAt,
+          // rolloverAt is the authoritative history-entry instant. The visible
+          // date is still the actual service/estreno date.
+          introducedAt:song.rolloverAt||song.introducedAt,
           label:spanishReleaseLabel(song)
         }));
 
@@ -8480,7 +8536,7 @@
             <strong class="notranslate" translate="no">${item.title}</strong>
             <span class="recent-artist notranslate" translate="no">${item.artist}</span>
           </div>
-          <span class="date">Introducida · ${item.label}</span>
+          <span class="date">Estrenada · ${item.label}</span>
         </div>
       `).join("");
     }
@@ -8500,7 +8556,7 @@
           )
           .map(song=>song.id)),
         introduced:Object.freeze(songPipeline
-          .filter(song=>timestamp>=Date.parse(song.introducedAt||song.rolloverAt))
+          .filter(song=>timestamp>=Date.parse(song.rolloverAt||song.introducedAt))
           .map(song=>song.id)),
         phases:Object.freeze(Object.fromEntries(
           songPipeline.map(song=>[song.id,getPhase(song,timestamp).key])
@@ -8528,6 +8584,7 @@
         releaseDayEndAt:song.releaseDayEndAt,
         rolloverAt:song.rolloverAt,
         introducedAt:song.introducedAt,
+        historyAt:song.rolloverAt,
         learningLabel:song.learningLabel,
         finalLabel:song.finalLabel,
         releaseLabel:song.releaseLabel,

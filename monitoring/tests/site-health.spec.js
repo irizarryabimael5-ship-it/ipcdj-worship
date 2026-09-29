@@ -714,9 +714,9 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
         const finalStage = api.phase(song.id, Date.parse(song.finalStart));
         const release = api.phase(song.id, Date.parse(song.releaseDayStartAt));
         const released = api.phase(song.id, Date.parse(song.releaseDayEndAt));
-        const complete = api.phase(song.id, Date.parse(song.introducedAt));
+        const complete = api.phase(song.id, Date.parse(song.rolloverAt));
         const atActive = api.snapshot(Date.parse(song.activeFrom));
-        const atIntroduced = api.snapshot(Date.parse(song.introducedAt));
+        const atIntroduced = api.snapshot(Date.parse(song.rolloverAt));
         return {
           ...song,
           learning: learning?.key || '',
@@ -774,6 +774,8 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
     for (const field of lifecycleFields) {
       expect(song[field]).toMatch(explicitZone);
     }
+    expect(Date.parse(song.introducedAt)).toBe(Date.parse(song.rolloverAt));
+    expect(song.historyAt).toBe(song.rolloverAt);
   }
 
   for (const song of audit.songs) {
@@ -811,6 +813,9 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
   expect(source).toContain('coverSubjectFocus:{');
   expect(source).toContain('id="upcoming-songs" aria-live="polite"></div>');
   expect(source).toContain('id="introduced-songs" aria-live="polite"></div>');
+  expect(source).toContain('introducedAt must exactly match rolloverAt for an atomic rotation/history handoff.');
+  expect(source).toContain('<h2 class="section-title">Estrenos recientes</h2>');
+  expect(source).toContain('Estrenada · ${item.label}');
   expect(source).not.toContain('Math.min(index,40)*260');
 
   for (const id of ids) {
@@ -912,8 +917,17 @@ test('catalog artwork stays bound to each song across current and future section
         return !!node?.dataset.coverArtworkUrl;
       }, song.id);
 
+      await page.waitForFunction(id => {
+        const node=document.querySelector('[data-current-song-card][data-song-id="' + id + '"]');
+        const img=node?.querySelector('.cover-native-fallback');
+        return !!node?.classList.contains('cover-ready') && !!img?.complete && img.naturalWidth>0;
+      }, song.id, { timeout: 12000 });
+
       const state = await card.evaluate(node => {
         const css = getComputedStyle(node);
+        const native=node.querySelector('.cover-native-fallback');
+        const fidelity=node.querySelector('.cover-fidelity');
+        const fidelityStyle=fidelity?getComputedStyle(fidelity):null;
         return {
           url: node.dataset.coverArtworkUrl || '',
           source: node.dataset.coverArtworkSource || '',
@@ -921,7 +935,13 @@ test('catalog artwork stays bound to each song across current and future section
           themeId: node.dataset.coverTheme || '',
           c1: css.getPropertyValue('--cover-c1').trim(),
           c2: css.getPropertyValue('--cover-c2').trim(),
-          c3: css.getPropertyValue('--cover-c3').trim()
+          c3: css.getPropertyValue('--cover-c3').trim(),
+          nativeSrc:native?.currentSrc||native?.src||'',
+          nativeWidth:native?.naturalWidth||0,
+          nativeHeight:native?.naturalHeight||0,
+          fidelityImage:fidelityStyle?.backgroundImage||'none',
+          fidelityOpacity:Number(fidelityStyle?.opacity||0),
+          fidelityFilter:fidelityStyle?.filter||''
         };
       });
 
@@ -932,7 +952,77 @@ test('catalog artwork stays bound to each song across current and future section
       expect(state.c1.length).toBeGreaterThan(0);
       expect(state.c2.length).toBeGreaterThan(0);
       expect(state.c3.length).toBeGreaterThan(0);
+      expect(state.nativeSrc).toBe(expectedUrl);
+      expect(state.nativeWidth).toBeGreaterThanOrEqual(500);
+      expect(state.nativeHeight).toBeGreaterThanOrEqual(500);
+      expect(state.fidelityImage).not.toBe('none');
+      expect(state.fidelityFilter).toContain('brightness(1.08)');
     }
+  }
+});
+
+test('rotation preserves the verified Glorioso Día cover from Después into Current at readable fidelity', async ({ page }) => {
+  await openHealthyPage(page);
+  await page.waitForFunction(() => !!window.IPCDJ_CATALOG_TEST);
+
+  const expected='https://i.scdn.co/image/ab67616d0000b27372bba4048e09a242595e4a2c';
+
+  try{
+    await page.evaluate(() => window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-09-28T05:59:59-04:00')));
+
+    const future=page.locator('#upcoming-songs [data-song-id="glorioso-dia"]');
+    await expect(future).toHaveCount(1);
+    await future.dispatchEvent('pointerdown',{pointerType:'touch',isPrimary:true});
+    await page.waitForFunction(() => {
+      const node=document.querySelector('#upcoming-songs [data-song-id="glorioso-dia"]');
+      return !!node?.dataset.futureArtworkUrl;
+    }, null, { timeout:12000 });
+
+    const before=await future.evaluate(node=>({
+      url:node.dataset.futureArtworkUrl||'',
+      source:node.dataset.futureArtworkSource||''
+    }));
+
+    await page.evaluate(() => window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-09-28T06:00:00-04:00')));
+
+    const current=page.locator('[data-current-song-card][data-song-id="glorioso-dia"]');
+    await expect(current).toHaveCount(1);
+    await page.waitForFunction(() => {
+      const node=document.querySelector('[data-current-song-card][data-song-id="glorioso-dia"]');
+      const img=node?.querySelector('.cover-native-fallback');
+      return !!node?.classList.contains('cover-ready') && !!img?.complete && img.naturalWidth>0;
+    }, null, { timeout:12000 });
+
+    const after=await current.evaluate(node=>{
+      const native=node.querySelector('.cover-native-fallback');
+      const fidelity=node.querySelector('.cover-fidelity');
+      const style=fidelity?getComputedStyle(fidelity):null;
+      return {
+        url:node.dataset.coverArtworkUrl||'',
+        source:node.dataset.coverArtworkSource||'',
+        nativeSrc:native?.currentSrc||native?.src||'',
+        nativeWidth:native?.naturalWidth||0,
+        nativeHeight:native?.naturalHeight||0,
+        fidelityImage:style?.backgroundImage||'none',
+        fidelityOpacity:Number(style?.opacity||0),
+        fidelityFilter:style?.filter||'',
+        subjectReady:node.classList.contains('subject-ready')
+      };
+    });
+
+    expect(before.url).toBe(expected);
+    expect(before.source).toBe('verified-spotify');
+    expect(after.url).toBe(expected);
+    expect(after.url).toBe(before.url);
+    expect(after.source).toBe('verified-spotify');
+    expect(after.nativeSrc).toBe(expected);
+    expect(after.nativeWidth).toBeGreaterThanOrEqual(500);
+    expect(after.nativeHeight).toBeGreaterThanOrEqual(500);
+    expect(after.fidelityImage).not.toBe('none');
+    expect(after.fidelityFilter).toContain('brightness(1.08)');
+    if(!after.subjectReady)expect(after.fidelityOpacity).toBeGreaterThanOrEqual(.5);
+  }finally{
+    await page.evaluate(() => window.IPCDJ_CATALOG_TEST.resume());
   }
 });
 
@@ -1521,10 +1611,14 @@ test('v176 lifecycle UI transitions cleanly through Después, prep, release, Est
       }));
       const upcoming=[...document.querySelectorAll('#upcoming-songs [data-song-id]')].map(node=>node.dataset.songId);
       const introduced=[...document.querySelectorAll('#introduced-songs .recent strong')].map(node=>node.textContent?.trim()||'');
+      const introducedRows=[...document.querySelectorAll('#introduced-songs .recent')].map(node=>({
+        title:node.querySelector('strong')?.textContent?.trim()||'',
+        date:node.querySelector('.date')?.textContent?.trim()||''
+      }));
       const duplicateIds=[...document.querySelectorAll('[id]')].map(n=>n.id).filter((id,i,a)=>a.indexOf(id)!==i);
 
       return {
-        current,upcoming,introduced,duplicateIds,
+        current,upcoming,introduced,introducedRows,duplicateIds,
         snapshot:{
           current:[...snapshot.current],
           upcoming:[...snapshot.upcoming],
@@ -1547,6 +1641,8 @@ test('v176 lifecycle UI transitions cleanly through Después, prep, release, Est
         releaseStart:await renderAt('2026-10-25T00:00:01-04:00'),
         justBeforeSettled:await renderAt('2026-10-25T11:29:59-04:00'),
         settled:await renderAt('2026-10-25T11:30:00-04:00'),
+        gloriosoBeforeRollover:await renderAt('2026-10-26T05:59:59-04:00'),
+        gloriosoRollover:await renderAt('2026-10-26T06:00:00-04:00'),
         introduced:await renderAt('2026-10-27T00:00:01-04:00'),
         noFallarasReleased:await renderAt('2026-11-08T11:30:00-05:00')
       };
@@ -1555,7 +1651,8 @@ test('v176 lifecycle UI transitions cleanly through Después, prep, release, Est
         '2026-09-28T05:59:59-04:00','2026-09-28T06:00:01-04:00',
         '2026-10-12T12:00:00-04:00','2026-10-20T12:00:00-04:00',
         '2026-10-25T00:00:01-04:00','2026-10-25T11:29:59-04:00',
-        '2026-10-25T11:30:00-04:00','2026-10-27T00:00:01-04:00'
+        '2026-10-25T11:30:00-04:00','2026-10-26T05:59:59-04:00',
+        '2026-10-26T06:00:00-04:00','2026-10-27T00:00:01-04:00'
       ];
 
       const transitionStart=performance.now();
@@ -1600,10 +1697,14 @@ test('v176 lifecycle UI transitions cleanly through Después, prep, release, Est
   expect(result.checkpoints.afterActive.upcoming).not.toContain('glorioso-dia');
   expect(result.checkpoints.afterActive.current.map(x=>x.id)).toContain('glorioso-dia');
   expect(result.checkpoints.afterActive.current.map(x=>x.id)).not.toContain('dios-de-milagros');
-  expect(result.checkpoints.afterActive.introduced).not.toContain('Dios De Milagros');
+  expect(result.checkpoints.beforeActive.introduced).not.toContain('Dios De Milagros');
+  expect(result.checkpoints.afterActive.introduced).toContain('Dios De Milagros');
   expect(result.checkpoints.afterActive.snapshot.current).toContain('glorioso-dia');
   expect(result.checkpoints.afterActive.snapshot.current).not.toContain('dios-de-milagros');
-  expect(result.checkpoints.afterActive.snapshot.introduced).not.toContain('dios-de-milagros');
+  expect(result.checkpoints.afterActive.snapshot.introduced).toContain('dios-de-milagros');
+  const diosHistoryRow=result.checkpoints.afterActive.introducedRows.find(x=>x.title==='Dios De Milagros');
+  expect(diosHistoryRow).toBeTruthy();
+  expect(diosHistoryRow.date).toBe('Estrenada · 27 de septiembre');
 
   expect(result.checkpoints.diosIntroduced.introduced).toContain('Dios De Milagros');
   expect(result.checkpoints.diosIntroduced.snapshot.introduced).toContain('dios-de-milagros');
@@ -1637,6 +1738,19 @@ test('v176 lifecycle UI transitions cleanly through Después, prep, release, Est
   expect(settled.status).toBe('ESTRENADO');
   expect(settled.title).toBe('ESTRENO COMPLETADO');
   expect(result.checkpoints.settled.snapshot.phases['glorioso-dia']).toBe('released');
+
+  expect(result.checkpoints.gloriosoBeforeRollover.current.map(x=>x.id)).toContain('glorioso-dia');
+  expect(result.checkpoints.gloriosoBeforeRollover.upcoming).toContain('no-fallaras');
+  expect(result.checkpoints.gloriosoBeforeRollover.introduced).not.toContain('Glorioso Día');
+
+  expect(result.checkpoints.gloriosoRollover.current.map(x=>x.id)).not.toContain('glorioso-dia');
+  expect(result.checkpoints.gloriosoRollover.current.map(x=>x.id)).toContain('no-fallaras');
+  expect(result.checkpoints.gloriosoRollover.upcoming).not.toContain('no-fallaras');
+  expect(result.checkpoints.gloriosoRollover.introduced).toContain('Glorioso Día');
+  expect(result.checkpoints.gloriosoRollover.snapshot.introduced).toContain('glorioso-dia');
+  const gloriosoHistoryRow=result.checkpoints.gloriosoRollover.introducedRows.find(x=>x.title==='Glorioso Día');
+  expect(gloriosoHistoryRow).toBeTruthy();
+  expect(gloriosoHistoryRow.date).toBe('Estrenada · 25 de octubre');
 
   expect(result.checkpoints.introduced.current.map(x=>x.id)).not.toContain('glorioso-dia');
   expect(result.checkpoints.introduced.introduced).toContain('Glorioso Día');
