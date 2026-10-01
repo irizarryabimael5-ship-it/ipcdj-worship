@@ -8143,12 +8143,44 @@
       `;
     }
 
+    function createCurrentSongCardNode(song){
+      const template=document.createElement("template");
+      template.innerHTML=currentSongCardMarkup(song).trim();
+      return template.content.firstElementChild;
+    }
+
     function syncCurrentCards(entries){
       const host=currentCardsHost();
       if(!host)return;
       const key=entries.map(({song})=>song.id).join("|");
       if(key===renderedCurrentSongKey&&host.children.length===entries.length)return;
-      host.innerHTML=entries.map(({song})=>currentSongCardMarkup(song)).join("");
+
+      // Reconcile by song ID instead of replacing host.innerHTML. This preserves
+      // an existing Prep card's preview controls, artwork state and DOM identity
+      // when another Prep song enters/leaves an overlapping preparation window.
+      const existing=new Map(
+        [...host.querySelectorAll(":scope > [data-current-song-card][data-song-id]")]
+          .map(card=>[card.dataset.songId,card])
+      );
+      const desired=[];
+
+      entries.forEach(({song})=>{
+        let card=existing.get(song.id)||null;
+        if(card){
+          existing.delete(song.id);
+        }else{
+          card=createCurrentSongCardNode(song);
+        }
+        if(card)desired.push(card);
+      });
+
+      existing.forEach(card=>card.remove());
+
+      desired.forEach((card,index)=>{
+        const at=host.children[index]||null;
+        if(at!==card)host.insertBefore(card,at);
+      });
+
       renderedCurrentSongKey=key;
     }
 
