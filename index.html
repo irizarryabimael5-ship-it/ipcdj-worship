@@ -4798,6 +4798,7 @@
         ...raw,
         artworkQuery:raw.artworkQuery||[raw.title,raw.artist].filter(Boolean).join(" "),
         previewClipDuration:raw.previewAudioUrl ? Math.max(1,Number(raw.previewClipDuration)||30) : 0,
+        previewSource:raw.previewSource||(raw.previewAudioUrl?"webaudio":""),
         previewFadeIn:raw.previewAudioUrl ? Math.max(0,Number(raw.previewFadeIn)||.70) : 0,
         previewFadeOut:raw.previewAudioUrl ? Math.max(0,Number(raw.previewFadeOut)||1.60) : 0,
         futurePalette:palette,
@@ -6738,6 +6739,13 @@
       return !isMobilePreviewEnvironment();
     }
 
+    function previewInternalTabSwitchActive(){
+      return (
+        !document.hidden &&
+        Number(window.__ipcdjInternalTabSwitchUntil||0)>performance.now()
+      );
+    }
+
     function stopPreviewForMobileBackground(){
       if(!isMobilePreviewEnvironment())return false;
 
@@ -6771,6 +6779,10 @@
     // iOS standalone web apps can report document.hidden later than window blur
     // during lock/app-switch. Blur is therefore the first-line mobile stop event.
     window.addEventListener("blur",()=>{
+      // iOS/Safari can emit a transient window blur while the user switches
+      // IPCDJ's own in-page tabs. That is not an app/background transition and
+      // must never steal playback ownership from the active Adelanto.
+      if(previewInternalTabSwitchActive())return;
       stopPreviewForMobileBackground();
     },{passive:true,capture:true});
 
@@ -6778,6 +6790,16 @@
     // Safari/PWA lifecycle delivery has varied across iOS versions.
     document.addEventListener("visibilitychange",pausePreviewWhenBackgrounded,{passive:true,capture:true});
     document.addEventListener("webkitvisibilitychange",pausePreviewWhenBackgrounded,{passive:true,capture:true});
+
+    window.addEventListener("ipcdj:internalnavigation",()=>{
+      if(document.hidden||!webPreviewPlaying||!webPreviewContext)return;
+      // Preserve the one shared preview engine across Inicio/Worship/Campaña.
+      // If WebKit transiently suspends the context during a visible in-page
+      // focus change, resume it without resetting song, elapsed time or UI.
+      if(webPreviewContext.state==="suspended"){
+        webPreviewContext.resume().catch(()=>{});
+      }
+    },{passive:true});
 
     window.addEventListener("pagehide",()=>{
       if(isMobilePreviewEnvironment()){
@@ -6804,6 +6826,24 @@
     },{passive:true,capture:true});
 
     clearNativePreviewMediaSession();
+
+    window.IPCDJ_PREVIEW_TEST=Object.freeze({
+      snapshot(){
+        const liveElapsed=webPreviewPlaying
+          ? Math.max(0,(performance.now()-webPreviewStartedAt)/1000)
+          : Math.max(0,Number(webPreviewElapsed)||0);
+        return {
+          songId:webPreviewSongId,
+          activeSongId:activePreviewSongId,
+          playing:webPreviewPlaying,
+          elapsed:liveElapsed,
+          duration:webPreviewClipDuration,
+          contextState:webPreviewContext?.state||"none",
+          documentHidden:document.hidden,
+          internalTabSwitchActive:previewInternalTabSwitchActive()
+        };
+      }
+    });
 
     let youtubeApiPromise=null;
     let youtubePreviewPlayer=null;
@@ -8626,6 +8666,83 @@
       liveClockTimer=setTimeout(scheduleLiveClock,nextDelay);
     }
 
+    function renderSyntheticPrepOverlap(timestamp){
+      const value=Number(timestamp);
+      if(!Number.isFinite(value))throw new TypeError("Invalid overlap test timestamp");
+
+      const glorioso=songPipelineById.get("glorioso-dia");
+      const noFallaras=songPipelineById.get("no-fallaras");
+      if(!glorioso||!noFallaras)throw new Error("Synthetic overlap songs unavailable");
+
+      const make=(song,schedule)=>normalizeManagedSong({
+        ...song,
+        ...schedule,
+        introducedAt:schedule.rolloverAt
+      });
+
+      const synthetic=[
+        make(glorioso,{
+          activeFrom:"2026-09-29T00:00:00-04:00",
+          learningStart:"2026-09-29T00:00:00-04:00",
+          learningEnd:"2026-10-04T23:59:59-04:00",
+          finalStart:"2026-10-05T00:00:00-04:00",
+          finalEnd:"2026-10-06T23:59:59-04:00",
+          releaseDayStartAt:"2026-10-07T00:00:00-04:00",
+          releaseAt:"2026-10-07T11:00:00-04:00",
+          releaseDayEndAt:"2026-10-08T00:00:00-04:00",
+          rolloverAt:"2026-10-08T06:00:00-04:00"
+        }),
+        make(noFallaras,{
+          activeFrom:"2026-09-30T00:00:00-04:00",
+          learningStart:"2026-09-30T00:00:00-04:00",
+          learningEnd:"2026-10-11T23:59:59-04:00",
+          finalStart:"2026-10-12T00:00:00-04:00",
+          finalEnd:"2026-10-13T23:59:59-04:00",
+          releaseDayStartAt:"2026-10-14T00:00:00-04:00",
+          releaseAt:"2026-10-14T11:00:00-04:00",
+          releaseDayEndAt:"2026-10-15T00:00:00-04:00",
+          rolloverAt:"2026-10-15T06:00:00-04:00"
+        })
+      ];
+
+      clearTimeout(liveClockTimer);
+      catalogHealthRenderLocked=true;
+
+      const entries=synthetic.map((song,index)=>({
+        song,
+        index,
+        phase:getPhase(song,value)
+      }));
+
+      syncAmbientDriver(entries,value);
+      syncCurrentCards(entries);
+
+      entries.forEach(({song})=>{
+        const row=document.querySelector('[data-preview-song-id="'+CSS.escape(song.id)+'"]');
+        const inline=row&&row.closest(".inline-preview");
+        if(row&&!row.dataset.hydrating&&!row._previewData){
+          row.dataset.hydrating="true";
+          hydratePreviewRow(song).finally(()=>{
+            if(row.isConnected)delete row.dataset.hydrating;
+          });
+        }
+        if(inline)inline.classList.add("preview-ready");
+        const card=document.querySelector('[data-current-song-card][data-song-id="'+CSS.escape(song.id)+'"]');
+        renderCurrentSongCard(card,song,value);
+      });
+
+      renderUpcoming(new Set(entries.map(({song})=>song.id)),value);
+      renderIntroduced(value);
+
+      return entries.map(({song,phase})=>({
+        id:song.id,
+        phase:phase.key,
+        releaseAt:song.releaseAt,
+        releaseLabel:song.releaseLabel,
+        releaseClockLabel:song.releaseClockLabel
+      }));
+    }
+
     // Passive deterministic watchdog hook. Production never calls this; it lets
     // CI inspect real DOM lifecycle transitions without racing the one-second clock.
     window.IPCDJ_CATALOG_TEST=Object.freeze({
@@ -8636,6 +8753,9 @@
         catalogHealthRenderLocked=true;
         renderCurrent(value);
         return catalogSnapshot(value);
+      },
+      renderOverlapAt(timestamp){
+        return renderSyntheticPrepOverlap(timestamp);
       },
       resume(){
         catalogHealthRenderLocked=false;

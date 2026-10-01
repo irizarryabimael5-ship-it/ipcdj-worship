@@ -165,6 +165,38 @@ test('preview playback and song-to-song handoff stay functional', async ({ page 
     }
   }
 
+  // IPCDJ's own tab navigation must not surrender preview playback. On iOS-like
+  // environments a visible in-page tab interaction can be accompanied by a
+  // transient window blur; reproduce that exact sequence and require the same
+  // song/engine/elapsed timeline to survive it.
+  await page.waitForFunction(() => !!window.IPCDJ_PREVIEW_TEST);
+  const beforeInternalTabSwitch = await page.evaluate(() => window.IPCDJ_PREVIEW_TEST.snapshot());
+  expect(beforeInternalTabSwitch.playing).toBe(true);
+  expect(beforeInternalTabSwitch.songId.length).toBeGreaterThan(0);
+
+  const weeklyTabForPreview = page.locator('#tab-worship-semanal');
+  const homeTabForPreview = page.locator('#tab-inicio');
+  await weeklyTabForPreview.dispatchEvent('pointerdown', { pointerType:'touch', isPrimary:true });
+  await weeklyTabForPreview.click();
+  await expect(weeklyTabForPreview).toHaveAttribute('aria-selected','true');
+
+  await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+  await page.waitForTimeout(520);
+
+  const duringInternalTabSwitch = await page.evaluate(() => window.IPCDJ_PREVIEW_TEST.snapshot());
+  expect(duringInternalTabSwitch.playing).toBe(true);
+  expect(duringInternalTabSwitch.songId).toBe(beforeInternalTabSwitch.songId);
+  expect(duringInternalTabSwitch.elapsed).toBeGreaterThan(beforeInternalTabSwitch.elapsed + .15);
+
+  await homeTabForPreview.click();
+  await expect(homeTabForPreview).toHaveAttribute('aria-selected','true');
+  await expect(currentRow).toBeVisible();
+
+  const afterInternalTabSwitch = await page.evaluate(() => window.IPCDJ_PREVIEW_TEST.snapshot());
+  expect(afterInternalTabSwitch.playing).toBe(true);
+  expect(afterInternalTabSwitch.songId).toBe(beforeInternalTabSwitch.songId);
+  expect(afterInternalTabSwitch.elapsed).toBeGreaterThan(duringInternalTabSwitch.elapsed);
+
   const futureRow = page.locator('.preview-row-future').first();
   if (await futureRow.count()) {
     const futureButton = futureRow.locator('.preview-button');
@@ -776,6 +808,7 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
     }
     expect(Date.parse(song.introducedAt)).toBe(Date.parse(song.rolloverAt));
     expect(song.historyAt).toBe(song.rolloverAt);
+    if(song.previewAudioUrl)expect(song.previewSource).toBe('webaudio');
   }
 
   for (const song of audit.songs) {
@@ -814,6 +847,10 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
   expect(source).toContain('id="upcoming-songs" aria-live="polite"></div>');
   expect(source).toContain('id="introduced-songs" aria-live="polite"></div>');
   expect(source).toContain('introducedAt must exactly match rolloverAt for an atomic rotation/history handoff.');
+  expect(source).toContain('function previewInternalTabSwitchActive()');
+  expect(source).toContain('if(previewInternalTabSwitchActive())return;');
+  expect(source).toContain('previewSource:raw.previewSource||(raw.previewAudioUrl?"webaudio":"")');
+  expect(source).toContain('renderOverlapAt(timestamp)');
   expect(source).toContain('<h2 class="section-title">Estrenos recientes</h2>');
   expect(source).toContain('Estrenada · ${item.label}');
   expect(source).not.toContain('Math.min(index,40)*260');
@@ -822,6 +859,65 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
     const escaped = id.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
     const occurrences = (source.match(new RegExp(escaped, 'g')) || []).length;
     expect(occurrences, id + ' should be authored only once in SONG_CATALOG_SOURCE').toBe(1);
+  }
+});
+
+test('multiple simultaneous Prep songs keep independent dates, countdowns, artwork and previews', async ({ page }) => {
+  await openHealthyPage(page);
+  await page.waitForFunction(() => !!window.IPCDJ_CATALOG_TEST?.renderOverlapAt);
+
+  try{
+    const synthetic=await page.evaluate(() =>
+      window.IPCDJ_CATALOG_TEST.renderOverlapAt(Date.parse('2026-10-01T12:00:00-04:00'))
+    );
+
+    expect(synthetic).toHaveLength(2);
+    expect(synthetic.map(song=>song.id)).toEqual(['glorioso-dia','no-fallaras']);
+    expect(synthetic.every(song=>song.phase==='learning')).toBe(true);
+
+    const cards=page.locator('[data-current-song-card]');
+    await expect(cards).toHaveCount(2);
+
+    await page.waitForFunction(() =>
+      [...document.querySelectorAll('[data-current-song-card]')].every(card => {
+        const button=card.querySelector('.preview-button');
+        const row=card.querySelector('[data-preview-song-id]');
+        return !!button && button.dataset.bound==='true' && !!row;
+      }),
+      null,
+      {timeout:15000}
+    );
+
+    const states=await cards.evaluateAll(nodes=>nodes.map(card=>({
+      id:card.dataset.songId||'',
+      phase:card.dataset.phase||'',
+      title:card.querySelector('[data-role="song-name"]')?.textContent?.trim()||'',
+      releaseDate:card.querySelector('[data-role="release-date"]')?.textContent?.trim()||'',
+      countdownTarget:card.querySelector('[data-role="countdown-target"]')?.textContent?.trim()||'',
+      countdown:[
+        card.querySelector('[data-role="countdown-days"]')?.textContent?.trim()||'',
+        card.querySelector('[data-role="countdown-hours"]')?.textContent?.trim()||'',
+        card.querySelector('[data-role="countdown-minutes"]')?.textContent?.trim()||'',
+        card.querySelector('[data-role="countdown-seconds"]')?.textContent?.trim()||''
+      ].join(':'),
+      previewSongId:card.querySelector('[data-preview-song-id]')?.dataset.previewSongId||'',
+      previewBound:card.querySelector('.preview-button')?.dataset.bound==='true',
+      artworkUrl:card.dataset.coverArtworkUrl||card.querySelector('.cover-native-fallback')?.currentSrc||'',
+      previewDuration:card.querySelector('[data-preview-song-id]')?.dataset.previewDuration||''
+    })));
+
+    expect(states.map(state=>state.id)).toEqual(['glorioso-dia','no-fallaras']);
+    expect(states.every(state=>state.phase==='learning')).toBe(true);
+    expect(states.every(state=>state.previewBound)).toBe(true);
+    expect(states.map(state=>state.previewSongId)).toEqual(states.map(state=>state.id));
+    expect(new Set(states.map(state=>state.releaseDate)).size).toBe(2);
+    expect(new Set(states.map(state=>state.countdownTarget)).size).toBe(2);
+    expect(new Set(states.map(state=>state.countdown)).size).toBe(2);
+    expect(new Set(states.map(state=>state.artworkUrl)).size).toBe(2);
+    expect(states.every(state=>state.artworkUrl.startsWith('https://'))).toBe(true);
+    expect(states.every(state=>Number(state.previewDuration)>0)).toBe(true);
+  }finally{
+    await page.evaluate(() => window.IPCDJ_CATALOG_TEST.resume());
   }
 });
 
