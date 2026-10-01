@@ -851,6 +851,8 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
   expect(source).toContain('if(previewInternalTabSwitchActive())return;');
   expect(source).toContain('previewSource:raw.previewSource||(raw.previewAudioUrl?"webaudio":"")');
   expect(source).toContain('renderOverlapAt(timestamp)');
+  expect(source).toContain('function createCurrentSongCardNode(song)');
+  expect(source).toContain('Reconcile by song ID instead of replacing host.innerHTML.');
   expect(source).toContain('<h2 class="section-title">Estrenos recientes</h2>');
   expect(source).toContain('Estrenada · ${item.label}');
   expect(source).not.toContain('Math.min(index,40)*260');
@@ -867,6 +869,18 @@ test('multiple simultaneous Prep songs keep independent dates, countdowns, artwo
   await page.waitForFunction(() => !!window.IPCDJ_CATALOG_TEST?.renderOverlapAt);
 
   try{
+    await page.evaluate(() =>
+      window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-10-01T12:00:00-04:00'))
+    );
+
+    const existingGlorioso=page.locator('[data-current-song-card][data-song-id="glorioso-dia"]');
+    await expect(existingGlorioso).toHaveCount(1);
+    await existingGlorioso.evaluate(card=>{
+      card.dataset.watchdogPrepIdentity="preserve";
+      const row=card.querySelector('[data-preview-song-id="glorioso-dia"]');
+      if(row)row.dataset.watchdogPreviewIdentity="preserve";
+    });
+
     const synthetic=await page.evaluate(() =>
       window.IPCDJ_CATALOG_TEST.renderOverlapAt(Date.parse('2026-10-01T12:00:00-04:00'))
     );
@@ -903,10 +917,15 @@ test('multiple simultaneous Prep songs keep independent dates, countdowns, artwo
       previewSongId:card.querySelector('[data-preview-song-id]')?.dataset.previewSongId||'',
       previewBound:card.querySelector('.preview-button')?.dataset.bound==='true',
       artworkUrl:card.dataset.coverArtworkUrl||card.querySelector('.cover-native-fallback')?.currentSrc||'',
-      previewDuration:card.querySelector('[data-preview-song-id]')?.dataset.previewDuration||''
+      previewDuration:card.querySelector('[data-preview-song-id]')?.dataset.previewDuration||'',
+      preservedCard:card.dataset.watchdogPrepIdentity||'',
+      preservedPreview:card.querySelector('[data-preview-song-id]')?.dataset.watchdogPreviewIdentity||''
     })));
 
     expect(states.map(state=>state.id)).toEqual(['glorioso-dia','no-fallaras']);
+    const preservedGlorioso=states.find(state=>state.id==='glorioso-dia');
+    expect(preservedGlorioso?.preservedCard).toBe('preserve');
+    expect(preservedGlorioso?.preservedPreview).toBe('preserve');
     expect(states.every(state=>state.phase==='learning')).toBe(true);
     expect(states.every(state=>state.previewBound)).toBe(true);
     expect(states.map(state=>state.previewSongId)).toEqual(states.map(state=>state.id));
