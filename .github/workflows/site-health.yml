@@ -21,7 +21,10 @@ concurrency:
 jobs:
   cross-platform-health:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # The seven-profile matrix now includes live audio persistence, overlap
+    # rotation, artwork, lifecycle and PWA checks. Keep enough headroom for
+    # WebKit CI variance without weakening any individual Playwright timeout.
+    timeout-minutes: 45
 
     defaults:
       run:
