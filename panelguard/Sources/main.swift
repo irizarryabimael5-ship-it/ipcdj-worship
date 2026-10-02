@@ -4,9 +4,9 @@ import CoreGraphics
 import Darwin
 import Foundation
 
-private let appVersion = "1.7.0"
+private let appVersion = "1.8.0"
 private let stateDirectoryName = "PanelGuard"
-private let stateFileName = "guard-state-v8.json"
+private let stateFileName = "guard-state-v9.json"
 
 private struct RawSnapshot: Codable {
     var brightness: Int32
@@ -20,6 +20,7 @@ private struct RawSnapshot: Codable {
 
 private struct GuardState: Codable {
     var active: Bool
+    var restoring: Bool
     var displayID: UInt32
     var snapshot: RawSnapshot
     var autoRestoreAt: TimeInterval?
@@ -267,7 +268,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
     }
 
     private func recoverStaleState() {
-        guard var state = StateStore.load(), state.active else { return }
+        guard var state = StateStore.load(), state.active || state.restoring else { return }
 
         errno = 0
         let parentAlive = kill(pid_t(state.parentPID), 0) == 0 || errno != ESRCH
@@ -275,6 +276,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
 
         _ = RawBacklight.restore(state)
         state.active = false
+        state.restoring = false
         try? StateStore.save(state)
     }
 
@@ -286,20 +288,40 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
     }
 
     private func syncState() {
-        guard isGuarded, let disk = StateStore.load() else { return }
+        guard isGuarded, var disk = StateStore.load() else { return }
+
+        // RESTORING is a barrier state. Neither enforcement loop is allowed to
+        // write zero while brightness is being restored.
+        if disk.restoring {
+            guardState = disk
+
+            // A healthy watchdog owns an automatic restore and is allowed to
+            // finish it. If it died mid-restore, the main app completes the
+            // restoration instead of leaving the panel dark.
+            if watchdog?.isRunning == true {
+                return
+            }
+
+            _ = RawBacklight.restore(disk)
+            disk.active = false
+            disk.restoring = false
+            try? StateStore.save(disk)
+            guardState = disk
+            stopCaffeinate()
+            updateUI()
+            return
+        }
 
         if !disk.active {
             guardState = disk
-            stopWatchdog()
+            if watchdog?.isRunning == false { watchdog = nil }
             stopCaffeinate()
             updateUI()
             return
         }
 
         // Main-process redundancy: supervise both helpers and reassert hardware
-        // zero independently of the external watchdog. This prevents a dead
-        // helper or a stale registry read from letting WindowServer relight the
-        // panel later.
+        // zero independently of the external watchdog.
         guardState = disk
 
         if watchdog == nil || watchdog?.isRunning != true {
@@ -554,7 +576,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
               snapshot.linearMin == 0 else {
             showError(
                 "True hardware-zero backlight control is unavailable",
-                "PanelGuard 1.7 will not fall back to ordinary brightness. This Mac must expose linear-brightness with a hardware minimum of 0."
+                "PanelGuard 1.8 will not fall back to ordinary brightness. This Mac must expose linear-brightness with a hardware minimum of 0."
             )
             return
         }
@@ -563,7 +585,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
             _ = PGWakeLogicalDisplay()
             showError(
                 "The iMac display is logically asleep",
-                "Wake it once and run the test again. PanelGuard 1.7 requires the framebuffer to remain awake for RustDesk."
+                "Wake it once and run the test again. PanelGuard 1.8 requires the framebuffer to remain awake for RustDesk."
             )
             return
         }
@@ -571,6 +593,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
         let topologyBefore = RawBacklight.topologySignature()
         let state = GuardState(
             active: true,
+            restoring: false,
             displayID: display,
             snapshot: snapshot,
             autoRestoreAt: autoRestoreAfter.map { Date().timeIntervalSince1970 + $0 },
@@ -620,31 +643,48 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
     }
 
     private func rollback(_ state: GuardState, message: String) {
+        var restoring = state
+        restoring.restoring = true
+        try? StateStore.save(restoring)
+        guardState = restoring
+
+        stopWatchdogAndWait()
+        stopCaffeinate()
+
+        _ = RawBacklight.restore(state)
+
         var inactive = state
         inactive.active = false
+        inactive.restoring = false
         try? StateStore.save(inactive)
         guardState = inactive
-        stopWatchdog()
-        stopCaffeinate()
-        _ = RawBacklight.restore(state)
+
         updateUI()
         showError("Raw backlight test aborted", message)
     }
 
     private func restoreDisplay(silent: Bool = false) {
-        guard var state = guardState ?? StateStore.load(), state.active else {
+        guard var state = guardState ?? StateStore.load(), state.active || state.restoring else {
             guardState = nil
             updateUI()
             return
         }
 
-        state.active = false
+        // Publish the barrier before stopping the watchdog. The child sees
+        // restoring=true and exits without another zero write.
+        state.restoring = true
         try? StateStore.save(state)
         guardState = state
-        stopWatchdog()
+
+        stopWatchdogAndWait()
         stopCaffeinate()
 
         let ok = RawBacklight.restore(state)
+
+        state.active = false
+        state.restoring = false
+        try? StateStore.save(state)
+        guardState = state
         updateUI()
 
         if !ok && !silent {
@@ -679,6 +719,30 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
         watchdog = nil
     }
 
+    private func stopWatchdogAndWait() {
+        guard let process = watchdog else { return }
+
+        if process.isRunning {
+            process.terminate()
+
+            let deadline = Date().addingTimeInterval(1.0)
+            while process.isRunning && Date() < deadline {
+                RunLoop.current.run(until: Date().addingTimeInterval(0.02))
+            }
+
+            if process.isRunning {
+                _ = kill(pid_t(process.processIdentifier), SIGKILL)
+
+                let killDeadline = Date().addingTimeInterval(0.5)
+                while process.isRunning && Date() < killDeadline {
+                    RunLoop.current.run(until: Date().addingTimeInterval(0.02))
+                }
+            }
+        }
+
+        watchdog = nil
+    }
+
     private func startCaffeinate() {
         if let caffeinate, caffeinate.isRunning { return }
         let process = Process()
@@ -710,7 +774,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
                 (snapshot.linearSupported
                     ? "value=\(snapshot.linearBrightness) min=\(snapshot.linearMin) max=\(snapshot.linearMax)"
                     : "unsupported") +
-                "\nTopology-changing APIs in 1.4: NONE"
+                "\nTopology-changing APIs: NONE"
         } else {
             diagnostics.stringValue =
                 "Raw IOKit brightness parameters unavailable on the built-in display."
@@ -767,9 +831,15 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
 }
 
 private func restoreFromWatchdog(_ state: inout GuardState, url: URL) {
-    state.active = false
+    // Publish RESTORING first so the main app immediately stops enforcing zero.
+    state.restoring = true
     try? StateStore.save(state, to: url)
+
     _ = RawBacklight.restore(state)
+
+    state.active = false
+    state.restoring = false
+    try? StateStore.save(state, to: url)
 }
 
 private func runWatchdog(_ arguments: [String]) -> Int32 {
@@ -780,6 +850,9 @@ private func runWatchdog(_ arguments: [String]) -> Int32 {
 
     while true {
         guard var state = StateStore.load(from: url), state.active else { return 0 }
+
+        // Explicit restore from the main app owns the transition from here.
+        if state.restoring { return 0 }
 
         let timedOut = state.autoRestoreAt.map {
             Date().timeIntervalSince1970 >= $0
