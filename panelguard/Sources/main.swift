@@ -725,6 +725,6 @@ if arguments.count > 1, arguments[1] == "--watchdog" {
 }
 
 let app = NSApplication.shared
-let delegate = AppDelegate()
+private let delegate = AppDelegate()
 app.delegate = delegate
 app.run()
