@@ -4490,18 +4490,18 @@
             </div>
 
             <div class="weekly-service-tabs" role="tablist" aria-label="Servicios de Worship semanal">
-              <button class="weekly-service-tab" id="weekly-tab-viernes" type="button" role="tab" aria-selected="false" aria-controls="weekly-panel-viernes" tabindex="-1" data-weekly-service="viernes">
+              <button class="weekly-service-tab" id="weekly-tab-viernes" type="button" role="tab" aria-selected="true" aria-controls="weekly-panel-viernes" tabindex="0" data-weekly-service="viernes">
                 <strong>Viernes</strong>
                 <small>Pendiente</small>
               </button>
-              <button class="weekly-service-tab" id="weekly-tab-domingo" type="button" role="tab" aria-selected="true" aria-controls="weekly-panel-domingo" tabindex="0" data-weekly-service="domingo">
+              <button class="weekly-service-tab" id="weekly-tab-domingo" type="button" role="tab" aria-selected="false" aria-controls="weekly-panel-domingo" tabindex="-1" data-weekly-service="domingo">
                 <strong>Domingo</strong>
                 <small>Actualizado</small>
               </button>
             </div>
           </section>
 
-          <section class="weekly-service-panel" id="weekly-panel-viernes" role="tabpanel" aria-labelledby="weekly-tab-viernes" data-weekly-panel="viernes" hidden>
+          <section class="weekly-service-panel" id="weekly-panel-viernes" role="tabpanel" aria-labelledby="weekly-tab-viernes" data-weekly-panel="viernes">
             <div class="weekly-empty">
               <div class="weekly-empty-inner">
                 <span class="weekly-service-kicker">Viernes</span>
@@ -4511,7 +4511,7 @@
             </div>
           </section>
 
-          <section class="weekly-service-panel" id="weekly-panel-domingo" role="tabpanel" aria-labelledby="weekly-tab-domingo" data-weekly-panel="domingo">
+          <section class="weekly-service-panel" id="weekly-panel-domingo" role="tabpanel" aria-labelledby="weekly-tab-domingo" data-weekly-panel="domingo" hidden>
             <div class="weekly-service-heading">
               <div>
                 <span class="weekly-service-kicker">Servicio · Domingo</span>
@@ -4729,7 +4729,10 @@
         tab.tabIndex=selected?0:-1;
       });
 
-      [...siteTabPanels.querySelectorAll('[role="tabpanel"]')].forEach(panel=>{
+      // Primary navigation owns only the direct top-level site panels. Nested
+      // tab systems such as Worship semanal manage their own panel visibility.
+      [...siteTabPanels.children].forEach(panel=>{
+        if(panel.getAttribute("role")!=="tabpanel")return;
         panel.hidden=panel!==target;
         panel.classList.remove("site-tab-panel-enter");
       });
@@ -4840,7 +4843,7 @@
     });
 
     // Worship semanal has its own Friday/Sunday view, independent from the
-    // platform-wide navigation. Sunday is selected for this first populated set.
+    // platform-wide navigation. Friday is the chronological default service.
     const weeklyServiceTabs=[...document.querySelectorAll('[data-weekly-service]')];
     const weeklyServicePanels=[...document.querySelectorAll('[data-weekly-panel]')];
 
@@ -4875,7 +4878,7 @@
       });
     });
 
-    activateWeeklyService("domingo");
+    activateWeeklyService("viernes");
 
     window.IPCDJ_WEEKLY=Object.freeze({
       activate:key=>activateWeeklyService(String(key||"")),
@@ -6658,11 +6661,19 @@
         if(
           !webPreviewContext||
           !webPreviewPlaying||
-          !document.hidden||
-          !desktopPreviewMayContinueInBackground()
+          webPreviewContext.state!=="suspended"
         )return;
 
-        if(webPreviewContext.state==="suspended"){
+        // A visible in-app tab switch is never a background event. WebKit can
+        // suspend Web Audio after the destination panel is hidden/shown, so
+        // recover the shared engine whenever the document is still visible.
+        if(!document.hidden){
+          webPreviewContext.resume().catch(()=>{});
+          return;
+        }
+
+        // Desktop browser-tab backgrounding keeps its established behavior.
+        if(desktopPreviewMayContinueInBackground()){
           webPreviewContext.resume().catch(()=>{});
         }
       });
@@ -7563,6 +7574,30 @@
       );
     }
 
+    function resumeVisibleInternalPreviewContext(){
+      if(
+        document.hidden||
+        !webPreviewPlaying||
+        !webPreviewContext||
+        webPreviewContext.state!=="suspended"
+      )return false;
+
+      webPreviewContext.resume().catch(()=>{});
+      return true;
+    }
+
+    function scheduleInternalPreviewRecovery(){
+      // activateSiteTab() dispatches before it mutates panel visibility. Recover
+      // immediately and again after paint/timing boundaries so a later WebKit
+      // suspension cannot silently kill the Adelanto on mobile.
+      resumeVisibleInternalPreviewContext();
+      if(typeof requestAnimationFrame==="function"){
+        requestAnimationFrame(()=>resumeVisibleInternalPreviewContext());
+      }
+      setTimeout(()=>resumeVisibleInternalPreviewContext(),80);
+      setTimeout(()=>resumeVisibleInternalPreviewContext(),260);
+    }
+
     function stopPreviewForMobileBackground(){
       if(!isMobilePreviewEnvironment())return false;
 
@@ -7611,11 +7646,9 @@
     window.addEventListener("ipcdj:internalnavigation",()=>{
       if(document.hidden||!webPreviewPlaying||!webPreviewContext)return;
       // Preserve the one shared preview engine across Inicio/Worship/Campaña.
-      // If WebKit transiently suspends the context during a visible in-page
-      // focus change, resume it without resetting song, elapsed time or UI.
-      if(webPreviewContext.state==="suspended"){
-        webPreviewContext.resume().catch(()=>{});
-      }
+      // Recovery is sampled after navigation too because iOS/WebKit may suspend
+      // the AudioContext only after the destination panel visibility changes.
+      scheduleInternalPreviewRecovery();
     },{passive:true});
 
     window.addEventListener("pagehide",()=>{
@@ -7659,6 +7692,15 @@
           documentHidden:document.hidden,
           internalTabSwitchActive:previewInternalTabSwitchActive()
         };
+      },
+      async suspendContext(){
+        if(!webPreviewContext||webPreviewContext.state==="closed")return false;
+        await webPreviewContext.suspend();
+        return true;
+      },
+      recoverInternalSwitch(){
+        scheduleInternalPreviewRecovery();
+        return true;
       }
     });
 
