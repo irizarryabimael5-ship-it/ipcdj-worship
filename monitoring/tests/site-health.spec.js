@@ -297,6 +297,16 @@ test('preview playback and song-to-song handoff stay functional', async ({ page 
     ).toMatch(/^\d+:\d{2}$/);
   }
 
+  // Internal navigation persistence must never weaken the existing mobile
+  // background-stop contract. A real pagehide still terminates playback.
+  if (/mobile|tablet/i.test(testInfo.project.name)) {
+    await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+    await expect.poll(
+      () => page.evaluate(() => window.IPCDJ_PREVIEW_TEST.snapshot().playing),
+      { timeout: 2000, message: 'mobile/tablet pagehide should stop preview playback' }
+    ).toBe(false);
+  }
+
   const snapshot = await page.evaluate(() => window.IPCDJ_HEALTH.checkNow());
   expect(snapshot.errors).toBe(0);
   expect(snapshot.rejections).toBe(0);
