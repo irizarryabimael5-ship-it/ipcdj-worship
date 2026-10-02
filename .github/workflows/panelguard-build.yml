@@ -25,7 +25,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          VERSION="1.3.0"
+          VERSION="1.4.0"
           APP="build/root/Applications/PanelGuard.app"
           mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" build/icon.iconset release
 
@@ -46,8 +46,8 @@ jobs:
             <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
             <key>CFBundleName</key><string>PanelGuard</string>
             <key>CFBundlePackageType</key><string>APPL</string>
-            <key>CFBundleShortVersionString</key><string>1.3.0</string>
-            <key>CFBundleVersion</key><string>130</string>
+            <key>CFBundleShortVersionString</key><string>1.4.0</string>
+            <key>CFBundleVersion</key><string>140</string>
             <key>LSMinimumSystemVersion</key><string>13.0</string>
             <key>NSHighResolutionCapable</key><true/>
             <key>NSPrincipalClass</key><string>NSApplication</string>
@@ -78,7 +78,7 @@ jobs:
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
-          name: PanelGuard-1.3.0-Intel
+          name: PanelGuard-1.4.0-Intel
           path: release/*
           if-no-files-found: error
           retention-days: 30
