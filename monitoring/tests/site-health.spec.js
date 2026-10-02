@@ -527,7 +527,10 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(fridayWeeklyPanel).toContainText('Cristo Rompe Las Cadenas');
   await expect(fridayWeeklyPanel).toContainText('+ Mas');
   await expect(fridayWeeklyPanel).toContainText('Ensayen con la canción, con metrónomo y eventualmente sin letra.');
-  await expect(fridayWeeklyPanel.locator('.weekly-youtube-frame iframe')).toHaveAttribute(
+  await expect(fridayWeeklyPanel.locator('.weekly-youtube-mark img[src="youtube-music.svg"]')).toHaveCount(1);
+  await expect(fridayWeeklyPanel.locator('.weekly-youtube-mark img')).toHaveAttribute('width','22');
+  await expect(fridayWeeklyPanel.locator('.weekly-youtube-mark img')).toHaveAttribute('height','22');
+    await expect(fridayWeeklyPanel.locator('.weekly-youtube-frame iframe')).toHaveAttribute(
     'src',
     /youtube-nocookie\.com\/embed\/videoseries\?list=PLJHxkkSIlf28/
   );
@@ -552,7 +555,10 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(sundayWeeklyPanel).toContainText('Do Sostenido Mayor');
   await expect(sundayWeeklyPanel).toContainText('Re Mayor · 115 BPM');
   await expect(sundayWeeklyPanel).toContainText('Ensayen con la canción, con metrónomo y eventualmente sin letra.');
-  await expect(sundayWeeklyPanel.locator('.weekly-youtube-frame iframe')).toHaveAttribute(
+  await expect(sundayWeeklyPanel.locator('.weekly-youtube-mark img[src="youtube-music.svg"]')).toHaveCount(1);
+  await expect(sundayWeeklyPanel.locator('.weekly-youtube-mark img')).toHaveAttribute('width','22');
+  await expect(sundayWeeklyPanel.locator('.weekly-youtube-mark img')).toHaveAttribute('height','22');
+    await expect(sundayWeeklyPanel.locator('.weekly-youtube-frame iframe')).toHaveAttribute(
     'src',
     /youtube-nocookie\.com\/embed\/videoseries\?list=PLkLZ_UC3YYUw0TOBrAw19xENUYunh7URI/
   );
