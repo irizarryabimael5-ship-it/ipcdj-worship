@@ -1,0 +1,82 @@
+name: Build PanelGuard Intel PKG
+
+on:
+  push:
+    branches:
+      - panelguard-v1-build
+    paths:
+      - 'panelguard/**'
+      - '.github/workflows/panelguard-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15-intel
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build native Intel app
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="1.0.0"
+          APP="build/root/Applications/PanelGuard.app"
+          mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" build/icon.iconset release
+
+          xcrun swiftc panelguard/Sources/main.swift             -o "$APP/Contents/MacOS/PanelGuard"             -target x86_64-apple-macos13.0             -framework AppKit             -framework Carbon             -framework CoreGraphics             -O
+
+          cat > "$APP/Contents/Info.plist" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleDevelopmentRegion</key><string>en</string>
+            <key>CFBundleDisplayName</key><string>PanelGuard</string>
+            <key>CFBundleExecutable</key><string>PanelGuard</string>
+            <key>CFBundleIconFile</key><string>PanelGuard</string>
+            <key>CFBundleIdentifier</key><string>com.abimael.panelguard</string>
+            <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+            <key>CFBundleName</key><string>PanelGuard</string>
+            <key>CFBundlePackageType</key><string>APPL</string>
+            <key>CFBundleShortVersionString</key><string>1.0.0</string>
+            <key>CFBundleVersion</key><string>100</string>
+            <key>LSMinimumSystemVersion</key><string>13.0</string>
+            <key>NSHighResolutionCapable</key><true/>
+            <key>NSPrincipalClass</key><string>NSApplication</string>
+          </dict>
+          </plist>
+          PLIST
+
+          xcrun swift panelguard/Scripts/make-icon.swift build/PanelGuard-1024.png
+          for spec in "16 icon_16x16.png" "32 icon_16x16@2x.png" "32 icon_32x32.png" "64 icon_32x32@2x.png" "128 icon_128x128.png" "256 icon_128x128@2x.png" "256 icon_256x256.png" "512 icon_256x256@2x.png" "512 icon_512x512.png" "1024 icon_512x512@2x.png"; do
+            set -- $spec
+            sips -z "$1" "$1" build/PanelGuard-1024.png --out "build/icon.iconset/$2" >/dev/null
+          done
+          iconutil -c icns build/icon.iconset -o "$APP/Contents/Resources/PanelGuard.icns"
+
+          /usr/bin/codesign --force --deep --sign - "$APP"
+          /usr/bin/codesign --verify --deep --strict --verbose=2 "$APP"
+          file "$APP/Contents/MacOS/PanelGuard"
+          "$APP/Contents/MacOS/PanelGuard" --version
+          "$APP/Contents/MacOS/PanelGuard" --self-test
+
+          /usr/bin/pkgbuild             --root build/root             --identifier com.abimael.panelguard             --version "$VERSION"             --install-location /             "release/PanelGuard-${VERSION}-Intel.pkg"
+
+          /usr/sbin/pkgutil --expand "release/PanelGuard-${VERSION}-Intel.pkg" build/pkg-expanded
+          test -f build/pkg-expanded/PackageInfo
+          shasum -a 256 "release/PanelGuard-${VERSION}-Intel.pkg" > "release/PanelGuard-${VERSION}-Intel.pkg.sha256"
+          cp panelguard/README.md release/README.txt
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: PanelGuard-1.0.0-Intel
+          path: release/*
+          if-no-files-found: error
+          retention-days: 30
