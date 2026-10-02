@@ -472,13 +472,63 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   expect(weeklySelectedVisual.accentBackground).not.toBe('none');
   await expect(weeklyPanel).toBeVisible();
   await expect(homePanel).toBeHidden();
-  await expect(weeklyPanel.getByText('Próximamente')).toBeVisible();
-  await expect(weeklyPanel).toContainText(/viernes/i);
-  await expect(weeklyPanel).toContainText(/domingo/i);
+  await expect(weeklyPanel).not.toContainText('Próximamente');
+  await expect(weeklyPanel.getByRole('tab', { name: /Viernes/i })).toHaveAttribute('aria-selected','false');
+  await expect(weeklyPanel.getByRole('tab', { name: /Domingo/i })).toHaveAttribute('aria-selected','true');
+  await expect(weeklyPanel.locator('#weekly-panel-domingo')).toBeVisible();
+  await expect(weeklyPanel.locator('#weekly-panel-viernes')).toBeHidden();
+  await expect(weeklyPanel).toContainText('Worship set del domingo');
+  await expect(weeklyPanel).toContainText('Ensayo');
+  await expect(weeklyPanel).toContainText('9:30 AM');
+  await expect(weeklyPanel).toContainText('Dayari');
+  await expect(weeklyPanel.locator('.weekly-song')).toHaveCount(4);
+  await expect(weeklyPanel.locator('.weekly-corito')).toHaveCount(5);
+  await expect(weeklyPanel).toContainText('Yo Quiero Más De Ti');
+  await expect(weeklyPanel).toContainText('Dios De Milagros');
+  await expect(weeklyPanel).toContainText('Algo Está Pasando');
+  await expect(weeklyPanel).toContainText('Hay Libertad');
+  await expect(weeklyPanel).toContainText('Do Sostenido Mayor');
+  await expect(weeklyPanel).toContainText('Re Mayor · 115 BPM');
+  await expect(weeklyPanel).toContainText('Ensayen con la canción, con metrónomo y eventualmente sin letra.');
+
+  const weeklyPlaylist=weeklyPanel.locator('.weekly-youtube-frame iframe');
+  await expect(weeklyPlaylist).toHaveAttribute('src',/youtube-nocookie\.com\/embed\/videoseries\?list=PLkLZ_UC3YYUw0TOBrAw19xENUYunh7URI/);
+  await expect(weeklyPanel.locator('a[href*="youtube.com/playlist?list=PLkLZ_UC3YYUw0TOBrAw19xENUYunh7URI"]')).toHaveCount(1);
+  await expect(weeklyPanel.locator('a[href="https://u.pone.rs/jzehueif.pdf"]')).toHaveCount(1);
+
+  const weeklyOverflow=await weeklyPanel.evaluate(node=>({
+    scrollWidth:node.scrollWidth,
+    clientWidth:node.clientWidth
+  }));
+  expect(weeklyOverflow.scrollWidth).toBeLessThanOrEqual(weeklyOverflow.clientWidth+1);
+
+  const fridayWeeklyTab=weeklyPanel.locator('#weekly-tab-viernes');
+  const sundayWeeklyTab=weeklyPanel.locator('#weekly-tab-domingo');
+  await fridayWeeklyTab.click();
+  await expect(fridayWeeklyTab).toHaveAttribute('aria-selected','true');
+  await expect(weeklyPanel.locator('#weekly-panel-viernes')).toBeVisible();
+  await expect(weeklyPanel.locator('#weekly-panel-viernes')).toContainText('Set pendiente');
+  await sundayWeeklyTab.click();
+  await expect(sundayWeeklyTab).toHaveAttribute('aria-selected','true');
+  await expect(weeklyPanel.locator('#weekly-panel-domingo')).toBeVisible();
+
+  await sundayWeeklyTab.focus();
+  await page.keyboard.press('Home');
+  await expect(fridayWeeklyTab).toBeFocused();
+  await expect(fridayWeeklyTab).toHaveAttribute('aria-selected','true');
+  await page.keyboard.press('End');
+  await expect(sundayWeeklyTab).toBeFocused();
+  await expect(sundayWeeklyTab).toHaveAttribute('aria-selected','true');
+
   await expect(weeklyPanel).not.toHaveClass(/site-tab-panel-enter/);
 
   const launchClassAfterSwitch = await launch.getAttribute('class');
   expect(launchClassAfterSwitch).toBe(launchClassBeforeSwitch);
+
+  const weeklySource=await page.locator('#panel-worship-semanal').evaluate(node=>node.outerHTML);
+  expect(weeklySource).toContain('data-weekly-dashboard');
+  expect(weeklySource).toContain('PLkLZ_UC3YYUw0TOBrAw19xENUYunh7URI');
+  expect(weeklySource).toContain('https://u.pone.rs/jzehueif.pdf');
 
   await weeklyTab.focus();
   await page.keyboard.press('Home');

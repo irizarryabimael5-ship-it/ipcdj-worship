@@ -839,6 +839,604 @@
       display:none!important;
     }
 
+    /* v187 Worship semanal — structured weekly dashboard */
+    .weekly-dashboard{
+      display:grid;
+      gap:14px;
+      min-width:0;
+    }
+
+    .weekly-overview{
+      position:relative;
+      overflow:hidden;
+      padding:22px;
+      border:1px solid rgba(255,255,255,.095);
+      border-radius:24px;
+      background:
+        radial-gradient(circle at 92% 8%,rgba(108,145,255,.12),transparent 36%),
+        linear-gradient(180deg,rgba(16,22,34,.70),rgba(8,12,19,.58));
+      box-shadow:
+        0 18px 48px rgba(0,0,0,.22),
+        inset 0 1px 0 rgba(255,255,255,.045);
+    }
+
+    .weekly-overview-top{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:18px;
+    }
+
+    .weekly-kicker,
+    .weekly-service-kicker{
+      display:block;
+      margin:0 0 7px;
+      color:#9eb7ff;
+      font-size:.68rem;
+      line-height:1.2;
+      font-weight:850;
+      letter-spacing:.095em;
+      text-transform:uppercase;
+    }
+
+    .weekly-overview h2,
+    .weekly-service-heading h2{
+      margin:0;
+      color:#fff;
+      font-size:clamp(1.45rem,4vw,2rem);
+      line-height:1.06;
+      letter-spacing:-.035em;
+    }
+
+    .weekly-overview p,
+    .weekly-service-heading p{
+      margin:9px 0 0;
+      color:#aab5c7;
+      font-size:.90rem;
+      line-height:1.52;
+      text-wrap:pretty;
+    }
+
+    .weekly-status{
+      flex:0 0 auto;
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
+      min-height:30px;
+      padding:6px 10px;
+      border:1px solid rgba(129,180,255,.22);
+      border-radius:999px;
+      color:#dce7ff;
+      background:rgba(88,123,205,.11);
+      font-size:.70rem;
+      line-height:1;
+      font-weight:780;
+      white-space:nowrap;
+    }
+
+    .weekly-status::before{
+      content:"";
+      width:6px;
+      height:6px;
+      border-radius:50%;
+      background:#7ce9ad;
+      box-shadow:0 0 9px rgba(124,233,173,.48);
+    }
+
+    .weekly-service-tabs{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:8px;
+      margin-top:20px;
+      padding:4px;
+      border:1px solid rgba(255,255,255,.075);
+      border-radius:15px;
+      background:rgba(255,255,255,.025);
+    }
+
+    .weekly-service-tab{
+      min-width:0;
+      min-height:48px;
+      padding:8px 12px;
+      border:1px solid transparent;
+      border-radius:11px;
+      appearance:none;
+      -webkit-appearance:none;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      color:#a3afc1;
+      background:transparent;
+      font:inherit;
+      cursor:pointer;
+      touch-action:manipulation;
+      -webkit-tap-highlight-color:transparent;
+      transition:background .15s ease,border-color .15s ease,color .15s ease;
+    }
+
+    .weekly-service-tab strong{
+      color:inherit;
+      font-size:.82rem;
+      font-weight:790;
+    }
+
+    .weekly-service-tab small{
+      min-width:0;
+      color:#7f8ca0;
+      font-size:.66rem;
+      font-weight:720;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+
+    .weekly-service-tab[aria-selected="true"]{
+      color:#fff;
+      border-color:rgba(148,177,255,.22);
+      background:linear-gradient(180deg,rgba(108,145,235,.16),rgba(66,94,164,.09));
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.055);
+    }
+
+    .weekly-service-tab[aria-selected="true"] small{
+      color:#afc2f3;
+    }
+
+    .weekly-service-tab:focus-visible{
+      outline:2px solid rgba(157,187,255,.96);
+      outline-offset:2px;
+    }
+
+    .weekly-service-panel[hidden]{
+      display:none!important;
+    }
+
+    .weekly-service-panel{
+      display:grid;
+      gap:14px;
+      min-width:0;
+    }
+
+    .weekly-service-heading{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:18px;
+      padding:20px 20px 4px;
+    }
+
+    .weekly-service-meta{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:10px;
+      margin:0;
+      padding:0;
+      list-style:none;
+    }
+
+    .weekly-meta-card{
+      min-width:0;
+      padding:14px 15px;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:16px;
+      background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.018));
+    }
+
+    .weekly-meta-label{
+      display:block;
+      margin-bottom:5px;
+      color:#7f8da2;
+      font-size:.64rem;
+      line-height:1.15;
+      font-weight:820;
+      letter-spacing:.075em;
+      text-transform:uppercase;
+    }
+
+    .weekly-meta-value{
+      color:#fff;
+      font-size:.90rem;
+      line-height:1.25;
+      font-weight:760;
+    }
+
+    .weekly-youtube-card{
+      overflow:hidden;
+      display:grid;
+      grid-template-columns:minmax(0,1.35fr) minmax(220px,.65fr);
+      min-width:0;
+      border:1px solid rgba(255,255,255,.09);
+      border-radius:22px;
+      background:
+        radial-gradient(circle at 86% 18%,rgba(255,66,66,.10),transparent 42%),
+        linear-gradient(180deg,rgba(13,18,28,.72),rgba(8,12,19,.60));
+      box-shadow:0 16px 44px rgba(0,0,0,.20);
+    }
+
+    .weekly-youtube-frame{
+      position:relative;
+      min-width:0;
+      aspect-ratio:16/9;
+      background:#000;
+    }
+
+    .weekly-youtube-frame iframe{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      border:0;
+      display:block;
+    }
+
+    .weekly-youtube-info{
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      gap:10px;
+      padding:20px;
+    }
+
+    .weekly-youtube-mark{
+      display:inline-flex;
+      width:fit-content;
+      align-items:center;
+      gap:7px;
+      color:#ffb4b4;
+      font-size:.66rem;
+      font-weight:850;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+
+    .weekly-youtube-mark::before{
+      content:"▶";
+      display:grid;
+      place-items:center;
+      width:22px;
+      height:22px;
+      border-radius:7px;
+      color:#fff;
+      background:#ff0033;
+      font-size:.58rem;
+      line-height:1;
+    }
+
+    .weekly-youtube-info h3{
+      margin:0;
+      color:#fff;
+      font-size:1.16rem;
+      line-height:1.14;
+      letter-spacing:-.02em;
+    }
+
+    .weekly-youtube-info p{
+      margin:0;
+      color:#9da9ba;
+      font-size:.82rem;
+      line-height:1.48;
+    }
+
+    .weekly-action,
+    .weekly-resource{
+      min-height:44px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      padding:9px 13px;
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:12px;
+      color:#f5f7fb;
+      background:rgba(255,255,255,.035);
+      text-decoration:none;
+      font-size:.77rem;
+      line-height:1.2;
+      font-weight:780;
+      touch-action:manipulation;
+      -webkit-tap-highlight-color:transparent;
+      transition:background .15s ease,border-color .15s ease,transform .15s ease;
+    }
+
+    @media (hover:hover) and (pointer:fine){
+      .weekly-action:hover,
+      .weekly-resource:hover{
+        transform:translateY(-1px);
+        background:rgba(255,255,255,.075);
+        border-color:rgba(255,255,255,.18);
+      }
+    }
+
+    .weekly-action:focus-visible,
+    .weekly-resource:focus-visible{
+      outline:2px solid rgba(157,187,255,.96);
+      outline-offset:2px;
+    }
+
+    .weekly-resource{
+      justify-content:flex-start;
+      padding:12px 14px;
+    }
+
+    .weekly-resource-badge{
+      flex:0 0 auto;
+      display:grid;
+      place-items:center;
+      min-width:38px;
+      height:28px;
+      padding:0 7px;
+      border-radius:8px;
+      color:#e7edff;
+      background:rgba(111,145,238,.14);
+      font-size:.61rem;
+      font-weight:850;
+      letter-spacing:.06em;
+    }
+
+    .weekly-resource-text{
+      min-width:0;
+      display:flex;
+      flex:1 1 auto;
+      flex-direction:column;
+      gap:2px;
+    }
+
+    .weekly-resource-text strong{
+      color:#fff;
+      font-size:.79rem;
+      line-height:1.15;
+    }
+
+    .weekly-resource-text small{
+      color:#8592a5;
+      font-size:.66rem;
+      line-height:1.25;
+    }
+
+    .weekly-set-card,
+    .weekly-coritos-card,
+    .weekly-note-card{
+      min-width:0;
+      padding:20px;
+      border:1px solid rgba(255,255,255,.085);
+      border-radius:22px;
+      background:linear-gradient(180deg,rgba(13,18,28,.60),rgba(8,12,19,.50));
+    }
+
+    .weekly-section-head{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:14px;
+      margin-bottom:14px;
+    }
+
+    .weekly-section-head h3{
+      margin:0;
+      color:#fff;
+      font-size:1rem;
+      line-height:1.15;
+      letter-spacing:-.015em;
+    }
+
+    .weekly-section-head span{
+      color:#91a0b5;
+      font-size:.70rem;
+      line-height:1.25;
+      font-weight:720;
+      text-align:right;
+    }
+
+    .weekly-song-list{
+      display:grid;
+      gap:7px;
+      margin:0;
+      padding:0;
+      list-style:none;
+    }
+
+    .weekly-song{
+      min-width:0;
+      display:grid;
+      grid-template-columns:40px minmax(0,1fr);
+      gap:12px;
+      align-items:center;
+      padding:12px 13px;
+      border:1px solid rgba(255,255,255,.065);
+      border-radius:14px;
+      background:rgba(255,255,255,.018);
+    }
+
+    .weekly-song-index{
+      display:grid;
+      place-items:center;
+      width:38px;
+      height:38px;
+      border-radius:12px;
+      color:#b9c8ee;
+      background:rgba(110,143,229,.09);
+      font-size:.69rem;
+      line-height:1;
+      font-weight:850;
+      font-variant-numeric:tabular-nums;
+    }
+
+    .weekly-song-copy{
+      min-width:0;
+    }
+
+    .weekly-song-title{
+      display:block;
+      color:#fff;
+      font-size:.86rem;
+      line-height:1.2;
+      font-weight:790;
+    }
+
+    .weekly-song-artist{
+      display:block;
+      margin-top:3px;
+      color:#8e9bae;
+      font-size:.70rem;
+      line-height:1.25;
+    }
+
+    .weekly-song-meta{
+      display:flex;
+      flex-wrap:wrap;
+      gap:5px 7px;
+      margin-top:7px;
+      color:#aebbd0;
+      font-size:.67rem;
+      line-height:1.2;
+      font-weight:700;
+    }
+
+    .weekly-song-meta span{
+      display:inline-flex;
+      align-items:center;
+      min-height:24px;
+      padding:4px 7px;
+      border:1px solid rgba(255,255,255,.07);
+      border-radius:999px;
+      background:rgba(255,255,255,.025);
+    }
+
+    .weekly-coritos-list{
+      display:grid;
+      gap:0;
+      margin:0;
+      padding:0;
+      list-style:none;
+      counter-reset:weekly-corito;
+    }
+
+    .weekly-corito{
+      counter-increment:weekly-corito;
+      position:relative;
+      min-width:0;
+      padding:10px 10px 10px 37px;
+      border-top:1px solid rgba(255,255,255,.06);
+      color:#dfe5ef;
+      font-size:.78rem;
+      line-height:1.35;
+    }
+
+    .weekly-corito:first-child{
+      border-top:0;
+    }
+
+    .weekly-corito::before{
+      content:counter(weekly-corito);
+      position:absolute;
+      left:8px;
+      top:10px;
+      color:#7e91bf;
+      font-size:.67rem;
+      font-weight:850;
+      font-variant-numeric:tabular-nums;
+    }
+
+    .weekly-note-card{
+      border-color:rgba(136,165,244,.13);
+      background:
+        linear-gradient(90deg,rgba(95,126,210,.08),transparent 58%),
+        rgba(255,255,255,.018);
+    }
+
+    .weekly-note-card h3{
+      margin:0 0 6px;
+      color:#fff;
+      font-size:.82rem;
+      line-height:1.2;
+    }
+
+    .weekly-note-card p{
+      margin:0;
+      color:#aab6c8;
+      font-size:.78rem;
+      line-height:1.5;
+    }
+
+    .weekly-empty{
+      min-height:190px;
+      display:grid;
+      place-items:center;
+      text-align:center;
+      padding:28px 20px;
+      border:1px dashed rgba(255,255,255,.10);
+      border-radius:22px;
+      background:rgba(255,255,255,.012);
+    }
+
+    .weekly-empty-inner{
+      width:min(440px,100%);
+    }
+
+    .weekly-empty h3{
+      margin:0;
+      color:#f6f8fc;
+      font-size:1.08rem;
+      line-height:1.2;
+    }
+
+    .weekly-empty p{
+      margin:8px 0 0;
+      color:#8592a5;
+      font-size:.80rem;
+      line-height:1.48;
+    }
+
+    .weekly-history{
+      border:1px solid rgba(255,255,255,.075);
+      border-radius:18px;
+      background:rgba(255,255,255,.018);
+      overflow:hidden;
+    }
+
+    .weekly-history summary{
+      min-height:52px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+      padding:12px 16px;
+      color:#dfe5ef;
+      cursor:pointer;
+      list-style:none;
+      font-size:.79rem;
+      line-height:1.2;
+      font-weight:760;
+      -webkit-tap-highlight-color:transparent;
+    }
+
+    .weekly-history summary::-webkit-details-marker{display:none}
+
+    .weekly-history summary::after{
+      content:"+";
+      flex:0 0 auto;
+      color:#8795aa;
+      font-size:1rem;
+      font-weight:500;
+    }
+
+    .weekly-history[open] summary::after{content:"−"}
+
+    .weekly-history summary small{
+      color:#7f8ca0;
+      font-size:.65rem;
+      font-weight:650;
+      text-align:right;
+    }
+
+    .weekly-history-body{
+      padding:0 16px 16px;
+      color:#8592a5;
+      font-size:.76rem;
+      line-height:1.45;
+    }
+
     .coming-soon-card{
       min-height:220px;
       display:grid;
@@ -3110,7 +3708,29 @@
       }
     }
 
+    @media (max-width:700px){
+      .weekly-youtube-card{grid-template-columns:minmax(0,1fr)}
+      .weekly-youtube-info{padding:16px}
+    }
+
     @media (max-width:640px){
+      .weekly-overview{padding:18px;border-radius:22px}
+      .weekly-overview-top{flex-direction:column;gap:12px}
+      .weekly-status{align-self:flex-start}
+      .weekly-service-heading{padding:16px 4px 2px;align-items:flex-start;flex-direction:column}
+      .weekly-service-meta{grid-template-columns:1fr}
+      .weekly-service-tabs{gap:5px}
+      .weekly-service-tab{min-height:46px;padding:7px 9px}
+      .weekly-service-tab strong{font-size:.76rem}
+      .weekly-service-tab small{font-size:.61rem}
+      .weekly-set-card,.weekly-coritos-card,.weekly-note-card{padding:16px;border-radius:20px}
+      .weekly-section-head{align-items:flex-start;flex-direction:column;gap:5px}
+      .weekly-section-head span{text-align:left}
+      .weekly-song{grid-template-columns:36px minmax(0,1fr);gap:10px;padding:11px}
+      .weekly-song-index{width:34px;height:34px;border-radius:10px}
+      .weekly-youtube-card{border-radius:20px}
+      .weekly-history summary{align-items:flex-start;flex-direction:column;gap:4px}
+      .weekly-history summary small{text-align:left}
       .song-row{
         --future-gradient-opacity:.92;
         --future-blur-opacity:.24;
@@ -3858,13 +4478,167 @@
       </section>
 
       <section class="site-tab-panel" id="panel-worship-semanal" role="tabpanel" aria-labelledby="tab-worship-semanal" tabindex="0" hidden>
-        <section class="card coming-soon-card">
-          <div class="coming-soon-inner">
-            <span class="coming-soon-kicker">Worship Sets · Viernes + Domingo</span>
-            <h2 class="coming-soon-title">Próximamente</h2>
-            <p class="coming-soon-purpose">Aquí estarán los worship sets de cada semana, separados para viernes y domingo, con el repertorio, orden e indicaciones necesarias para cada servicio.</p>
-          </div>
-        </section>
+        <div class="weekly-dashboard" data-weekly-dashboard>
+          <section class="weekly-overview">
+            <div class="weekly-overview-top">
+              <div>
+                <span class="weekly-kicker">Worship semanal · Viernes + Domingo</span>
+                <h2>Esta semana</h2>
+                <p>Sets, ensayo y recursos del equipo de adoración en un solo lugar.</p>
+              </div>
+              <span class="weekly-status">Domingo actualizado</span>
+            </div>
+
+            <div class="weekly-service-tabs" role="tablist" aria-label="Servicios de Worship semanal">
+              <button class="weekly-service-tab" id="weekly-tab-viernes" type="button" role="tab" aria-selected="false" aria-controls="weekly-panel-viernes" tabindex="-1" data-weekly-service="viernes">
+                <strong>Viernes</strong>
+                <small>Pendiente</small>
+              </button>
+              <button class="weekly-service-tab" id="weekly-tab-domingo" type="button" role="tab" aria-selected="true" aria-controls="weekly-panel-domingo" tabindex="0" data-weekly-service="domingo">
+                <strong>Domingo</strong>
+                <small>Actualizado</small>
+              </button>
+            </div>
+          </section>
+
+          <section class="weekly-service-panel" id="weekly-panel-viernes" role="tabpanel" aria-labelledby="weekly-tab-viernes" data-weekly-panel="viernes" hidden>
+            <div class="weekly-empty">
+              <div class="weekly-empty-inner">
+                <span class="weekly-service-kicker">Viernes</span>
+                <h3>Set pendiente</h3>
+                <p>Cuando se cargue el worship set del viernes, aparecerá aquí con el mismo formato de canciones, recursos, ensayo y notas.</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="weekly-service-panel" id="weekly-panel-domingo" role="tabpanel" aria-labelledby="weekly-tab-domingo" data-weekly-panel="domingo">
+            <div class="weekly-service-heading">
+              <div>
+                <span class="weekly-service-kicker">Servicio · Domingo</span>
+                <h2>Worship set del domingo</h2>
+                <p>Orden del servicio, playlist, recursos y detalles de ensayo.</p>
+              </div>
+            </div>
+
+            <ul class="weekly-service-meta" aria-label="Detalles del servicio del domingo">
+              <li class="weekly-meta-card">
+                <span class="weekly-meta-label">Ensayo</span>
+                <span class="weekly-meta-value">9:30 AM</span>
+              </li>
+              <li class="weekly-meta-card">
+                <span class="weekly-meta-label">Corista</span>
+                <span class="weekly-meta-value">Dayari</span>
+              </li>
+            </ul>
+
+            <section class="weekly-youtube-card" aria-labelledby="weekly-youtube-title">
+              <div class="weekly-youtube-frame">
+                <iframe
+                  src="https://www.youtube-nocookie.com/embed/videoseries?list=PLkLZ_UC3YYUw0TOBrAw19xENUYunh7URI"
+                  title="Playlist de worship del domingo"
+                  loading="lazy"
+                  referrerpolicy="strict-origin-when-cross-origin"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowfullscreen></iframe>
+              </div>
+              <div class="weekly-youtube-info">
+                <span class="weekly-youtube-mark">YouTube</span>
+                <h3 id="weekly-youtube-title">Playlist del servicio</h3>
+                <p>Escucha y repasa las canciones del domingo directamente desde la playlist del equipo.</p>
+                <a class="weekly-action" href="https://youtube.com/playlist?list=PLkLZ_UC3YYUw0TOBrAw19xENUYunh7URI&amp;si=BySOjP07fJaR0gI7" target="_blank" rel="noopener">Abrir playlist en YouTube</a>
+              </div>
+            </section>
+
+            <a class="weekly-resource" href="https://u.pone.rs/jzehueif.pdf" target="_blank" rel="noopener">
+              <span class="weekly-resource-badge">PDF</span>
+              <span class="weekly-resource-text">
+                <strong>Letras &amp; Coritos</strong>
+                <small>Abrir recurso del servicio</small>
+              </span>
+            </a>
+
+            <section class="weekly-set-card" aria-labelledby="weekly-set-title">
+              <div class="weekly-section-head">
+                <h3 id="weekly-set-title">Canciones CDJ</h3>
+                <span>Compás · 4/4</span>
+              </div>
+
+              <ol class="weekly-song-list">
+                <li class="weekly-song">
+                  <span class="weekly-song-index">01</span>
+                  <span class="weekly-song-copy">
+                    <strong class="weekly-song-title">Yo Quiero Más De Ti</strong>
+                    <span class="weekly-song-artist">Jaime Murrell</span>
+                    <span class="weekly-song-meta">
+                      <span>Tono · Do Sostenido Mayor</span>
+                      <span>BPM · 59/118</span>
+                    </span>
+                  </span>
+                </li>
+                <li class="weekly-song">
+                  <span class="weekly-song-index">02</span>
+                  <span class="weekly-song-copy">
+                    <strong class="weekly-song-title">Dios De Milagros</strong>
+                    <span class="weekly-song-artist">Miel San Marcos &amp; Kim Richards</span>
+                    <span class="weekly-song-meta">
+                      <span>Tono · Re Mayor</span>
+                      <span>BPM · 70/140</span>
+                    </span>
+                  </span>
+                </li>
+                <li class="weekly-song">
+                  <span class="weekly-song-index">03</span>
+                  <span class="weekly-song-copy">
+                    <strong class="weekly-song-title">Algo Está Pasando</strong>
+                    <span class="weekly-song-artist">Oasis Ministry</span>
+                    <span class="weekly-song-meta">
+                      <span>Tono · Sol Mayor</span>
+                      <span>BPM · 68/136</span>
+                    </span>
+                  </span>
+                </li>
+                <li class="weekly-song">
+                  <span class="weekly-song-index">04</span>
+                  <span class="weekly-song-copy">
+                    <strong class="weekly-song-title">Hay Libertad</strong>
+                    <span class="weekly-song-artist">Art Aguilera</span>
+                    <span class="weekly-song-meta">
+                      <span>Tono · Fa Mayor</span>
+                      <span>BPM · 74/148</span>
+                    </span>
+                  </span>
+                </li>
+              </ol>
+            </section>
+
+            <section class="weekly-coritos-card" aria-labelledby="weekly-coritos-title">
+              <div class="weekly-section-head">
+                <h3 id="weekly-coritos-title">Coritos</h3>
+                <span>Re Mayor · 115 BPM</span>
+              </div>
+              <ol class="weekly-coritos-list">
+                <li class="weekly-corito">En El Principio El Espíritu De Dios</li>
+                <li class="weekly-corito">Yo He Creído En Un Poder</li>
+                <li class="weekly-corito">Hay Victoria En La Sangre De Jesús</li>
+                <li class="weekly-corito">Cuando El Pueblo Del Señor Alaba A Dios</li>
+                <li class="weekly-corito">Jerusalén Que Bonita Eres</li>
+              </ol>
+            </section>
+
+            <section class="weekly-note-card" aria-labelledby="weekly-note-title">
+              <h3 id="weekly-note-title">Nota de ensayo</h3>
+              <p>Ensayen con la canción, con metrónomo y eventualmente sin letra.</p>
+            </section>
+          </section>
+
+          <details class="weekly-history">
+            <summary>
+              <span>Semana anterior</span>
+              <small>El historial aparecerá aquí al guardar el próximo set</small>
+            </summary>
+            <div class="weekly-history-body">Todavía no hay una semana anterior cargada en Worship semanal.</div>
+          </details>
+        </div>
       </section>
     </div>
 
@@ -4063,6 +4837,49 @@
       syncSpecialEvents:now=>syncSpecialEventTabs(now),
       getActiveKey:()=>activeSiteTabKey,
       getVisibleTabs:()=>visibleSiteTabs().map(tab=>tab.dataset.siteTab)
+    });
+
+    // Worship semanal has its own Friday/Sunday view, independent from the
+    // platform-wide navigation. Sunday is selected for this first populated set.
+    const weeklyServiceTabs=[...document.querySelectorAll('[data-weekly-service]')];
+    const weeklyServicePanels=[...document.querySelectorAll('[data-weekly-panel]')];
+
+    function activateWeeklyService(key,{focus=false}={}){
+      const tab=weeklyServiceTabs.find(item=>item.dataset.weeklyService===key);
+      const panel=weeklyServicePanels.find(item=>item.dataset.weeklyPanel===key);
+      if(!tab||!panel)return false;
+
+      weeklyServiceTabs.forEach(item=>{
+        const selected=item===tab;
+        item.setAttribute("aria-selected",selected?"true":"false");
+        item.tabIndex=selected?0:-1;
+      });
+      weeklyServicePanels.forEach(item=>{item.hidden=item!==panel});
+      if(focus)tab.focus({preventScroll:true});
+      return true;
+    }
+
+    weeklyServiceTabs.forEach(tab=>{
+      tab.addEventListener("click",()=>activateWeeklyService(tab.dataset.weeklyService));
+      tab.addEventListener("keydown",event=>{
+        if(!["ArrowLeft","ArrowRight","Home","End"].includes(event.key))return;
+        const current=weeklyServiceTabs.indexOf(tab);
+        if(current<0)return;
+        event.preventDefault();
+        let next=current;
+        if(event.key==="Home")next=0;
+        else if(event.key==="End")next=weeklyServiceTabs.length-1;
+        else if(event.key==="ArrowRight")next=(current+1)%weeklyServiceTabs.length;
+        else if(event.key==="ArrowLeft")next=(current-1+weeklyServiceTabs.length)%weeklyServiceTabs.length;
+        activateWeeklyService(weeklyServiceTabs[next].dataset.weeklyService,{focus:true});
+      });
+    });
+
+    activateWeeklyService("domingo");
+
+    window.IPCDJ_WEEKLY=Object.freeze({
+      activate:key=>activateWeeklyService(String(key||"")),
+      getActive:()=>weeklyServiceTabs.find(tab=>tab.getAttribute("aria-selected")==="true")?.dataset.weeklyService||""
     });
 
     const pullRefresh=document.querySelector(".pull-refresh");
