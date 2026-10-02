@@ -180,6 +180,18 @@ test('preview playback and song-to-song handoff stay functional', async ({ page 
   await weeklyTabForPreview.click();
   await expect(weeklyTabForPreview).toHaveAttribute('aria-selected','true');
 
+  // Reproduce the real mobile/WebKit failure mode: the AudioContext can suspend
+  // only after the destination panel has switched, which is later than the
+  // internalnavigation event itself. Visible in-app navigation must recover it
+  // without resetting ownership or elapsed time.
+  await page.evaluate(async () => {
+    await window.IPCDJ_PREVIEW_TEST.suspendContext();
+  });
+  await expect.poll(
+    () => page.evaluate(() => window.IPCDJ_PREVIEW_TEST.snapshot().contextState),
+    { timeout: 3000, message: 'visible internal navigation should recover a late Web Audio suspension' }
+  ).toBe('running');
+
   await page.evaluate(() => window.dispatchEvent(new Event('blur')));
   await page.waitForTimeout(520);
 
@@ -473,8 +485,17 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(weeklyPanel).toBeVisible();
   await expect(homePanel).toBeHidden();
   await expect(weeklyPanel).not.toContainText('Próximamente');
-  await expect(weeklyPanel.getByRole('tab', { name: /Viernes/i })).toHaveAttribute('aria-selected','false');
-  await expect(weeklyPanel.getByRole('tab', { name: /Domingo/i })).toHaveAttribute('aria-selected','true');
+  const fridayWeeklyTab=weeklyPanel.locator('#weekly-tab-viernes');
+  const sundayWeeklyTab=weeklyPanel.locator('#weekly-tab-domingo');
+  await expect(fridayWeeklyTab).toHaveAttribute('aria-selected','true');
+  await expect(sundayWeeklyTab).toHaveAttribute('aria-selected','false');
+  await expect(weeklyPanel.locator('#weekly-panel-viernes')).toBeVisible();
+  await expect(weeklyPanel.locator('#weekly-panel-domingo')).toBeHidden();
+  await expect(weeklyPanel.locator('#weekly-panel-viernes')).toContainText('Set pendiente');
+
+  // Sunday content must remain intact and appear immediately when selected.
+  await sundayWeeklyTab.click();
+  await expect(sundayWeeklyTab).toHaveAttribute('aria-selected','true');
   await expect(weeklyPanel.locator('#weekly-panel-domingo')).toBeVisible();
   await expect(weeklyPanel.locator('#weekly-panel-viernes')).toBeHidden();
   await expect(weeklyPanel).toContainText('Worship set del domingo');
@@ -502,8 +523,6 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   }));
   expect(weeklyOverflow.scrollWidth).toBeLessThanOrEqual(weeklyOverflow.clientWidth+1);
 
-  const fridayWeeklyTab=weeklyPanel.locator('#weekly-tab-viernes');
-  const sundayWeeklyTab=weeklyPanel.locator('#weekly-tab-domingo');
   await fridayWeeklyTab.click();
   await expect(fridayWeeklyTab).toHaveAttribute('aria-selected','true');
   await expect(weeklyPanel.locator('#weekly-panel-viernes')).toBeVisible();
