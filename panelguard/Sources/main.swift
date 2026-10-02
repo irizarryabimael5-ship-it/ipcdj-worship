@@ -4,15 +4,15 @@ import CoreGraphics
 import Darwin
 import Foundation
 
-private let appVersion = "1.0.0"
+private let appVersion = "1.1.0"
 private let stateDirectoryName = "PanelGuard"
-private let stateFileName = "guard-state.json"
+private let stateFileName = "guard-state-v2.json"
 
 private struct GuardState: Codable {
     var active: Bool
-    var displayID: UInt32
+    var physicalDisplayID: UInt32
     var restoreBrightness: Float
-    var enforceZero: Bool
+    var enforceDisconnect: Bool
     var restoreOnExit: Bool
     var autoRestoreAt: TimeInterval?
     var parentPID: Int32
@@ -23,72 +23,113 @@ private enum StateStore {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         return base.appendingPathComponent(stateDirectoryName, isDirectory: true)
     }
-
     static var stateURL: URL { directoryURL.appendingPathComponent(stateFileName) }
-
     static func load(from url: URL = stateURL) -> GuardState? {
         guard let data = try? Data(contentsOf: url) else { return nil }
         return try? JSONDecoder().decode(GuardState.self, from: data)
     }
-
     static func save(_ state: GuardState, to url: URL = stateURL) throws {
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        let data = try JSONEncoder().encode(state)
-        try data.write(to: url, options: .atomic)
-    }
-
-    static func markInactive(url: URL = stateURL) {
-        guard var state = load(from: url) else { return }
-        state.active = false
-        try? save(state, to: url)
+        try JSONEncoder().encode(state).write(to: url, options: .atomic)
     }
 }
 
 private final class BrightnessController {
     static let shared = BrightnessController()
-
     typealias GetBrightness = @convention(c) (CGDirectDisplayID, UnsafeMutablePointer<Float>) -> Int32
     typealias SetBrightness = @convention(c) (CGDirectDisplayID, Float) -> Int32
-
-    private var handle: UnsafeMutableRawPointer?
-    private var getter: GetBrightness?
-    private var setter: SetBrightness?
+    private let getter: GetBrightness?
+    private let setter: SetBrightness?
 
     private init() {
-        let path = "/System/Library/PrivateFrameworks/DisplayServices.framework/DisplayServices"
-        handle = dlopen(path, RTLD_NOW | RTLD_LOCAL)
-        if let handle {
-            if let symbol = dlsym(handle, "DisplayServicesGetBrightness") {
-                getter = unsafeBitCast(symbol, to: GetBrightness.self)
-            }
-            if let symbol = dlsym(handle, "DisplayServicesSetBrightness") {
-                setter = unsafeBitCast(symbol, to: SetBrightness.self)
-            }
-        }
+        let h = dlopen("/System/Library/PrivateFrameworks/DisplayServices.framework/DisplayServices", RTLD_NOW | RTLD_LOCAL)
+        if let h, let s = dlsym(h, "DisplayServicesGetBrightness") { getter = unsafeBitCast(s, to: GetBrightness.self) } else { getter = nil }
+        if let h, let s = dlsym(h, "DisplayServicesSetBrightness") { setter = unsafeBitCast(s, to: SetBrightness.self) } else { setter = nil }
     }
 
     var apiAvailable: Bool { getter != nil && setter != nil }
 
     func builtInDisplay() -> CGDirectDisplayID? {
         var count: UInt32 = 0
-        guard CGGetActiveDisplayList(0, nil, &count) == .success, count > 0 else { return nil }
-        var displays = [CGDirectDisplayID](repeating: 0, count: Int(count))
-        guard CGGetActiveDisplayList(count, &displays, &count) == .success else { return nil }
-        return displays.prefix(Int(count)).first(where: { CGDisplayIsBuiltin($0) != 0 })
+        guard CGGetOnlineDisplayList(0, nil, &count) == .success, count > 0 else { return nil }
+        var ids = [CGDirectDisplayID](repeating: 0, count: Int(count))
+        guard CGGetOnlineDisplayList(count, &ids, &count) == .success else { return nil }
+        return ids.prefix(Int(count)).first { CGDisplayIsBuiltin($0) != 0 }
     }
 
     func get(_ display: CGDirectDisplayID) -> Float? {
         guard let getter else { return nil }
-        var value: Float = 0
-        guard getter(display, &value) == 0 else { return nil }
-        return value
+        var v: Float = 0
+        return getter(display, &v) == 0 ? v : nil
     }
 
     @discardableResult
     func set(_ value: Float, display: CGDirectDisplayID) -> Bool {
         guard let setter else { return false }
-        let clamped = min(max(value, 0), 1)
-        return setter(display, clamped) == 0
+        return setter(display, min(max(value, 0), 1)) == 0
+    }
+}
+
+private final class DisplayConnectionController {
+    static let shared = DisplayConnectionController()
+    typealias CoreDisplaySetUserEnabled = @convention(c) (CGDirectDisplayID, Bool) -> Int32
+    typealias SkyLightConfigureEnabled = @convention(c) (CGDisplayConfigRef?, CGDirectDisplayID, Bool) -> CGError
+
+    private let coreSetEnabled: CoreDisplaySetUserEnabled?
+    private let skySetEnabled: SkyLightConfigureEnabled?
+
+    private init() {
+        let core = dlopen("/System/Library/Frameworks/CoreDisplay.framework/CoreDisplay", RTLD_LAZY)
+        if let core, let s = dlsym(core, "CoreDisplay_Display_SetUserEnabled") {
+            coreSetEnabled = unsafeBitCast(s, to: CoreDisplaySetUserEnabled.self)
+        } else { coreSetEnabled = nil }
+
+        let sky = dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight", RTLD_LAZY)
+        if let sky, let s = dlsym(sky, "SLSConfigureDisplayEnabled") ?? dlsym(sky, "CGSConfigureDisplayEnabled") {
+            skySetEnabled = unsafeBitCast(s, to: SkyLightConfigureEnabled.self)
+        } else { skySetEnabled = nil }
+    }
+
+    var apiAvailable: Bool { coreSetEnabled != nil || skySetEnabled != nil }
+    var methodDescription: String {
+        if coreSetEnabled != nil { return "CoreDisplay (Ventura-compatible)" }
+        if skySetEnabled != nil { return "SkyLight" }
+        return "Unavailable"
+    }
+
+    private func stateMatches(_ enabled: Bool, display: CGDirectDisplayID) -> Bool {
+        enabled ? (CGDisplayIsOnline(display) != 0 && CGDisplayIsActive(display) != 0)
+                : (CGDisplayIsOnline(display) == 0 || CGDisplayIsActive(display) == 0)
+    }
+
+    private func waitForState(_ enabled: Bool, display: CGDirectDisplayID, timeout: TimeInterval = 1.8) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        repeat {
+            if stateMatches(enabled, display: display) { return true }
+            usleep(100_000)
+        } while Date() < deadline
+        return stateMatches(enabled, display: display)
+    }
+
+    @discardableResult
+    func setEnabled(_ enabled: Bool, display: CGDirectDisplayID) -> Bool {
+        if stateMatches(enabled, display: display) { return true }
+
+        if let coreSetEnabled {
+            if coreSetEnabled(display, enabled) == 0 && waitForState(enabled, display: display) { return true }
+        }
+
+        if let skySetEnabled {
+            var config: CGDisplayConfigRef?
+            if CGBeginDisplayConfiguration(&config) == .success, let config {
+                let result = skySetEnabled(config, display, enabled)
+                if result == .success {
+                    if CGCompleteDisplayConfiguration(config, .forAppOnly) == .success,
+                       waitForState(enabled, display: display) { return true }
+                } else { CGCancelDisplayConfiguration(config) }
+            }
+        }
+        return stateMatches(enabled, display: display)
     }
 }
 
@@ -99,66 +140,30 @@ private final class GlobalHotkey {
     private var eventHandler: EventHandlerRef?
     private let action: () -> Void
 
-    init(action: @escaping () -> Void) {
-        self.action = action
-    }
+    init(action: @escaping () -> Void) { self.action = action }
 
     @discardableResult
     func register() -> Bool {
         unregister()
-
         var ref: EventHotKeyRef?
-        let hotKeyID = EventHotKeyID(signature: signature, id: identifier)
-        let modifiers = UInt32(cmdKey | optionKey | controlKey)
-        let registerStatus = RegisterEventHotKey(
-            UInt32(kVK_ANSI_B),
-            modifiers,
-            hotKeyID,
-            GetApplicationEventTarget(),
-            0,
-            &ref
-        )
-        guard registerStatus == noErr, let ref else { return false }
+        let id = EventHotKeyID(signature: signature, id: identifier)
+        guard RegisterEventHotKey(UInt32(kVK_ANSI_B), UInt32(cmdKey | optionKey | controlKey), id, GetApplicationEventTarget(), 0, &ref) == noErr,
+              let ref else { return false }
         hotKeyRef = ref
 
-        var eventType = EventTypeSpec(
-            eventClass: OSType(kEventClassKeyboard),
-            eventKind: UInt32(kEventHotKeyPressed)
-        )
+        var type = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
         let opaque = Unmanaged.passUnretained(self).toOpaque()
-        let callback: EventHandlerUPP = { _, event, userData in
+        let cb: EventHandlerUPP = { _, event, userData in
             guard let event, let userData else { return OSStatus(eventNotHandledErr) }
             let manager = Unmanaged<GlobalHotkey>.fromOpaque(userData).takeUnretainedValue()
             var incoming = EventHotKeyID()
-            let status = GetEventParameter(
-                event,
-                EventParamName(kEventParamDirectObject),
-                EventParamType(typeEventHotKeyID),
-                nil,
-                MemoryLayout<EventHotKeyID>.size,
-                nil,
-                &incoming
-            )
-            guard status == noErr,
-                  incoming.signature == manager.signature,
-                  incoming.id == manager.identifier else {
-                return OSStatus(eventNotHandledErr)
-            }
+            let status = GetEventParameter(event, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID), nil, MemoryLayout<EventHotKeyID>.size, nil, &incoming)
+            guard status == noErr, incoming.signature == manager.signature, incoming.id == manager.identifier else { return OSStatus(eventNotHandledErr) }
             DispatchQueue.main.async { manager.action() }
             return noErr
         }
-
-        let installStatus = InstallEventHandler(
-            GetApplicationEventTarget(),
-            callback,
-            1,
-            &eventType,
-            opaque,
-            &eventHandler
-        )
-        if installStatus != noErr {
-            unregister()
-            return false
+        guard InstallEventHandler(GetApplicationEventTarget(), cb, 1, &type, opaque, &eventHandler) == noErr else {
+            unregister(); return false
         }
         return true
     }
@@ -166,10 +171,8 @@ private final class GlobalHotkey {
     func unregister() {
         if let hotKeyRef { UnregisterEventHotKey(hotKeyRef) }
         if let eventHandler { RemoveEventHandler(eventHandler) }
-        hotKeyRef = nil
-        eventHandler = nil
+        hotKeyRef = nil; eventHandler = nil
     }
-
     deinit { unregister() }
 }
 
@@ -179,551 +182,239 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
     private var hotkey: GlobalHotkey!
     private var caffeinate: Process?
     private var watchdog: Process?
+    private var pollTimer: Timer?
     private var guardState: GuardState?
-    private var testTimer: Timer?
+    private var virtualHandle: UnsafeMutableRawPointer?
+    private var virtualID: CGDirectDisplayID = 0
 
     private let statusDot = NSTextField(labelWithString: "●")
     private let statusTitle = NSTextField(labelWithString: "Ready")
-    private let statusDetail = NSTextField(wrappingLabelWithString: "Checking the built-in display…")
+    private let statusDetail = NSTextField(wrappingLabelWithString: "Checking display control…")
     private let primaryButton = NSButton(title: "Turn Physical Display Off", target: nil, action: nil)
     private let testButton = NSButton(title: "Test for 10 Seconds", target: nil, action: nil)
     private let enforceSwitch = NSSwitch()
     private let restoreSwitch = NSSwitch()
     private let awakeSwitch = NSSwitch()
-    private let diagnosticsLabel = NSTextField(wrappingLabelWithString: "")
-    private let hotkeyStatusLabel = NSTextField(labelWithString: "⌃⌥⌘B")
+    private let diagnostics = NSTextField(wrappingLabelWithString: "")
+    private let hotkeyLabel = NSTextField(labelWithString: "⌃⌥⌘B")
 
     private var isGuarded: Bool { guardState?.active == true }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
-        UserDefaults.standard.register(defaults: [
-            "enforceZero": true,
-            "restoreOnExit": true,
-            "keepAwake": true,
-            "lastVisibleBrightness": 0.5
-        ])
-
-        recoverStaleStateIfNeeded()
-        buildWindow()
-        buildStatusItem()
-        configureHotkey()
-        refreshCapability()
-
+        UserDefaults.standard.register(defaults: ["enforceDisconnect": true, "restoreOnExit": true, "keepAwake": true, "lastVisibleBrightness": 0.5])
+        recoverStaleState()
+        buildWindow(); buildStatusItem(); configureHotkey(); refreshCapability()
+        pollTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in self?.syncFromWatchdog() }
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         if isGuarded { restoreDisplay(silent: true) }
-        hotkey?.unregister()
-        stopCaffeinate()
+        destroyVirtualDisplay(); stopCaffeinate(); stopWatchdog(); hotkey?.unregister(); pollTimer?.invalidate()
     }
 
-    func windowShouldClose(_ sender: NSWindow) -> Bool {
-        window.orderOut(nil)
-        return false
-    }
+    func windowShouldClose(_ sender: NSWindow) -> Bool { window.orderOut(nil); return false }
 
-    private func recoverStaleStateIfNeeded() {
-        guard let stale = StateStore.load(), stale.active else { return }
-        let parentAlive = kill(pid_t(stale.parentPID), 0) == 0
-        if !parentAlive && stale.restoreOnExit {
-            _ = BrightnessController.shared.set(stale.restoreBrightness, display: stale.displayID)
-            StateStore.markInactive()
+    private func recoverStaleState() {
+        guard var s = StateStore.load(), s.active else { return }
+        errno = 0
+        let alive = kill(pid_t(s.parentPID), 0) == 0 || errno != ESRCH
+        guard !alive else { return }
+        if s.restoreOnExit {
+            _ = DisplayConnectionController.shared.setEnabled(true, display: s.physicalDisplayID)
+            usleep(350_000)
+            _ = BrightnessController.shared.set(s.restoreBrightness, display: s.physicalDisplayID)
         }
+        s.active = false; try? StateStore.save(s)
     }
 
     private func configureHotkey() {
         hotkey = GlobalHotkey { [weak self] in self?.toggleGuard() }
         let ok = hotkey.register()
-        hotkeyStatusLabel.stringValue = ok ? "⌃⌥⌘B" : "Unavailable — shortcut is already in use"
-        hotkeyStatusLabel.textColor = ok ? .secondaryLabelColor : .systemOrange
+        hotkeyLabel.stringValue = ok ? "⌃⌥⌘B" : "Unavailable — shortcut already in use"
+        hotkeyLabel.textColor = ok ? .secondaryLabelColor : .systemOrange
+    }
+
+    private func syncFromWatchdog() {
+        guard isGuarded, let disk = StateStore.load(), !disk.active else { return }
+        guardState = disk; destroyVirtualDisplay(); stopCaffeinate(); updateUI()
     }
 
     private func buildWindow() {
-        window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 620, height: 580),
-            styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
-            backing: .buffered,
-            defer: false
-        )
-        window.title = "PanelGuard"
-        window.titlebarAppearsTransparent = true
-        window.isMovableByWindowBackground = true
-        window.center()
-        window.delegate = self
-        window.minSize = NSSize(width: 560, height: 540)
+        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 640, height: 600), styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView], backing: .buffered, defer: false)
+        window.title = "PanelGuard"; window.titlebarAppearsTransparent = true; window.isMovableByWindowBackground = true; window.center(); window.delegate = self
+        window.minSize = NSSize(width: 580, height: 560)
 
-        let background = NSVisualEffectView()
-        background.material = .windowBackground
-        background.blendingMode = .behindWindow
-        background.state = .active
-        background.translatesAutoresizingMaskIntoConstraints = false
-        window.contentView = background
+        let bg = NSVisualEffectView(); bg.material = .windowBackground; bg.blendingMode = .behindWindow; bg.state = .active; window.contentView = bg
+        let root = NSStackView(); root.orientation = .vertical; root.alignment = .leading; root.spacing = 16; root.translatesAutoresizingMaskIntoConstraints = false; bg.addSubview(root)
+        NSLayoutConstraint.activate([root.leadingAnchor.constraint(equalTo: bg.leadingAnchor, constant: 30), root.trailingAnchor.constraint(equalTo: bg.trailingAnchor, constant: -30), root.topAnchor.constraint(equalTo: bg.topAnchor, constant: 54), root.bottomAnchor.constraint(lessThanOrEqualTo: bg.bottomAnchor, constant: -24)])
 
-        let root = NSStackView()
-        root.orientation = .vertical
-        root.alignment = .leading
-        root.spacing = 16
-        root.translatesAutoresizingMaskIntoConstraints = false
-        background.addSubview(root)
+        let title = NSTextField(labelWithString: "PanelGuard"); title.font = .systemFont(ofSize: 30, weight: .bold)
+        let subtitle = NSTextField(wrappingLabelWithString: "Private remote access for your iMac. PanelGuard disconnects the physical panel only after a hidden Retina framebuffer is active for RustDesk.")
+        subtitle.font = .systemFont(ofSize: 14); subtitle.textColor = .secondaryLabelColor; subtitle.maximumNumberOfLines = 3
+        root.addArrangedSubview(title); root.addArrangedSubview(subtitle); root.setCustomSpacing(22, after: subtitle)
 
-        NSLayoutConstraint.activate([
-            root.leadingAnchor.constraint(equalTo: background.leadingAnchor, constant: 30),
-            root.trailingAnchor.constraint(equalTo: background.trailingAnchor, constant: -30),
-            root.topAnchor.constraint(equalTo: background.topAnchor, constant: 54),
-            root.bottomAnchor.constraint(lessThanOrEqualTo: background.bottomAnchor, constant: -26)
-        ])
+        let card = makeCard(); let row = NSStackView(); row.orientation = .horizontal; row.alignment = .centerY; row.spacing = 14; row.translatesAutoresizingMaskIntoConstraints = false; card.addSubview(row); pin(row, to: card, inset: 18)
+        let icon = NSImageView(); icon.image = NSImage(systemSymbolName: "display.2", accessibilityDescription: "Displays"); icon.symbolConfiguration = .init(pointSize: 30, weight: .medium); icon.contentTintColor = .labelColor
+        let text = NSStackView(); text.orientation = .vertical; text.alignment = .leading; text.spacing = 3
+        statusTitle.font = .systemFont(ofSize: 16, weight: .semibold); statusDetail.font = .systemFont(ofSize: 12); statusDetail.textColor = .secondaryLabelColor; statusDetail.maximumNumberOfLines = 3
+        text.addArrangedSubview(statusTitle); text.addArrangedSubview(statusDetail)
+        statusDot.font = .systemFont(ofSize: 16, weight: .bold); statusDot.textColor = .systemGreen
+        row.addArrangedSubview(icon); row.addArrangedSubview(text); row.addArrangedSubview(NSView()); row.addArrangedSubview(statusDot)
+        root.addArrangedSubview(card); card.widthAnchor.constraint(equalTo: root.widthAnchor).isActive = true; card.heightAnchor.constraint(greaterThanOrEqualToConstant: 98).isActive = true
 
-        let title = NSTextField(labelWithString: "PanelGuard")
-        title.font = .systemFont(ofSize: 30, weight: .bold)
-        let subtitle = NSTextField(wrappingLabelWithString: "Turn off the iMac’s physical backlight while keeping the desktop alive for remote access.")
-        subtitle.font = .systemFont(ofSize: 14)
-        subtitle.textColor = .secondaryLabelColor
-        subtitle.maximumNumberOfLines = 2
+        primaryButton.target = self; primaryButton.action = #selector(primaryAction); primaryButton.bezelStyle = .rounded; primaryButton.controlSize = .large; primaryButton.font = .systemFont(ofSize: 15, weight: .semibold); primaryButton.bezelColor = .controlAccentColor; primaryButton.contentTintColor = .white
+        root.addArrangedSubview(primaryButton); primaryButton.widthAnchor.constraint(equalTo: root.widthAnchor).isActive = true; primaryButton.heightAnchor.constraint(equalToConstant: 48).isActive = true
+        testButton.target = self; testButton.action = #selector(testAction); testButton.bezelStyle = .rounded; root.addArrangedSubview(testButton); testButton.widthAnchor.constraint(equalTo: root.widthAnchor).isActive = true
 
-        root.addArrangedSubview(title)
-        root.addArrangedSubview(subtitle)
-        root.setCustomSpacing(22, after: subtitle)
+        let safety = makeCard(); let ss = NSStackView(); ss.orientation = .vertical; ss.alignment = .leading; ss.spacing = 12; ss.translatesAutoresizingMaskIntoConstraints = false; safety.addSubview(ss); pin(ss, to: safety, inset: 16)
+        let sh = NSTextField(labelWithString: "Safety & Reliability"); sh.font = .systemFont(ofSize: 13, weight: .semibold); ss.addArrangedSubview(sh)
+        enforceSwitch.state = UserDefaults.standard.bool(forKey: "enforceDisconnect") ? .on : .off; restoreSwitch.state = UserDefaults.standard.bool(forKey: "restoreOnExit") ? .on : .off; awakeSwitch.state = UserDefaults.standard.bool(forKey: "keepAwake") ? .on : .off
+        for t in [enforceSwitch, restoreSwitch, awakeSwitch] { t.target = self; t.action = #selector(settingsChanged) }
+        ss.addArrangedSubview(settingRow("Re-disconnect the physical panel if macOS brings it back", enforceSwitch))
+        ss.addArrangedSubview(settingRow("Restore the physical display if PanelGuard closes unexpectedly", restoreSwitch))
+        ss.addArrangedSubview(settingRow("Keep the Mac and remote framebuffer awake while guarded", awakeSwitch))
+        root.addArrangedSubview(safety); safety.widthAnchor.constraint(equalTo: root.widthAnchor).isActive = true
 
-        let statusCard = makeCard()
-        let statusStack = NSStackView()
-        statusStack.orientation = .horizontal
-        statusStack.alignment = .centerY
-        statusStack.spacing = 14
-        statusStack.translatesAutoresizingMaskIntoConstraints = false
-        statusCard.addSubview(statusStack)
-        pin(statusStack, to: statusCard, inset: 18)
+        let recovery = NSStackView(); recovery.orientation = .horizontal; recovery.alignment = .centerY
+        let rl = NSTextField(labelWithString: "Emergency restore shortcut"); rl.font = .systemFont(ofSize: 12, weight: .medium); hotkeyLabel.font = .monospacedSystemFont(ofSize: 12, weight: .semibold)
+        recovery.addArrangedSubview(rl); recovery.addArrangedSubview(NSView()); recovery.addArrangedSubview(hotkeyLabel); root.addArrangedSubview(recovery); recovery.widthAnchor.constraint(equalTo: root.widthAnchor).isActive = true
 
-        let icon = NSImageView()
-        icon.image = NSImage(systemSymbolName: "display", accessibilityDescription: "Display")
-        icon.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 30, weight: .medium)
-        icon.contentTintColor = .labelColor
-        icon.setContentHuggingPriority(.required, for: .horizontal)
-
-        statusDot.font = .systemFont(ofSize: 16, weight: .bold)
-        statusDot.textColor = .systemGreen
-        statusDot.setContentHuggingPriority(.required, for: .horizontal)
-
-        let statusText = NSStackView()
-        statusText.orientation = .vertical
-        statusText.alignment = .leading
-        statusText.spacing = 3
-        statusTitle.font = .systemFont(ofSize: 16, weight: .semibold)
-        statusDetail.font = .systemFont(ofSize: 12)
-        statusDetail.textColor = .secondaryLabelColor
-        statusText.addArrangedSubview(statusTitle)
-        statusText.addArrangedSubview(statusDetail)
-
-        statusStack.addArrangedSubview(icon)
-        statusStack.addArrangedSubview(statusText)
-        statusStack.addArrangedSubview(NSView())
-        statusStack.addArrangedSubview(statusDot)
-        root.addArrangedSubview(statusCard)
-        statusCard.widthAnchor.constraint(equalTo: root.widthAnchor).isActive = true
-        statusCard.heightAnchor.constraint(greaterThanOrEqualToConstant: 92).isActive = true
-
-        primaryButton.target = self
-        primaryButton.action = #selector(primaryAction)
-        primaryButton.bezelStyle = .rounded
-        primaryButton.controlSize = .large
-        primaryButton.font = .systemFont(ofSize: 15, weight: .semibold)
-        primaryButton.bezelColor = .controlAccentColor
-        primaryButton.contentTintColor = .white
-        root.addArrangedSubview(primaryButton)
-        primaryButton.widthAnchor.constraint(equalTo: root.widthAnchor).isActive = true
-        primaryButton.heightAnchor.constraint(equalToConstant: 48).isActive = true
-
-        testButton.target = self
-        testButton.action = #selector(testAction)
-        testButton.bezelStyle = .rounded
-        root.addArrangedSubview(testButton)
-        testButton.widthAnchor.constraint(equalTo: root.widthAnchor).isActive = true
-
-        let safetyCard = makeCard()
-        let safetyStack = NSStackView()
-        safetyStack.orientation = .vertical
-        safetyStack.alignment = .leading
-        safetyStack.spacing = 12
-        safetyStack.translatesAutoresizingMaskIntoConstraints = false
-        safetyCard.addSubview(safetyStack)
-        pin(safetyStack, to: safetyCard, inset: 16)
-
-        let safetyTitle = NSTextField(labelWithString: "Safety")
-        safetyTitle.font = .systemFont(ofSize: 13, weight: .semibold)
-        safetyStack.addArrangedSubview(safetyTitle)
-
-        enforceSwitch.state = UserDefaults.standard.bool(forKey: "enforceZero") ? .on : .off
-        restoreSwitch.state = UserDefaults.standard.bool(forKey: "restoreOnExit") ? .on : .off
-        awakeSwitch.state = UserDefaults.standard.bool(forKey: "keepAwake") ? .on : .off
-        for toggle in [enforceSwitch, restoreSwitch, awakeSwitch] {
-            toggle.target = self
-            toggle.action = #selector(safetySettingChanged)
-        }
-        safetyStack.addArrangedSubview(settingRow(title: "Keep backlight off if brightness keys are pressed", control: enforceSwitch))
-        safetyStack.addArrangedSubview(settingRow(title: "Restore brightness if PanelGuard closes unexpectedly", control: restoreSwitch))
-        safetyStack.addArrangedSubview(settingRow(title: "Keep the Mac awake while guarded", control: awakeSwitch))
-        root.addArrangedSubview(safetyCard)
-        safetyCard.widthAnchor.constraint(equalTo: root.widthAnchor).isActive = true
-
-        let recoveryRow = NSStackView()
-        recoveryRow.orientation = .horizontal
-        recoveryRow.alignment = .centerY
-        recoveryRow.spacing = 10
-        let recoveryText = NSTextField(labelWithString: "Emergency restore shortcut")
-        recoveryText.font = .systemFont(ofSize: 12, weight: .medium)
-        hotkeyStatusLabel.font = .monospacedSystemFont(ofSize: 12, weight: .semibold)
-        recoveryRow.addArrangedSubview(recoveryText)
-        recoveryRow.addArrangedSubview(NSView())
-        recoveryRow.addArrangedSubview(hotkeyStatusLabel)
-        root.addArrangedSubview(recoveryRow)
-        recoveryRow.widthAnchor.constraint(equalTo: root.widthAnchor).isActive = true
-
-        diagnosticsLabel.font = .monospacedSystemFont(ofSize: 10.5, weight: .regular)
-        diagnosticsLabel.textColor = .tertiaryLabelColor
-        diagnosticsLabel.maximumNumberOfLines = 3
-        root.addArrangedSubview(diagnosticsLabel)
-
-        let footer = NSTextField(labelWithString: "Local-only • No network access • Ventura 13+")
-        footer.font = .systemFont(ofSize: 10.5)
-        footer.textColor = .tertiaryLabelColor
-        root.addArrangedSubview(footer)
+        diagnostics.font = .monospacedSystemFont(ofSize: 10.5, weight: .regular); diagnostics.textColor = .tertiaryLabelColor; diagnostics.maximumNumberOfLines = 4; root.addArrangedSubview(diagnostics)
+        let footer = NSTextField(labelWithString: "Local-only • No network access • Intel macOS Ventura 13+ • PanelGuard \(appVersion)"); footer.font = .systemFont(ofSize: 10.5); footer.textColor = .tertiaryLabelColor; root.addArrangedSubview(footer)
     }
 
-    private func makeCard() -> NSVisualEffectView {
-        let card = NSVisualEffectView()
-        card.material = .contentBackground
-        card.blendingMode = .withinWindow
-        card.state = .active
-        card.wantsLayer = true
-        card.layer?.cornerRadius = 14
-        card.translatesAutoresizingMaskIntoConstraints = false
-        return card
-    }
-
-    private func pin(_ view: NSView, to container: NSView, inset: CGFloat) {
-        NSLayoutConstraint.activate([
-            view.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: inset),
-            view.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -inset),
-            view.topAnchor.constraint(equalTo: container.topAnchor, constant: inset),
-            view.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -inset)
-        ])
-    }
-
-    private func settingRow(title: String, control: NSView) -> NSStackView {
-        let row = NSStackView()
-        row.orientation = .horizontal
-        row.alignment = .centerY
-        row.spacing = 10
-        let label = NSTextField(labelWithString: title)
-        label.font = .systemFont(ofSize: 12.5)
-        row.addArrangedSubview(label)
-        row.addArrangedSubview(NSView())
-        row.addArrangedSubview(control)
-        row.widthAnchor.constraint(equalToConstant: 520).isActive = true
-        return row
-    }
+    private func makeCard() -> NSVisualEffectView { let v = NSVisualEffectView(); v.material = .contentBackground; v.blendingMode = .withinWindow; v.state = .active; v.wantsLayer = true; v.layer?.cornerRadius = 14; v.translatesAutoresizingMaskIntoConstraints = false; return v }
+    private func pin(_ view: NSView, to c: NSView, inset: CGFloat) { NSLayoutConstraint.activate([view.leadingAnchor.constraint(equalTo: c.leadingAnchor, constant: inset), view.trailingAnchor.constraint(equalTo: c.trailingAnchor, constant: -inset), view.topAnchor.constraint(equalTo: c.topAnchor, constant: inset), view.bottomAnchor.constraint(equalTo: c.bottomAnchor, constant: -inset)]) }
+    private func settingRow(_ title: String, _ control: NSView) -> NSStackView { let r = NSStackView(); r.orientation = .horizontal; r.alignment = .centerY; let l = NSTextField(labelWithString: title); l.font = .systemFont(ofSize: 12.5); r.addArrangedSubview(l); r.addArrangedSubview(NSView()); r.addArrangedSubview(control); r.widthAnchor.constraint(equalToConstant: 535).isActive = true; return r }
 
     private func buildStatusItem() {
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem.button?.image = NSImage(systemSymbolName: "display", accessibilityDescription: "PanelGuard")
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength); statusItem.button?.image = NSImage(systemSymbolName: "display.2", accessibilityDescription: "PanelGuard")
         let menu = NSMenu()
-        let show = NSMenuItem(title: "Show PanelGuard", action: #selector(showWindow), keyEquivalent: "")
-        show.target = self
-        menu.addItem(show)
-        let toggle = NSMenuItem(title: "Turn Physical Display Off", action: #selector(primaryAction), keyEquivalent: "")
-        toggle.target = self
-        toggle.tag = 1001
-        menu.addItem(toggle)
-        let test = NSMenuItem(title: "Test for 10 Seconds", action: #selector(testAction), keyEquivalent: "")
-        test.target = self
-        menu.addItem(test)
-        menu.addItem(.separator())
-        let quit = NSMenuItem(title: "Quit PanelGuard", action: #selector(quitApp), keyEquivalent: "q")
-        quit.target = self
-        menu.addItem(quit)
-        statusItem.menu = menu
+        let show = NSMenuItem(title: "Show PanelGuard", action: #selector(showWindow), keyEquivalent: ""); show.target = self; menu.addItem(show)
+        let toggle = NSMenuItem(title: "Turn Physical Display Off", action: #selector(primaryAction), keyEquivalent: ""); toggle.target = self; toggle.tag = 1001; menu.addItem(toggle)
+        let test = NSMenuItem(title: "Test for 10 Seconds", action: #selector(testAction), keyEquivalent: ""); test.target = self; test.tag = 1002; menu.addItem(test)
+        menu.addItem(.separator()); let quit = NSMenuItem(title: "Quit PanelGuard", action: #selector(quitApp), keyEquivalent: "q"); quit.target = self; menu.addItem(quit); statusItem.menu = menu
     }
 
-    @objc private func showWindow() {
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-    }
-
-    @objc private func quitApp() {
-        if isGuarded { restoreDisplay(silent: true) }
-        NSApp.terminate(nil)
-    }
-
+    @objc private func showWindow() { window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true) }
+    @objc private func quitApp() { if isGuarded { restoreDisplay(silent: true) }; NSApp.terminate(nil) }
     @objc private func primaryAction() { toggleGuard() }
-
-    @objc private func testAction() {
-        guard !isGuarded else { return }
-        activateGuard(autoRestoreAfter: 10)
+    @objc private func testAction() { if !isGuarded { activateGuard(autoRestoreAfter: 10) } }
+    @objc private func settingsChanged() {
+        let e = enforceSwitch.state == .on, r = restoreSwitch.state == .on, a = awakeSwitch.state == .on
+        UserDefaults.standard.set(e, forKey: "enforceDisconnect"); UserDefaults.standard.set(r, forKey: "restoreOnExit"); UserDefaults.standard.set(a, forKey: "keepAwake")
+        if var s = guardState, s.active { s.enforceDisconnect = e; s.restoreOnExit = r; guardState = s; try? StateStore.save(s); if a { startCaffeinate() } else { stopCaffeinate() } }
     }
 
-    @objc private func safetySettingChanged() {
-        let enforce = enforceSwitch.state == .on
-        let restore = restoreSwitch.state == .on
-        let awake = awakeSwitch.state == .on
-        UserDefaults.standard.set(enforce, forKey: "enforceZero")
-        UserDefaults.standard.set(restore, forKey: "restoreOnExit")
-        UserDefaults.standard.set(awake, forKey: "keepAwake")
+    fileprivate func toggleGuard() { isGuarded ? restoreDisplay() : activateGuard(autoRestoreAfter: nil) }
 
-        if var state = guardState, state.active {
-            state.enforceZero = enforce
-            state.restoreOnExit = restore
-            guardState = state
-            try? StateStore.save(state)
-            if awake { startCaffeinate() } else { stopCaffeinate() }
-        }
+    private func createVirtualDisplay(for physical: CGDirectDisplayID) -> Bool {
+        if virtualHandle != nil, virtualID != 0, CGDisplayIsActive(virtualID) != 0 { return true }
+        guard PGVirtualDisplayAPISupported() != 0, let mode = CGDisplayCopyDisplayMode(physical) else { return false }
+        var id: UInt32 = 0
+        let refresh = mode.refreshRate > 1 ? mode.refreshRate : 60
+        guard let h = PGCreateVirtualDisplay(UInt32(mode.pixelWidth), UInt32(mode.pixelHeight), refresh, &id), id != 0 else { return false }
+        virtualHandle = h; virtualID = id
+        let deadline = Date().addingTimeInterval(2.5)
+        repeat {
+            if CGDisplayIsOnline(id) != 0 && CGDisplayIsActive(id) != 0 { return true }
+            RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+        } while Date() < deadline
+        destroyVirtualDisplay(); return false
     }
 
-    fileprivate func toggleGuard() {
-        if isGuarded { restoreDisplay() }
-        else { activateGuard(autoRestoreAfter: nil) }
-    }
+    private func destroyVirtualDisplay() { if let h = virtualHandle { PGDestroyVirtualDisplay(h) }; virtualHandle = nil; virtualID = 0 }
 
     private func activateGuard(autoRestoreAfter: TimeInterval?) {
-        let controller = BrightnessController.shared
-        guard controller.apiAvailable, let display = controller.builtInDisplay() else {
-            showError("Built-in display control is unavailable", detail: "PanelGuard could not find a controllable built-in Apple display.")
-            return
-        }
-        guard let current = controller.get(display) else {
-            showError("Couldn’t read display brightness", detail: "No changes were made. Restart PanelGuard and try again.")
-            return
-        }
+        let b = BrightnessController.shared, c = DisplayConnectionController.shared
+        guard c.apiAvailable else { showError("Physical display disconnect is unavailable", "PanelGuard could not load the Ventura-compatible CoreDisplay/SkyLight API."); return }
+        guard PGVirtualDisplayAPISupported() != 0 else { showError("Virtual display support is unavailable", "PanelGuard could not create the hidden framebuffer required for safe remote access."); return }
+        guard let physical = b.builtInDisplay(), let current = b.get(physical) else { showError("Built-in iMac display not found", "PanelGuard could not identify and read the built-in Apple display."); return }
 
-        let stored = Float(UserDefaults.standard.double(forKey: "lastVisibleBrightness"))
-        let restoreValue = current > 0.015 ? current : max(stored, 0.5)
+        let stored = Float(UserDefaults.standard.double(forKey: "lastVisibleBrightness")); let restore = current > 0.015 ? current : max(stored, 0.5)
         if current > 0.015 { UserDefaults.standard.set(Double(current), forKey: "lastVisibleBrightness") }
 
-        let autoDate = autoRestoreAfter.map { Date().timeIntervalSince1970 + $0 }
-        let state = GuardState(
-            active: true,
-            displayID: display,
-            restoreBrightness: restoreValue,
-            enforceZero: enforceSwitch.state == .on,
-            restoreOnExit: restoreSwitch.state == .on,
-            autoRestoreAt: autoDate,
-            parentPID: getpid()
-        )
+        statusTitle.stringValue = "Preparing private display…"; statusDetail.stringValue = "Creating and verifying a hidden Retina framebuffer before the physical panel is disconnected."; primaryButton.isEnabled = false; testButton.isEnabled = false
+        guard createVirtualDisplay(for: physical) else { refreshCapability(); showError("Couldn’t create the remote framebuffer", "PanelGuard kept the physical display on. Restart the app and try again."); return }
 
-        do { try StateStore.save(state) }
-        catch {
-            showError("Couldn’t create the safety state", detail: "PanelGuard refused to turn the display off because crash recovery could not be prepared.")
-            return
-        }
+        var s = GuardState(active: true, physicalDisplayID: physical, restoreBrightness: restore, enforceDisconnect: enforceSwitch.state == .on, restoreOnExit: restoreSwitch.state == .on, autoRestoreAt: autoRestoreAfter.map { Date().timeIntervalSince1970 + $0 }, parentPID: getpid())
+        do { try StateStore.save(s) } catch { destroyVirtualDisplay(); refreshCapability(); showError("Couldn’t arm crash recovery", "PanelGuard refused to disconnect the display because the safety state could not be saved."); return }
+        guardState = s; startWatchdog(); if awakeSwitch.state == .on { startCaffeinate() }
+        _ = b.set(0, display: physical)
 
-        guardState = state
-        startWatchdog()
-        guard guardState?.active == true else { return }
-        if awakeSwitch.state == .on { startCaffeinate() }
-
-        guard controller.set(0, display: display) else {
-            StateStore.markInactive()
-            guardState = nil
-            stopCaffeinate()
-            showError("Couldn’t turn the backlight off", detail: "The display rejected the brightness command. No persistent changes were made.")
-            refreshCapability()
-            return
-        }
-
-        if let delay = autoRestoreAfter {
-            testTimer?.invalidate()
-            testTimer = Timer.scheduledTimer(withTimeInterval: delay + 0.2, repeats: false) { [weak self] _ in
-                self?.synchronizeAfterWatchdogRestore()
-            }
+        guard c.setEnabled(false, display: physical), CGDisplayIsActive(virtualID) != 0 else {
+            stopWatchdog(); s.active = false; guardState = s; try? StateStore.save(s); _ = c.setEnabled(true, display: physical); usleep(350_000); _ = b.set(restore, display: physical); destroyVirtualDisplay(); stopCaffeinate(); refreshCapability(); showError("The iMac panel did not disconnect safely", "PanelGuard detected an incomplete transition and restored the physical display instead of leaving a partial state."); return
         }
         updateUI()
     }
 
     private func restoreDisplay(silent: Bool = false) {
-        testTimer?.invalidate()
-        testTimer = nil
-        guard let state = guardState ?? StateStore.load(), state.active else {
-            guardState = nil
-            updateUI()
-            return
-        }
-        let ok = BrightnessController.shared.set(state.restoreBrightness, display: state.displayID)
-        var inactive = state
-        inactive.active = false
-        guardState = inactive
-        try? StateStore.save(inactive)
-        stopCaffeinate()
-        if ok { UserDefaults.standard.set(Double(state.restoreBrightness), forKey: "lastVisibleBrightness") }
-        updateUI()
-        if !ok && !silent {
-            showError("Brightness restore needs attention", detail: "PanelGuard could not restore the saved brightness automatically. Try the iMac brightness keys.")
-        }
-    }
-
-    private func synchronizeAfterWatchdogRestore() {
-        guard let diskState = StateStore.load() else { return }
-        if !diskState.active {
-            guardState = diskState
-            stopCaffeinate()
-            updateUI()
+        guard var s = guardState ?? StateStore.load(), s.active else { guardState = nil; destroyVirtualDisplay(); updateUI(); return }
+        stopWatchdog(); let old = s; s.active = false; try? StateStore.save(s)
+        if DisplayConnectionController.shared.setEnabled(true, display: old.physicalDisplayID) {
+            usleep(350_000); _ = BrightnessController.shared.set(old.restoreBrightness, display: old.physicalDisplayID); UserDefaults.standard.set(Double(old.restoreBrightness), forKey: "lastVisibleBrightness"); guardState = s; destroyVirtualDisplay(); stopCaffeinate(); updateUI()
         } else {
-            restoreDisplay()
+            guardState = old; try? StateStore.save(old); startWatchdog(); updateUI()
+            if !silent { showError("Physical display restore needs attention", "PanelGuard kept the virtual display alive so RustDesk remains usable. Try ⌃⌥⌘B again; if needed, log out or restart the Mac to force the built-in display to reconnect.") }
         }
     }
 
     private func startWatchdog() {
         if let watchdog, watchdog.isRunning { return }
-        guard let executable = Bundle.main.executableURL else { return }
-        let process = Process()
-        process.executableURL = executable
-        process.arguments = ["--watchdog", String(getpid()), StateStore.stateURL.path]
-        do {
-            try process.run()
-            watchdog = process
-        } catch {
-            if let state = guardState {
-                _ = BrightnessController.shared.set(state.restoreBrightness, display: state.displayID)
-                StateStore.markInactive()
-                guardState = nil
-            }
-            showError("Safety watchdog couldn’t start", detail: "PanelGuard kept the display on rather than operating without crash recovery.")
-        }
+        guard let exe = Bundle.main.executableURL else { return }
+        let p = Process(); p.executableURL = exe; p.arguments = ["--watchdog", String(getpid()), StateStore.stateURL.path]
+        do { try p.run(); watchdog = p } catch { watchdog = nil; if let s = guardState { _ = DisplayConnectionController.shared.setEnabled(true, display: s.physicalDisplayID); _ = BrightnessController.shared.set(s.restoreBrightness, display: s.physicalDisplayID); var i = s; i.active = false; guardState = i; try? StateStore.save(i) }; destroyVirtualDisplay(); stopCaffeinate(); showError("Safety watchdog couldn’t start", "PanelGuard kept the physical display available rather than operating without crash recovery.") }
     }
-
-    private func startCaffeinate() {
-        if let caffeinate, caffeinate.isRunning { return }
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/caffeinate")
-        process.arguments = ["-d", "-i", "-s", "-w", String(getpid())]
-        do { try process.run(); caffeinate = process } catch { caffeinate = nil }
-    }
-
-    private func stopCaffeinate() {
-        if let caffeinate, caffeinate.isRunning { caffeinate.terminate() }
-        caffeinate = nil
-    }
+    private func stopWatchdog() { if let watchdog, watchdog.isRunning { watchdog.terminate() }; watchdog = nil }
+    private func startCaffeinate() { if let caffeinate, caffeinate.isRunning { return }; let p = Process(); p.executableURL = URL(fileURLWithPath: "/usr/bin/caffeinate"); p.arguments = ["-d", "-i", "-s", "-w", String(getpid())]; do { try p.run(); caffeinate = p } catch { caffeinate = nil } }
+    private func stopCaffeinate() { if let caffeinate, caffeinate.isRunning { caffeinate.terminate() }; caffeinate = nil }
 
     private func refreshCapability() {
-        let controller = BrightnessController.shared
-        let display = controller.builtInDisplay()
-        let brightness = display.flatMap { controller.get($0) }
-        if let brightness, brightness > 0.015 {
-            UserDefaults.standard.set(Double(brightness), forKey: "lastVisibleBrightness")
-        }
-        diagnosticsLabel.stringValue = "DisplayServices: \(controller.apiAvailable ? "ready" : "unavailable")   Built-in display: \(display.map { String(format: "0x%08X", $0) } ?? "not found")   Brightness: \(brightness.map { String(format: "%.3f", $0) } ?? "n/a")"
-        primaryButton.isEnabled = controller.apiAvailable && display != nil && brightness != nil
-        testButton.isEnabled = primaryButton.isEnabled && !isGuarded
-        updateUI()
+        let b = BrightnessController.shared, c = DisplayConnectionController.shared, p = b.builtInDisplay(); let virtualReady = PGVirtualDisplayAPISupported() != 0
+        if let p, let v = b.get(p), v > 0.015 { UserDefaults.standard.set(Double(v), forKey: "lastVisibleBrightness") }
+        diagnostics.stringValue = "Disconnect: \(c.methodDescription)   Virtual display: \(virtualReady ? "ready" : "unavailable")\nBuilt-in display: \(p.map { String(format: "0x%08X", $0) } ?? "not found")   Brightness API: \(b.apiAvailable ? "ready" : "unavailable")"
+        primaryButton.isEnabled = c.apiAvailable && virtualReady && p != nil && b.apiAvailable; testButton.isEnabled = primaryButton.isEnabled && !isGuarded; updateUI()
     }
 
     private func updateUI() {
-        let controller = BrightnessController.shared
-        let display = guardState.map { CGDirectDisplayID($0.displayID) } ?? controller.builtInDisplay()
-        let current = display.flatMap { controller.get($0) }
-
         if isGuarded {
-            let testing = guardState?.autoRestoreAt != nil
-            statusDot.textColor = .systemIndigo
-            statusTitle.stringValue = testing ? "Safe test in progress" : "Physical display off"
-            statusDetail.stringValue = testing ? "The backlight will restore automatically after 10 seconds." : "Hardware brightness is held at zero while the desktop remains available remotely."
-            primaryButton.title = "Restore Physical Display"
-            primaryButton.bezelColor = .systemGray
-            testButton.isEnabled = false
-            statusItem.button?.image = NSImage(systemSymbolName: "display.slash", accessibilityDescription: "PanelGuard active")
-            statusItem.menu?.item(withTag: 1001)?.title = "Restore Physical Display"
+            let testing = guardState?.autoRestoreAt != nil; statusDot.textColor = .systemIndigo; statusTitle.stringValue = testing ? "Safe test in progress" : "Physical iMac display disconnected"; statusDetail.stringValue = testing ? "The physical panel is off. The hidden Retina display remains available to RustDesk and will restore automatically after 10 seconds." : "The physical panel is disconnected while the hidden Retina framebuffer stays active for remote access."; primaryButton.title = "Restore Physical Display"; primaryButton.bezelColor = .systemGray; primaryButton.isEnabled = true; testButton.isEnabled = false; statusItem.button?.image = NSImage(systemSymbolName: "display.slash", accessibilityDescription: "PanelGuard active"); statusItem.menu?.item(withTag: 1001)?.title = "Restore Physical Display"; statusItem.menu?.item(withTag: 1002)?.isEnabled = false
+            diagnostics.stringValue = "Disconnect: \(DisplayConnectionController.shared.methodDescription)   Virtual display: \(virtualID == 0 ? "starting" : String(format: "0x%08X", virtualID))\nPhysical display: \(String(format: "0x%08X", guardState?.physicalDisplayID ?? 0))   Physical active: \((guardState.map { CGDisplayIsActive($0.physicalDisplayID) != 0 } ?? false) ? "YES" : "NO")"
         } else {
-            statusDot.textColor = .systemGreen
-            statusTitle.stringValue = controller.apiAvailable && display != nil ? "Ready" : "Display control unavailable"
-            statusDetail.stringValue = controller.apiAvailable && display != nil ? "The iMac display is visible. Remote access is unaffected." : "PanelGuard could not confirm control of the built-in display."
-            primaryButton.title = "Turn Physical Display Off"
-            primaryButton.bezelColor = .controlAccentColor
-            testButton.isEnabled = primaryButton.isEnabled
-            statusItem.button?.image = NSImage(systemSymbolName: "display", accessibilityDescription: "PanelGuard")
-            statusItem.menu?.item(withTag: 1001)?.title = "Turn Physical Display Off"
-        }
-
-        if let display {
-            diagnosticsLabel.stringValue = "DisplayServices: \(controller.apiAvailable ? "ready" : "unavailable")   Built-in display: \(String(format: "0x%08X", display))   Brightness: \(current.map { String(format: "%.3f", $0) } ?? "n/a")"
+            statusDot.textColor = .systemGreen; statusTitle.stringValue = "Ready"; statusDetail.stringValue = "The physical iMac display is visible. PanelGuard will create a separate remote framebuffer before disconnecting it."; primaryButton.title = "Turn Physical Display Off"; primaryButton.bezelColor = .controlAccentColor; statusItem.button?.image = NSImage(systemSymbolName: "display.2", accessibilityDescription: "PanelGuard"); statusItem.menu?.item(withTag: 1001)?.title = "Turn Physical Display Off"; statusItem.menu?.item(withTag: 1002)?.isEnabled = primaryButton.isEnabled
         }
     }
 
-    private func showError(_ title: String, detail: String) {
-        guard window != nil else { return }
-        let alert = NSAlert()
-        alert.alertStyle = .warning
-        alert.messageText = title
-        alert.informativeText = detail
-        alert.addButton(withTitle: "OK")
-        alert.beginSheetModal(for: window)
-    }
+    private func showError(_ title: String, _ detail: String) { guard window != nil else { return }; let a = NSAlert(); a.alertStyle = .warning; a.messageText = title; a.informativeText = detail; a.addButton(withTitle: "OK"); a.beginSheetModal(for: window) }
 }
 
-private func runWatchdog(arguments: [String]) -> Int32 {
-    guard arguments.count >= 4,
-          let parentValue = Int32(arguments[2]) else { return 64 }
-    let parent = pid_t(parentValue)
-    let url = URL(fileURLWithPath: arguments[3])
-    let controller = BrightnessController.shared
-
+private func runWatchdog(_ args: [String]) -> Int32 {
+    guard args.count >= 4, let parentValue = Int32(args[2]) else { return 64 }
+    let parent = pid_t(parentValue), url = URL(fileURLWithPath: args[3]), b = BrightnessController.shared, c = DisplayConnectionController.shared
     while true {
-        guard var state = StateStore.load(from: url) else { return 0 }
-        guard state.active else { return 0 }
-
-        let now = Date().timeIntervalSince1970
-        if let deadline = state.autoRestoreAt, now >= deadline {
-            _ = controller.set(state.restoreBrightness, display: state.displayID)
-            state.active = false
-            try? StateStore.save(state, to: url)
-            return 0
-        }
-
-        errno = 0
-        let parentCheck = kill(parent, 0)
-        let parentGone = parentCheck != 0 && errno == ESRCH
-        if parentGone {
-            if state.restoreOnExit {
-                _ = controller.set(state.restoreBrightness, display: state.displayID)
-            }
-            state.active = false
-            try? StateStore.save(state, to: url)
-            return 0
-        }
-
-        if state.enforceZero,
-           let current = controller.get(state.displayID),
-           current > 0.002 {
-            _ = controller.set(0, display: state.displayID)
-        }
+        guard var s = StateStore.load(from: url), s.active else { return 0 }
+        if let deadline = s.autoRestoreAt, Date().timeIntervalSince1970 >= deadline { _ = c.setEnabled(true, display: s.physicalDisplayID); usleep(350_000); _ = b.set(s.restoreBrightness, display: s.physicalDisplayID); s.active = false; try? StateStore.save(s, to: url); return 0 }
+        errno = 0; let gone = kill(parent, 0) != 0 && errno == ESRCH
+        if gone { if s.restoreOnExit { _ = c.setEnabled(true, display: s.physicalDisplayID); usleep(350_000); _ = b.set(s.restoreBrightness, display: s.physicalDisplayID) }; s.active = false; try? StateStore.save(s, to: url); return 0 }
+        if s.enforceDisconnect, CGDisplayIsActive(s.physicalDisplayID) != 0 { _ = b.set(0, display: s.physicalDisplayID); _ = c.setEnabled(false, display: s.physicalDisplayID) }
         usleep(300_000)
     }
 }
 
 private func runSelfTest() -> Int32 {
-    let controller = BrightnessController.shared
-    print("PanelGuard \(appVersion)")
-    print("DisplayServices symbols: \(controller.apiAvailable ? "OK" : "FAIL")")
-    if let display = controller.builtInDisplay() {
-        print(String(format: "Built-in display: 0x%08X", display))
-        if let brightness = controller.get(display) { print(String(format: "Brightness read: %.3f", brightness)) }
-    } else {
-        print("Built-in display: none (expected on many CI runners)")
-    }
-    return controller.apiAvailable ? 0 : 2
+    let b = BrightnessController.shared, c = DisplayConnectionController.shared, v = PGVirtualDisplayAPISupported() != 0
+    print("PanelGuard \(appVersion)"); print("DisplayServices symbols: \(b.apiAvailable ? "OK" : "FAIL")"); print("Display disconnect API: \(c.methodDescription)"); print("CGVirtualDisplay classes: \(v ? "OK" : "FAIL")")
+    if let d = b.builtInDisplay() { print(String(format: "Built-in display: 0x%08X", d)); if let m = CGDisplayCopyDisplayMode(d) { print("Current pixel mode: \(m.pixelWidth)x\(m.pixelHeight)") }; if let x = b.get(d) { print(String(format: "Brightness read: %.3f", x)) } } else { print("Built-in display: none") }
+    return b.apiAvailable && c.apiAvailable && v ? 0 : 2
 }
 
 let arguments = CommandLine.arguments
-if arguments.contains("--version") {
-    print(appVersion)
-    exit(0)
-}
-if arguments.contains("--self-test") {
-    exit(runSelfTest())
-}
-if arguments.count > 1, arguments[1] == "--watchdog" {
-    exit(runWatchdog(arguments: arguments))
-}
-
+if arguments.contains("--version") { print(appVersion); exit(0) }
+if arguments.contains("--self-test") { exit(runSelfTest()) }
+if arguments.count > 1, arguments[1] == "--watchdog" { exit(runWatchdog(arguments)) }
 let app = NSApplication.shared
 private let delegate = AppDelegate()
 app.delegate = delegate
