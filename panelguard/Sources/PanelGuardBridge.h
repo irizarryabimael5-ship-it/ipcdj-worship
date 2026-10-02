@@ -6,6 +6,7 @@ extern "C" {
 
 int PGDisplayPowerAPISupported(void);
 int PGRequestDisplayIdle(int shouldSleep);
+int PGWakeDisplay(void);
 
 #ifdef __cplusplus
 }
