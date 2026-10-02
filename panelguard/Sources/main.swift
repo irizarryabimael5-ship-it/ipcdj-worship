@@ -4,9 +4,9 @@ import CoreGraphics
 import Darwin
 import Foundation
 
-private let appVersion = "1.4.0"
+private let appVersion = "1.5.0"
 private let stateDirectoryName = "PanelGuard"
-private let stateFileName = "guard-state-v5.json"
+private let stateFileName = "guard-state-v6.json"
 
 private struct RawSnapshot: Codable {
     var brightness: Int32
@@ -87,9 +87,23 @@ private enum RawBacklight {
 
     @discardableResult
     static func setHardwareZero(_ display: CGDirectDisplayID) -> Bool {
-        // Deliberately bypasses the normalized/user brightness API.
-        // Apple's own backlight driver uses raw integer 0 for its off state.
-        let result = PGRawBrightnessSet(display, 0)
+        // Do not alter ordinary/user brightness. Intel AppleBacklightDisplay
+        // exposes linear-brightness separately; its raw hardware range can
+        // reach zero while the framebuffer remains logically awake.
+        var value: Int32 = 0
+        var minValue: Int32 = 0
+        var maxValue: Int32 = 0
+        guard PGLinearBrightnessGet(
+            display,
+            &value,
+            &minValue,
+            &maxValue
+        ) == 0,
+        minValue == 0 else {
+            return false
+        }
+
+        let result = PGLinearBrightnessSet(display, 0)
         if result == 0 { _ = PGCommitDisplayParameters(display) }
         return result == 0
     }
@@ -318,7 +332,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
 
         let subtitle = NSTextField(
             wrappingLabelWithString:
-                "Backlight-only remote privacy. The iMac display stays logically awake and drawable; PanelGuard changes only the raw hardware backlight value."
+                "Backlight-only remote privacy. The iMac display stays logically awake and drawable; PanelGuard changes only the hardware linear-backlight output."
         )
         subtitle.font = .systemFont(ofSize: 14)
         subtitle.textColor = .secondaryLabelColor
@@ -430,7 +444,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
 
         let footer = NSTextField(
             labelWithString:
-                "No virtual display • No display sleep • No disconnect • PanelGuard \(appVersion)"
+                "No virtual display • No display sleep • No disconnect • Linear backlight zero • PanelGuard \(appVersion)"
         )
         footer.font = .systemFont(ofSize: 10.5)
         footer.textColor = .tertiaryLabelColor
@@ -510,10 +524,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
 
     private func activateGuard(autoRestoreAfter: TimeInterval?) {
         guard let display = RawBacklight.builtInDisplay(),
-              let snapshot = RawBacklight.snapshot(display) else {
+              let snapshot = RawBacklight.snapshot(display),
+              snapshot.linearSupported,
+              snapshot.linearMin == 0 else {
             showError(
-                "Raw backlight control is unavailable",
-                "PanelGuard could not read the built-in display's IOKit brightness parameters."
+                "True hardware-zero backlight control is unavailable",
+                "PanelGuard 1.5 will not fall back to ordinary brightness. This Mac must expose linear-brightness with a hardware minimum of 0."
             )
             return
         }
@@ -551,7 +567,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
         startCaffeinate()
 
         guard RawBacklight.setHardwareZero(display) else {
-            rollback(state, message: "The display rejected raw backlight zero.")
+            rollback(state, message: "The display rejected linear hardware backlight zero.")
             return
         }
 
@@ -685,7 +701,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
             statusDot.textColor = .systemIndigo
             statusTitle.stringValue = state.autoRestoreAt != nil ? "Safe raw-backlight test" : "Physical backlight held at raw zero"
             statusDetail.stringValue =
-                "The original iMac framebuffer remains awake and drawable for RustDesk. Only the hardware brightness parameter is zero."
+                "The original iMac framebuffer remains awake and drawable for RustDesk. Only linear hardware backlight output is forced to zero."
             primaryButton.title = "Restore Physical Backlight"
             primaryButton.bezelColor = .systemGray
             primaryButton.isEnabled = true
@@ -694,12 +710,12 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
             statusItem.menu?.item(withTag: 1001)?.title = "Restore Physical Backlight"
             statusItem.menu?.item(withTag: 1002)?.isEnabled = false
 
-            var v: Int32 = 0, mn: Int32 = 0, mx: Int32 = 0
-            _ = PGRawBrightnessGet(state.displayID, &v, &mn, &mx)
+            var lv: Int32 = 0, lmn: Int32 = 0, lmx: Int32 = 0
+            _ = PGLinearBrightnessGet(state.displayID, &lv, &lmn, &lmx)
             diagnostics.stringValue =
                 "Display: \(String(format: "0x%08X", state.displayID))   logical asleep=\(CGDisplayIsAsleep(state.displayID) != 0 ? "YES" : "NO")\n" +
-                "raw brightness now=\(v)   saved=\(state.snapshot.brightness)   range=\(mn)…\(mx)\n" +
-                "Framebuffer policy: KEEP AWAKE   Topology changes: NONE"
+                "linear backlight now=\(lv)   saved=\(state.snapshot.linearBrightness)   range=\(lmn)…\(lmx)\n" +
+                "Normal brightness untouched   Framebuffer: KEEP AWAKE   Topology: NONE"
         } else {
             statusDot.textColor = .systemGreen
             statusTitle.stringValue = "Ready"
@@ -755,29 +771,29 @@ private func runWatchdog(_ arguments: [String]) -> Int32 {
             _ = PGWakeLogicalDisplay()
             usleep(100_000)
             if state.active {
-                _ = PGRawBrightnessSet(state.displayID, 0)
+                _ = PGLinearBrightnessSet(state.displayID, 0)
                 _ = PGCommitDisplayParameters(state.displayID)
             }
         }
 
-        var current: Int32 = 0
-        var minValue: Int32 = 0
-        var maxValue: Int32 = 0
-        if PGRawBrightnessGet(
+        var linearCurrent: Int32 = 0
+        var linearMin: Int32 = 0
+        var linearMax: Int32 = 0
+        if PGLinearBrightnessGet(
             state.displayID,
-            &current,
-            &minValue,
-            &maxValue
+            &linearCurrent,
+            &linearMin,
+            &linearMax
         ) == 0 {
-            // Physical Brightness Up is the hardware rescue.
-            // Any meaningful increase above raw zero releases the guard.
-            if current > max(1, minValue) {
+            // Physical Brightness Up is the rescue. A brightness change should
+            // raise linear-brightness above zero; release instead of fighting it.
+            if linearCurrent > max(1, linearMin) {
                 restoreFromWatchdog(&state, url: url)
                 return 0
             }
 
-            if current != 0 {
-                _ = PGRawBrightnessSet(state.displayID, 0)
+            if linearCurrent != 0 {
+                _ = PGLinearBrightnessSet(state.displayID, 0)
                 _ = PGCommitDisplayParameters(state.displayID)
             }
         }
