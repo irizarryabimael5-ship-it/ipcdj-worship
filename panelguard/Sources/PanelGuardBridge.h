@@ -6,10 +6,15 @@ extern "C" {
 #endif
 
 int PGVirtualDisplayAPISupported(void);
+
 void *PGCreateVirtualDisplay(uint32_t pixelWidth,
                              uint32_t pixelHeight,
                              double refreshRate,
+                             uint32_t vendorID,
+                             uint32_t productID,
+                             uint32_t serialNum,
                              uint32_t *outDisplayID);
+
 void PGDestroyVirtualDisplay(void *handle);
 
 #ifdef __cplusplus
