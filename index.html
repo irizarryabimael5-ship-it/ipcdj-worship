@@ -4486,13 +4486,13 @@
                 <h2>Esta semana</h2>
                 <p>Sets, ensayo y recursos del equipo de adoración en un solo lugar.</p>
               </div>
-              <span class="weekly-status">Domingo actualizado</span>
+              <span class="weekly-status">Viernes + Domingo actualizados</span>
             </div>
 
             <div class="weekly-service-tabs" role="tablist" aria-label="Servicios de Worship semanal">
               <button class="weekly-service-tab" id="weekly-tab-viernes" type="button" role="tab" aria-selected="true" aria-controls="weekly-panel-viernes" tabindex="0" data-weekly-service="viernes">
                 <strong>Viernes</strong>
-                <small>Pendiente</small>
+                <small>Actualizado</small>
               </button>
               <button class="weekly-service-tab" id="weekly-tab-domingo" type="button" role="tab" aria-selected="false" aria-controls="weekly-panel-domingo" tabindex="-1" data-weekly-service="domingo">
                 <strong>Domingo</strong>
@@ -4502,13 +4502,121 @@
           </section>
 
           <section class="weekly-service-panel" id="weekly-panel-viernes" role="tabpanel" aria-labelledby="weekly-tab-viernes" data-weekly-panel="viernes">
-            <div class="weekly-empty">
-              <div class="weekly-empty-inner">
-                <span class="weekly-service-kicker">Viernes</span>
-                <h3>Set pendiente</h3>
-                <p>Cuando se cargue el worship set del viernes, aparecerá aquí con el mismo formato de canciones, recursos, ensayo y notas.</p>
+            <div class="weekly-service-heading">
+              <div>
+                <span class="weekly-service-kicker">Servicio · Viernes</span>
+                <h2>Worship set del viernes</h2>
+                <p>Orden del servicio, playlist, recursos y detalles de ensayo.</p>
               </div>
             </div>
+
+            <ul class="weekly-service-meta" aria-label="Detalles del servicio del viernes">
+              <li class="weekly-meta-card">
+                <span class="weekly-meta-label">Corista</span>
+                <span class="weekly-meta-value">Dayari</span>
+              </li>
+            </ul>
+
+            <section class="weekly-youtube-card" aria-labelledby="weekly-youtube-title-viernes">
+              <div class="weekly-youtube-frame">
+                <iframe
+                  src="https://www.youtube-nocookie.com/embed/videoseries?list=PLJHxkkSIlf28"
+                  title="Playlist de worship del viernes"
+                  loading="lazy"
+                  referrerpolicy="strict-origin-when-cross-origin"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowfullscreen></iframe>
+              </div>
+              <div class="weekly-youtube-info">
+                <span class="weekly-youtube-mark">YouTube</span>
+                <h3 id="weekly-youtube-title-viernes">Playlist del servicio</h3>
+                <p>Escucha y repasa las canciones del viernes directamente desde la playlist del equipo.</p>
+                <a class="weekly-action" href="https://youtube.com/playlist?list=PLJHxkkSIlf28&amp;si=ThKDucscTvGm9U3P" target="_blank" rel="noopener">Abrir playlist en YouTube</a>
+              </div>
+            </section>
+
+            <a class="weekly-resource" href="https://u.pone.rs/iifwokqy.pdf" target="_blank" rel="noopener">
+              <span class="weekly-resource-badge">PDF</span>
+              <span class="weekly-resource-text">
+                <strong>Letras &amp; Coritos</strong>
+                <small>Abrir recurso del servicio</small>
+              </span>
+            </a>
+
+            <section class="weekly-set-card" aria-labelledby="weekly-set-title-viernes">
+              <div class="weekly-section-head">
+                <h3 id="weekly-set-title-viernes">Canciones CDJ</h3>
+                <span>Compás · 4/4</span>
+              </div>
+
+              <ol class="weekly-song-list">
+                <li class="weekly-song">
+                  <span class="weekly-song-index">01</span>
+                  <span class="weekly-song-copy">
+                    <strong class="weekly-song-title">Creados Para Adorar</strong>
+                    <span class="weekly-song-artist">Elmer Moroy</span>
+                    <span class="weekly-song-meta">
+                      <span>Tono · La Mayor</span>
+                      <span>BPM · 59/118</span>
+                    </span>
+                  </span>
+                </li>
+                <li class="weekly-song">
+                  <span class="weekly-song-index">02</span>
+                  <span class="weekly-song-copy">
+                    <strong class="weekly-song-title">Sumérgeme</strong>
+                    <span class="weekly-song-artist">Jesús Adrián Romero</span>
+                    <span class="weekly-song-meta">
+                      <span>Tono · La Mayor</span>
+                      <span>BPM · 90/180</span>
+                    </span>
+                  </span>
+                </li>
+                <li class="weekly-song">
+                  <span class="weekly-song-index">03</span>
+                  <span class="weekly-song-copy">
+                    <strong class="weekly-song-title">Cristo Yo Te Amo</strong>
+                    <span class="weekly-song-artist">Vino Nuevo</span>
+                    <span class="weekly-song-meta">
+                      <span>Tono · Do Mayor</span>
+                      <span>BPM · 62/123</span>
+                    </span>
+                  </span>
+                </li>
+                <li class="weekly-song">
+                  <span class="weekly-song-index">04</span>
+                  <span class="weekly-song-copy">
+                    <strong class="weekly-song-title">Tus Cuerdas De Amor</strong>
+                    <span class="weekly-song-artist">Julio Melgar feat. Lowsan Melgar</span>
+                    <span class="weekly-song-meta">
+                      <span>Tono · Fa Mayor</span>
+                      <span>BPM · 67/134</span>
+                    </span>
+                  </span>
+                </li>
+              </ol>
+            </section>
+
+            <section class="weekly-coritos-card" aria-labelledby="weekly-coritos-title-viernes">
+              <div class="weekly-section-head">
+                <h3 id="weekly-coritos-title-viernes">Coritos</h3>
+                <span>Re Mayor</span>
+              </div>
+              <ol class="weekly-coritos-list">
+                <li class="weekly-corito">Yo No Sé A Lo Que Tú Has Venido</li>
+                <li class="weekly-corito">Yo Edifiqué Una Casa</li>
+                <li class="weekly-corito">En Esta Noche La Gloria Es Para Él</li>
+                <li class="weekly-corito">Libre, Tú Me Hiciste Libre</li>
+                <li class="weekly-corito">Cómo Es Posible Yo Vivir Sin Ti Jesús</li>
+                <li class="weekly-corito">Cristo Rompe Las Cadenas</li>
+                <li class="weekly-corito">+ Mas</li>
+              </ol>
+            </section>
+
+            <section class="weekly-note-card" aria-labelledby="weekly-note-title-viernes">
+              <h3 id="weekly-note-title-viernes">Nota de ensayo</h3>
+              <p>Ensayen con la canción, con metrónomo y eventualmente sin letra.</p>
+            </section>
           </section>
 
           <section class="weekly-service-panel" id="weekly-panel-domingo" role="tabpanel" aria-labelledby="weekly-tab-domingo" data-weekly-panel="domingo" hidden>
