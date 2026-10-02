@@ -2,9 +2,50 @@
 #import <CoreGraphics/CoreGraphics.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
+#import <unistd.h>
 #import "PanelGuardBridge.h"
 
 static SEL pgSel(const char *name) { return sel_registerName(name); }
+
+static BOOL pgMakeDisplayIndependent(CGDirectDisplayID virtualID,
+                                     CGDirectDisplayID previousMain) {
+    CGDisplayConfigRef config = NULL;
+    if (CGBeginDisplayConfiguration(&config) != kCGErrorSuccess || !config) {
+        return NO;
+    }
+
+    // A newly created virtual display can inherit a stale mirroring preference.
+    // Removing the virtual display from the mirror set is safe and session-scoped.
+    if (CGDisplayIsInMirrorSet(virtualID)) {
+        CGError mirrorErr = CGConfigureDisplayMirrorOfDisplay(
+            config,
+            virtualID,
+            kCGNullDirectDisplay
+        );
+        if (mirrorErr != kCGErrorSuccess) {
+            CGCancelDisplayConfiguration(config);
+            return NO;
+        }
+    }
+
+    // If WindowServer unexpectedly promoted the virtual display to main,
+    // restore the previous main display to the canonical 0,0 origin.
+    if (CGMainDisplayID() == virtualID &&
+        previousMain != kCGNullDirectDisplay &&
+        previousMain != virtualID) {
+        CGError originErr = CGConfigureDisplayOrigin(config, previousMain, 0, 0);
+        if (originErr != kCGErrorSuccess) {
+            CGCancelDisplayConfiguration(config);
+            return NO;
+        }
+    }
+
+    CGError complete = CGCompleteDisplayConfiguration(config, kCGConfigureForAppOnly);
+    if (complete != kCGErrorSuccess) return NO;
+
+    usleep(150000);
+    return CGDisplayIsInMirrorSet(virtualID) == 0;
+}
 
 int PGVirtualDisplayAPISupported(void) {
     return NSClassFromString(@"CGVirtualDisplay") &&
@@ -16,11 +57,16 @@ int PGVirtualDisplayAPISupported(void) {
 void *PGCreateVirtualDisplay(uint32_t pixelWidth,
                              uint32_t pixelHeight,
                              double refreshRate,
+                             uint32_t vendorID,
+                             uint32_t productID,
+                             uint32_t serialNum,
                              uint32_t *outDisplayID) {
     @autoreleasepool {
         if (!PGVirtualDisplayAPISupported() || pixelWidth == 0 || pixelHeight == 0) {
             return NULL;
         }
+
+        CGDirectDisplayID previousMain = CGMainDisplayID();
 
         Class descriptorClass = NSClassFromString(@"CGVirtualDisplayDescriptor");
         Class displayClass = NSClassFromString(@"CGVirtualDisplay");
@@ -45,28 +91,39 @@ void *PGCreateVirtualDisplay(uint32_t pixelWidth,
         ((void (*)(id, SEL, unsigned int))objc_msgSend)(
             descriptor, pgSel("setMaxPixelsHigh:"), pixelHeight
         );
-
-        CGSize mm = CGSizeMake(597.0, 336.0);
         ((void (*)(id, SEL, CGSize))objc_msgSend)(
-            descriptor, pgSel("setSizeInMillimeters:"), mm
+            descriptor, pgSel("setSizeInMillimeters:"), CGSizeMake(597.0, 336.0)
         );
         ((void (*)(id, SEL, unsigned int))objc_msgSend)(
-            descriptor, pgSel("setVendorID:"), 0x5047
+            descriptor, pgSel("setVendorID:"), vendorID
         );
         ((void (*)(id, SEL, unsigned int))objc_msgSend)(
-            descriptor, pgSel("setProductID:"), 0x0002
+            descriptor, pgSel("setProductID:"), productID
         );
         ((void (*)(id, SEL, unsigned int))objc_msgSend)(
-            descriptor, pgSel("setSerialNum:"), 0x00010002
+            descriptor, pgSel("setSerialNum:"), serialNum
         );
 
-        id displayAlloc = ((id (*)(id, SEL))objc_msgSend)((id)displayClass, pgSel("alloc"));
+        if ([descriptor respondsToSelector:pgSel("setTerminationHandler:")]) {
+            void (^handler)(id, id) = ^(id a, id b) {
+                _exit(0);
+            };
+            ((void (*)(id, SEL, id))objc_msgSend)(
+                descriptor, pgSel("setTerminationHandler:"), handler
+            );
+        }
+
+        id displayAlloc = ((id (*)(id, SEL))objc_msgSend)(
+            (id)displayClass, pgSel("alloc")
+        );
         id display = ((id (*)(id, SEL, id))objc_msgSend)(
             displayAlloc, pgSel("initWithDescriptor:"), descriptor
         );
         if (!display) return NULL;
 
-        id modeAlloc = ((id (*)(id, SEL))objc_msgSend)((id)modeClass, pgSel("alloc"));
+        id modeAlloc = ((id (*)(id, SEL))objc_msgSend)(
+            (id)modeClass, pgSel("alloc")
+        );
         id mode = ((id (*)(id, SEL, NSUInteger, NSUInteger, CGFloat))objc_msgSend)(
             modeAlloc,
             pgSel("initWithWidth:height:refreshRate:"),
@@ -85,9 +142,8 @@ void *PGCreateVirtualDisplay(uint32_t pixelWidth,
         ((void (*)(id, SEL, unsigned int))objc_msgSend)(
             settings, pgSel("setHiDPI:"), 1
         );
-        NSArray *modes = @[mode];
         ((void (*)(id, SEL, id))objc_msgSend)(
-            settings, pgSel("setModes:"), modes
+            settings, pgSel("setModes:"), @[mode]
         );
 
         BOOL applied = ((BOOL (*)(id, SEL, id))objc_msgSend)(
@@ -99,6 +155,10 @@ void *PGCreateVirtualDisplay(uint32_t pixelWidth,
             display, pgSel("displayID")
         );
         if (displayID == 0) return NULL;
+
+        if (!pgMakeDisplayIndependent(displayID, previousMain)) {
+            return NULL;
+        }
 
         if (outDisplayID) *outDisplayID = displayID;
         return (__bridge_retained void *)display;
