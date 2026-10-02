@@ -4,9 +4,9 @@ import CoreGraphics
 import Darwin
 import Foundation
 
-private let appVersion = "1.6.0"
+private let appVersion = "1.7.0"
 private let stateDirectoryName = "PanelGuard"
-private let stateFileName = "guard-state-v7.json"
+private let stateFileName = "guard-state-v8.json"
 
 private struct RawSnapshot: Codable {
     var brightness: Int32
@@ -286,11 +286,36 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
     }
 
     private func syncState() {
-        guard isGuarded, let disk = StateStore.load(), !disk.active else { return }
+        guard isGuarded, let disk = StateStore.load() else { return }
+
+        if !disk.active {
+            guardState = disk
+            stopWatchdog()
+            stopCaffeinate()
+            updateUI()
+            return
+        }
+
+        // Main-process redundancy: supervise both helpers and reassert hardware
+        // zero independently of the external watchdog. This prevents a dead
+        // helper or a stale registry read from letting WindowServer relight the
+        // panel later.
         guardState = disk
-        stopWatchdog()
-        stopCaffeinate()
-        updateUI()
+
+        if watchdog == nil || watchdog?.isRunning != true {
+            startWatchdog()
+        }
+
+        if caffeinate == nil || caffeinate?.isRunning != true {
+            startCaffeinate()
+        }
+
+        if CGDisplayIsAsleep(disk.displayID) != 0 {
+            _ = PGWakeLogicalDisplay()
+        }
+
+        _ = PGLinearBrightnessSet(disk.displayID, 0)
+        _ = PGCommitDisplayParameters(disk.displayID)
     }
 
     private func buildWindow() {
@@ -529,7 +554,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
               snapshot.linearMin == 0 else {
             showError(
                 "True hardware-zero backlight control is unavailable",
-                "PanelGuard 1.6 will not fall back to ordinary brightness. This Mac must expose linear-brightness with a hardware minimum of 0."
+                "PanelGuard 1.7 will not fall back to ordinary brightness. This Mac must expose linear-brightness with a hardware minimum of 0."
             )
             return
         }
@@ -538,7 +563,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
             _ = PGWakeLogicalDisplay()
             showError(
                 "The iMac display is logically asleep",
-                "Wake it once and run the test again. PanelGuard 1.6 requires the framebuffer to remain awake for RustDesk."
+                "Wake it once and run the test again. PanelGuard 1.7 requires the framebuffer to remain awake for RustDesk."
             )
             return
         }
@@ -703,7 +728,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
             statusDetail.stringValue =
                 state.autoRestoreAt != nil
                 ? "The framebuffer stays fully awake for RustDesk; the backlight will restore automatically when the 10-second test ends."
-                : "Permanent mode is latched. The framebuffer stays fully awake for RustDesk while PanelGuard continuously holds linear backlight output at zero."
+                : "Permanent mode is hard-latched. Two independent enforcement loops continuously reassert linear backlight zero while the RustDesk framebuffer stays fully awake."
             primaryButton.title = "Restore Physical Backlight"
             primaryButton.bezelColor = .systemGray
             primaryButton.isEnabled = true
@@ -717,7 +742,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelega
             diagnostics.stringValue =
                 "Display: \(String(format: "0x%08X", state.displayID))   logical asleep=\(CGDisplayIsAsleep(state.displayID) != 0 ? "YES" : "NO")\n" +
                 "linear backlight now=\(lv)   saved=\(state.snapshot.linearBrightness)   range=\(lmn)…\(lmx)\n" +
-                "Normal brightness untouched   Framebuffer: KEEP AWAKE   Topology: NONE"
+                "Normal brightness untouched   Dual watchdog: ACTIVE   Framebuffer: KEEP AWAKE   Topology: NONE"
         } else {
             statusDot.textColor = .systemGreen
             statusTitle.stringValue = "Ready"
@@ -778,23 +803,12 @@ private func runWatchdog(_ arguments: [String]) -> Int32 {
             }
         }
 
-        var linearCurrent: Int32 = 0
-        var linearMin: Int32 = 0
-        var linearMax: Int32 = 0
-        if PGLinearBrightnessGet(
-            state.displayID,
-            &linearCurrent,
-            &linearMin,
-            &linearMax
-        ) == 0,
-        linearCurrent != 0 {
-            // Permanent mode is a latch. Any macOS/keyboard/user brightness
-            // change is treated as drift and immediately corrected. Only an
-            // explicit PanelGuard restore, the 10-second test deadline, app
-            // termination, or crash recovery releases the guard.
-            _ = PGLinearBrightnessSet(state.displayID, 0)
-            _ = PGCommitDisplayParameters(state.displayID)
-        }
+        // Write-driven latch: never trust the cached/readback brightness as
+        // proof that the hardware stayed dark. WindowServer can reapply panel
+        // brightness through another path while the registry value is stale.
+        // Reassert hardware linear zero every heartbeat unconditionally.
+        _ = PGLinearBrightnessSet(state.displayID, 0)
+        _ = PGCommitDisplayParameters(state.displayID)
 
         usleep(80_000)
     }
