@@ -34,7 +34,7 @@ async function openHealthyPage(page) {
   expect(response.ok(), 'main document should return 2xx').toBeTruthy();
 
   await expect(page.locator('meta[name="ipcdj-build"]'))
-    .toHaveAttribute('content', /persistent-launch-v\d+/);
+    .toHaveAttribute('content', /(?:persistent-launch|mobile-refresh)-v\d+/);
 
   await page.waitForFunction(() => (
     !!window.IPCDJ_HEALTH &&
@@ -1354,6 +1354,17 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
   const refreshStage = await page.evaluate(async () => {
     const currentBuild=document.querySelector('meta[name="ipcdj-build"]')?.content||'';
+
+    // Simulate the exact failure we are guarding against: an installed PWA has
+    // an older shell cached when the user performs one refresh.
+    const staleCache=await caches.open('ipcdj-worship-v180');
+    await staleCache.put(
+      './__offline_index__',
+      new Response('<!doctype html><meta name="ipcdj-build" content="stale-watchdog" />',{
+        headers:{'Content-Type':'text/html; charset=utf-8'}
+      })
+    );
+
     const staged=await window.IPCDJ_REFRESH_TEST.stageLatestShell();
     const keys=await caches.keys();
     const cacheKey=keys.find(key=>key==='ipcdj-worship-v180')||'';
