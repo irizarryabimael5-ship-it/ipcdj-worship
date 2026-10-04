@@ -546,12 +546,22 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(sundayWeeklyPanel).toContainText('Ensayo');
   await expect(sundayWeeklyPanel).toContainText('9:30 AM');
   await expect(sundayWeeklyPanel).toContainText('Dayari');
-  await expect(sundayWeeklyPanel.locator('.weekly-song')).toHaveCount(4);
+  await expect(sundayWeeklyPanel.locator('.weekly-song')).toHaveCount(5);
   await expect(sundayWeeklyPanel.locator('.weekly-corito')).toHaveCount(5);
-  await expect(sundayWeeklyPanel).toContainText('Yo Quiero Más De Ti');
+  const sundaySongOrder=await sundayWeeklyPanel.locator('.weekly-song-title').allTextContents();
+  expect(sundaySongOrder).toEqual([
+    'Dios De Milagros',
+    'Algo Está Pasando',
+    'Hay Libertad',
+    'Permanecerás',
+    'Yo Quiero Más De Ti'
+  ]);
   await expect(sundayWeeklyPanel).toContainText('Dios De Milagros');
   await expect(sundayWeeklyPanel).toContainText('Algo Está Pasando');
   await expect(sundayWeeklyPanel).toContainText('Hay Libertad');
+  await expect(sundayWeeklyPanel).toContainText('Permanecerás');
+  await expect(sundayWeeklyPanel).toContainText('BPM · 60/120');
+  await expect(sundayWeeklyPanel).toContainText('Yo Quiero Más De Ti');
   await expect(sundayWeeklyPanel).toContainText('Do Sostenido Mayor');
   await expect(sundayWeeklyPanel).toContainText('Re Mayor · 115 BPM');
   await expect(sundayWeeklyPanel).toContainText('Ensayen con la canción, con metrónomo y eventualmente sin letra.');
