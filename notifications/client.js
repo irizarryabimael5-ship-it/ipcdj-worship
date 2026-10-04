@@ -5,6 +5,11 @@
   let configPromise=null;
   let remoteConfigPromise=null;
 
+  const isStagingRuntime=()=>(
+    location.hostname==='staging.worship.ipcdj.org' ||
+    location.hostname.endsWith('.pages.dev')
+  );
+
   const isIos=()=>/iPhone|iPad|iPod/i.test(navigator.userAgent||'')||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
   const isStandalone=()=>navigator.standalone===true||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||(window.matchMedia&&window.matchMedia('(display-mode: fullscreen)').matches);
 
@@ -40,6 +45,17 @@
 
   async function resolvedConfig(force=false){
     const local=await loadConfig(force);
+    if(isStagingRuntime()){
+      return Object.freeze({
+        ...local,
+        enabled:false,
+        apiOrigin:'',
+        siteOrigin:location.origin,
+        remoteEnabled:false,
+        vapidPublicKey:'',
+        environment:'staging'
+      });
+    }
     if(!local.enabled||!local.apiOrigin)return Object.freeze({...local,remoteEnabled:false,vapidPublicKey:''});
     const remote=await loadRemoteConfig(local,force);
     return Object.freeze({
