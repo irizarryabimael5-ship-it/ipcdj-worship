@@ -1,13 +1,4 @@
 User-agent: *
-Allow: /
+Disallow: /
 
-User-agent: facebookexternalhit
-Allow: /
-
-User-agent: Facebot
-Allow: /
-
-User-agent: meta-externalagent
-Allow: /
-
-Sitemap: https://worship.ipcdj.org/
+# IPCDJ Worship staging is intentionally excluded from indexing.
