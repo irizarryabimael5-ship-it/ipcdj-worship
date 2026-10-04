@@ -560,6 +560,7 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(sundayWeeklyPanel).toContainText('Algo Está Pasando');
   await expect(sundayWeeklyPanel).toContainText('Hay Libertad');
   await expect(sundayWeeklyPanel).toContainText('Permanecerás');
+  await expect(sundayWeeklyPanel).toContainText('Angel Luis Irizarry');
   await expect(sundayWeeklyPanel).toContainText('BPM · 60/120');
   await expect(sundayWeeklyPanel).toContainText('Yo Quiero Más De Ti');
   await expect(sundayWeeklyPanel).toContainText('Do Sostenido Mayor');
@@ -1309,7 +1310,9 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
   });
   expect(serviceWorkerResponse.ok()).toBe(true);
   const serviceWorkerText = await serviceWorkerResponse.text();
-  expect(serviceWorkerText).toContain('ipcdj-worship-v');
+  expect(serviceWorkerText).toContain('ipcdj-worship-v180');
+  expect(serviceWorkerText).toContain('CACHE_FRESH_SHELL');
+  expect(serviceWorkerText).toContain('refresh-test');
 
   await openHealthyPage(page);
 
@@ -1348,6 +1351,27 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
       lcp: snapshot.lcp
     };
   });
+
+  const refreshStage = await page.evaluate(async () => {
+    const currentBuild=document.querySelector('meta[name="ipcdj-build"]')?.content||'';
+    const staged=await window.IPCDJ_REFRESH_TEST.stageLatestShell();
+    const keys=await caches.keys();
+    const cacheKey=keys.find(key=>key==='ipcdj-worship-v180')||'';
+    let cachedBuild='';
+    if(cacheKey){
+      const cache=await caches.open(cacheKey);
+      const cachedShell=await cache.match('./__offline_index__');
+      const html=cachedShell ? await cachedShell.text() : '';
+      const match=html.match(/<meta\s+name=["']ipcdj-build["']\s+content=["']([^"']+)["']/i);
+      cachedBuild=match ? match[1] : '';
+    }
+    return {currentBuild,staged,cacheKey,cachedBuild};
+  });
+
+  expect(refreshStage.staged.ok).toBe(true);
+  expect(refreshStage.staged.build).toBe(refreshStage.currentBuild);
+  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v180');
+  expect(refreshStage.cachedBuild).toBe(refreshStage.currentBuild);
 
   // Intentionally coarse runaway guards, not synthetic speed scores.
   expect(shell.allNodes).toBeLessThan(10000);
