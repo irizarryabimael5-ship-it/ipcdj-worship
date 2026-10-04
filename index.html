@@ -5086,7 +5086,8 @@
 
     async function stageFreshShellInServiceWorker(latestHtml,latestBuild){
       if(!("serviceWorker" in navigator))return false;
-      const controller=navigator.serviceWorker.controller;
+      const registration=await navigator.serviceWorker.getRegistration().catch(()=>null);
+      const controller=navigator.serviceWorker.controller||registration?.active||registration?.waiting;
       if(!controller)return false;
 
       return await new Promise(resolve=>{
