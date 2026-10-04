@@ -1,0 +1,195 @@
+name: IPCDJ Staging Health
+
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: ipcdj-staging-health
+  cancel-in-progress: true
+
+env:
+  IPCDJ_STAGING_URL: https://staging.worship.ipcdj.org
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.endpoint.outputs.ready }}
+    steps:
+      - name: Check staging endpoint
+        id: endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          if curl -fsSL --max-time 12 -H 'Cache-Control: no-cache'             "${IPCDJ_STAGING_URL}/?staging-preflight=${GITHUB_RUN_ID}"             | grep -q 'meta name="ipcdj-environment" content="staging"'; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "Staging endpoint is connected."
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Staging endpoint is not connected yet. Skipping browser certification without failing production."
+          fi
+
+  cross-platform-health:
+    needs: preflight
+    if: needs.preflight.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: monitoring
+
+    steps:
+      - name: Check out staging branch
+        uses: actions/checkout@v4
+        with:
+          ref: staging
+
+      - name: Validate staging isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'meta name="ipcdj-environment" content="staging"' ../index.html
+          grep -q 'meta name="robots" content="noindex' ../index.html
+          grep -q 'X-IPCDJ-Environment: staging' ../_headers
+          grep -q 'X-Robots-Tag: noindex' ../_headers
+          grep -q '^Disallow: /' ../robots.txt
+          node -e "const c=require('../notifications/config.json'); if(c.enabled!==false||c.apiOrigin!==''||c.siteOrigin!=='https://staging.worship.ipcdj.org') process.exit(1)"
+
+      - name: Validate watchdog co-development contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f WATCHDOG_POLICY.md
+          grep -q "Every substantive runtime feature" WATCHDOG_POLICY.md
+          grep -q "Mandatory user-facing completion report" WATCHDOG_POLICY.md
+          grep -q "Watchdog co-development contract v142" ../SITE_STANDARDS.md
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate notification code without production delivery
+        shell: bash
+        run: |
+          node --test ../notifications/tests/planner.test.mjs
+          node --check ../notifications/client.js
+          node --check ../notifications/ui.js
+          node --check ../notifications/sw-foundation.js
+          node --check ../notifications/worker/src/index.js
+          node --check ../notifications/scripts/export-catalog.mjs
+
+      - name: Install health test dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox webkit
+
+      - name: Start Linux audio backend for Firefox Web Audio
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends pulseaudio
+          pulseaudio --start --exit-idle-time=-1 || true
+
+      - name: Confirm exact staging runtime is deployed
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED_BUILD="$(grep -o 'meta name="ipcdj-build" content="[^"]*"' ../index.html | sed -E 's/.*content="([^"]*)".*/\1/' | head -n1)"
+          EXPECTED_INDEX_SHA="$(sha256sum ../index.html | awk '{print $1}')"
+          EXPECTED_SW_SHA="$(sha256sum ../sw.js | awk '{print $1}')"
+
+          for attempt in $(seq 1 48); do
+            nonce="${GITHUB_RUN_ID}-${attempt}"
+            rm -f /tmp/ipcdj-staging-index /tmp/ipcdj-staging-sw /tmp/ipcdj-staging-headers
+
+            curl -fsSL --max-time 20 -H 'Cache-Control: no-cache'               "${IPCDJ_STAGING_URL}/?deploy-health=${nonce}"               -o /tmp/ipcdj-staging-index || true
+            curl -fsSL --max-time 20 -H 'Cache-Control: no-cache'               "${IPCDJ_STAGING_URL}/sw.js?deploy-health=${nonce}"               -o /tmp/ipcdj-staging-sw || true
+            curl -fsSIL --max-time 20 -H 'Cache-Control: no-cache'               "${IPCDJ_STAGING_URL}/?header-health=${nonce}"               -o /tmp/ipcdj-staging-headers || true
+
+            LIVE_BUILD="$(grep -o 'meta name="ipcdj-build" content="[^"]*"' /tmp/ipcdj-staging-index 2>/dev/null | sed -E 's/.*content="([^"]*)".*/\1/' | head -n1 || true)"
+            LIVE_INDEX_SHA="$(sha256sum /tmp/ipcdj-staging-index 2>/dev/null | awk '{print $1}' || true)"
+            LIVE_SW_SHA="$(sha256sum /tmp/ipcdj-staging-sw 2>/dev/null | awk '{print $1}' || true)"
+
+            if [ "$LIVE_BUILD" = "$EXPECTED_BUILD" ]               && [ "$LIVE_INDEX_SHA" = "$EXPECTED_INDEX_SHA" ]               && [ "$LIVE_SW_SHA" = "$EXPECTED_SW_SHA" ]               && grep -qi '^x-ipcdj-environment: staging' /tmp/ipcdj-staging-headers               && grep -qi '^x-robots-tag:.*noindex' /tmp/ipcdj-staging-headers; then
+              echo "Exact staging deployment confirmed on attempt $attempt."
+              exit 0
+            fi
+
+            echo "Attempt $attempt has not reached the exact staging commit yet."
+            sleep 10
+          done
+
+          echo "Timed out waiting for exact staging deployment."
+          exit 1
+
+      - name: Run seven-profile staging health matrix
+        env:
+          IPCDJ_BASE_URL: https://staging.worship.ipcdj.org
+        run: npx playwright test
+
+      - name: Upload staging diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ipcdj-staging-health-${{ github.run_id }}
+          path: |
+            monitoring/playwright-report
+            monitoring/test-results
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Open or update staging health alert
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title='IPCDJ Staging Health Alert';
+            const runUrl=`${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body=[
+              'The staging environment failed its cross-platform certification.',
+              '',
+              `Run: ${runUrl}`,
+              `Commit: ${context.sha}`,
+              '',
+              'Production main was not changed by this staging failure.'
+            ].join('\n');
+            const {data:issues}=await github.rest.issues.listForRepo({
+              owner:context.repo.owner,repo:context.repo.repo,state:'open',per_page:100
+            });
+            const existing=issues.find(i=>!i.pull_request&&i.title===title);
+            if(existing){
+              await github.rest.issues.createComment({
+                owner:context.repo.owner,repo:context.repo.repo,issue_number:existing.number,body
+              });
+            }else{
+              await github.rest.issues.create({
+                owner:context.repo.owner,repo:context.repo.repo,title,body
+              });
+            }
+
+      - name: Close recovered staging health alert
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title='IPCDJ Staging Health Alert';
+            const {data:issues}=await github.rest.issues.listForRepo({
+              owner:context.repo.owner,repo:context.repo.repo,state:'open',per_page:100
+            });
+            const existing=issues.find(i=>!i.pull_request&&i.title===title);
+            if(!existing)return;
+            await github.rest.issues.createComment({
+              owner:context.repo.owner,repo:context.repo.repo,issue_number:existing.number,
+              body:'Recovered: staging is passing the full cross-platform certification again.'
+            });
+            await github.rest.issues.update({
+              owner:context.repo.owner,repo:context.repo.repo,issue_number:existing.number,state:'closed'
+            });
