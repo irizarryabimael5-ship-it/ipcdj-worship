@@ -4703,6 +4703,7 @@
                   <span class="weekly-song-index">04</span>
                   <span class="weekly-song-copy">
                     <strong class="weekly-song-title">Permanecerás</strong>
+                    <span class="weekly-song-artist">Angel Luis Irizarry</span>
                     <span class="weekly-song-meta">
                       <span>BPM · 60/120</span>
                     </span>
@@ -5027,6 +5028,93 @@
       pulling=false;
     };
 
+    const waitForControllerChange=timeoutMs=>new Promise(resolve=>{
+      if(!("serviceWorker" in navigator)){resolve(false);return}
+      let settled=false;
+      const finish=value=>{
+        if(settled)return;
+        settled=true;
+        clearTimeout(timer);
+        navigator.serviceWorker.removeEventListener("controllerchange",onChange);
+        resolve(value);
+      };
+      const onChange=()=>finish(true);
+      const timer=setTimeout(()=>finish(false),timeoutMs);
+      navigator.serviceWorker.addEventListener("controllerchange",onChange,{once:true});
+    });
+
+    const waitForWorkerActivation=(worker,timeoutMs)=>new Promise(resolve=>{
+      if(!worker){resolve(false);return}
+      if(worker.state==="activated"){resolve(true);return}
+      let settled=false;
+      const finish=value=>{
+        if(settled)return;
+        settled=true;
+        clearTimeout(timer);
+        worker.removeEventListener("statechange",onState);
+        resolve(value);
+      };
+      const onState=()=>{
+        if(worker.state==="activated")finish(true);
+        else if(worker.state==="redundant")finish(false);
+      };
+      const timer=setTimeout(()=>finish(false),timeoutMs);
+      worker.addEventListener("statechange",onState);
+    });
+
+    async function synchronizeRefreshWorker(registration){
+      if(!registration)return false;
+
+      try{
+        await Promise.race([
+          registration.update(),
+          new Promise(resolve=>setTimeout(resolve,1800))
+        ]);
+      }catch(_){}
+
+      const candidate=registration.waiting||registration.installing;
+      if(registration.waiting){
+        const changed=waitForControllerChange(1800);
+        registration.waiting.postMessage({type:"SKIP_WAITING"});
+        await changed;
+      }else if(candidate){
+        await waitForWorkerActivation(candidate,1800);
+      }
+
+      return !!(navigator.serviceWorker.controller||registration.active);
+    }
+
+    async function stageFreshShellInServiceWorker(latestHtml,latestBuild){
+      if(!("serviceWorker" in navigator))return false;
+      const controller=navigator.serviceWorker.controller;
+      if(!controller)return false;
+
+      return await new Promise(resolve=>{
+        let settled=false;
+        const finish=value=>{
+          if(settled)return;
+          settled=true;
+          clearTimeout(timer);
+          resolve(value);
+        };
+        const channel=new MessageChannel();
+        const timer=setTimeout(()=>finish(false),1600);
+        channel.port1.onmessage=event=>{
+          const data=event.data||{};
+          finish(data.ok===true&&data.build===latestBuild);
+        };
+        try{
+          controller.postMessage({
+            type:"CACHE_FRESH_SHELL",
+            html:latestHtml,
+            build:latestBuild
+          },[channel.port2]);
+        }catch(_){
+          finish(false);
+        }
+      });
+    }
+
     async function forceLatestRefresh(){
       if(refreshInFlight||!pullRefresh)return;
       refreshInFlight=true;
@@ -5042,18 +5130,10 @@
           ? await navigator.serviceWorker.getRegistration()
           : null;
 
-        // Do not let service-worker update checking become the refresh bottleneck.
-        if(registration){
-          Promise.race([
-            registration.update().catch(()=>null),
-            new Promise(resolve=>setTimeout(resolve,1400))
-          ]).then(()=>{
-            if(registration.waiting){
-              registration.waiting.postMessage({type:"SKIP_WAITING"});
-            }
-          }).catch(()=>{});
-        }
-
+        // Refresh is a two-phase commit: first obtain the newest HTML from the
+        // network, then stage that exact shell in the active service-worker cache
+        // before navigating. This prevents a second-request race from restoring an
+        // older app shell after the user has already successfully refreshed.
         const freshUrl=new URL(window.location.href);
         freshUrl.searchParams.set("refresh",Date.now().toString());
 
@@ -5077,6 +5157,12 @@
 
         const latestMatch=latestHtml.match(/<meta\s+name=["']ipcdj-build["']\s+content=["']([^"']+)["']/i);
         if(!latestMatch)throw new Error("Fresh build marker missing");
+        const latestBuild=latestMatch[1];
+
+        if(registration){
+          await synchronizeRefreshWorker(registration);
+          await stageFreshShellInServiceWorker(latestHtml,latestBuild);
+        }
 
         const elapsed=performance.now()-started;
         if(elapsed<minimumSpinnerMs){
@@ -5106,6 +5192,27 @@
         pulling=false;
       }
     }
+
+    window.IPCDJ_REFRESH_TEST=Object.freeze({
+      async stageLatestShell(){
+        const freshUrl=new URL(window.location.href);
+        freshUrl.searchParams.set("refresh-test",Date.now().toString());
+        const response=await fetch(freshUrl.toString(),{
+          method:"GET",
+          cache:"no-store",
+          credentials:"same-origin",
+          headers:{"Cache-Control":"no-cache, no-store, must-revalidate"}
+        });
+        if(!response.ok)return {ok:false,reason:"network"};
+        const html=await response.text();
+        const match=html.match(/<meta\s+name=["']ipcdj-build["']\s+content=["']([^"']+)["']/i);
+        if(!match)return {ok:false,reason:"build"};
+        const registration=await navigator.serviceWorker.getRegistration();
+        await synchronizeRefreshWorker(registration);
+        const staged=await stageFreshShellInServiceWorker(html,match[1]);
+        return {ok:staged,build:match[1]};
+      }
+    });
 
     window.addEventListener("touchstart",event=>{
       if(refreshInFlight)return;
