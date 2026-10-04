@@ -35,6 +35,10 @@ async function openHealthyPage(page) {
 
   await expect(page.locator('meta[name="ipcdj-build"]'))
     .toHaveAttribute('content', /(?:persistent-launch|mobile-refresh)-v\d+/);
+  await expect(page.locator('meta[name="ipcdj-environment"]'))
+    .toHaveAttribute('content','staging');
+  await expect(page.locator('meta[name="robots"]'))
+    .toHaveAttribute('content',/noindex/);
 
   await page.waitForFunction(() => (
     !!window.IPCDJ_HEALTH &&
@@ -1418,8 +1422,9 @@ test('notification shell is safe, opt-in only and service-worker ready', async (
 
   const config=await configResponse.json();
   expect(typeof config.enabled).toBe('boolean');
-  expect(config.siteOrigin).toBe('https://worship.ipcdj.org');
-  expect(config.apiOrigin).toMatch(/^https:\/\//);
+  expect(config.enabled).toBe(false);
+  expect(config.siteOrigin).toBe('https://staging.worship.ipcdj.org');
+  expect(config.apiOrigin).toBe('');
 
   const swSource=await swResponse.text();
   expect(swSource).toContain('addEventListener("push"');
