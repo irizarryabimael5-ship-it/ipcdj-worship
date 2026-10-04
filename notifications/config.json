@@ -1,7 +1,7 @@
 {
   "enabled": false,
-  "apiOrigin": "https://push.worship.ipcdj.org",
-  "siteOrigin": "https://worship.ipcdj.org",
+  "apiOrigin": "",
+  "siteOrigin": "https://staging.worship.ipcdj.org",
   "timezone": "America/New_York",
   "version": 2
 }
