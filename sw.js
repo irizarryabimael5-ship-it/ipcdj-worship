@@ -1,6 +1,6 @@
 importScripts("./notifications/sw-foundation.js");
 
-const CACHE_NAME = "ipcdj-worship-v179";
+const CACHE_NAME = "ipcdj-worship-v180";
 const OFFLINE_PAGE = "./__offline_index__";
 const STATIC_ASSETS = [
   "./favicon.svg",
@@ -77,8 +77,49 @@ self.addEventListener("activate", event => {
 });
 
 self.addEventListener("message", event => {
-  if (event.data && event.data.type === "SKIP_WAITING") {
+  const data=event.data||{};
+
+  if(data.type==="SKIP_WAITING"){
     self.skipWaiting();
+    return;
+  }
+
+  if(data.type==="CACHE_FRESH_SHELL"){
+    const task=(async()=>{
+      const reply=payload=>{
+        try{ event.ports?.[0]?.postMessage(payload); }catch(_){}
+      };
+
+      try{
+        const html=typeof data.html==="string" ? data.html : "";
+        const requestedBuild=typeof data.build==="string" ? data.build : "";
+        const match=html.match(/<meta\s+name=["']ipcdj-build["']\s+content=["']([^"']+)["']/i);
+        const embeddedBuild=match ? match[1] : "";
+
+        if(!html||!requestedBuild||embeddedBuild!==requestedBuild){
+          reply({ok:false,reason:"invalid-shell"});
+          return;
+        }
+
+        const cache=await caches.open(CACHE_NAME);
+        await cache.put(
+          OFFLINE_PAGE,
+          new Response(html,{
+            status:200,
+            headers:{
+              "Content-Type":"text/html; charset=utf-8",
+              "Cache-Control":"no-store, no-cache, must-revalidate"
+            }
+          })
+        );
+
+        reply({ok:true,build:embeddedBuild});
+      }catch(_){
+        reply({ok:false,reason:"cache-failed"});
+      }
+    })();
+
+    event.waitUntil(task);
   }
 });
 
@@ -94,6 +135,7 @@ self.addEventListener("fetch", event => {
   // can actually see a newly deployed build.
   const isFreshnessRequest =
     url.searchParams.has("refresh") ||
+    url.searchParams.has("refresh-test") ||
     url.searchParams.has("latest-check") ||
     url.searchParams.has("fresh");
 
