@@ -503,56 +503,71 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   const sundayWeeklyTab=weeklyPanel.locator('#weekly-tab-domingo');
   const fridayWeeklyPanel=weeklyPanel.locator('#weekly-panel-viernes');
   const sundayWeeklyPanel=weeklyPanel.locator('#weekly-panel-domingo');
+  const weeklyDashboard=weeklyPanel.locator('[data-weekly-dashboard]');
+  const weeklyHistory=weeklyPanel.locator('.weekly-history');
+  const fridayHistory=weeklyPanel.locator('[data-weekly-history-service="viernes"]');
+  const sundayHistory=weeklyPanel.locator('[data-weekly-history-service="domingo"]');
 
+  // The Oct. 2/4 set has already passed its Sunday 3 PM cutoff and must be
+  // stored as the single Semana anterior while the new week is pending.
+  await expect(weeklyDashboard).toHaveAttribute('data-weekly-state','rolled');
+  await expect(weeklyDashboard).toHaveAttribute('data-weekly-cycle','2026-10-04');
+  await expect(weeklyDashboard).toHaveAttribute('data-weekly-rollover-at','2026-10-04T15:00:00-04:00');
   await expect(fridayWeeklyTab).toHaveAttribute('aria-selected','true');
   await expect(sundayWeeklyTab).toHaveAttribute('aria-selected','false');
   await expect(fridayWeeklyPanel).toBeVisible();
   await expect(sundayWeeklyPanel).toBeHidden();
-  await expect(fridayWeeklyTab).toContainText('Actualizado');
-  await expect(weeklyPanel).toContainText('Viernes + Domingo actualizados');
+  await expect(fridayWeeklyTab).toContainText('Pendiente');
+  await expect(sundayWeeklyTab).toContainText('Pendiente');
+  await expect(weeklyPanel).toContainText('Nuevo set pendiente');
+  await expect(fridayWeeklyPanel).toContainText('Set pendiente');
+  await expect(fridayWeeklyPanel.locator('.weekly-song')).toHaveCount(0);
+  await expect(sundayWeeklyPanel.locator('.weekly-song')).toHaveCount(0);
 
-  // Friday is the chronological default and must arrive fully populated.
-  await expect(fridayWeeklyPanel).toContainText('Worship set del viernes');
-  await expect(fridayWeeklyPanel).toContainText('Dayari');
-  await expect(fridayWeeklyPanel.locator('.weekly-song')).toHaveCount(4);
-  await expect(fridayWeeklyPanel.locator('.weekly-corito')).toHaveCount(7);
-  await expect(fridayWeeklyPanel).toContainText('Creados Para Adorar');
-  await expect(fridayWeeklyPanel).toContainText('Elmer Moroy');
-  await expect(fridayWeeklyPanel).toContainText('Sumérgeme');
-  await expect(fridayWeeklyPanel).toContainText('Jesús Adrián Romero');
-  await expect(fridayWeeklyPanel).toContainText('Cristo Yo Te Amo');
-  await expect(fridayWeeklyPanel).toContainText('Vino Nuevo');
-  await expect(fridayWeeklyPanel).toContainText('Tus Cuerdas De Amor');
-  await expect(fridayWeeklyPanel).toContainText('Julio Melgar feat. Lowsan Melgar');
-  await expect(fridayWeeklyPanel).toContainText('La Mayor');
-  await expect(fridayWeeklyPanel).toContainText('BPM · 90/180');
-  await expect(fridayWeeklyPanel).toContainText('Re Mayor');
-  await expect(fridayWeeklyPanel).toContainText('Yo No Sé A Lo Que Tú Has Venido');
-  await expect(fridayWeeklyPanel).toContainText('Cristo Rompe Las Cadenas');
-  await expect(fridayWeeklyPanel).toContainText('+ Mas');
-  await expect(fridayWeeklyPanel).toContainText('Ensayen con la canción, con metrónomo y eventualmente sin letra.');
-  await expect(fridayWeeklyPanel.locator('.weekly-youtube-mark img[src="youtube-music.svg"]')).toHaveCount(1);
-  await expect(fridayWeeklyPanel.locator('.weekly-youtube-mark img')).toHaveAttribute('width','22');
-  await expect(fridayWeeklyPanel.locator('.weekly-youtube-mark img')).toHaveAttribute('height','22');
-    await expect(fridayWeeklyPanel.locator('.weekly-youtube-frame iframe')).toHaveAttribute(
-    'src',
-    /youtube-nocookie\.com\/embed\/videoseries\?list=PLJHxkkSIlf28/
-  );
-  await expect(fridayWeeklyPanel.locator('a[href*="youtube.com/playlist?list=PLJHxkkSIlf28"]')).toHaveCount(1);
-  await expect(fridayWeeklyPanel.locator('a[href="https://u.pone.rs/iifwokqy.pdf"]')).toHaveCount(1);
-
-  // Sunday content must remain intact and appear immediately when selected.
   await sundayWeeklyTab.click();
   await expect(sundayWeeklyTab).toHaveAttribute('aria-selected','true');
   await expect(sundayWeeklyPanel).toBeVisible();
   await expect(fridayWeeklyPanel).toBeHidden();
-  await expect(sundayWeeklyPanel).toContainText('Worship set del domingo');
-  await expect(sundayWeeklyPanel).toContainText('Ensayo');
-  await expect(sundayWeeklyPanel).toContainText('9:30 AM');
-  await expect(sundayWeeklyPanel).toContainText('Dayari');
-  await expect(sundayWeeklyPanel.locator('.weekly-song')).toHaveCount(5);
-  await expect(sundayWeeklyPanel.locator('.weekly-corito')).toHaveCount(5);
-  const sundaySongOrder=await sundayWeeklyPanel.locator('.weekly-song-title').allTextContents();
+  await expect(sundayWeeklyPanel).toContainText('Set pendiente');
+
+  await expect(weeklyHistory.locator('summary')).toContainText('Semana anterior');
+  await expect(weeklyHistory.locator('summary')).toContainText('4 oct 2026');
+  await expect(weeklyPanel.locator('[data-weekly-history-body]')).toHaveAttribute('data-weekly-history-cycle','2026-10-04');
+  await weeklyHistory.locator('summary').click();
+  await expect(fridayHistory).toBeVisible();
+  await expect(sundayHistory).toBeVisible();
+
+  // Friday archive must preserve the completed set and every linked resource.
+  await expect(fridayHistory).toContainText('Worship set del viernes');
+  await expect(fridayHistory).toContainText('Dayari');
+  await expect(fridayHistory.locator('.weekly-song')).toHaveCount(4);
+  await expect(fridayHistory.locator('.weekly-corito')).toHaveCount(7);
+  await expect(fridayHistory).toContainText('Creados Para Adorar');
+  await expect(fridayHistory).toContainText('Elmer Moroy');
+  await expect(fridayHistory).toContainText('Sumérgeme');
+  await expect(fridayHistory).toContainText('Jesús Adrián Romero');
+  await expect(fridayHistory).toContainText('Cristo Yo Te Amo');
+  await expect(fridayHistory).toContainText('Vino Nuevo');
+  await expect(fridayHistory).toContainText('Tus Cuerdas De Amor');
+  await expect(fridayHistory).toContainText('Julio Melgar feat. Lowsan Melgar');
+  await expect(fridayHistory).toContainText('BPM · 90/180');
+  await expect(fridayHistory).toContainText('Cristo Rompe Las Cadenas');
+  await expect(fridayHistory).toContainText('+ Mas');
+  await expect(fridayHistory.locator('.weekly-youtube-mark img[src="youtube-music.svg"]')).toHaveCount(1);
+  await expect(fridayHistory.locator('.weekly-youtube-frame iframe')).toHaveAttribute(
+    'src',
+    /youtube-nocookie\.com\/embed\/videoseries\?list=PLJHxkkSIlf28/
+  );
+  await expect(fridayHistory.locator('a[href*="youtube.com/playlist?list=PLJHxkkSIlf28"]')).toHaveCount(1);
+  await expect(fridayHistory.locator('a[href="https://u.pone.rs/iifwokqy.pdf"]')).toHaveCount(1);
+
+  // Sunday archive must preserve the final five-song order and metadata.
+  await expect(sundayHistory).toContainText('Worship set del domingo');
+  await expect(sundayHistory).toContainText('9:30 AM');
+  await expect(sundayHistory).toContainText('Dayari');
+  await expect(sundayHistory.locator('.weekly-song')).toHaveCount(5);
+  await expect(sundayHistory.locator('.weekly-corito')).toHaveCount(5);
+  const sundaySongOrder=await sundayHistory.locator('.weekly-song-title').allTextContents();
   expect(sundaySongOrder).toEqual([
     'Dios De Milagros',
     'Algo Está Pasando',
@@ -560,25 +575,17 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
     'Permanecerás',
     'Yo Quiero Más De Ti'
   ]);
-  await expect(sundayWeeklyPanel).toContainText('Dios De Milagros');
-  await expect(sundayWeeklyPanel).toContainText('Algo Está Pasando');
-  await expect(sundayWeeklyPanel).toContainText('Hay Libertad');
-  await expect(sundayWeeklyPanel).toContainText('Permanecerás');
-  await expect(sundayWeeklyPanel).toContainText('Angel Luis Irizarry');
-  await expect(sundayWeeklyPanel).toContainText('BPM · 60/120');
-  await expect(sundayWeeklyPanel).toContainText('Yo Quiero Más De Ti');
-  await expect(sundayWeeklyPanel).toContainText('Do Sostenido Mayor');
-  await expect(sundayWeeklyPanel).toContainText('Re Mayor · 115 BPM');
-  await expect(sundayWeeklyPanel).toContainText('Ensayen con la canción, con metrónomo y eventualmente sin letra.');
-  await expect(sundayWeeklyPanel.locator('.weekly-youtube-mark img[src="youtube-music.svg"]')).toHaveCount(1);
-  await expect(sundayWeeklyPanel.locator('.weekly-youtube-mark img')).toHaveAttribute('width','22');
-  await expect(sundayWeeklyPanel.locator('.weekly-youtube-mark img')).toHaveAttribute('height','22');
-    await expect(sundayWeeklyPanel.locator('.weekly-youtube-frame iframe')).toHaveAttribute(
+  await expect(sundayHistory).toContainText('Angel Luis Irizarry');
+  await expect(sundayHistory).toContainText('BPM · 60/120');
+  await expect(sundayHistory).toContainText('Do Sostenido Mayor');
+  await expect(sundayHistory).toContainText('Re Mayor · 115 BPM');
+  await expect(sundayHistory.locator('.weekly-youtube-mark img[src="youtube-music.svg"]')).toHaveCount(1);
+  await expect(sundayHistory.locator('.weekly-youtube-frame iframe')).toHaveAttribute(
     'src',
     /youtube-nocookie\.com\/embed\/videoseries\?list=PLkLZ_UC3YYUw0TOBrAw19xENUYunh7URI/
   );
-  await expect(sundayWeeklyPanel.locator('a[href*="youtube.com/playlist?list=PLkLZ_UC3YYUw0TOBrAw19xENUYunh7URI"]')).toHaveCount(1);
-  await expect(sundayWeeklyPanel.locator('a[href="https://u.pone.rs/jzehueif.pdf"]')).toHaveCount(1);
+  await expect(sundayHistory.locator('a[href*="youtube.com/playlist?list=PLkLZ_UC3YYUw0TOBrAw19xENUYunh7URI"]')).toHaveCount(1);
+  await expect(sundayHistory.locator('a[href="https://u.pone.rs/jzehueif.pdf"]')).toHaveCount(1);
 
   const weeklyOverflow=await weeklyPanel.evaluate(node=>({
     scrollWidth:node.scrollWidth,
@@ -586,10 +593,61 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   }));
   expect(weeklyOverflow.scrollWidth).toBeLessThanOrEqual(weeklyOverflow.clientWidth+1);
 
+  // Simulate the next active week to prove the exact 3 PM boundary, replacement
+  // of Semana anterior, pending reset, and idempotency.
+  const rolloverBoundary=await page.evaluate(() => {
+    const prepared=window.IPCDJ_WEEKLY_TEST.prepareFromHistory('2026-10-11T15:00:00-04:00');
+    const before=window.IPCDJ_WEEKLY_TEST.rollover(Date.parse('2026-10-11T14:59:59-04:00'));
+    const beforeSnapshot=window.IPCDJ_WEEKLY_TEST.snapshot();
+    const atBoundary=window.IPCDJ_WEEKLY_TEST.rollover(Date.parse('2026-10-11T15:00:00-04:00'));
+    const afterSnapshot=window.IPCDJ_WEEKLY_TEST.snapshot();
+    const secondAttempt=window.IPCDJ_WEEKLY_TEST.rollover(Date.parse('2026-10-11T16:00:00-04:00'));
+    const ids=[...document.querySelectorAll('[id]')].map(node=>node.id);
+    const duplicateIds=[...new Set(ids.filter((id,index)=>ids.indexOf(id)!==index))];
+    return {prepared,before,beforeSnapshot,atBoundary,afterSnapshot,secondAttempt,duplicateIds};
+  });
+
+  expect(rolloverBoundary.prepared).toBe(true);
+  expect(rolloverBoundary.before).toBe(false);
+  expect(rolloverBoundary.beforeSnapshot.state).toBe('active');
+  expect(rolloverBoundary.beforeSnapshot.fridayCurrent).toEqual([
+    'Creados Para Adorar',
+    'Sumérgeme',
+    'Cristo Yo Te Amo',
+    'Tus Cuerdas De Amor'
+  ]);
+  expect(rolloverBoundary.beforeSnapshot.sundayCurrent).toEqual([
+    'Dios De Milagros',
+    'Algo Está Pasando',
+    'Hay Libertad',
+    'Permanecerás',
+    'Yo Quiero Más De Ti'
+  ]);
+  expect(rolloverBoundary.atBoundary).toBe(true);
+  expect(rolloverBoundary.afterSnapshot.state).toBe('rolled');
+  expect(rolloverBoundary.afterSnapshot.fridayCurrent).toEqual([]);
+  expect(rolloverBoundary.afterSnapshot.sundayCurrent).toEqual([]);
+  expect(rolloverBoundary.afterSnapshot.history).toHaveLength(2);
+  expect(rolloverBoundary.afterSnapshot.history[0].songs).toEqual([
+    'Creados Para Adorar',
+    'Sumérgeme',
+    'Cristo Yo Te Amo',
+    'Tus Cuerdas De Amor'
+  ]);
+  expect(rolloverBoundary.afterSnapshot.history[1].songs).toEqual([
+    'Dios De Milagros',
+    'Algo Está Pasando',
+    'Hay Libertad',
+    'Permanecerás',
+    'Yo Quiero Más De Ti'
+  ]);
+  expect(rolloverBoundary.secondAttempt).toBe(false);
+  expect(rolloverBoundary.duplicateIds).toEqual([]);
+
   await fridayWeeklyTab.click();
   await expect(fridayWeeklyTab).toHaveAttribute('aria-selected','true');
   await expect(fridayWeeklyPanel).toBeVisible();
-  await expect(fridayWeeklyPanel).toContainText('Worship set del viernes');
+  await expect(fridayWeeklyPanel).toContainText('Set pendiente');
   await sundayWeeklyTab.click();
   await expect(sundayWeeklyTab).toHaveAttribute('aria-selected','true');
   await expect(sundayWeeklyPanel).toBeVisible();
@@ -609,6 +667,9 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
 
   const weeklySource=await page.locator('#panel-worship-semanal').evaluate(node=>node.outerHTML);
   expect(weeklySource).toContain('data-weekly-dashboard');
+  expect(weeklySource).toContain('data-weekly-state="rolled"');
+  expect(weeklySource).toContain('data-weekly-history-service="viernes"');
+  expect(weeklySource).toContain('data-weekly-history-service="domingo"');
   expect(weeklySource).toContain('PLkLZ_UC3YYUw0TOBrAw19xENUYunh7URI');
   expect(weeklySource).toContain('https://u.pone.rs/jzehueif.pdf');
 
