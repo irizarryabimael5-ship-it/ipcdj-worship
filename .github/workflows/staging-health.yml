@@ -32,12 +32,12 @@ jobs:
             echo "Staging endpoint is connected."
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "Staging endpoint is not connected yet. Skipping browser certification without failing production."
+            echo "Staging endpoint is not connected yet; the local seven-profile certification will run instead."
           fi
 
-  cross-platform-health:
+  local-health:
     needs: preflight
-    if: needs.preflight.outputs.ready == 'true'
+    if: needs.preflight.outputs.ready != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     defaults:
@@ -50,15 +50,22 @@ jobs:
         with:
           ref: staging
 
-      - name: Validate staging isolation
+      - name: Validate staging and weekly rollover contracts
         shell: bash
         run: |
           set -euo pipefail
           grep -q 'meta name="ipcdj-environment" content="staging"' ../index.html
+          test "$(grep -c 'meta name="robots"' ../index.html)" -eq 1
           grep -q 'meta name="robots" content="noindex' ../index.html
+          grep -q 'data-weekly-state="rolled"' ../index.html
+          grep -q 'data-weekly-history-cycle="2026-10-04"' ../index.html
+          grep -q 'WEEKLY_CURRENT_VIERNES_START' ../index.html
+          grep -q 'WEEKLY_CURRENT_DOMINGO_START' ../index.html
+          grep -q 'WEEKLY_HISTORY_START' ../index.html
           grep -q 'X-IPCDJ-Environment: staging' ../_headers
           grep -q 'X-Robots-Tag: noindex' ../_headers
           grep -q '^Disallow: /' ../robots.txt
+          grep -q "cron: '5 19-21 \* \* 0'" ../.github/workflows/weekly-worship-rollover.yml
           node -e "const c=require('../notifications/config.json'); if(c.enabled!==false||c.apiOrigin!==''||c.siteOrigin!=='https://staging.worship.ipcdj.org') process.exit(1)"
 
       - name: Validate watchdog co-development contract
@@ -75,15 +82,108 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Validate notification code without production delivery
+      - name: Validate rollover and notification code
         shell: bash
         run: |
+          node --check ../scripts/weekly-rollover.mjs
+          node ../scripts/weekly-rollover.mjs --self-test
           node --test ../notifications/tests/planner.test.mjs
           node --check ../notifications/client.js
           node --check ../notifications/ui.js
           node --check ../notifications/sw-foundation.js
           node --check ../notifications/worker/src/index.js
           node --check ../notifications/scripts/export-catalog.mjs
+
+      - name: Validate Cloudflare staging build output
+        shell: bash
+        run: |
+          cd ..
+          bash scripts/build-staging-pages.sh
+          test -f dist/index.html
+          test -f dist/sw.js
+          test -f dist/_headers
+          test -f dist/notifications/client.js
+          test -f dist/notifications/config.json
+
+      - name: Install health test dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox webkit
+
+      - name: Start Linux audio backend for Firefox Web Audio
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends pulseaudio
+          pulseaudio --start --exit-idle-time=-1 || true
+
+      - name: Start local staging runtime
+        shell: bash
+        run: |
+          cd ..
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/ipcdj-staging-server.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/?local-health=${GITHUB_RUN_ID} >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/ipcdj-staging-server.log || true
+          exit 1
+
+      - name: Run local seven-profile staging matrix
+        env:
+          IPCDJ_BASE_URL: http://127.0.0.1:4173
+        run: npx playwright test
+
+      - name: Upload local staging diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ipcdj-staging-local-health-${{ github.run_id }}
+          path: |
+            monitoring/playwright-report
+            monitoring/test-results
+          if-no-files-found: ignore
+          retention-days: 14
+
+  deployed-health:
+    needs: preflight
+    if: needs.preflight.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: monitoring
+
+    steps:
+      - name: Check out staging branch
+        uses: actions/checkout@v4
+        with:
+          ref: staging
+
+      - name: Validate staging isolation and rollover contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'meta name="ipcdj-environment" content="staging"' ../index.html
+          test "$(grep -c 'meta name="robots"' ../index.html)" -eq 1
+          grep -q 'meta name="robots" content="noindex' ../index.html
+          grep -q 'X-IPCDJ-Environment: staging' ../_headers
+          grep -q 'X-Robots-Tag: noindex' ../_headers
+          grep -q '^Disallow: /' ../robots.txt
+          node -e "const c=require('../notifications/config.json'); if(c.enabled!==false||c.apiOrigin!==''||c.siteOrigin!=='https://staging.worship.ipcdj.org') process.exit(1)"
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate rollover engine
+        run: |
+          node --check ../scripts/weekly-rollover.mjs
+          node ../scripts/weekly-rollover.mjs --self-test
 
       - name: Install health test dependencies
         run: npm install --no-audit --no-fund
@@ -130,16 +230,16 @@ jobs:
           echo "Timed out waiting for exact staging deployment."
           exit 1
 
-      - name: Run seven-profile staging health matrix
+      - name: Run deployed seven-profile staging matrix
         env:
           IPCDJ_BASE_URL: https://staging.worship.ipcdj.org
         run: npx playwright test
 
-      - name: Upload staging diagnostics on failure
+      - name: Upload deployed staging diagnostics on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: ipcdj-staging-health-${{ github.run_id }}
+          name: ipcdj-staging-deployed-health-${{ github.run_id }}
           path: |
             monitoring/playwright-report
             monitoring/test-results
