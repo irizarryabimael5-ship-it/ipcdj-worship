@@ -3288,3 +3288,20 @@ Watchdog:
   - two-frame compositor/paint settling: under 1000 ms.
 - Separating synchronous update cost from compositor scheduling prevents CI/WebKit frame scheduling from being misreported as application CPU lag while still enforcing strict real-time cadence performance.
 - Functional lifecycle, duplicate-ID, overflow, current-card-count and DOM-size checks remain mandatory alongside the performance budgets.
+
+## Worship semanal weekly rollover contract v181
+
+- Worship semanal uses one active weekly bundle containing Friday and Sunday plus one previous bundle under `Semana anterior`.
+- Every active bundle MUST declare:
+  - `data-weekly-state="active"`
+  - `data-weekly-cycle="YYYY-MM-DD"`, where the date is that bundle's Sunday.
+  - `data-weekly-rollover-at` as the exact Sunday 3:00 PM `America/New_York` instant, including the correct UTC offset for EDT/EST.
+- At the rollover instant, Friday and Sunday move together into `Semana anterior`; the current Friday and Sunday slots reset to `Pendiente`.
+- The browser runtime performs the visible rollover at the exact deadline and also re-checks when a suspended/backgrounded page becomes visible.
+- The source-level weekly rollover engine is idempotent: an already rolled bundle must never archive twice.
+- Only the most recently completed weekly bundle is retained in `Semana anterior`; older bundles are replaced, not accumulated.
+- When loading a new week's Friday and/or Sunday data after a rollover, preserve the existing `Semana anterior`, restore the active weekly state, and set the new cycle/deadline before publishing.
+- Friday remains the default nested weekly tab.
+- The weekly rollover watchdog must test 2:59:59 PM vs exactly 3:00:00 PM, preserve both service contents/resources, verify the current slots become pending, and verify no duplicate IDs are introduced.
+- The scheduled persistence workflow is a production feature. While the feature is still in staging, its engine is self-tested and browser-tested; its scheduled GitHub trigger becomes operational only after the approved feature is promoted to `main`.
+
