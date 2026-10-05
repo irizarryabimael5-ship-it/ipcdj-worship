@@ -34,7 +34,7 @@ async function openHealthyPage(page) {
   expect(response.ok(), 'main document should return 2xx').toBeTruthy();
 
   await expect(page.locator('meta[name="ipcdj-build"]'))
-    .toHaveAttribute('content', /(?:persistent-launch|mobile-refresh)-v\d+/);
+    .toHaveAttribute('content', /(?:persistent-launch|mobile-refresh|weekly-rollover)-v\d+/);
   await expect(page.locator('meta[name="ipcdj-environment"]'))
     .toHaveAttribute('content','staging');
   await expect(page.locator('meta[name="robots"]'))
@@ -1375,7 +1375,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
   });
   expect(serviceWorkerResponse.ok()).toBe(true);
   const serviceWorkerText = await serviceWorkerResponse.text();
-  expect(serviceWorkerText).toContain('ipcdj-worship-v180');
+  expect(serviceWorkerText).toContain('ipcdj-worship-v181');
   expect(serviceWorkerText).toContain('CACHE_FRESH_SHELL');
   expect(serviceWorkerText).toContain('refresh-test');
 
@@ -1422,7 +1422,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     // Simulate the exact failure we are guarding against: an installed PWA has
     // an older shell cached when the user performs one refresh.
-    const staleCache=await caches.open('ipcdj-worship-v180');
+    const staleCache=await caches.open('ipcdj-worship-v181');
     await staleCache.put(
       './__offline_index__',
       new Response('<!doctype html><meta name="ipcdj-build" content="stale-watchdog" />',{
@@ -1432,7 +1432,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     const staged=await window.IPCDJ_REFRESH_TEST.stageLatestShell();
     const keys=await caches.keys();
-    const cacheKey=keys.find(key=>key==='ipcdj-worship-v180')||'';
+    const cacheKey=keys.find(key=>key==='ipcdj-worship-v181')||'';
     let cachedBuild='';
     if(cacheKey){
       const cache=await caches.open(cacheKey);
@@ -1446,7 +1446,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
   expect(refreshStage.staged.ok).toBe(true);
   expect(refreshStage.staged.build).toBe(refreshStage.currentBuild);
-  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v180');
+  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v181');
   expect(refreshStage.cachedBuild).toBe(refreshStage.currentBuild);
 
   // Intentionally coarse runaway guards, not synthetic speed scores.
