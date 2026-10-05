@@ -1433,6 +1433,32 @@
       line-height:1.45;
     }
 
+    .weekly-history-grid{
+      display:grid;
+      gap:18px;
+      padding-top:4px;
+    }
+
+    .weekly-history-service{
+      margin-top:0;
+    }
+
+    .weekly-history-service + .weekly-history-service{
+      padding-top:2px;
+      border-top:1px solid rgba(255,255,255,.055);
+    }
+
+    .weekly-dashboard[data-weekly-state="rolled"] .weekly-status{
+      color:#b3bdcc;
+      border-color:rgba(255,255,255,.10);
+      background:rgba(255,255,255,.035);
+    }
+
+    .weekly-dashboard[data-weekly-state="rolled"] .weekly-status::before{
+      background:#8995a7;
+      box-shadow:none;
+    }
+
     .coming-soon-card{
       min-height:220px;
       display:grid;
@@ -4474,7 +4500,7 @@
       </section>
 
       <section class="site-tab-panel" id="panel-worship-semanal" role="tabpanel" aria-labelledby="tab-worship-semanal" tabindex="0" hidden>
-        <div class="weekly-dashboard" data-weekly-dashboard>
+        <div class="weekly-dashboard" data-weekly-dashboard data-weekly-state="rolled" data-weekly-cycle="2026-10-04" data-weekly-rollover-at="2026-10-04T15:00:00-04:00">
           <section class="weekly-overview">
             <div class="weekly-overview-top">
               <div>
@@ -4482,22 +4508,54 @@
                 <h2>Esta semana</h2>
                 <p>Sets, ensayo y recursos del equipo de adoración en un solo lugar.</p>
               </div>
-              <span class="weekly-status">Viernes + Domingo actualizados</span>
+              <span class="weekly-status" data-weekly-status>Nuevo set pendiente</span>
             </div>
 
             <div class="weekly-service-tabs" role="tablist" aria-label="Servicios de Worship semanal">
               <button class="weekly-service-tab" id="weekly-tab-viernes" type="button" role="tab" aria-selected="true" aria-controls="weekly-panel-viernes" tabindex="0" data-weekly-service="viernes">
                 <strong>Viernes</strong>
-                <small>Actualizado</small>
+                <small>Pendiente</small>
               </button>
               <button class="weekly-service-tab" id="weekly-tab-domingo" type="button" role="tab" aria-selected="false" aria-controls="weekly-panel-domingo" tabindex="-1" data-weekly-service="domingo">
                 <strong>Domingo</strong>
-                <small>Actualizado</small>
+                <small>Pendiente</small>
               </button>
             </div>
           </section>
 
+          <!-- WEEKLY_CURRENT_VIERNES_START -->
           <section class="weekly-service-panel" id="weekly-panel-viernes" role="tabpanel" aria-labelledby="weekly-tab-viernes" data-weekly-panel="viernes">
+            <div class="weekly-empty">
+              <div class="weekly-empty-inner">
+                <span class="weekly-service-kicker">Viernes</span>
+                <h3>Set pendiente</h3>
+                <p>El nuevo worship set del viernes aparecerá aquí cuando sea actualizado.</p>
+              </div>
+            </div>
+          </section>
+          <!-- WEEKLY_CURRENT_VIERNES_END -->
+
+          <!-- WEEKLY_CURRENT_DOMINGO_START -->
+          <section class="weekly-service-panel" id="weekly-panel-domingo" role="tabpanel" aria-labelledby="weekly-tab-domingo" data-weekly-panel="domingo" hidden>
+            <div class="weekly-empty">
+              <div class="weekly-empty-inner">
+                <span class="weekly-service-kicker">Domingo</span>
+                <h3>Set pendiente</h3>
+                <p>El nuevo worship set del domingo aparecerá aquí cuando sea actualizado.</p>
+              </div>
+            </div>
+          </section>
+          <!-- WEEKLY_CURRENT_DOMINGO_END -->
+
+          <!-- WEEKLY_HISTORY_START -->
+          <details class="weekly-history">
+            <summary>
+              <span>Semana anterior</span>
+              <small>Semana terminada · 4 oct 2026</small>
+            </summary>
+            <div class="weekly-history-body" data-weekly-history-body data-weekly-history-cycle="2026-10-04">
+              <div class="weekly-history-grid">
+          <section class="weekly-service-panel weekly-history-service" data-weekly-history-service="viernes">
             <div class="weekly-service-heading">
               <div>
                 <span class="weekly-service-kicker">Servicio · Viernes</span>
@@ -4513,7 +4571,7 @@
               </li>
             </ul>
 
-            <section class="weekly-youtube-card" aria-labelledby="weekly-youtube-title-viernes">
+            <section class="weekly-youtube-card">
               <div class="weekly-youtube-frame">
                 <iframe
                   src="https://www.youtube-nocookie.com/embed/videoseries?list=PLJHxkkSIlf28"
@@ -4525,7 +4583,7 @@
               </div>
               <div class="weekly-youtube-info">
                 <span class="weekly-youtube-mark"><img src="youtube-music.svg" alt="" aria-hidden="true" width="22" height="22" decoding="async" />YouTube</span>
-                <h3 id="weekly-youtube-title-viernes">Playlist del servicio</h3>
+                <h3>Playlist del servicio</h3>
                 <p>Escucha y repasa las canciones del viernes directamente desde la playlist del equipo.</p>
                 <a class="weekly-action" href="https://youtube.com/playlist?list=PLJHxkkSIlf28&amp;si=ThKDucscTvGm9U3P" target="_blank" rel="noopener">Abrir playlist en YouTube</a>
               </div>
@@ -4539,9 +4597,9 @@
               </span>
             </a>
 
-            <section class="weekly-set-card" aria-labelledby="weekly-set-title-viernes">
+            <section class="weekly-set-card">
               <div class="weekly-section-head">
-                <h3 id="weekly-set-title-viernes">Canciones CDJ</h3>
+                <h3>Canciones CDJ</h3>
                 <span>Compás · 4/4</span>
               </div>
 
@@ -4593,9 +4651,9 @@
               </ol>
             </section>
 
-            <section class="weekly-coritos-card" aria-labelledby="weekly-coritos-title-viernes">
+            <section class="weekly-coritos-card">
               <div class="weekly-section-head">
-                <h3 id="weekly-coritos-title-viernes">Coritos</h3>
+                <h3>Coritos</h3>
                 <span>Re Mayor</span>
               </div>
               <ol class="weekly-coritos-list">
@@ -4609,13 +4667,12 @@
               </ol>
             </section>
 
-            <section class="weekly-note-card" aria-labelledby="weekly-note-title-viernes">
-              <h3 id="weekly-note-title-viernes">Nota de ensayo</h3>
+            <section class="weekly-note-card">
+              <h3>Nota de ensayo</h3>
               <p>Ensayen con la canción, con metrónomo y eventualmente sin letra.</p>
             </section>
           </section>
-
-          <section class="weekly-service-panel" id="weekly-panel-domingo" role="tabpanel" aria-labelledby="weekly-tab-domingo" data-weekly-panel="domingo" hidden>
+          <section class="weekly-service-panel weekly-history-service" data-weekly-history-service="domingo">
             <div class="weekly-service-heading">
               <div>
                 <span class="weekly-service-kicker">Servicio · Domingo</span>
@@ -4635,7 +4692,7 @@
               </li>
             </ul>
 
-            <section class="weekly-youtube-card" aria-labelledby="weekly-youtube-title">
+            <section class="weekly-youtube-card">
               <div class="weekly-youtube-frame">
                 <iframe
                   src="https://www.youtube-nocookie.com/embed/videoseries?list=PLkLZ_UC3YYUw0TOBrAw19xENUYunh7URI"
@@ -4647,7 +4704,7 @@
               </div>
               <div class="weekly-youtube-info">
                 <span class="weekly-youtube-mark"><img src="youtube-music.svg" alt="" aria-hidden="true" width="22" height="22" decoding="async" />YouTube</span>
-                <h3 id="weekly-youtube-title">Playlist del servicio</h3>
+                <h3>Playlist del servicio</h3>
                 <p>Escucha y repasa las canciones del domingo directamente desde la playlist del equipo.</p>
                 <a class="weekly-action" href="https://youtube.com/playlist?list=PLkLZ_UC3YYUw0TOBrAw19xENUYunh7URI&amp;si=BySOjP07fJaR0gI7" target="_blank" rel="noopener">Abrir playlist en YouTube</a>
               </div>
@@ -4661,9 +4718,9 @@
               </span>
             </a>
 
-            <section class="weekly-set-card" aria-labelledby="weekly-set-title">
+            <section class="weekly-set-card">
               <div class="weekly-section-head">
-                <h3 id="weekly-set-title">Canciones CDJ</h3>
+                <h3>Canciones CDJ</h3>
                 <span>Compás · 4/4</span>
               </div>
 
@@ -4725,9 +4782,9 @@
               </ol>
             </section>
 
-            <section class="weekly-coritos-card" aria-labelledby="weekly-coritos-title">
+            <section class="weekly-coritos-card">
               <div class="weekly-section-head">
-                <h3 id="weekly-coritos-title">Coritos</h3>
+                <h3>Coritos</h3>
                 <span>Re Mayor · 115 BPM</span>
               </div>
               <ol class="weekly-coritos-list">
@@ -4739,19 +4796,15 @@
               </ol>
             </section>
 
-            <section class="weekly-note-card" aria-labelledby="weekly-note-title">
-              <h3 id="weekly-note-title">Nota de ensayo</h3>
+            <section class="weekly-note-card">
+              <h3>Nota de ensayo</h3>
               <p>Ensayen con la canción, con metrónomo y eventualmente sin letra.</p>
             </section>
           </section>
-
-          <details class="weekly-history">
-            <summary>
-              <span>Semana anterior</span>
-              <small>El historial aparecerá aquí al guardar el próximo set</small>
-            </summary>
-            <div class="weekly-history-body">Todavía no hay una semana anterior cargada en Worship semanal.</div>
+              </div>
+            </div>
           </details>
+          <!-- WEEKLY_HISTORY_END -->
         </div>
       </section>
     </div>
@@ -4961,7 +5014,101 @@
     const weeklyServiceTabs=[...document.querySelectorAll('[data-weekly-service]')];
     const weeklyServicePanels=[...document.querySelectorAll('[data-weekly-panel]')];
 
-    function activateWeeklyService(key,{focus=false}={}){
+    const weeklyDashboard=document.querySelector('[data-weekly-dashboard]');
+    const weeklyHistory=document.querySelector('.weekly-history');
+    const weeklyHistoryBody=document.querySelector('[data-weekly-history-body]');
+    const weeklyStatus=document.querySelector('[data-weekly-status]');
+
+    const weeklyPendingMarkup=key=>`
+      <div class="weekly-empty">
+        <div class="weekly-empty-inner">
+          <span class="weekly-service-kicker">${key==="viernes"?"Viernes":"Domingo"}</span>
+          <h3>Set pendiente</h3>
+          <p>El nuevo worship set del ${key==="viernes"?"viernes":"domingo"} aparecerá aquí cuando sea actualizado.</p>
+        </div>
+      </div>`;
+
+    function weeklyCycleLabel(cycle){
+      if(!cycle)return "Semana anterior";
+      const date=new Date(cycle+"T12:00:00Z");
+      if(Number.isNaN(date.getTime()))return "Semana anterior";
+      const formatted=new Intl.DateTimeFormat("es-US",{
+        day:"numeric",month:"short",year:"numeric",timeZone:"UTC"
+      }).format(date).replace(".","");
+      return "Semana terminada · "+formatted;
+    }
+
+    function cloneWeeklyPanelForHistory(panel,key){
+      const clone=panel.cloneNode(true);
+      clone.classList.add("weekly-history-service");
+      clone.removeAttribute("id");
+      clone.removeAttribute("role");
+      clone.removeAttribute("aria-labelledby");
+      clone.removeAttribute("data-weekly-panel");
+      clone.removeAttribute("hidden");
+      clone.dataset.weeklyHistoryService=key;
+      clone.querySelectorAll("[id]").forEach(node=>node.removeAttribute("id"));
+      clone.querySelectorAll("[aria-labelledby]").forEach(node=>node.removeAttribute("aria-labelledby"));
+      clone.querySelectorAll("[aria-controls]").forEach(node=>node.removeAttribute("aria-controls"));
+      return clone;
+    }
+
+    function setWeeklyTabState(key,label){
+      const tab=weeklyServiceTabs.find(item=>item.dataset.weeklyService===key);
+      const small=tab?.querySelector("small");
+      if(small)small.textContent=label;
+    }
+
+    function applyWeeklyRolloverIfDue(now=Date.now()){
+      if(!weeklyDashboard||weeklyDashboard.dataset.weeklyState!=="active")return false;
+      const rolloverAt=Date.parse(weeklyDashboard.dataset.weeklyRolloverAt||"");
+      const timestamp=Number(now);
+      if(!Number.isFinite(rolloverAt)||!Number.isFinite(timestamp)||timestamp<rolloverAt)return false;
+
+      const cycle=weeklyDashboard.dataset.weeklyCycle||"";
+      const friday=weeklyServicePanels.find(panel=>panel.dataset.weeklyPanel==="viernes");
+      const sunday=weeklyServicePanels.find(panel=>panel.dataset.weeklyPanel==="domingo");
+      if(!friday||!sunday||!weeklyHistoryBody)return false;
+
+      const grid=document.createElement("div");
+      grid.className="weekly-history-grid";
+      grid.append(
+        cloneWeeklyPanelForHistory(friday,"viernes"),
+        cloneWeeklyPanelForHistory(sunday,"domingo")
+      );
+      weeklyHistoryBody.replaceChildren(grid);
+      weeklyHistoryBody.dataset.weeklyHistoryCycle=cycle;
+
+      const summarySmall=weeklyHistory?.querySelector("summary small");
+      if(summarySmall)summarySmall.textContent=weeklyCycleLabel(cycle);
+
+      friday.innerHTML=weeklyPendingMarkup("viernes");
+      sunday.innerHTML=weeklyPendingMarkup("domingo");
+      friday.hidden=false;
+      sunday.hidden=true;
+
+      setWeeklyTabState("viernes","Pendiente");
+      setWeeklyTabState("domingo","Pendiente");
+      if(weeklyStatus)weeklyStatus.textContent="Nuevo set pendiente";
+
+      weeklyDashboard.dataset.weeklyState="rolled";
+      activateWeeklyService("viernes");
+      return true;
+    }
+
+    function scheduleWeeklyRollover(){
+      if(!weeklyDashboard||weeklyDashboard.dataset.weeklyState!=="active")return;
+      const rolloverAt=Date.parse(weeklyDashboard.dataset.weeklyRolloverAt||"");
+      if(!Number.isFinite(rolloverAt))return;
+      const delay=rolloverAt-Date.now();
+      if(delay<=0){
+        applyWeeklyRolloverIfDue(Date.now());
+        return;
+      }
+      setTimeout(()=>applyWeeklyRolloverIfDue(Date.now()),Math.min(delay+50,2147483000));
+    }
+
+        function activateWeeklyService(key,{focus=false}={}){
       const tab=weeklyServiceTabs.find(item=>item.dataset.weeklyService===key);
       const panel=weeklyServicePanels.find(item=>item.dataset.weeklyPanel===key);
       if(!tab||!panel)return false;
@@ -4996,8 +5143,52 @@
 
     window.IPCDJ_WEEKLY=Object.freeze({
       activate:key=>activateWeeklyService(String(key||"")),
-      getActive:()=>weeklyServiceTabs.find(tab=>tab.getAttribute("aria-selected")==="true")?.dataset.weeklyService||""
+      getActive:()=>weeklyServiceTabs.find(tab=>tab.getAttribute("aria-selected")==="true")?.dataset.weeklyService||"",
+      rolloverIfDue:now=>applyWeeklyRolloverIfDue(now)
     });
+
+    window.IPCDJ_WEEKLY_TEST=Object.freeze({
+      snapshot(){
+        const historyServices=[...document.querySelectorAll('[data-weekly-history-service]')];
+        return {
+          state:weeklyDashboard?.dataset.weeklyState||"",
+          cycle:weeklyDashboard?.dataset.weeklyCycle||"",
+          rolloverAt:weeklyDashboard?.dataset.weeklyRolloverAt||"",
+          fridayCurrent:[...document.querySelectorAll('#weekly-panel-viernes .weekly-song-title')].map(n=>n.textContent.trim()),
+          sundayCurrent:[...document.querySelectorAll('#weekly-panel-domingo .weekly-song-title')].map(n=>n.textContent.trim()),
+          historyCycle:weeklyHistoryBody?.dataset.weeklyHistoryCycle||"",
+          history:historyServices.map(node=>({
+            service:node.dataset.weeklyHistoryService||"",
+            songs:[...node.querySelectorAll('.weekly-song-title')].map(n=>n.textContent.trim()),
+            coritos:[...node.querySelectorAll('.weekly-corito')].map(n=>n.textContent.trim())
+          }))
+        };
+      },
+      prepareFromHistory(rolloverAt){
+        if(!weeklyDashboard||!weeklyHistoryBody)return false;
+        const fridayHistory=weeklyHistoryBody.querySelector('[data-weekly-history-service="viernes"]');
+        const sundayHistory=weeklyHistoryBody.querySelector('[data-weekly-history-service="domingo"]');
+        const friday=weeklyServicePanels.find(panel=>panel.dataset.weeklyPanel==="viernes");
+        const sunday=weeklyServicePanels.find(panel=>panel.dataset.weeklyPanel==="domingo");
+        if(!fridayHistory||!sundayHistory||!friday||!sunday)return false;
+
+        friday.innerHTML=fridayHistory.innerHTML;
+        sunday.innerHTML=sundayHistory.innerHTML;
+        weeklyDashboard.dataset.weeklyState="active";
+        weeklyDashboard.dataset.weeklyRolloverAt=String(rolloverAt||"");
+        setWeeklyTabState("viernes","Actualizado");
+        setWeeklyTabState("domingo","Actualizado");
+        if(weeklyStatus)weeklyStatus.textContent="Viernes + Domingo actualizados";
+        activateWeeklyService("viernes");
+        return true;
+      },
+      rollover:now=>applyWeeklyRolloverIfDue(now)
+    });
+
+    document.addEventListener("visibilitychange",()=>{
+      if(!document.hidden)applyWeeklyRolloverIfDue(Date.now());
+    });
+    scheduleWeeklyRollover();
 
     const pullRefresh=document.querySelector(".pull-refresh");
     const refreshGlyph=pullRefresh ? pullRefresh.querySelector(".refresh-glyph") : null;
