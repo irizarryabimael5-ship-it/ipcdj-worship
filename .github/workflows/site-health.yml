@@ -20,6 +20,10 @@ concurrency:
 
 jobs:
   cross-platform-health:
+    # Generated social-preview commits only change OG metadata + the preview JPEG.
+    # They are covered by the dedicated Social Preview Verify workflow, so avoid
+    # rerunning the 7-profile browser matrix twice for every production deploy.
+    if: ${{ github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'Refresh live social preview snapshot') }}
     runs-on: ubuntu-latest
     # The seven-profile matrix now includes live audio persistence, overlap
     # rotation, artwork, lifecycle and PWA checks. Keep enough headroom for
