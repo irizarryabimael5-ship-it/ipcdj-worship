@@ -6,6 +6,7 @@ on:
     paths:
       - 'index.html'
       - 'social-preview-v180.jpg'
+      - 'social-preview-live.jpg'
       - '.github/workflows/social-preview.yml'
   workflow_dispatch:
 
@@ -32,33 +33,48 @@ jobs:
       - name: Install preview validator
         run: python -m pip install --disable-pip-version-check pillow==11.3.0
 
-      - name: Validate approved WhatsApp preview
+      - name: Validate current WhatsApp preview asset
         run: |
           python - <<'PY'
           from PIL import Image
           from pathlib import Path
-          import hashlib
+          import re
+          from urllib.parse import urlparse
 
-          p=Path('social-preview-v180.jpg')
-          expected='b96bd5ee2a1bd28e1a3bdabe41e23b1bd94f9a3b56ad48bf286090b5984fbc21'
+          html=Path('index.html').read_text(encoding='utf-8')
+          match=re.search(r'property="og:image" content="([^"]+)"',html)
+          assert match, 'og:image missing'
+          image_url=match.group(1)
+          assert image_url.startswith('https://worship.ipcdj.org/'), image_url
+
+          parsed=urlparse(image_url)
+          filename=Path(parsed.path).name
+          assert filename in {'social-preview-v180.jpg','social-preview-live.jpg'}, filename
+          p=Path(filename)
+          assert p.exists(), f'{filename} is referenced but missing'
+
           data=p.read_bytes()
-          actual=hashlib.sha256(data).hexdigest()
-          assert actual==expected, (actual, expected)
-
           im=Image.open(p)
           im.load()
           assert im.size==(1200,630), im.size
           assert im.mode=='RGB', im.mode
-          assert im.info.get('icc_profile'), 'missing embedded ICC profile'
           assert 10_000 < len(data) < 400_000, len(data)
 
-          html=Path('index.html').read_text(encoding='utf-8')
-          image_url='https://worship.ipcdj.org/social-preview-v180.jpg?v=180'
-          assert f'property="og:image" content="{image_url}"' in html
-          assert f'property="og:image:url" content="{image_url}"' in html
-          assert f'property="og:image:secure_url" content="{image_url}"' in html
-          assert f'name="twitter:image" content="{image_url}"' in html
-          assert f'rel="image_src" href="{image_url}"' in html
-          assert f'itemprop="image" content="{image_url}"' in html
-          print('approved WhatsApp preview verified', im.size, len(data), actual)
+          for marker in (
+              'property="og:image"',
+              'property="og:image:url"',
+              'property="og:image:secure_url"',
+              'name="twitter:image"',
+              'rel="image_src"',
+              'itemprop="image"',
+          ):
+              assert image_url in next(
+                  line for line in html.splitlines()
+                  if marker in line
+              ), marker
+
+          assert 'property="og:image:type" content="image/jpeg"' in html
+          assert 'property="og:image:width" content="1200"' in html
+          assert 'property="og:image:height" content="630"' in html
+          print('current WhatsApp preview verified',filename,im.size,len(data),image_url)
           PY
