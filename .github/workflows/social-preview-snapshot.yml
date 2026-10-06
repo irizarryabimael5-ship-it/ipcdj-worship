@@ -1,9 +1,8 @@
 name: IPCDJ Live Social Preview Snapshot
 
 on:
-  workflow_run:
-    workflows: ["pages build and deployment"]
-    types: [completed]
+  push:
+    branches: [main]
   schedule:
     # Daily refresh also catches time-driven site changes that do not require a code deploy.
     - cron: '15 11 * * *'
@@ -18,10 +17,6 @@ concurrency:
 
 jobs:
   refresh-preview:
-    if: >-
-      ${{ github.event_name != 'workflow_run' ||
-          (github.event.workflow_run.conclusion == 'success' &&
-           github.event.workflow_run.head_branch == 'main') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -38,7 +33,7 @@ jobs:
         run: |
           set -euo pipefail
           message="$(git log -1 --pretty=%s)"
-          if [ "$GITHUB_EVENT_NAME" = "workflow_run" ] && [[ "$message" == "Refresh live social preview snapshot"* ]]; then
+          if [ "$GITHUB_EVENT_NAME" = "push" ] && [[ "$message" == "Refresh live social preview snapshot"* ]]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "The deployment came from the generated preview commit; skipping the self-trigger."
           else
