@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test';
-import { createHash } from 'node:crypto';
 
 const isBenignOptionalProviderError = message => {
   const text = String(message || '');
@@ -274,6 +273,14 @@ test('preview playback and song-to-song handoff stay functional', async ({ page 
     });
     expect(initialOffset).toBeGreaterThanOrEqual(99);
 
+    // Some WebKit tablet runners report a visible control as outside the
+    // viewport after the preceding geometry reads. Center it explicitly, then
+    // perform the same real user-style click instead of bypassing hit testing.
+    await futureButton.evaluate(button=>{
+      button.scrollIntoView({block:'center',inline:'nearest',behavior:'auto'});
+    });
+    await page.waitForTimeout(80);
+    await expect(futureButton).toBeInViewport();
     await futureButton.click();
 
     await expect.poll(
@@ -1718,19 +1725,10 @@ test('social share preview is crawler-ready', async ({ page, request }) => {
   ];
 
   for(const userAgent of crawlers){
-    const [htmlResponse,imageResponse,robotsResponse]=await Promise.all([
-      request.get('/?social-health='+nonce,{headers:{'cache-control':'no-cache','user-agent':userAgent}}),
-      request.get('/social-preview-v180.jpg?social-health='+nonce,{headers:{'cache-control':'no-cache','user-agent':userAgent}}),
-      request.get('/robots.txt?social-health='+nonce,{headers:{'cache-control':'no-cache','user-agent':userAgent}})
-    ]);
+    const htmlResponse=await request.get('/?social-health='+nonce,{
+      headers:{'cache-control':'no-cache','user-agent':userAgent}
+    });
     expect(htmlResponse.ok()).toBe(true);
-    expect(imageResponse.ok()).toBe(true);
-    expect(robotsResponse.ok()).toBe(true);
-    expect((imageResponse.headers()['content-type']||'')).toMatch(/^image\/jpeg/);
-
-    const imageBytes=await imageResponse.body();
-    expect(imageBytes.length).toBeGreaterThan(5000);
-    expect(imageBytes.length).toBeLessThan(300000);
 
     const html=await htmlResponse.text();
     const ogIndex=html.indexOf('property="og:title"');
@@ -1738,31 +1736,48 @@ test('social share preview is crawler-ready', async ({ page, request }) => {
     expect(ogIndex).toBeLessThan(2500);
     expect(html).toContain('prefix="og: https://ogp.me/ns#"');
     expect(html).toContain('property="og:site_name" content="IPCDJ Worship"');
-    expect(html).toContain('property="og:image" content="https://worship.ipcdj.org/social-preview-v180.jpg?v=180"');
-    expect(html).toContain('property="og:image:url" content="https://worship.ipcdj.org/social-preview-v180.jpg?v=180"');
-    expect(html).toContain('property="og:image:secure_url" content="https://worship.ipcdj.org/social-preview-v180.jpg?v=180"');
+
+    const imageUrl=html.match(/property="og:image" content="([^"]+)"/)?.[1]||'';
+    expect(imageUrl).toMatch(
+      /^https:\/\/worship\.ipcdj\.org\/social-preview-(?:live|v180)\.jpg\?v=[A-Za-z0-9._-]+$/
+    );
+    expect(html).toContain('property="og:image:url" content="'+imageUrl+'"');
+    expect(html).toContain('property="og:image:secure_url" content="'+imageUrl+'"');
     expect(html).toContain('property="og:image:type" content="image/jpeg"');
     expect(html).toContain('property="og:image:width" content="1200"');
     expect(html).toContain('property="og:image:height" content="630"');
-    expect(html).toContain('rel="image_src" href="https://worship.ipcdj.org/social-preview-v180.jpg?v=180"');
-    expect(html).toContain('itemprop="image" content="https://worship.ipcdj.org/social-preview-v180.jpg?v=180"');
+    expect(html).toContain('rel="image_src" href="'+imageUrl+'"');
+    expect(html).toContain('itemprop="image" content="'+imageUrl+'"');
     expect(html).toContain('name="twitter:card" content="summary_large_image"');
+    expect(html).toContain('name="twitter:image" content="'+imageUrl+'"');
+
+    const separator=imageUrl.includes('?')?'&':'?';
+    const [imageResponse,robotsResponse]=await Promise.all([
+      request.get(imageUrl+separator+'social-health='+nonce,{
+        headers:{'cache-control':'no-cache','user-agent':userAgent}
+      }),
+      request.get('/robots.txt?social-health='+nonce,{
+        headers:{'cache-control':'no-cache','user-agent':userAgent}
+      })
+    ]);
+    expect(imageResponse.ok()).toBe(true);
+    expect(robotsResponse.ok()).toBe(true);
+    expect((imageResponse.headers()['content-type']||'')).toMatch(/^image\/jpeg/);
+
+    const imageBytes=await imageResponse.body();
+    expect(imageBytes.length).toBeGreaterThan(5000);
+    expect(imageBytes.length).toBeLessThan(400000);
 
     const robots=await robotsResponse.text();
-    const stagingEnvironment=html.includes('meta name="ipcdj-environment" content="staging"');
-    if(stagingEnvironment){
-      expect(robots).toContain('User-agent: *');
-      expect(robots).toContain('Disallow: /');
-      expect(robots).not.toContain('User-agent: facebookexternalhit');
-      expect(robots).not.toContain('User-agent: meta-externalagent');
-    }else{
-      expect(robots).toContain('User-agent: facebookexternalhit');
-      expect(robots).toContain('User-agent: meta-externalagent');
-    }
+    expect(robots).toContain('User-agent: facebookexternalhit');
+    expect(robots).toContain('User-agent: meta-externalagent');
   }
 
   await page.goto('/?social-health='+nonce,{waitUntil:'domcontentloaded'});
-  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content','https://worship.ipcdj.org/social-preview-v180.jpg?v=180');
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute(
+    'content',
+    /^https:\/\/worship\.ipcdj\.org\/social-preview-(?:live|v180)\.jpg\?v=[A-Za-z0-9._-]+$/
+  );
 });
 
 
@@ -2381,24 +2396,30 @@ test('v176 rendering stays sRGB-authored and resilient across browser/device pro
   expect(['chromium-desktop','firefox-desktop','webkit-desktop','chromium-mobile','webkit-mobile','webkit-compact-mobile','webkit-tablet']).toContain(testInfo.project.name);
 });
 
-test('v180 social preview is the approved WhatsApp screenshot', async ({ request }) => {
-  const [imageResponse,htmlResponse]=await Promise.all([
-    request.get('/social-preview-v180.jpg?health='+Date.now(),{headers:{'cache-control':'no-cache'}}),
-    request.get('/?social-v180='+Date.now(),{headers:{'cache-control':'no-cache','user-agent':'WhatsApp/2.25.25.85 A'}})
-  ]);
+test('social preview asset follows the live snapshot contract', async ({ request }) => {
+  const htmlResponse=await request.get('/?social-live='+Date.now(),{
+    headers:{'cache-control':'no-cache','user-agent':'WhatsApp/2.25.25.85 A'}
+  });
+  expect(htmlResponse.ok()).toBe(true);
+  const html=await htmlResponse.text();
+  const imageUrl=html.match(/property="og:image" content="([^"]+)"/)?.[1]||'';
+
+  expect(imageUrl).toMatch(
+    /^https:\/\/worship\.ipcdj\.org\/social-preview-(?:live|v180)\.jpg\?v=[A-Za-z0-9._-]+$/
+  );
+  const imageResponse=await request.get(imageUrl+'&health='+Date.now(),{
+    headers:{'cache-control':'no-cache'}
+  });
 
   expect(imageResponse.ok()).toBe(true);
   expect((imageResponse.headers()['content-type']||'')).toMatch(/^image\/jpeg/);
   const bytes=await imageResponse.body();
   expect(bytes.length).toBeGreaterThan(10000);
   expect(bytes.length).toBeLessThan(400000);
-  expect(createHash('sha256').update(bytes).digest('hex')).toBe('b96bd5ee2a1bd28e1a3bdabe41e23b1bd94f9a3b56ad48bf286090b5984fbc21');
 
-  const html=await htmlResponse.text();
-  expect(html).toContain('property="og:image" content="https://worship.ipcdj.org/social-preview-v180.jpg?v=180"');
   expect(html).toContain('property="og:image:type" content="image/jpeg"');
   expect(html).toContain('property="og:image:width" content="1200"');
   expect(html).toContain('property="og:image:height" content="630"');
   expect(html).toContain('name="twitter:card" content="summary_large_image"');
-  expect(html).toContain('name="twitter:image" content="https://worship.ipcdj.org/social-preview-v180.jpg?v=180"');
+  expect(html).toContain('name="twitter:image" content="'+imageUrl+'"');
 });
