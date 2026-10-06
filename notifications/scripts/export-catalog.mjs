@@ -42,6 +42,7 @@ const songs=catalog.map(song=>{
     id:String(song.id),
     title:String(song.title),
     artist:String(song.artist||''),
+    finalOnly:Boolean(song.finalOnly),
     activeFrom:String(song.activeFrom),
     learningStart:String(song.learningStart),
     learningEnd:String(song.learningEnd),
