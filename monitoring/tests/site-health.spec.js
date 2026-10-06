@@ -34,7 +34,7 @@ async function openHealthyPage(page) {
   expect(response.ok(), 'main document should return 2xx').toBeTruthy();
 
   await expect(page.locator('meta[name="ipcdj-build"]'))
-    .toHaveAttribute('content', /(?:persistent-launch|mobile-refresh|weekly-rollover|campana-weekend)-v\d+/);
+    .toHaveAttribute('content', /(?:persistent-launch|mobile-refresh|weekly-rollover|campana-weekend|prep-dios-no-esta-muerto)-v\d+/);
   await expect(page.locator('meta[name="ipcdj-environment"]'))
     .toHaveAttribute('content','staging');
   await expect(page.locator('meta[name="robots"]'))
@@ -1060,7 +1060,23 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
 
   const ids = audit.songs.map(song => song.id);
   expect(new Set(ids).size).toBe(ids.length);
+  expect(ids).toContain('dios-no-esta-muerto');
   expect(ids).toContain('no-fallaras');
+
+  const diosNoEstaMuerto = audit.songs.find(song => song.id === 'dios-no-esta-muerto');
+  expect(diosNoEstaMuerto).toBeTruthy();
+  expect(diosNoEstaMuerto.title).toBe('Dios No Está Muerto');
+  expect(diosNoEstaMuerto.artist).toBe('Miel San Marcos');
+  expect(diosNoEstaMuerto.skipUpcoming).toBe(true);
+  expect(diosNoEstaMuerto.hasPreview).toBe(true);
+  expect(diosNoEstaMuerto.artworkUrl).toBe('https://i.scdn.co/image/ab67616d0000b273dd0a598f02b4a196bd9f41b5');
+  expect(diosNoEstaMuerto.artworkSource).toBe('spotify-newsboys-original');
+  expect(diosNoEstaMuerto.releaseAt).toBe('2026-10-09T19:00:00-04:00');
+  expect(diosNoEstaMuerto.releaseClockLabel).toBe('7:00 PM');
+  expect(diosNoEstaMuerto.rehearsals).toEqual([
+    {label:'Martes, 6 de octubre',time:'8:15–9:00 PM'},
+    {label:'Viernes, 9 de octubre',time:'7:00 PM'}
+  ]);
 
   const noFallaras = audit.songs.find(song => song.id === 'no-fallaras');
   expect(noFallaras).toBeTruthy();
@@ -1112,10 +1128,15 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
 
   const orderSnapshots = await page.evaluate(() => ({
     sep21: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-09-21T12:00:00-04:00')),
+    oct5: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-10-05T12:00:00-04:00')),
+    oct6: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-10-06T12:00:00-04:00')),
     oct26Early: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-10-26T01:00:00-04:00')),
     oct26Active: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-10-26T06:01:00-04:00'))
   }));
   expect(orderSnapshots.sep21.upcoming).toEqual(['glorioso-dia','no-fallaras']);
+  expect(orderSnapshots.oct5.upcoming).not.toContain('dios-no-esta-muerto');
+  expect(orderSnapshots.oct6.current).toEqual(['dios-no-esta-muerto','glorioso-dia']);
+  expect(orderSnapshots.oct6.upcoming).not.toContain('dios-no-esta-muerto');
   expect(orderSnapshots.oct26Early.upcoming).toEqual(['no-fallaras']);
   expect(orderSnapshots.oct26Active.current).toContain('no-fallaras');
 
@@ -1133,6 +1154,8 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
   expect(source).toContain('function previewInternalTabSwitchActive()');
   expect(source).toContain('if(previewInternalTabSwitchActive())return;');
   expect(source).toContain('previewSource:raw.previewSource||(raw.previewAudioUrl?"webaudio":"")');
+  expect(source).toContain('!song.skipUpcoming');
+  expect(source).toContain('class="prep-rehearsals"');
   expect(source).toContain('renderOverlapAt(timestamp)');
   expect(source).toContain('function createCurrentSongCardNode(song)');
   expect(source).toContain('Reconcile by song ID instead of replacing host.innerHTML.');
@@ -1144,6 +1167,55 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
     const escaped = id.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
     const occurrences = (source.match(new RegExp(escaped, 'g')) || []).length;
     expect(occurrences, id + ' should be authored only once in SONG_CATALOG_SOURCE').toBe(1);
+  }
+});
+
+test('Dios No Está Muerto enters Prep directly with its campaign countdown, rehearsals and original Newsboys artwork', async ({ page }) => {
+  await openHealthyPage(page);
+  await page.waitForFunction(() => !!window.IPCDJ_CATALOG_TEST);
+
+  try{
+    const snapshot=await page.evaluate(() =>
+      window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-10-06T12:00:00-04:00'))
+    );
+
+    expect(snapshot.current).toEqual(['dios-no-esta-muerto','glorioso-dia']);
+    expect(snapshot.upcoming).not.toContain('dios-no-esta-muerto');
+    expect(snapshot.phases['dios-no-esta-muerto']).toBe('learning');
+
+    const card=page.locator('[data-current-song-card][data-song-id="dios-no-esta-muerto"]');
+    await expect(card).toHaveCount(1);
+    await expect(card).toContainText('Dios No Está Muerto');
+    await expect(card).toContainText('Miel San Marcos');
+    await expect(card.locator('[data-role="status"]')).toHaveText('AHORA EN PREPARACIÓN');
+    await expect(card.locator('[data-role="countdown-target"]')).toHaveText('Vie. 9 Oct · 7:00 PM');
+    await expect(card.locator('[data-role="countdown-days"]')).toHaveText('03');
+    await expect(card.locator('[data-role="countdown-hours"]')).toHaveText('07');
+
+    const rehearsalInfo=card.locator('[data-role="rehearsal-info"]');
+    await expect(rehearsalInfo).toBeVisible();
+    await expect(rehearsalInfo).toContainText('Martes, 6 de octubre');
+    await expect(rehearsalInfo).toContainText('8:15–9:00 PM');
+    await expect(rehearsalInfo).toContainText('Viernes, 9 de octubre');
+    await expect(rehearsalInfo).toContainText('7:00 PM');
+    await expect(rehearsalInfo.locator('.prep-rehearsal')).toHaveCount(2);
+
+    await expect(card).toHaveAttribute(
+      'data-cover-artwork-url',
+      'https://i.scdn.co/image/ab67616d0000b273dd0a598f02b4a196bd9f41b5'
+    );
+    await expect(card).toHaveAttribute('data-cover-artwork-source','verified-spotify-newsboys-original');
+    await expect(card.locator('[data-preview-song-id="dios-no-esta-muerto"]')).toHaveCount(1);
+
+    await page.waitForFunction(() => {
+      const card=document.querySelector('[data-current-song-card][data-song-id="dios-no-esta-muerto"]');
+      return card?.querySelector('.preview-button')?.dataset.bound==='true';
+    }, null, {timeout:15000});
+
+    await expect(page.locator('#upcoming-songs [data-song-id="dios-no-esta-muerto"]')).toHaveCount(0);
+    await expect(card.locator('[data-role="timeline-learning"]')).toHaveClass(/active-phase/);
+  }finally{
+    await page.evaluate(() => window.IPCDJ_CATALOG_TEST.resume());
   }
 });
 
@@ -1169,7 +1241,7 @@ test('multiple simultaneous Prep songs keep independent dates, countdowns, artwo
     );
 
     expect(synthetic).toHaveLength(2);
-    expect(synthetic.map(song=>song.id)).toEqual(['glorioso-dia','no-fallaras']);
+    expect(synthetic.map(song=>song.id)).toEqual(['dios-no-esta-muerto','glorioso-dia']);
     expect(synthetic.every(song=>song.phase==='learning')).toBe(true);
 
     const cards=page.locator('[data-current-song-card]');
@@ -1205,7 +1277,7 @@ test('multiple simultaneous Prep songs keep independent dates, countdowns, artwo
       preservedPreview:card.querySelector('[data-preview-song-id]')?.dataset.watchdogPreviewIdentity||''
     })));
 
-    expect(states.map(state=>state.id)).toEqual(['glorioso-dia','no-fallaras']);
+    expect(states.map(state=>state.id)).toEqual(['dios-no-esta-muerto','glorioso-dia']);
     const preservedGlorioso=states.find(state=>state.id==='glorioso-dia');
     expect(preservedGlorioso?.preservedCard).toBe('preserve');
     expect(preservedGlorioso?.preservedPreview).toBe('preserve');
@@ -1465,7 +1537,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
   });
   expect(serviceWorkerResponse.ok()).toBe(true);
   const serviceWorkerText = await serviceWorkerResponse.text();
-  expect(serviceWorkerText).toContain('ipcdj-worship-v182');
+  expect(serviceWorkerText).toContain('ipcdj-worship-v183');
   expect(serviceWorkerText).toContain('CACHE_FRESH_SHELL');
   expect(serviceWorkerText).toContain('refresh-test');
 
@@ -1512,7 +1584,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     // Simulate the exact failure we are guarding against: an installed PWA has
     // an older shell cached when the user performs one refresh.
-    const staleCache=await caches.open('ipcdj-worship-v182');
+    const staleCache=await caches.open('ipcdj-worship-v183');
     await staleCache.put(
       './__offline_index__',
       new Response('<!doctype html><meta name="ipcdj-build" content="stale-watchdog" />',{
@@ -1522,7 +1594,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     const staged=await window.IPCDJ_REFRESH_TEST.stageLatestShell();
     const keys=await caches.keys();
-    const cacheKey=keys.find(key=>key==='ipcdj-worship-v182')||'';
+    const cacheKey=keys.find(key=>key==='ipcdj-worship-v183')||'';
     let cachedBuild='';
     if(cacheKey){
       const cache=await caches.open(cacheKey);
@@ -1536,7 +1608,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
   expect(refreshStage.staged.ok).toBe(true);
   expect(refreshStage.staged.build).toBe(refreshStage.currentBuild);
-  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v182');
+  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v183');
   expect(refreshStage.cachedBuild).toBe(refreshStage.currentBuild);
 
   // Intentionally coarse runaway guards, not synthetic speed scores.
