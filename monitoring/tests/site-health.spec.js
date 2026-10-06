@@ -34,7 +34,7 @@ async function openHealthyPage(page) {
   expect(response.ok(), 'main document should return 2xx').toBeTruthy();
 
   await expect(page.locator('meta[name="ipcdj-build"]'))
-    .toHaveAttribute('content', /(?:persistent-launch|mobile-refresh|weekly-rollover)-v\d+/);
+    .toHaveAttribute('content', /(?:persistent-launch|mobile-refresh|weekly-rollover|campana-weekend)-v\d+/);
   await expect(page.locator('meta[name="ipcdj-environment"]'))
     .toHaveAttribute('content','staging');
   await expect(page.locator('meta[name="robots"]'))
@@ -452,11 +452,16 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   }
 
   const initialSelected=navLayout.tabStyles.find(tab=>tab.key==='inicio');
+  const initialCampaign=navLayout.tabStyles.find(tab=>tab.key==='campana-gu-2026');
   const initialWeekly=navLayout.tabStyles.find(tab=>tab.key==='worship-semanal');
+  const initialTabOrder=await page.evaluate(()=>window.IPCDJ_NAV.getVisibleTabs());
+  expect(initialTabOrder).toEqual(['inicio','campana-gu-2026','worship-semanal']);
   expect(initialSelected?.selected).toBe(true);
   expect(initialSelected?.accentHeight).toBeGreaterThanOrEqual(3);
   expect(initialSelected?.accentOpacity).toBeGreaterThan(.9);
   expect(initialSelected?.accentBackground).not.toBe('none');
+  expect(initialCampaign).toBeTruthy();
+  expect(initialCampaign?.accentOpacity).toBeLessThan(.1);
   expect(initialWeekly?.accentOpacity).toBeLessThan(.1);
 
   await expect(homeTab).toHaveAttribute('aria-selected', 'true');
@@ -508,27 +513,38 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   const fridayHistory=weeklyPanel.locator('[data-weekly-history-service="viernes"]');
   const sundayHistory=weeklyPanel.locator('[data-weekly-history-service="domingo"]');
 
-  // The Oct. 2/4 set has already passed its Sunday 3 PM cutoff and must be
-  // stored as the single Semana anterior while the new week is pending.
+  // The Oct. 2/4 set remains the single Semana anterior. This weekend is
+  // intentionally routed into the Campaña GU event dashboard instead of being
+  // duplicated as a normal weekly Friday/Sunday set.
   await expect(weeklyDashboard).toHaveAttribute('data-weekly-state','rolled');
   await expect(weeklyDashboard).toHaveAttribute('data-weekly-cycle','2026-10-04');
   await expect(weeklyDashboard).toHaveAttribute('data-weekly-rollover-at','2026-10-04T15:00:00-04:00');
+  await expect(weeklyDashboard).toHaveAttribute('data-weekly-special-event','campana-gu-2026');
+  await expect(weeklyDashboard).toHaveClass(/weekly-event-active/);
   await expect(fridayWeeklyTab).toHaveAttribute('aria-selected','true');
   await expect(sundayWeeklyTab).toHaveAttribute('aria-selected','false');
-  await expect(fridayWeeklyPanel).toBeVisible();
+  await expect(fridayWeeklyTab).toBeHidden();
+  await expect(sundayWeeklyTab).toBeHidden();
+  await expect(fridayWeeklyPanel).toBeHidden();
   await expect(sundayWeeklyPanel).toBeHidden();
   await expect(fridayWeeklyTab).toContainText('Pendiente');
   await expect(sundayWeeklyTab).toContainText('Pendiente');
-  await expect(weeklyPanel).toContainText('Nuevo set pendiente');
+  await expect(weeklyPanel).toContainText('Campaña GU 2026');
+  const campaignRedirect=weeklyPanel.locator('[data-weekly-event-redirect="campana-gu-2026"]');
+  await expect(campaignRedirect).toBeVisible();
+  await expect(campaignRedirect).toContainText('Este fin de semana es Campaña GU 2026');
+  await expect(campaignRedirect).toContainText('viernes, sábado y domingo');
   await expect(fridayWeeklyPanel).toContainText('Set pendiente');
+  await expect(sundayWeeklyPanel).toContainText('Set pendiente');
   await expect(fridayWeeklyPanel.locator('.weekly-song')).toHaveCount(0);
   await expect(sundayWeeklyPanel.locator('.weekly-song')).toHaveCount(0);
 
-  await sundayWeeklyTab.click();
-  await expect(sundayWeeklyTab).toHaveAttribute('aria-selected','true');
-  await expect(sundayWeeklyPanel).toBeVisible();
-  await expect(fridayWeeklyPanel).toBeHidden();
-  await expect(sundayWeeklyPanel).toContainText('Set pendiente');
+  // The routing CTA must switch into the campaign without disturbing the app shell.
+  await campaignRedirect.locator('[data-open-campaign="campana-gu-2026"]').click();
+  await expect(page.locator('#tab-campana-gu-2026')).toHaveAttribute('aria-selected','true');
+  await expect(page.locator('#panel-campana-gu-2026')).toBeVisible();
+  await weeklyTab.click();
+  await expect(weeklyPanel).toBeVisible();
 
   await expect(weeklyHistory.locator('summary')).toContainText('Semana anterior');
   await expect(weeklyHistory.locator('summary')).toContainText('4 oct 2026');
@@ -644,22 +660,6 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   expect(rolloverBoundary.secondAttempt).toBe(false);
   expect(rolloverBoundary.duplicateIds).toEqual([]);
 
-  await fridayWeeklyTab.click();
-  await expect(fridayWeeklyTab).toHaveAttribute('aria-selected','true');
-  await expect(fridayWeeklyPanel).toBeVisible();
-  await expect(fridayWeeklyPanel).toContainText('Set pendiente');
-  await sundayWeeklyTab.click();
-  await expect(sundayWeeklyTab).toHaveAttribute('aria-selected','true');
-  await expect(sundayWeeklyPanel).toBeVisible();
-
-  await sundayWeeklyTab.focus();
-  await page.keyboard.press('Home');
-  await expect(fridayWeeklyTab).toBeFocused();
-  await expect(fridayWeeklyTab).toHaveAttribute('aria-selected','true');
-  await page.keyboard.press('End');
-  await expect(sundayWeeklyTab).toBeFocused();
-  await expect(sundayWeeklyTab).toHaveAttribute('aria-selected','true');
-
   await expect(weeklyPanel).not.toHaveClass(/site-tab-panel-enter/);
 
   const launchClassAfterSwitch = await launch.getAttribute('class');
@@ -670,6 +670,8 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   expect(weeklySource).toContain('data-weekly-state="rolled"');
   expect(weeklySource).toContain('data-weekly-history-service="viernes"');
   expect(weeklySource).toContain('data-weekly-history-service="domingo"');
+  expect(weeklySource).toContain('data-weekly-special-event="campana-gu-2026"');
+  expect(weeklySource).toContain('data-open-campaign="campana-gu-2026"');
   expect(weeklySource).toContain('PLkLZ_UC3YYUw0TOBrAw19xENUYunh7URI');
   expect(weeklySource).toContain('https://u.pone.rs/jzehueif.pdf');
 
@@ -726,15 +728,99 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   const eventPanel = page.locator('#panel-campana-gu-2026');
   await expect(eventTab).toHaveAttribute('aria-selected', 'true');
   await expect(eventPanel).toBeVisible();
-  await expect(eventPanel).toContainText('Próximamente');
   await expect(eventPanel).toContainText('Campaña GU 2026');
+  await expect(eventPanel).toContainText('Llenos del Espíritu Santo');
+
+  const campaignFridayTab=eventPanel.locator('#campaign-tab-viernes');
+  const campaignSaturdayTab=eventPanel.locator('#campaign-tab-sabado');
+  const campaignSundayTab=eventPanel.locator('#campaign-tab-domingo');
+  const campaignFriday=eventPanel.locator('#campaign-panel-viernes');
+  const campaignSaturday=eventPanel.locator('#campaign-panel-sabado');
+  const campaignSunday=eventPanel.locator('#campaign-panel-domingo');
+
+  await expect(campaignFridayTab).toHaveAttribute('aria-selected','true');
+  await expect(campaignSaturdayTab).toHaveAttribute('aria-selected','false');
+  await expect(campaignSundayTab).toHaveAttribute('aria-selected','false');
+  await expect(campaignFriday).toBeVisible();
+  await expect(campaignSaturday).toBeHidden();
+  await expect(campaignSunday).toBeHidden();
+
+  await expect(campaignFriday).toContainText('Martes 6');
+  await expect(campaignFriday).toContainText('8:15–9:00 PM');
+  await expect(campaignFriday).toContainText('Viernes 9');
+  await expect(campaignFriday).toContainText('7:00 PM');
+  await expect(campaignFriday).toContainText('Dayari & Josselin');
+  await expect(campaignFriday.locator('.weekly-song')).toHaveCount(5);
+  await expect(campaignFriday.locator('.weekly-corito')).toHaveCount(4);
+  const campaignFridaySongs=await campaignFriday.locator('.weekly-song-title').allTextContents();
+  expect(campaignFridaySongs).toEqual([
+    'Dios No Está Muerto',
+    'Si Tu Presencia Conmigo No Va',
+    'Digno De Adorar',
+    'Mi Dios',
+    'Dios Es Más Grande'
+  ]);
+  await expect(campaignFriday).toContainText('Miel San Marcos');
+  await expect(campaignFriday).toContainText('Oasis Ministry');
+  await expect(campaignFriday).toContainText('Grupo Conexion');
+  await expect(campaignFriday).toContainText('Miel San Marcos & Ingrid Rosario');
+  await expect(campaignFriday).toContainText('Miel San Marcos & Danny Gokey');
+  await expect(campaignFriday).toContainText('Tono · Sol Mayor');
+  await expect(campaignFriday).toContainText('BPM · 65/130');
+  await expect(campaignFriday).toContainText('BPM · 68/136');
+  await expect(campaignFriday).toContainText('BPM · 73/146');
+  await expect(campaignFriday).toContainText('Re Mayor · 115 BPM');
+  await expect(campaignFriday).toContainText('Hay Poder Sin Igual Poder');
+  await expect(campaignFriday).toContainText('Conozco A Un Hombre De Poder');
+  await expect(campaignFriday).toContainText('Una Mirada De Fe');
+  await expect(campaignFriday).toContainText('Solamente En Cristo');
+  await expect(campaignFriday).toContainText('Ensayen con la canción, con metrónomo y eventualmente sin letra.');
+  await expect(campaignFriday.locator('.weekly-youtube-mark img[src="youtube-music.svg"]')).toHaveCount(1);
+  await expect(campaignFriday.locator('.weekly-youtube-frame iframe')).toHaveAttribute(
+    'src',
+    /youtube-nocookie\.com\/embed\/videoseries\?list=PLZPyN3qZEvrQ/
+  );
+  await expect(campaignFriday.locator('a[href*="youtube.com/playlist?list=PLZPyN3qZEvrQ"]')).toHaveCount(1);
+  await expect(campaignFriday.locator('a[href="https://u.pone.rs/xpifqdra.pdf"]')).toHaveCount(1);
+
+  await campaignSaturdayTab.click();
+  await expect(campaignSaturdayTab).toHaveAttribute('aria-selected','true');
+  await expect(campaignSaturday).toBeVisible();
+  await expect(campaignFriday).toBeHidden();
+  await expect(campaignSaturday).toContainText('Set del sábado pendiente');
+
+  await campaignSundayTab.click();
+  await expect(campaignSundayTab).toHaveAttribute('aria-selected','true');
+  await expect(campaignSunday).toBeVisible();
+  await expect(campaignSaturday).toBeHidden();
+  await expect(campaignSunday).toContainText('Set del domingo pendiente');
+
+  await campaignSundayTab.focus();
+  await page.keyboard.press('Home');
+  await expect(campaignFridayTab).toBeFocused();
+  await expect(campaignFridayTab).toHaveAttribute('aria-selected','true');
+  await page.keyboard.press('End');
+  await expect(campaignSundayTab).toBeFocused();
+  await expect(campaignSundayTab).toHaveAttribute('aria-selected','true');
+
+  const campaignOverflow=await eventPanel.evaluate(node=>({
+    scrollWidth:node.scrollWidth,
+    clientWidth:node.clientWidth
+  }));
+  expect(campaignOverflow.scrollWidth).toBeLessThanOrEqual(campaignOverflow.clientWidth+1);
 
   const expiredEventState = await page.evaluate(() => {
     window.IPCDJ_NAV.syncSpecialEvents(Date.parse('2026-10-12T00:00:00-04:00'));
+    const weeklyDashboard=document.querySelector('[data-weekly-dashboard]');
     const snapshot = {
       eventExists: !!document.getElementById('tab-campana-gu-2026'),
       activeKey: window.IPCDJ_NAV.getActiveKey(),
-      homeVisible: !document.getElementById('panel-inicio')?.hidden
+      homeVisible: !document.getElementById('panel-inicio')?.hidden,
+      visibleTabs: window.IPCDJ_NAV.getVisibleTabs(),
+      weeklyEventActive: weeklyDashboard?.classList.contains('weekly-event-active')||false,
+      weeklyRedirectVisible: weeklyDashboard
+        ? getComputedStyle(weeklyDashboard.querySelector('[data-weekly-event-redirect]')).display!=='none'
+        : true
     };
     window.IPCDJ_NAV.syncSpecialEvents(Date.now());
     return snapshot;
@@ -743,6 +829,9 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   expect(expiredEventState.eventExists).toBe(false);
   expect(expiredEventState.activeKey).toBe('inicio');
   expect(expiredEventState.homeVisible).toBe(true);
+  expect(expiredEventState.visibleTabs).toEqual(['inicio','worship-semanal']);
+  expect(expiredEventState.weeklyEventActive).toBe(false);
+  expect(expiredEventState.weeklyRedirectVisible).toBe(false);
 
   const phaseState = await page.locator('[data-current-song-card]').first().evaluate(card => {
     const phase = card.dataset.phase || '';
@@ -813,6 +902,7 @@ test('v184 primary navigation uses clean professional line-tab anatomy', async (
   expect(source).toContain('height:3px');
   expect(source).toContain('.site-tab[aria-selected="true"]::before');
   expect(source).toContain('.site-tab[data-special-event="true"] .site-tab-label::after');
+  expect(source).toContain('siteTabList.insertBefore(tab,weeklyTab)');
   expect(source).toContain('flex:1 1 0');
   expect(source).not.toContain('class="site-tab-selection"');
   expect(source).not.toContain('SITE_TAB_ICONS=Object.freeze');
@@ -1375,7 +1465,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
   });
   expect(serviceWorkerResponse.ok()).toBe(true);
   const serviceWorkerText = await serviceWorkerResponse.text();
-  expect(serviceWorkerText).toContain('ipcdj-worship-v181');
+  expect(serviceWorkerText).toContain('ipcdj-worship-v182');
   expect(serviceWorkerText).toContain('CACHE_FRESH_SHELL');
   expect(serviceWorkerText).toContain('refresh-test');
 
@@ -1422,7 +1512,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     // Simulate the exact failure we are guarding against: an installed PWA has
     // an older shell cached when the user performs one refresh.
-    const staleCache=await caches.open('ipcdj-worship-v181');
+    const staleCache=await caches.open('ipcdj-worship-v182');
     await staleCache.put(
       './__offline_index__',
       new Response('<!doctype html><meta name="ipcdj-build" content="stale-watchdog" />',{
@@ -1432,7 +1522,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     const staged=await window.IPCDJ_REFRESH_TEST.stageLatestShell();
     const keys=await caches.keys();
-    const cacheKey=keys.find(key=>key==='ipcdj-worship-v181')||'';
+    const cacheKey=keys.find(key=>key==='ipcdj-worship-v182')||'';
     let cachedBuild='';
     if(cacheKey){
       const cache=await caches.open(cacheKey);
@@ -1446,7 +1536,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
   expect(refreshStage.staged.ok).toBe(true);
   expect(refreshStage.staged.build).toBe(refreshStage.currentBuild);
-  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v181');
+  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v182');
   expect(refreshStage.cachedBuild).toBe(refreshStage.currentBuild);
 
   // Intentionally coarse runaway guards, not synthetic speed scores.
