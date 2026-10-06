@@ -15,12 +15,14 @@ concurrency:
 
 env:
   IPCDJ_STAGING_URL: https://staging.worship.ipcdj.org
+  IPCDJ_STAGING_FALLBACK_URL: https://ipcdj-worship-staging.pages.dev
 
 jobs:
   preflight:
     runs-on: ubuntu-latest
     outputs:
       ready: ${{ steps.endpoint.outputs.ready }}
+      base_url: ${{ steps.endpoint.outputs.base_url }}
     steps:
       - name: Check staging endpoint
         id: endpoint
@@ -29,10 +31,16 @@ jobs:
           set -euo pipefail
           if curl -fsSL --max-time 12 -H 'Cache-Control: no-cache'             "${IPCDJ_STAGING_URL}/?staging-preflight=${GITHUB_RUN_ID}"             | grep -q 'meta name="ipcdj-environment" content="staging"'; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
-            echo "Staging endpoint is connected."
+            echo "base_url=${IPCDJ_STAGING_URL}" >> "$GITHUB_OUTPUT"
+            echo "Custom staging endpoint is connected."
+          elif curl -fsSL --max-time 12 -H 'Cache-Control: no-cache'             "${IPCDJ_STAGING_FALLBACK_URL}/?staging-preflight=${GITHUB_RUN_ID}"             | grep -q 'meta name="ipcdj-environment" content="staging"'; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "base_url=${IPCDJ_STAGING_FALLBACK_URL}" >> "$GITHUB_OUTPUT"
+            echo "Custom DNS has not propagated to this runner yet; certifying the same Cloudflare Pages deployment through pages.dev."
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "Staging endpoint is not connected yet; the local seven-profile certification will run instead."
+            echo "base_url=" >> "$GITHUB_OUTPUT"
+            echo "No Cloudflare staging endpoint is reachable yet; the local seven-profile certification will run instead."
           fi
 
   local-health:
@@ -203,6 +211,8 @@ jobs:
     needs: preflight
     if: needs.preflight.outputs.ready == 'true'
     runs-on: ubuntu-latest
+    env:
+      IPCDJ_DEPLOYED_STAGING_URL: ${{ needs.preflight.outputs.base_url }}
     timeout-minutes: 45
     defaults:
       run:
@@ -261,9 +271,9 @@ jobs:
             nonce="${GITHUB_RUN_ID}-${attempt}"
             rm -f /tmp/ipcdj-staging-index /tmp/ipcdj-staging-sw /tmp/ipcdj-staging-headers
 
-            curl -fsSL --max-time 20 -H 'Cache-Control: no-cache'               "${IPCDJ_STAGING_URL}/?deploy-health=${nonce}"               -o /tmp/ipcdj-staging-index || true
-            curl -fsSL --max-time 20 -H 'Cache-Control: no-cache'               "${IPCDJ_STAGING_URL}/sw.js?deploy-health=${nonce}"               -o /tmp/ipcdj-staging-sw || true
-            curl -fsSIL --max-time 20 -H 'Cache-Control: no-cache'               "${IPCDJ_STAGING_URL}/?header-health=${nonce}"               -o /tmp/ipcdj-staging-headers || true
+            curl -fsSL --max-time 20 -H 'Cache-Control: no-cache'               "${IPCDJ_DEPLOYED_STAGING_URL}/?deploy-health=${nonce}"               -o /tmp/ipcdj-staging-index || true
+            curl -fsSL --max-time 20 -H 'Cache-Control: no-cache'               "${IPCDJ_DEPLOYED_STAGING_URL}/sw.js?deploy-health=${nonce}"               -o /tmp/ipcdj-staging-sw || true
+            curl -fsSIL --max-time 20 -H 'Cache-Control: no-cache'               "${IPCDJ_DEPLOYED_STAGING_URL}/?header-health=${nonce}"               -o /tmp/ipcdj-staging-headers || true
 
             LIVE_BUILD="$(grep -o 'meta name="ipcdj-build" content="[^"]*"' /tmp/ipcdj-staging-index 2>/dev/null | sed -E 's/.*content="([^"]*)".*/\1/' | head -n1 || true)"
             LIVE_INDEX_SHA="$(sha256sum /tmp/ipcdj-staging-index 2>/dev/null | awk '{print $1}' || true)"
@@ -283,7 +293,7 @@ jobs:
 
       - name: Run deployed seven-profile staging matrix
         env:
-          IPCDJ_BASE_URL: https://staging.worship.ipcdj.org
+          IPCDJ_BASE_URL: ${{ needs.preflight.outputs.base_url }}
         run: npx playwright test
 
       - name: Upload deployed staging diagnostics on failure
