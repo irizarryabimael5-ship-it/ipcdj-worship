@@ -1,0 +1,230 @@
+name: IPCDJ Live Social Preview Snapshot
+
+on:
+  workflow_run:
+    workflows: ["pages build and deployment"]
+    types: [completed]
+  schedule:
+    # Daily refresh also catches time-driven site changes that do not require a code deploy.
+    - cron: '15 11 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ipcdj-live-social-preview
+  cancel-in-progress: true
+
+jobs:
+  refresh-preview:
+    if: >-
+      ${{ github.event_name != 'workflow_run' ||
+          (github.event.workflow_run.conclusion == 'success' &&
+           github.event.workflow_run.head_branch == 'main') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out current production source
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Decide whether this deployment needs a new snapshot
+        id: guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          message="$(git log -1 --pretty=%s)"
+          if [ "$GITHUB_EVENT_NAME" = "workflow_run" ] && [[ "$message" == "Refresh live social preview snapshot"* ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "The deployment came from the generated preview commit; skipping the self-trigger."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Wait for current main build to be live
+        if: steps.guard.outputs.skip != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="$(grep -o 'meta name="ipcdj-build" content="[^"]*"' index.html | sed -E 's/.*content="([^"]*)".*/\1/' | head -n1)"
+          test -n "$expected"
+          echo "Waiting for live build: $expected"
+
+          for attempt in $(seq 1 48); do
+            body="$(curl -fsSL --max-time 20 -H 'Cache-Control: no-cache' "https://worship.ipcdj.org/?social-snapshot-wait=${GITHUB_RUN_ID}-${attempt}" || true)"
+            live="$(printf '%s' "$body" | grep -o 'meta name="ipcdj-build" content="[^"]*"' | sed -E 's/.*content="([^"]*)".*/\1/' | head -n1 || true)"
+            if [ "$live" = "$expected" ]; then
+              echo "Current production build confirmed on attempt $attempt."
+              exit 0
+            fi
+            echo "Attempt $attempt: live='$live' expected='$expected'"
+            sleep 10
+          done
+
+          echo "Timed out waiting for current production build."
+          exit 1
+
+      - name: Use Node.js
+        if: steps.guard.outputs.skip != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install screenshot runtime
+        if: steps.guard.outputs.skip != 'true'
+        working-directory: monitoring
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Capture actual live website
+        if: steps.guard.outputs.skip != 'true'
+        working-directory: monitoring
+        run: |
+          node --input-type=module <<'NODE'
+          import { chromium } from '@playwright/test';
+
+          const browser=await chromium.launch({headless:true});
+          try{
+            const context=await browser.newContext({
+              viewport:{width:1200,height:630},
+              deviceScaleFactor:1,
+              colorScheme:'dark'
+            });
+            const page=await context.newPage();
+            await page.goto(
+              'https://worship.ipcdj.org/?social-preview-capture='+Date.now(),
+              {waitUntil:'domcontentloaded',timeout:45000}
+            );
+
+            await page.waitForFunction(() => {
+              const current=document.querySelector('[data-current-song-card]');
+              const launch=document.getElementById('ipcdj-launch');
+              const launchDone=(
+                !document.documentElement.classList.contains('ipcdj-launch-active') &&
+                (!launch || launch.classList.contains('launch-idle') || Number(getComputedStyle(launch).opacity)<=0.01)
+              );
+              return !!current && launchDone;
+            }, null, {timeout:30000});
+
+            await page.waitForTimeout(900);
+            await page.evaluate(() => window.scrollTo({top:0,left:0,behavior:'auto'}));
+            await page.addStyleTag({content:`
+              html{scroll-behavior:auto!important}
+              *,*::before,*::after{
+                animation-play-state:paused!important;
+                transition:none!important;
+                caret-color:transparent!important;
+              }
+              ::-webkit-scrollbar{display:none!important}
+            `});
+            await page.waitForTimeout(180);
+
+            await page.screenshot({
+              path:'../social-preview-live.jpg',
+              type:'jpeg',
+              quality:90,
+              fullPage:false
+            });
+            await context.close();
+          }finally{
+            await browser.close();
+          }
+          NODE
+
+      - name: Optimize and color-tag preview
+        if: steps.guard.outputs.skip != 'true'
+        run: |
+          python -m pip install --disable-pip-version-check pillow==11.3.0
+          python - <<'PY'
+          from PIL import Image, ImageCms
+          from pathlib import Path
+
+          path=Path('social-preview-live.jpg')
+          image=Image.open(path).convert('RGB')
+          assert image.size==(1200,630), image.size
+          profile=ImageCms.ImageCmsProfile(ImageCms.createProfile('sRGB')).tobytes()
+
+          for quality in (88,84,80,76):
+              image.save(
+                  path,
+                  format='JPEG',
+                  quality=quality,
+                  optimize=True,
+                  progressive=True,
+                  subsampling=0,
+                  icc_profile=profile,
+              )
+              size=path.stat().st_size
+              if size < 350_000:
+                  break
+
+          data=path.read_bytes()
+          assert 10_000 < len(data) < 400_000, len(data)
+          checked=Image.open(path)
+          checked.load()
+          assert checked.size==(1200,630), checked.size
+          assert checked.mode=='RGB', checked.mode
+          assert checked.info.get('icc_profile'), 'missing sRGB ICC profile'
+          print('live social preview ready',checked.size,len(data))
+          PY
+
+      - name: Point social metadata at this snapshot version
+        if: steps.guard.outputs.skip != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          token="$(date -u +%Y%m%dT%H%M%SZ)"
+          export IPCDJ_SOCIAL_TOKEN="$token"
+          python - <<'PY'
+          import os,re
+          from pathlib import Path
+
+          path=Path('index.html')
+          html=path.read_text(encoding='utf-8')
+          token=os.environ['IPCDJ_SOCIAL_TOKEN']
+          new=f'https://worship.ipcdj.org/social-preview-live.jpg?v={token}'
+          pattern=r'https://worship\.ipcdj\.org/social-preview-(?:v180|live)\.jpg\?v=[A-Za-z0-9._-]+'
+          html,count=re.subn(pattern,new,html)
+          if count < 6:
+              raise SystemExit(f'Expected at least 6 social image references, found {count}')
+          path.write_text(html,encoding='utf-8')
+          print('social preview URL',new,'references',count)
+          PY
+
+      - name: Protect against concurrent production edits
+        if: steps.guard.outputs.skip != 'true'
+        id: lease
+        shell: bash
+        run: |
+          set -euo pipefail
+          local_sha="$(git rev-parse HEAD)"
+          git fetch origin main
+          remote_sha="$(git rev-parse origin/main)"
+          if [ "$local_sha" != "$remote_sha" ]; then
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+            echo "main moved from $local_sha to $remote_sha while the snapshot was being built; a newer deployment will trigger a fresh capture."
+          else
+            echo "stale=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish refreshed social snapshot
+        if: steps.guard.outputs.skip != 'true' && steps.lease.outputs.stale != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "IPCDJ Social Preview Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html social-preview-live.jpg
+
+          if git diff --cached --quiet; then
+            echo "No social preview change to publish."
+            exit 0
+          fi
+
+          git commit -m "Refresh live social preview snapshot"
+          git push origin HEAD:main
