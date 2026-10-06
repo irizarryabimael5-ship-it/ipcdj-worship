@@ -93,6 +93,9 @@ jobs:
           node --check ../notifications/sw-foundation.js
           node --check ../notifications/worker/src/index.js
           node --check ../notifications/scripts/export-catalog.mjs
+          node ../notifications/scripts/export-catalog.mjs > /tmp/ipcdj-notification-catalog.json
+          grep -q '"id": "dios-no-esta-muerto"' /tmp/ipcdj-notification-catalog.json
+          grep -q '"releaseAt": "2026-10-09T19:00:00-04:00"' /tmp/ipcdj-notification-catalog.json
 
       - name: Validate Cloudflare staging build output
         shell: bash
