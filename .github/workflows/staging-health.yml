@@ -29,11 +29,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if curl -fsSL --max-time 12 -H 'Cache-Control: no-cache'             "${IPCDJ_STAGING_URL}/?staging-preflight=${GITHUB_RUN_ID}"             | grep -q 'meta name="ipcdj-environment" content="staging"'; then
+          check_endpoint(){
+            local url="$1"
+            local file="$2"
+            rm -f "$file"
+            curl -fsSL --max-time 12 -H 'Cache-Control: no-cache' "${url}/?staging-preflight=${GITHUB_RUN_ID}" -o "$file" || return 1
+            grep -q 'meta name="ipcdj-environment" content="staging"' "$file"
+          }
+
+          if check_endpoint "${IPCDJ_STAGING_URL}" /tmp/ipcdj-staging-custom.html; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
             echo "base_url=${IPCDJ_STAGING_URL}" >> "$GITHUB_OUTPUT"
             echo "Custom staging endpoint is connected."
-          elif curl -fsSL --max-time 12 -H 'Cache-Control: no-cache'             "${IPCDJ_STAGING_FALLBACK_URL}/?staging-preflight=${GITHUB_RUN_ID}"             | grep -q 'meta name="ipcdj-environment" content="staging"'; then
+          elif check_endpoint "${IPCDJ_STAGING_FALLBACK_URL}" /tmp/ipcdj-staging-pages.html; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
             echo "base_url=${IPCDJ_STAGING_FALLBACK_URL}" >> "$GITHUB_OUTPUT"
             echo "Custom DNS has not propagated to this runner yet; certifying the same Cloudflare Pages deployment through pages.dev."
@@ -241,10 +249,14 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Validate rollover engine
+      - name: Validate rollover and managed-song export
         run: |
           node --check ../scripts/weekly-rollover.mjs
           node ../scripts/weekly-rollover.mjs --self-test
+          node --check ../notifications/scripts/export-catalog.mjs
+          node ../notifications/scripts/export-catalog.mjs > /tmp/ipcdj-notification-catalog.json
+          grep -q '"id": "dios-no-esta-muerto"' /tmp/ipcdj-notification-catalog.json
+          grep -q '"releaseAt": "2026-10-09T19:00:00-04:00"' /tmp/ipcdj-notification-catalog.json
 
       - name: Install health test dependencies
         run: npm install --no-audit --no-fund
