@@ -214,9 +214,11 @@ export function buildSongNotificationPlan(song,{nowMs=Date.now(),firstSeenAtMs=n
     add('added',nextAllowedDelivery(announceBase,timeZone));
   }
 
-  add('learning_start',atLocalDateFromIso(song.learningStart,9,12,timeZone));
-  const mid=midpointLocalEvening(song.learningStart,song.learningEnd,timeZone);
-  if(mid)add('learning_mid',mid);
+  if(!song.finalOnly){
+    add('learning_start',atLocalDateFromIso(song.learningStart,9,12,timeZone));
+    const mid=midpointLocalEvening(song.learningStart,song.learningEnd,timeZone);
+    if(mid)add('learning_mid',mid);
+  }
   add('final_start',atLocalDateFromIso(song.finalStart,9,12,timeZone));
   add('release_eve',atLocalDayOffsetFromIso(song.releaseDayStartAt,-1,18,12,timeZone));
   add('release_day',atLocalDateFromIso(song.releaseDayStartAt,8,12,timeZone));
