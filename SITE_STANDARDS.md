@@ -3328,3 +3328,13 @@ Watchdog:
 - Dios No Está Muerto uses the Spanish Miel San Marcos recording/preview but the original Newsboys `God's Not Dead` album artwork, per the approved creative direction.
 - Watchdogs must prove direct Prep entry, no Después appearance, exact countdown target, rehearsal metadata, artwork provenance, preview binding, and notification-catalog export.
 
+## Final-only direct Prep contract v184
+
+- A direct-to-Prep song may intentionally use only Preparación final when the available preparation window is too short for a meaningful Aprendizaje phase.
+- Mark such songs with `finalOnly:true` in `SONG_CATALOG_SOURCE`.
+- Required lifecycle timestamps remain present for schema compatibility, but the Aprendizaje window may collapse to the same instant as `finalStart`.
+- A final-only song must never render the Aprendizaje timeline row, Aprendizaje phase copy, or Aprendizaje notification events.
+- Its visible Preparación final range begins at `finalStart` and ends at `finalEnd`, followed by the normal Estreno and rollover behavior.
+- Notification export must preserve `finalOnly`, and the planner must skip `learning_start` and `learning_mid` for that song.
+- Watchdogs must verify exact final-preparation dates, absence of Aprendizaje UI, correct countdown, direct-Prep placement, preview/artwork integrity, and notification suppression.
+
