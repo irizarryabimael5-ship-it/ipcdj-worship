@@ -3342,7 +3342,7 @@ Watchdog:
 
 - The public WhatsApp/Facebook/X/Open Graph preview must no longer depend on a manually uploaded screenshot after the automated system is initialized.
 - The canonical generated asset is `social-preview-live.jpg`, rendered from the actual production site at `https://worship.ipcdj.org/`.
-- Every successful production Pages deployment triggers the live snapshot workflow. A daily scheduled refresh also captures time-driven visual changes that can occur without a source-code deployment.
+- Every production `main` push triggers the live snapshot workflow. Before capture, the workflow waits until that exact build marker is confirmed on `worship.ipcdj.org`, so the image is taken from the deployed site rather than from source files. A daily scheduled refresh also captures time-driven visual changes that can occur without a source-code deployment.
 - Capture size is exactly 1200×630 in a real Chromium browser after the launch layer has cleared and the current-song UI is rendered.
 - The generated JPEG is optimized, progressive, RGB, and tagged with an sRGB ICC profile.
 - Every generated snapshot updates all OG, Twitter, `image_src`, and itemprop image references to the same `social-preview-live.jpg?v=<unique-token>` URL so social crawlers receive a cache-busting image URL.
