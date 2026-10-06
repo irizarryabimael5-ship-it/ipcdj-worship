@@ -3288,3 +3288,53 @@ Watchdog:
   - two-frame compositor/paint settling: under 1000 ms.
 - Separating synchronous update cost from compositor scheduling prevents CI/WebKit frame scheduling from being misreported as application CPU lag while still enforcing strict real-time cadence performance.
 - Functional lifecycle, duplicate-ID, overflow, current-card-count and DOM-size checks remain mandatory alongside the performance budgets.
+
+## Worship semanal weekly rollover contract v181
+
+- Worship semanal uses one active weekly bundle containing Friday and Sunday plus one previous bundle under `Semana anterior`.
+- Every active bundle MUST declare:
+  - `data-weekly-state="active"`
+  - `data-weekly-cycle="YYYY-MM-DD"`, where the date is that bundle's Sunday.
+  - `data-weekly-rollover-at` as the exact Sunday 3:00 PM `America/New_York` instant, including the correct UTC offset for EDT/EST.
+- At the rollover instant, Friday and Sunday move together into `Semana anterior`; the current Friday and Sunday slots reset to `Pendiente`.
+- The browser runtime performs the visible rollover at the exact deadline and also re-checks when a suspended/backgrounded page becomes visible.
+- The source-level weekly rollover engine is idempotent: an already rolled bundle must never archive twice.
+- Only the most recently completed weekly bundle is retained in `Semana anterior`; older bundles are replaced, not accumulated.
+- When loading a new week's Friday and/or Sunday data after a rollover, preserve the existing `Semana anterior`, restore the active weekly state, and set the new cycle/deadline before publishing.
+- Friday remains the default nested weekly tab.
+- The weekly rollover watchdog must test 2:59:59 PM vs exactly 3:00:00 PM, preserve both service contents/resources, verify the current slots become pending, and verify no duplicate IDs are introduced.
+- The scheduled persistence workflow is a production feature. While the feature is still in staging, its engine is self-tested and browser-tested; its scheduled GitHub trigger becomes operational only after the approved feature is promoted to `main`.
+
+## Special-event Worship semanal routing contract v182
+
+- When a weekend is owned by a special event such as `Campaña GU 2026`, do not duplicate those event sets into the normal Worship semanal Friday/Sunday current slots.
+- Worship semanal should instead present a polished routing card that clearly tells the team the weekend's sets are inside the event tab and provides a direct in-app action to open it.
+- `Semana anterior` remains intact and visible beneath the special-event routing state.
+- While the event is active, the special-event primary tab sits between `Inicio` and `Worship semanal`; Worship semanal remains the final primary tab.
+- Campaña GU 2026 uses three nested service-day tabs in chronological order: `Viernes`, `Sábado`, `Domingo`.
+- Each campaign day owns its own service panel and resources. A day with no uploaded data must render a deliberate `Pendiente` state rather than borrowing or guessing another day's information.
+- Friday is the default campaign day when the event dashboard opens.
+- At the event expiration boundary, the primary event tab is removed, Worship semanal returns to its normal current-week presentation, and no stale event redirect remains visible.
+- Event-day watchdogs must verify exact song order, metadata, playlist/PDF resources, pending-day states, nested keyboard navigation, mobile overflow, primary-tab order, redirect behavior, and event expiry.
+
+## Direct-to-Prep exception contract v183
+
+- A newly added song may intentionally bypass `Después` when it is introduced too late for a meaningful coming-soon period.
+- Such a song must still live only once in `SONG_CATALOG_SOURCE`, use the normal managed lifecycle, and set `skipUpcoming:true`.
+- `renderUpcoming` and catalog snapshots must both respect `skipUpcoming` so the song never appears in Después even at pre-activation timestamps.
+- Direct-to-Prep songs must have a valid `activeFrom`, full release lifecycle, curated artwork provenance, deterministic future palette, and preview data when available.
+- If a Prep song has rehearsal information, author it as structured `rehearsals` data in the managed song object and render it only on that song's current Prep card.
+- Rehearsal information is preparation-only UI and should be hidden once the song reaches post-release states.
+- Dios No Está Muerto uses the Spanish Miel San Marcos recording/preview but the original Newsboys `God's Not Dead` album artwork, per the approved creative direction.
+- Watchdogs must prove direct Prep entry, no Después appearance, exact countdown target, rehearsal metadata, artwork provenance, preview binding, and notification-catalog export.
+
+## Final-only direct Prep contract v184
+
+- A direct-to-Prep song may intentionally use only Preparación final when the available preparation window is too short for a meaningful Aprendizaje phase.
+- Mark such songs with `finalOnly:true` in `SONG_CATALOG_SOURCE`.
+- Required lifecycle timestamps remain present for schema compatibility, but the Aprendizaje window may collapse to the same instant as `finalStart`.
+- A final-only song must never render the Aprendizaje timeline row, Aprendizaje phase copy, or Aprendizaje notification events.
+- Its visible Preparación final range begins at `finalStart` and ends at `finalEnd`, followed by the normal Estreno and rollover behavior.
+- Notification export must preserve `finalOnly`, and the planner must skip `learning_start` and `learning_mid` for that song.
+- Watchdogs must verify exact final-preparation dates, absence of Aprendizaje UI, correct countdown, direct-Prep placement, preview/artwork integrity, and notification suppression.
+
