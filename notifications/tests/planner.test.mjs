@@ -110,3 +110,33 @@ test('final preparation wording always includes the estreno date context',()=>{
     assert.match(msg.body,/octubre/i);
   }
 });
+
+test('final-only song suppresses Aprendizaje notifications and keeps final preparation plus estreno reminders',()=>{
+  const finalOnlySong={
+    id:'dios-no-esta-muerto',
+    title:'Dios No Está Muerto',
+    artist:'Miel San Marcos',
+    finalOnly:true,
+    activeFrom:'2026-10-06T00:00:00-04:00',
+    learningStart:'2026-10-06T00:00:00-04:00',
+    learningEnd:'2026-10-06T00:00:00-04:00',
+    finalStart:'2026-10-06T00:00:00-04:00',
+    finalEnd:'2026-10-08T23:59:59-04:00',
+    releaseDayStartAt:'2026-10-09T00:00:00-04:00',
+    releaseAt:'2026-10-09T19:00:00-04:00',
+    releaseDayEndAt:'2026-10-10T00:00:00-04:00',
+    rolloverAt:'2026-10-10T06:00:00-04:00',
+    introducedAt:'2026-10-10T06:00:00-04:00'
+  };
+  const plan=buildSongNotificationPlan(finalOnlySong,{
+    nowMs:Date.parse('2026-10-05T12:00:00-04:00'),
+    firstSeenAtMs:Date.parse('2026-10-05T12:00:00-04:00')
+  });
+  const kinds=plan.map(event=>event.kind);
+  assert.equal(kinds.includes('learning_start'),false);
+  assert.equal(kinds.includes('learning_mid'),false);
+  assert.equal(kinds.includes('final_start'),true);
+  assert.equal(kinds.includes('release_eve'),true);
+  assert.equal(kinds.includes('release_day'),true);
+});
+
