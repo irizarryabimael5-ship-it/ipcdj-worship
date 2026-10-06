@@ -1,0 +1,51 @@
+name: IPCDJ Weekly Worship Rollover
+
+on:
+  schedule:
+    # Covers 3 PM America/New_York in both EDT and EST. The rollover
+    # engine checks the exact ISO deadline and is idempotent.
+    - cron: '5 19-21 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ipcdj-weekly-worship-rollover
+  cancel-in-progress: false
+
+jobs:
+  rollover:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out production
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate rollover engine
+        run: node scripts/weekly-rollover.mjs --self-test
+
+      - name: Roll completed week if due
+        run: node scripts/weekly-rollover.mjs index.html
+
+      - name: Persist rollover
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- index.html; then
+            echo "No completed Worship semanal cycle is waiting to roll."
+            exit 0
+          fi
+
+          git config user.name "IPCDJ Worship Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html
+          git commit -m "Archive completed Worship semanal week"
+          git push origin HEAD:main
