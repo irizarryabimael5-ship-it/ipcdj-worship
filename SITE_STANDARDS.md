@@ -3305,3 +3305,15 @@ Watchdog:
 - The weekly rollover watchdog must test 2:59:59 PM vs exactly 3:00:00 PM, preserve both service contents/resources, verify the current slots become pending, and verify no duplicate IDs are introduced.
 - The scheduled persistence workflow is a production feature. While the feature is still in staging, its engine is self-tested and browser-tested; its scheduled GitHub trigger becomes operational only after the approved feature is promoted to `main`.
 
+## Special-event Worship semanal routing contract v182
+
+- When a weekend is owned by a special event such as `Campaña GU 2026`, do not duplicate those event sets into the normal Worship semanal Friday/Sunday current slots.
+- Worship semanal should instead present a polished routing card that clearly tells the team the weekend's sets are inside the event tab and provides a direct in-app action to open it.
+- `Semana anterior` remains intact and visible beneath the special-event routing state.
+- While the event is active, the special-event primary tab sits between `Inicio` and `Worship semanal`; Worship semanal remains the final primary tab.
+- Campaña GU 2026 uses three nested service-day tabs in chronological order: `Viernes`, `Sábado`, `Domingo`.
+- Each campaign day owns its own service panel and resources. A day with no uploaded data must render a deliberate `Pendiente` state rather than borrowing or guessing another day's information.
+- Friday is the default campaign day when the event dashboard opens.
+- At the event expiration boundary, the primary event tab is removed, Worship semanal returns to its normal current-week presentation, and no stale event redirect remains visible.
+- Event-day watchdogs must verify exact song order, metadata, playlist/PDF resources, pending-day states, nested keyboard navigation, mobile overflow, primary-tab order, redirect behavior, and event expiry.
+
