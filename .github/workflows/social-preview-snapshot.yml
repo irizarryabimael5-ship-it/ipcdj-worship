@@ -208,6 +208,7 @@ jobs:
           fi
 
       - name: Publish refreshed social snapshot
+        id: publish
         if: steps.guard.outputs.skip != 'true' && steps.lease.outputs.stale != 'true'
         shell: bash
         run: |
@@ -217,9 +218,60 @@ jobs:
           git add index.html social-preview-live.jpg
 
           if git diff --cached --quiet; then
+            echo "published=false" >> "$GITHUB_OUTPUT"
             echo "No social preview change to publish."
             exit 0
           fi
 
+          image_url="$(grep -o 'property="og:image" content="[^"]*"' index.html | sed -E 's/.*content="([^"]*)".*/\1/' | head -n1)"
+          test -n "$image_url"
+          echo "image_url=$image_url" >> "$GITHUB_OUTPUT"
+
           git commit -m "Refresh live social preview snapshot"
           git push origin HEAD:main
+          echo "published=true" >> "$GITHUB_OUTPUT"
+
+      - name: Verify deployed snapshot as a social crawler
+        if: steps.publish.outputs.published == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="${{ steps.publish.outputs.image_url }}"
+          test -n "$expected"
+
+          for attempt in $(seq 1 48); do
+            nonce="${GITHUB_RUN_ID}-${attempt}"
+            html="$(curl -fsSL --max-time 20 \
+              -A 'WhatsApp/2.25.25.85 A' \
+              -H 'Cache-Control: no-cache' \
+              "https://worship.ipcdj.org/?social-preview-verify=${nonce}" || true)"
+
+            if printf '%s' "$html" | grep -Fq "property=\"og:image\" content=\"${expected}\""; then
+              rm -f /tmp/ipcdj-social-preview.jpg
+              if curl -fsSL --max-time 20 \
+                -A 'WhatsApp/2.25.25.85 A' \
+                -H 'Cache-Control: no-cache' \
+                "${expected}&verify=${nonce}" \
+                -o /tmp/ipcdj-social-preview.jpg; then
+                bytes="$(wc -c < /tmp/ipcdj-social-preview.jpg | tr -d ' ')"
+                if [ "$bytes" -gt 10000 ] && [ "$bytes" -lt 400000 ]; then
+                  python - <<'PY'
+          from PIL import Image
+          im=Image.open('/tmp/ipcdj-social-preview.jpg')
+          im.load()
+          assert im.size==(1200,630), im.size
+          assert im.mode=='RGB', im.mode
+          print('deployed social preview verified',im.size)
+          PY
+                  echo "WhatsApp crawler verification passed on attempt $attempt ($bytes bytes)."
+                  exit 0
+                fi
+              fi
+            fi
+
+            echo "Attempt $attempt: generated social snapshot has not reached the public endpoint yet."
+            sleep 10
+          done
+
+          echo "Timed out waiting for the generated social snapshot to deploy."
+          exit 1
