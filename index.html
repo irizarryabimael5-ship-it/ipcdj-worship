@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="mobile-refresh-v180" />
+  <meta name="ipcdj-build" content="final-prep-v184" />
   <title>IPCDJ Worship | Ministerio de Alabanza</title>
   <meta name="description" content="Próximas canciones, preparación y estrenos del Ministerio de Alabanza de IPCDJ." />
   <link rel="canonical" href="https://worship.ipcdj.org/" />
@@ -1431,6 +1431,97 @@
       line-height:1.45;
     }
 
+    .weekly-history-grid{
+      display:grid;
+      gap:18px;
+      padding-top:4px;
+    }
+
+    .weekly-history-service{
+      margin-top:0;
+    }
+
+    .weekly-history-service + .weekly-history-service{
+      padding-top:2px;
+      border-top:1px solid rgba(255,255,255,.055);
+    }
+
+    .weekly-dashboard[data-weekly-state="rolled"] .weekly-status{
+      color:#b3bdcc;
+      border-color:rgba(255,255,255,.10);
+      background:rgba(255,255,255,.035);
+    }
+
+    .weekly-dashboard[data-weekly-state="rolled"] .weekly-status::before{
+      background:#8995a7;
+      box-shadow:none;
+    }
+
+    .weekly-event-redirect{
+      display:none;
+      margin:0 0 18px;
+      padding:clamp(20px,4vw,28px);
+      border:1px solid rgba(255,255,255,.09);
+      border-radius:24px;
+      background:
+        radial-gradient(circle at 88% 16%,rgba(244,195,92,.13),transparent 34%),
+        linear-gradient(145deg,rgba(255,255,255,.045),rgba(255,255,255,.018));
+      box-shadow:0 18px 46px rgba(0,0,0,.18);
+    }
+
+    .weekly-dashboard.weekly-event-active .weekly-event-redirect{
+      display:block;
+    }
+
+    .weekly-dashboard.weekly-event-active .weekly-service-tabs,
+    .weekly-dashboard.weekly-event-active > [data-weekly-panel]{
+      display:none!important;
+    }
+
+    .weekly-event-redirect .weekly-service-kicker{
+      color:#d8ad55;
+    }
+
+    .weekly-event-redirect h3{
+      margin:8px 0 7px;
+      color:#f5f7fb;
+      font-size:clamp(1.18rem,3.4vw,1.52rem);
+      letter-spacing:-.025em;
+    }
+
+    .weekly-event-redirect p{
+      margin:0;
+      max-width:660px;
+      color:#9ca8b9;
+      font-size:.82rem;
+      line-height:1.58;
+    }
+
+    .weekly-event-redirect-actions{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:18px;
+    }
+
+    .weekly-event-jump{
+      font:inherit;
+      cursor:pointer;
+    }
+
+    .campaign-dashboard{
+      padding-bottom:2px;
+    }
+
+    .campaign-day-panel[hidden]{
+      display:none!important;
+    }
+
+    .campaign-pending{
+      min-height:210px;
+    }
+
     .coming-soon-card{
       min-height:220px;
       display:grid;
@@ -2472,6 +2563,74 @@
       margin:8px 0 0;
       color:var(--muted);
       font-size:1rem;
+    }
+
+    .prep-rehearsals{
+      margin-top:18px;
+      padding:14px 15px;
+      border:1px solid rgba(255,255,255,.085);
+      border-radius:15px;
+      background:linear-gradient(145deg,rgba(255,255,255,.032),rgba(255,255,255,.014));
+    }
+
+    .prep-rehearsals-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:10px;
+    }
+
+    .prep-rehearsals-kicker{
+      color:#ece9e2;
+      font-size:.76rem;
+      font-weight:800;
+      letter-spacing:.065em;
+      text-transform:uppercase;
+    }
+
+    .prep-rehearsals-note{
+      color:#8f9aab;
+      font-size:.72rem;
+      font-weight:650;
+    }
+
+    .prep-rehearsals-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:8px;
+    }
+
+    .prep-rehearsal{
+      min-width:0;
+      padding:10px 11px;
+      border:1px solid rgba(255,255,255,.065);
+      border-radius:12px;
+      background:rgba(255,255,255,.018);
+    }
+
+    .prep-rehearsal strong,
+    .prep-rehearsal span{
+      display:block;
+    }
+
+    .prep-rehearsal strong{
+      color:#f3f5f8;
+      font-size:.79rem;
+      line-height:1.35;
+    }
+
+    .prep-rehearsal span{
+      margin-top:3px;
+      color:#d9c991;
+      font-size:.78rem;
+      font-weight:750;
+      font-variant-numeric:tabular-nums;
+    }
+
+    @media (max-width:520px){
+      .prep-rehearsals-grid{grid-template-columns:1fr}
+      .prep-rehearsals-head{align-items:flex-start;flex-direction:column;gap:3px}
     }
 
     .countdown-wrap{
@@ -4425,6 +4584,190 @@
       </div>
     </nav>
 
+    <template id="template-campana-gu-2026">
+      <div class="weekly-dashboard campaign-dashboard" data-campaign-dashboard>
+        <section class="weekly-overview">
+          <div class="weekly-overview-top">
+            <div>
+              <span class="weekly-kicker">Campaña GU 2026 · 9–11 de octubre</span>
+              <h2>Worship · Llenos del Espíritu Santo</h2>
+              <p>Repertorio, ensayos, recursos y detalles del equipo para cada servicio de la campaña.</p>
+            </div>
+            <span class="weekly-status">Viernes actualizado</span>
+          </div>
+
+          <div class="weekly-service-tabs campaign-day-tabs" role="tablist" aria-label="Días de la Campaña GU 2026">
+            <button class="weekly-service-tab campaign-day-tab" id="campaign-tab-viernes" type="button" role="tab" aria-selected="true" aria-controls="campaign-panel-viernes" tabindex="0" data-campaign-day="viernes">
+              <strong>Viernes</strong>
+              <small>Actualizado</small>
+            </button>
+            <button class="weekly-service-tab campaign-day-tab" id="campaign-tab-sabado" type="button" role="tab" aria-selected="false" aria-controls="campaign-panel-sabado" tabindex="-1" data-campaign-day="sabado">
+              <strong>Sábado</strong>
+              <small>Pendiente</small>
+            </button>
+            <button class="weekly-service-tab campaign-day-tab" id="campaign-tab-domingo" type="button" role="tab" aria-selected="false" aria-controls="campaign-panel-domingo" tabindex="-1" data-campaign-day="domingo">
+              <strong>Domingo</strong>
+              <small>Pendiente</small>
+            </button>
+          </div>
+        </section>
+
+        <section class="weekly-service-panel campaign-day-panel" id="campaign-panel-viernes" role="tabpanel" aria-labelledby="campaign-tab-viernes" data-campaign-day-panel="viernes">
+          <div class="weekly-service-heading">
+            <div>
+              <span class="weekly-service-kicker">Campaña GU · Viernes, 9 de octubre</span>
+              <h2>Worship set del viernes</h2>
+              <p>Orden del servicio, playlist, recursos y detalles de ensayo.</p>
+            </div>
+          </div>
+
+          <ul class="weekly-service-meta" aria-label="Detalles del servicio del viernes de campaña">
+            <li class="weekly-meta-card">
+              <span class="weekly-meta-label">Ensayo · Martes 6</span>
+              <span class="weekly-meta-value">8:15–9:00 PM</span>
+            </li>
+            <li class="weekly-meta-card">
+              <span class="weekly-meta-label">Ensayo · Viernes 9</span>
+              <span class="weekly-meta-value">7:00 PM</span>
+            </li>
+            <li class="weekly-meta-card">
+              <span class="weekly-meta-label">Coristas</span>
+              <span class="weekly-meta-value">Dayari &amp; Josselin</span>
+            </li>
+          </ul>
+
+          <section class="weekly-youtube-card" aria-labelledby="campaign-youtube-title-viernes">
+            <div class="weekly-youtube-frame">
+              <iframe
+                src="https://www.youtube-nocookie.com/embed/videoseries?list=PLZPyN3qZEvrQ"
+                title="Playlist de worship de la Campaña GU del viernes"
+                loading="lazy"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen></iframe>
+            </div>
+            <div class="weekly-youtube-info">
+              <span class="weekly-youtube-mark"><img src="youtube-music.svg" alt="" aria-hidden="true" width="22" height="22" decoding="async" />YouTube</span>
+              <h3 id="campaign-youtube-title-viernes">Playlist del viernes</h3>
+              <p>Escucha y repasa el repertorio de la primera noche de Campaña GU.</p>
+              <a class="weekly-action" href="https://youtube.com/playlist?list=PLZPyN3qZEvrQ&amp;si=opFC6xXIANgHPMxR" target="_blank" rel="noopener">Abrir playlist en YouTube</a>
+            </div>
+          </section>
+
+          <a class="weekly-resource" href="https://u.pone.rs/xpifqdra.pdf" target="_blank" rel="noopener">
+            <span class="weekly-resource-badge">PDF</span>
+            <span class="weekly-resource-text">
+              <strong>Letras &amp; Coritos</strong>
+              <small>Abrir recurso del viernes</small>
+            </span>
+          </a>
+
+          <section class="weekly-set-card" aria-labelledby="campaign-set-title-viernes">
+            <div class="weekly-section-head">
+              <h3 id="campaign-set-title-viernes">Canciones CDJ</h3>
+              <span>Compás · 4/4</span>
+            </div>
+
+            <ol class="weekly-song-list">
+              <li class="weekly-song">
+                <span class="weekly-song-index">01</span>
+                <span class="weekly-song-copy">
+                  <strong class="weekly-song-title">Dios No Está Muerto</strong>
+                  <span class="weekly-song-artist">Miel San Marcos</span>
+                  <span class="weekly-song-meta">
+                    <span>Tono · Sol Mayor</span>
+                    <span>BPM · 65/130</span>
+                  </span>
+                </span>
+              </li>
+              <li class="weekly-song">
+                <span class="weekly-song-index">02</span>
+                <span class="weekly-song-copy">
+                  <strong class="weekly-song-title">Si Tu Presencia Conmigo No Va</strong>
+                  <span class="weekly-song-artist">Oasis Ministry</span>
+                  <span class="weekly-song-meta">
+                    <span>Tono · Re Mayor</span>
+                    <span>BPM · 65/130</span>
+                  </span>
+                </span>
+              </li>
+              <li class="weekly-song">
+                <span class="weekly-song-index">03</span>
+                <span class="weekly-song-copy">
+                  <strong class="weekly-song-title">Digno De Adorar</strong>
+                  <span class="weekly-song-artist">Grupo Conexion</span>
+                  <span class="weekly-song-meta">
+                    <span>Tono · Re Mayor</span>
+                    <span>BPM · 68/136</span>
+                  </span>
+                </span>
+              </li>
+              <li class="weekly-song">
+                <span class="weekly-song-index">04</span>
+                <span class="weekly-song-copy">
+                  <strong class="weekly-song-title">Mi Dios</strong>
+                  <span class="weekly-song-artist">Miel San Marcos &amp; Ingrid Rosario</span>
+                  <span class="weekly-song-meta">
+                    <span>Tono · La Mayor</span>
+                    <span>BPM · 73/146</span>
+                  </span>
+                </span>
+              </li>
+              <li class="weekly-song">
+                <span class="weekly-song-index">05</span>
+                <span class="weekly-song-copy">
+                  <strong class="weekly-song-title">Dios Es Más Grande</strong>
+                  <span class="weekly-song-artist">Miel San Marcos &amp; Danny Gokey</span>
+                  <span class="weekly-song-meta">
+                    <span>Tono · La Mayor</span>
+                    <span>BPM · 73/146</span>
+                  </span>
+                </span>
+              </li>
+            </ol>
+          </section>
+
+          <section class="weekly-coritos-card" aria-labelledby="campaign-coritos-title-viernes">
+            <div class="weekly-section-head">
+              <h3 id="campaign-coritos-title-viernes">Coritos</h3>
+              <span>Re Mayor · 115 BPM</span>
+            </div>
+            <ol class="weekly-coritos-list">
+              <li class="weekly-corito">Hay Poder Sin Igual Poder</li>
+              <li class="weekly-corito">Conozco A Un Hombre De Poder</li>
+              <li class="weekly-corito">Una Mirada De Fe</li>
+              <li class="weekly-corito">Solamente En Cristo</li>
+            </ol>
+          </section>
+
+          <section class="weekly-note-card" aria-labelledby="campaign-note-title-viernes">
+            <h3 id="campaign-note-title-viernes">Nota de ensayo</h3>
+            <p>Ensayen con la canción, con metrónomo y eventualmente sin letra.</p>
+          </section>
+        </section>
+
+        <section class="weekly-service-panel campaign-day-panel" id="campaign-panel-sabado" role="tabpanel" aria-labelledby="campaign-tab-sabado" data-campaign-day-panel="sabado" hidden>
+          <div class="weekly-empty campaign-pending">
+            <div class="weekly-empty-inner">
+              <span class="weekly-service-kicker">Campaña GU · Sábado, 10 de octubre</span>
+              <h3>Set del sábado pendiente</h3>
+              <p>El repertorio, recursos y detalles del sábado aparecerán aquí cuando sean cargados.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="weekly-service-panel campaign-day-panel" id="campaign-panel-domingo" role="tabpanel" aria-labelledby="campaign-tab-domingo" data-campaign-day-panel="domingo" hidden>
+          <div class="weekly-empty campaign-pending">
+            <div class="weekly-empty-inner">
+              <span class="weekly-service-kicker">Campaña GU · Domingo, 11 de octubre</span>
+              <h3>Set del domingo pendiente</h3>
+              <p>El repertorio, recursos y detalles del domingo aparecerán aquí cuando sean cargados.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </template>
+
     <div id="site-tab-panels">
       <section class="site-tab-panel" id="panel-inicio" role="tabpanel" aria-labelledby="tab-inicio" tabindex="0">
 
@@ -4472,7 +4815,7 @@
       </section>
 
       <section class="site-tab-panel" id="panel-worship-semanal" role="tabpanel" aria-labelledby="tab-worship-semanal" tabindex="0" hidden>
-        <div class="weekly-dashboard" data-weekly-dashboard>
+        <div class="weekly-dashboard weekly-event-active" data-weekly-dashboard data-weekly-state="rolled" data-weekly-cycle="2026-10-04" data-weekly-rollover-at="2026-10-04T15:00:00-04:00" data-weekly-special-event="campana-gu-2026">
           <section class="weekly-overview">
             <div class="weekly-overview-top">
               <div>
@@ -4480,22 +4823,63 @@
                 <h2>Esta semana</h2>
                 <p>Sets, ensayo y recursos del equipo de adoración en un solo lugar.</p>
               </div>
-              <span class="weekly-status">Viernes + Domingo actualizados</span>
+              <span class="weekly-status" data-weekly-status>Campaña GU 2026</span>
             </div>
 
             <div class="weekly-service-tabs" role="tablist" aria-label="Servicios de Worship semanal">
               <button class="weekly-service-tab" id="weekly-tab-viernes" type="button" role="tab" aria-selected="true" aria-controls="weekly-panel-viernes" tabindex="0" data-weekly-service="viernes">
                 <strong>Viernes</strong>
-                <small>Actualizado</small>
+                <small>Pendiente</small>
               </button>
               <button class="weekly-service-tab" id="weekly-tab-domingo" type="button" role="tab" aria-selected="false" aria-controls="weekly-panel-domingo" tabindex="-1" data-weekly-service="domingo">
                 <strong>Domingo</strong>
-                <small>Actualizado</small>
+                <small>Pendiente</small>
               </button>
             </div>
           </section>
 
+          <section class="weekly-event-redirect" data-weekly-event-redirect="campana-gu-2026" aria-labelledby="weekly-event-redirect-title">
+            <span class="weekly-service-kicker">Worship de esta semana</span>
+            <h3 id="weekly-event-redirect-title">Este fin de semana es Campaña GU 2026</h3>
+            <p>Los repertorios de viernes, sábado y domingo están organizados en la pestaña Campaña GU 2026. Entra allí para ver los sets, ensayos, playlists, letras y coritos de cada servicio.</p>
+            <div class="weekly-event-redirect-actions">
+              <button class="weekly-action weekly-event-jump" type="button" data-open-campaign="campana-gu-2026">Ver Campaña GU 2026</button>
+            </div>
+          </section>
+
+          <!-- WEEKLY_CURRENT_VIERNES_START -->
           <section class="weekly-service-panel" id="weekly-panel-viernes" role="tabpanel" aria-labelledby="weekly-tab-viernes" data-weekly-panel="viernes">
+            <div class="weekly-empty">
+              <div class="weekly-empty-inner">
+                <span class="weekly-service-kicker">Viernes</span>
+                <h3>Set pendiente</h3>
+                <p>El nuevo worship set del viernes aparecerá aquí cuando sea actualizado.</p>
+              </div>
+            </div>
+          </section>
+          <!-- WEEKLY_CURRENT_VIERNES_END -->
+
+          <!-- WEEKLY_CURRENT_DOMINGO_START -->
+          <section class="weekly-service-panel" id="weekly-panel-domingo" role="tabpanel" aria-labelledby="weekly-tab-domingo" data-weekly-panel="domingo" hidden>
+            <div class="weekly-empty">
+              <div class="weekly-empty-inner">
+                <span class="weekly-service-kicker">Domingo</span>
+                <h3>Set pendiente</h3>
+                <p>El nuevo worship set del domingo aparecerá aquí cuando sea actualizado.</p>
+              </div>
+            </div>
+          </section>
+          <!-- WEEKLY_CURRENT_DOMINGO_END -->
+
+          <!-- WEEKLY_HISTORY_START -->
+          <details class="weekly-history">
+            <summary>
+              <span>Semana anterior</span>
+              <small>Semana terminada · 4 oct 2026</small>
+            </summary>
+            <div class="weekly-history-body" data-weekly-history-body data-weekly-history-cycle="2026-10-04">
+              <div class="weekly-history-grid">
+          <section class="weekly-service-panel weekly-history-service" data-weekly-history-service="viernes">
             <div class="weekly-service-heading">
               <div>
                 <span class="weekly-service-kicker">Servicio · Viernes</span>
@@ -4511,7 +4895,7 @@
               </li>
             </ul>
 
-            <section class="weekly-youtube-card" aria-labelledby="weekly-youtube-title-viernes">
+            <section class="weekly-youtube-card">
               <div class="weekly-youtube-frame">
                 <iframe
                   src="https://www.youtube-nocookie.com/embed/videoseries?list=PLJHxkkSIlf28"
@@ -4523,7 +4907,7 @@
               </div>
               <div class="weekly-youtube-info">
                 <span class="weekly-youtube-mark"><img src="youtube-music.svg" alt="" aria-hidden="true" width="22" height="22" decoding="async" />YouTube</span>
-                <h3 id="weekly-youtube-title-viernes">Playlist del servicio</h3>
+                <h3>Playlist del servicio</h3>
                 <p>Escucha y repasa las canciones del viernes directamente desde la playlist del equipo.</p>
                 <a class="weekly-action" href="https://youtube.com/playlist?list=PLJHxkkSIlf28&amp;si=ThKDucscTvGm9U3P" target="_blank" rel="noopener">Abrir playlist en YouTube</a>
               </div>
@@ -4537,9 +4921,9 @@
               </span>
             </a>
 
-            <section class="weekly-set-card" aria-labelledby="weekly-set-title-viernes">
+            <section class="weekly-set-card">
               <div class="weekly-section-head">
-                <h3 id="weekly-set-title-viernes">Canciones CDJ</h3>
+                <h3>Canciones CDJ</h3>
                 <span>Compás · 4/4</span>
               </div>
 
@@ -4591,9 +4975,9 @@
               </ol>
             </section>
 
-            <section class="weekly-coritos-card" aria-labelledby="weekly-coritos-title-viernes">
+            <section class="weekly-coritos-card">
               <div class="weekly-section-head">
-                <h3 id="weekly-coritos-title-viernes">Coritos</h3>
+                <h3>Coritos</h3>
                 <span>Re Mayor</span>
               </div>
               <ol class="weekly-coritos-list">
@@ -4607,13 +4991,12 @@
               </ol>
             </section>
 
-            <section class="weekly-note-card" aria-labelledby="weekly-note-title-viernes">
-              <h3 id="weekly-note-title-viernes">Nota de ensayo</h3>
+            <section class="weekly-note-card">
+              <h3>Nota de ensayo</h3>
               <p>Ensayen con la canción, con metrónomo y eventualmente sin letra.</p>
             </section>
           </section>
-
-          <section class="weekly-service-panel" id="weekly-panel-domingo" role="tabpanel" aria-labelledby="weekly-tab-domingo" data-weekly-panel="domingo" hidden>
+          <section class="weekly-service-panel weekly-history-service" data-weekly-history-service="domingo">
             <div class="weekly-service-heading">
               <div>
                 <span class="weekly-service-kicker">Servicio · Domingo</span>
@@ -4633,7 +5016,7 @@
               </li>
             </ul>
 
-            <section class="weekly-youtube-card" aria-labelledby="weekly-youtube-title">
+            <section class="weekly-youtube-card">
               <div class="weekly-youtube-frame">
                 <iframe
                   src="https://www.youtube-nocookie.com/embed/videoseries?list=PLkLZ_UC3YYUw0TOBrAw19xENUYunh7URI"
@@ -4645,7 +5028,7 @@
               </div>
               <div class="weekly-youtube-info">
                 <span class="weekly-youtube-mark"><img src="youtube-music.svg" alt="" aria-hidden="true" width="22" height="22" decoding="async" />YouTube</span>
-                <h3 id="weekly-youtube-title">Playlist del servicio</h3>
+                <h3>Playlist del servicio</h3>
                 <p>Escucha y repasa las canciones del domingo directamente desde la playlist del equipo.</p>
                 <a class="weekly-action" href="https://youtube.com/playlist?list=PLkLZ_UC3YYUw0TOBrAw19xENUYunh7URI&amp;si=BySOjP07fJaR0gI7" target="_blank" rel="noopener">Abrir playlist en YouTube</a>
               </div>
@@ -4659,9 +5042,9 @@
               </span>
             </a>
 
-            <section class="weekly-set-card" aria-labelledby="weekly-set-title">
+            <section class="weekly-set-card">
               <div class="weekly-section-head">
-                <h3 id="weekly-set-title">Canciones CDJ</h3>
+                <h3>Canciones CDJ</h3>
                 <span>Compás · 4/4</span>
               </div>
 
@@ -4723,9 +5106,9 @@
               </ol>
             </section>
 
-            <section class="weekly-coritos-card" aria-labelledby="weekly-coritos-title">
+            <section class="weekly-coritos-card">
               <div class="weekly-section-head">
-                <h3 id="weekly-coritos-title">Coritos</h3>
+                <h3>Coritos</h3>
                 <span>Re Mayor · 115 BPM</span>
               </div>
               <ol class="weekly-coritos-list">
@@ -4737,19 +5120,15 @@
               </ol>
             </section>
 
-            <section class="weekly-note-card" aria-labelledby="weekly-note-title">
-              <h3 id="weekly-note-title">Nota de ensayo</h3>
+            <section class="weekly-note-card">
+              <h3>Nota de ensayo</h3>
               <p>Ensayen con la canción, con metrónomo y eventualmente sin letra.</p>
             </section>
           </section>
-
-          <details class="weekly-history">
-            <summary>
-              <span>Semana anterior</span>
-              <small>El historial aparecerá aquí al guardar el próximo set</small>
-            </summary>
-            <div class="weekly-history-body">Todavía no hay una semana anterior cargada en Worship semanal.</div>
+              </div>
+            </div>
           </details>
+          <!-- WEEKLY_HISTORY_END -->
         </div>
       </section>
     </div>
@@ -4801,7 +5180,8 @@
         label:"Campaña GU 2026",
         eyebrow:"Evento especial · 9–11 Oct",
         title:"Próximamente",
-        description:"Aquí estará la información de worship para la Campaña GU 2026: repertorio, orden, músicos e indicaciones importantes para el equipo durante el evento.",
+        description:"Worship de Campaña GU 2026",
+        templateId:"template-campana-gu-2026",
         hideAt:"2026-10-12T00:00:00-04:00"
       }
     ];
@@ -4854,6 +5234,63 @@
       return true;
     }
 
+    function initCampaignDayTabs(panel){
+      if(!panel)return;
+      const tabs=[...panel.querySelectorAll('[data-campaign-day]')];
+      const panels=[...panel.querySelectorAll('[data-campaign-day-panel]')];
+      if(!tabs.length||!panels.length)return;
+
+      const activate=(key,{focus=false}={})=>{
+        const tab=tabs.find(item=>item.dataset.campaignDay===key);
+        const target=panels.find(item=>item.dataset.campaignDayPanel===key);
+        if(!tab||!target)return false;
+
+        tabs.forEach(item=>{
+          const selected=item===tab;
+          item.setAttribute("aria-selected",selected?"true":"false");
+          item.tabIndex=selected?0:-1;
+        });
+        panels.forEach(item=>{item.hidden=item!==target});
+        if(focus)tab.focus({preventScroll:true});
+        return true;
+      };
+
+      tabs.forEach(tab=>{
+        tab.addEventListener("click",()=>activate(tab.dataset.campaignDay));
+        tab.addEventListener("keydown",event=>{
+          if(!["ArrowLeft","ArrowRight","Home","End"].includes(event.key))return;
+          const current=tabs.indexOf(tab);
+          if(current<0)return;
+          event.preventDefault();
+          let next=current;
+          if(event.key==="Home")next=0;
+          else if(event.key==="End")next=tabs.length-1;
+          else if(event.key==="ArrowRight")next=(current+1)%tabs.length;
+          else if(event.key==="ArrowLeft")next=(current-1+tabs.length)%tabs.length;
+          activate(tabs[next].dataset.campaignDay,{focus:true});
+        });
+      });
+
+      activate("viernes");
+      window.IPCDJ_CAMPAIGN=Object.freeze({
+        activate:key=>activate(String(key||"")),
+        getActive:()=>tabs.find(tab=>tab.getAttribute("aria-selected")==="true")?.dataset.campaignDay||""
+      });
+    }
+
+    function syncWeeklyEventRedirect(active){
+      const dashboard=document.querySelector('[data-weekly-dashboard]');
+      if(!dashboard)return;
+      const isCampaign=active===true;
+      dashboard.classList.toggle("weekly-event-active",isCampaign);
+      const status=dashboard.querySelector('[data-weekly-status]');
+      if(status){
+        status.textContent=isCampaign
+          ?"Campaña GU 2026"
+          :(dashboard.dataset.weeklyState==="rolled"?"Nuevo set pendiente":status.textContent);
+      }
+    }
+
     function createSpecialEventNodes(event){
       if(!siteTabList||!siteTabPanels||siteTabButton(event.key))return;
 
@@ -4868,7 +5305,10 @@
       tab.dataset.siteTab=event.key;
       tab.dataset.specialEvent="true";
       setSiteTabContent(tab,event.label);
-      siteTabList.appendChild(tab);
+
+      const weeklyTab=siteTabButton("worship-semanal");
+      if(weeklyTab)siteTabList.insertBefore(tab,weeklyTab);
+      else siteTabList.appendChild(tab);
 
       const panel=document.createElement("section");
       panel.className="site-tab-panel";
@@ -4879,24 +5319,33 @@
       panel.dataset.sitePanel=event.key;
       panel.hidden=true;
 
-      const card=document.createElement("section");
-      card.className="card coming-soon-card";
-      const inner=document.createElement("div");
-      inner.className="coming-soon-inner";
-      const kicker=document.createElement("span");
-      kicker.className="coming-soon-kicker";
-      kicker.textContent=event.eyebrow;
-      const title=document.createElement("h2");
-      title.className="coming-soon-title";
-      title.textContent=event.title;
-      const purpose=document.createElement("p");
-      purpose.className="coming-soon-purpose";
-      purpose.textContent=event.description;
+      const template=event.templateId?document.getElementById(event.templateId):null;
+      if(template instanceof HTMLTemplateElement){
+        panel.appendChild(template.content.cloneNode(true));
+      }else{
+        const card=document.createElement("section");
+        card.className="card coming-soon-card";
+        const inner=document.createElement("div");
+        inner.className="coming-soon-inner";
+        const kicker=document.createElement("span");
+        kicker.className="coming-soon-kicker";
+        kicker.textContent=event.eyebrow;
+        const title=document.createElement("h2");
+        title.className="coming-soon-title";
+        title.textContent=event.title;
+        const purpose=document.createElement("p");
+        purpose.className="coming-soon-purpose";
+        purpose.textContent=event.description;
+        inner.append(kicker,title,purpose);
+        card.appendChild(inner);
+        panel.appendChild(card);
+      }
 
-      inner.append(kicker,title,purpose);
-      card.appendChild(inner);
-      panel.appendChild(card);
-      siteTabPanels.appendChild(panel);
+      const weeklyPanel=document.getElementById("panel-worship-semanal");
+      if(weeklyPanel)siteTabPanels.insertBefore(panel,weeklyPanel);
+      else siteTabPanels.appendChild(panel);
+
+      if(event.key==="campana-gu-2026")initCampaignDayTabs(panel);
     }
 
     function removeSpecialEventNodes(event){
@@ -4908,12 +5357,15 @@
 
     function syncSpecialEventTabs(now=Date.now()){
       const timestamp=Number(now);
+      let campaignVisible=false;
       SPECIAL_EVENT_TABS.forEach(event=>{
         const hideAt=Date.parse(event.hideAt);
         const visible=Number.isFinite(timestamp)&&Number.isFinite(hideAt)&&timestamp<hideAt;
+        if(event.key==="campana-gu-2026")campaignVisible=visible;
         if(visible)createSpecialEventNodes(event);
         else removeSpecialEventNodes(event);
       });
+      syncWeeklyEventRedirect(campaignVisible);
 
       if(!siteTabButton(activeSiteTabKey)){
         activateSiteTab("inicio");
@@ -4954,12 +5406,114 @@
       getVisibleTabs:()=>visibleSiteTabs().map(tab=>tab.dataset.siteTab)
     });
 
+    document.addEventListener("click",event=>{
+      const trigger=event.target.closest("[data-open-campaign]");
+      if(!trigger)return;
+      const key=trigger.getAttribute("data-open-campaign")||"campana-gu-2026";
+      activateSiteTab(key,{focus:false});
+      siteTabButton(key)?.scrollIntoView({block:"nearest",inline:"nearest"});
+    });
+
     // Worship semanal has its own Friday/Sunday view, independent from the
     // platform-wide navigation. Friday is the chronological default service.
     const weeklyServiceTabs=[...document.querySelectorAll('[data-weekly-service]')];
     const weeklyServicePanels=[...document.querySelectorAll('[data-weekly-panel]')];
 
-    function activateWeeklyService(key,{focus=false}={}){
+    const weeklyDashboard=document.querySelector('[data-weekly-dashboard]');
+    const weeklyHistory=document.querySelector('.weekly-history');
+    const weeklyHistoryBody=document.querySelector('[data-weekly-history-body]');
+    const weeklyStatus=document.querySelector('[data-weekly-status]');
+
+    const weeklyPendingMarkup=key=>`
+      <div class="weekly-empty">
+        <div class="weekly-empty-inner">
+          <span class="weekly-service-kicker">${key==="viernes"?"Viernes":"Domingo"}</span>
+          <h3>Set pendiente</h3>
+          <p>El nuevo worship set del ${key==="viernes"?"viernes":"domingo"} aparecerá aquí cuando sea actualizado.</p>
+        </div>
+      </div>`;
+
+    function weeklyCycleLabel(cycle){
+      if(!cycle)return "Semana anterior";
+      const date=new Date(cycle+"T12:00:00Z");
+      if(Number.isNaN(date.getTime()))return "Semana anterior";
+      const formatted=new Intl.DateTimeFormat("es-US",{
+        day:"numeric",month:"short",year:"numeric",timeZone:"UTC"
+      }).format(date).replace(".","");
+      return "Semana terminada · "+formatted;
+    }
+
+    function cloneWeeklyPanelForHistory(panel,key){
+      const clone=panel.cloneNode(true);
+      clone.classList.add("weekly-history-service");
+      clone.removeAttribute("id");
+      clone.removeAttribute("role");
+      clone.removeAttribute("aria-labelledby");
+      clone.removeAttribute("data-weekly-panel");
+      clone.removeAttribute("hidden");
+      clone.dataset.weeklyHistoryService=key;
+      clone.querySelectorAll("[id]").forEach(node=>node.removeAttribute("id"));
+      clone.querySelectorAll("[aria-labelledby]").forEach(node=>node.removeAttribute("aria-labelledby"));
+      clone.querySelectorAll("[aria-controls]").forEach(node=>node.removeAttribute("aria-controls"));
+      return clone;
+    }
+
+    function setWeeklyTabState(key,label){
+      const tab=weeklyServiceTabs.find(item=>item.dataset.weeklyService===key);
+      const small=tab?.querySelector("small");
+      if(small)small.textContent=label;
+    }
+
+    function applyWeeklyRolloverIfDue(now=Date.now()){
+      if(!weeklyDashboard||weeklyDashboard.dataset.weeklyState!=="active")return false;
+      const rolloverAt=Date.parse(weeklyDashboard.dataset.weeklyRolloverAt||"");
+      const timestamp=Number(now);
+      if(!Number.isFinite(rolloverAt)||!Number.isFinite(timestamp)||timestamp<rolloverAt)return false;
+
+      const cycle=weeklyDashboard.dataset.weeklyCycle||"";
+      const friday=weeklyServicePanels.find(panel=>panel.dataset.weeklyPanel==="viernes");
+      const sunday=weeklyServicePanels.find(panel=>panel.dataset.weeklyPanel==="domingo");
+      if(!friday||!sunday||!weeklyHistoryBody)return false;
+
+      const grid=document.createElement("div");
+      grid.className="weekly-history-grid";
+      grid.append(
+        cloneWeeklyPanelForHistory(friday,"viernes"),
+        cloneWeeklyPanelForHistory(sunday,"domingo")
+      );
+      weeklyHistoryBody.replaceChildren(grid);
+      weeklyHistoryBody.dataset.weeklyHistoryCycle=cycle;
+
+      const summarySmall=weeklyHistory?.querySelector("summary small");
+      if(summarySmall)summarySmall.textContent=weeklyCycleLabel(cycle);
+
+      friday.innerHTML=weeklyPendingMarkup("viernes");
+      sunday.innerHTML=weeklyPendingMarkup("domingo");
+      friday.hidden=false;
+      sunday.hidden=true;
+
+      setWeeklyTabState("viernes","Pendiente");
+      setWeeklyTabState("domingo","Pendiente");
+      if(weeklyStatus)weeklyStatus.textContent="Nuevo set pendiente";
+
+      weeklyDashboard.dataset.weeklyState="rolled";
+      activateWeeklyService("viernes");
+      return true;
+    }
+
+    function scheduleWeeklyRollover(){
+      if(!weeklyDashboard||weeklyDashboard.dataset.weeklyState!=="active")return;
+      const rolloverAt=Date.parse(weeklyDashboard.dataset.weeklyRolloverAt||"");
+      if(!Number.isFinite(rolloverAt))return;
+      const delay=rolloverAt-Date.now();
+      if(delay<=0){
+        applyWeeklyRolloverIfDue(Date.now());
+        return;
+      }
+      setTimeout(()=>applyWeeklyRolloverIfDue(Date.now()),Math.min(delay+50,2147483000));
+    }
+
+        function activateWeeklyService(key,{focus=false}={}){
       const tab=weeklyServiceTabs.find(item=>item.dataset.weeklyService===key);
       const panel=weeklyServicePanels.find(item=>item.dataset.weeklyPanel===key);
       if(!tab||!panel)return false;
@@ -4994,8 +5548,52 @@
 
     window.IPCDJ_WEEKLY=Object.freeze({
       activate:key=>activateWeeklyService(String(key||"")),
-      getActive:()=>weeklyServiceTabs.find(tab=>tab.getAttribute("aria-selected")==="true")?.dataset.weeklyService||""
+      getActive:()=>weeklyServiceTabs.find(tab=>tab.getAttribute("aria-selected")==="true")?.dataset.weeklyService||"",
+      rolloverIfDue:now=>applyWeeklyRolloverIfDue(now)
     });
+
+    window.IPCDJ_WEEKLY_TEST=Object.freeze({
+      snapshot(){
+        const historyServices=[...document.querySelectorAll('[data-weekly-history-service]')];
+        return {
+          state:weeklyDashboard?.dataset.weeklyState||"",
+          cycle:weeklyDashboard?.dataset.weeklyCycle||"",
+          rolloverAt:weeklyDashboard?.dataset.weeklyRolloverAt||"",
+          fridayCurrent:[...document.querySelectorAll('#weekly-panel-viernes .weekly-song-title')].map(n=>n.textContent.trim()),
+          sundayCurrent:[...document.querySelectorAll('#weekly-panel-domingo .weekly-song-title')].map(n=>n.textContent.trim()),
+          historyCycle:weeklyHistoryBody?.dataset.weeklyHistoryCycle||"",
+          history:historyServices.map(node=>({
+            service:node.dataset.weeklyHistoryService||"",
+            songs:[...node.querySelectorAll('.weekly-song-title')].map(n=>n.textContent.trim()),
+            coritos:[...node.querySelectorAll('.weekly-corito')].map(n=>n.textContent.trim())
+          }))
+        };
+      },
+      prepareFromHistory(rolloverAt){
+        if(!weeklyDashboard||!weeklyHistoryBody)return false;
+        const fridayHistory=weeklyHistoryBody.querySelector('[data-weekly-history-service="viernes"]');
+        const sundayHistory=weeklyHistoryBody.querySelector('[data-weekly-history-service="domingo"]');
+        const friday=weeklyServicePanels.find(panel=>panel.dataset.weeklyPanel==="viernes");
+        const sunday=weeklyServicePanels.find(panel=>panel.dataset.weeklyPanel==="domingo");
+        if(!fridayHistory||!sundayHistory||!friday||!sunday)return false;
+
+        friday.innerHTML=fridayHistory.innerHTML;
+        sunday.innerHTML=sundayHistory.innerHTML;
+        weeklyDashboard.dataset.weeklyState="active";
+        weeklyDashboard.dataset.weeklyRolloverAt=String(rolloverAt||"");
+        setWeeklyTabState("viernes","Actualizado");
+        setWeeklyTabState("domingo","Actualizado");
+        if(weeklyStatus)weeklyStatus.textContent="Viernes + Domingo actualizados";
+        activateWeeklyService("viernes");
+        return true;
+      },
+      rollover:now=>applyWeeklyRolloverIfDue(now)
+    });
+
+    document.addEventListener("visibilitychange",()=>{
+      if(!document.hidden)applyWeeklyRolloverIfDue(Date.now());
+    });
+    scheduleWeeklyRollover();
 
     const pullRefresh=document.querySelector(".pull-refresh");
     const refreshGlyph=pullRefresh ? pullRefresh.querySelector(".refresh-glyph") : null;
@@ -5540,6 +6138,38 @@
         releaseDayEndAt:"2026-09-28T00:00:00-04:00",
         introducedAt:"2026-09-28T06:00:00-04:00",
         rolloverAt:"2026-09-28T06:00:00-04:00",
+      },
+      {
+        id:"dios-no-esta-muerto",
+        title:"Dios No Está Muerto",
+        artist:"Miel San Marcos",
+        artworkQuery:"God's Not Dead Newsboys 2011",
+        artworkUrl:"https://i.scdn.co/image/ab67616d0000b273dd0a598f02b4a196bd9f41b5",
+        artworkSource:"spotify-newsboys-original",
+        futurePalette:[[48,58,69],[118,127,136],[203,192,164]],
+        spotifyTrackUri:"spotify:track:0XBYD82idDJOtcv4wXCzr5",
+        previewClipDuration:30,
+        previewUseFullAsset:true,
+        previewAudioProvider:"spotify",
+        previewAudioUrl:"https://p.scdn.co/mp3-preview/0330776b42b6e611816a6c0459e6cc3e1ed7df6a.mp3",
+        previewFadeIn:.70,
+        previewFadeOut:1.60,
+        skipUpcoming:true,
+        finalOnly:true,
+        rehearsals:[
+          {label:"Martes, 6 de octubre",time:"8:15–9:00 PM"},
+          {label:"Viernes, 9 de octubre",time:"7:00 PM"}
+        ],
+        activeFrom:"2026-10-06T00:00:00-04:00",
+        learningStart:"2026-10-06T00:00:00-04:00",
+        learningEnd:"2026-10-06T00:00:00-04:00",
+        finalStart:"2026-10-06T00:00:00-04:00",
+        finalEnd:"2026-10-08T23:59:59-04:00",
+        releaseDayStartAt:"2026-10-09T00:00:00-04:00",
+        releaseAt:"2026-10-09T19:00:00-04:00",
+        releaseDayEndAt:"2026-10-10T00:00:00-04:00",
+        introducedAt:"2026-10-10T06:00:00-04:00",
+        rolloverAt:"2026-10-10T06:00:00-04:00",
       },
       {
         id:"glorioso-dia",
@@ -9075,6 +9705,11 @@
       const releaseSettledAt=release+RELEASE_SETTLE_DELAY_MS;
       const introduced=new Date(song.rolloverAt||song.introducedAt).getTime();
 
+      if(song.finalOnly){
+        if(now<finalStart)return {key:"upcoming",label:"Próximamente",note:"Preparación final pendiente"};
+        if(now<releaseDayStart)return {key:"final",label:"Preparación final",note:"Preparación final · canción en preparación"};
+      }
+
       if(now<learningStart)return {key:"upcoming",label:"Próximamente",note:"Próxima fase · aprendizaje"};
       if(now<=learningEnd)return {key:"learning",label:"Aprendizaje",note:"Fase 1 de 3 · aprendizaje en curso"};
       if(now>=finalStart&&now<=finalEnd)return {key:"final",label:"Preparación final",note:"Fase 2 de 3 · preparación final"};
@@ -9144,6 +9779,20 @@
       const currentPreviewSection=currentPreviewMarkup
         ? '<div class="inline-preview" data-role="inline-preview"><div class="preview-queue">'+currentPreviewMarkup+'</div></div>'
         : "";
+      const rehearsalItems=Array.isArray(song.rehearsals)?song.rehearsals.filter(item=>item&&item.label&&item.time):[];
+      const learningTimelineMarkup=song.finalOnly
+        ? ""
+        : '<div class="timeline-item" data-role="timeline-learning"><div class="timeline-label">Aprendizaje</div><div class="timeline-date" data-role="learning-date"></div></div>';
+      const rehearsalMarkup=rehearsalItems.length
+        ? '<section class="prep-rehearsals" data-role="rehearsal-info" aria-label="Ensayos programados">'+
+            '<div class="prep-rehearsals-head"><span class="prep-rehearsals-kicker">Ensayos</span><span class="prep-rehearsals-note">Preparación de esta canción</span></div>'+
+            '<div class="prep-rehearsals-grid">'+
+              rehearsalItems.map(item=>
+                '<div class="prep-rehearsal"><strong>'+escapeHtml(item.label)+'</strong><span>'+escapeHtml(item.time)+'</span></div>'
+              ).join('')+
+            '</div>'+
+          '</section>'
+        : "";
       const explicitCover=song.artworkUrl ? highResolutionArtworkUrl(song.artworkUrl) : "";
       const explicitCoverAttr=explicitCover ? escapeHtml(explicitCover) : "";
       const explicitCoverCss=explicitCover
@@ -9177,6 +9826,7 @@
           </div>
 
           ${currentPreviewSection}
+          ${rehearsalMarkup}
 
           <div class="countdown-wrap" data-role="countdown-wrap">
             <div class="countdown-heading">
@@ -9204,10 +9854,7 @@
           </div>
 
           <div class="timeline">
-            <div class="timeline-item" data-role="timeline-learning">
-              <div class="timeline-label">Aprendizaje</div>
-              <div class="timeline-date" data-role="learning-date"></div>
-            </div>
+            ${learningTimelineMarkup}
             <div class="timeline-item" data-role="timeline-final">
               <div class="timeline-label">Preparación final</div>
               <div class="timeline-date" data-role="final-date"></div>
@@ -9348,7 +9995,7 @@
       }
 
       const prepControlsHidden=phase.key==="release"||phase.key==="released";
-      ["countdown-wrap","progress-wrap"].forEach(role=>{
+      ["rehearsal-info","countdown-wrap","progress-wrap"].forEach(role=>{
         const el=cardRole(card,role);
         if(el)el.setAttribute("aria-hidden",prepControlsHidden?"true":"false");
       });
@@ -9425,7 +10072,7 @@
         ensureCoverTheme(song,card);
       }
 
-      setCardText(card,"learning-date",song.learningLabel);
+      if(!song.finalOnly)setCardText(card,"learning-date",song.learningLabel);
       setCardText(card,"final-date",song.finalLabel);
       setCardText(card,"release-date",song.releaseLabel);
       setCardText(card,"countdown-target",song.releaseLabel+" · "+(song.releaseClockLabel||"11:00 AM"));
@@ -9599,6 +10246,7 @@
       const activeSet=activeIds instanceof Set?activeIds:new Set();
       const future=songPipeline
         .filter(song=>
+          !song.skipUpcoming&&
           !activeSet.has(song.id)&&
           now<new Date(song.activeFrom).getTime()
         )
@@ -9699,7 +10347,7 @@
         now:timestamp,
         current:Object.freeze(current.map(entry=>entry.song.id)),
         upcoming:Object.freeze(songPipeline
-          .filter(song=>!currentIds.has(song.id)&&timestamp<Date.parse(song.activeFrom))
+          .filter(song=>!song.skipUpcoming&&!currentIds.has(song.id)&&timestamp<Date.parse(song.activeFrom))
           .sort((a,b)=>
             Date.parse(a.activeFrom)-Date.parse(b.activeFrom)||
             Date.parse(a.releaseAt)-Date.parse(b.releaseAt)
@@ -9740,6 +10388,12 @@
         releaseLabel:song.releaseLabel,
         releaseShortLabel:song.releaseShortLabel,
         releaseClockLabel:song.releaseClockLabel,
+        skipUpcoming:!!song.skipUpcoming,
+        finalOnly:!!song.finalOnly,
+        rehearsals:Object.freeze((song.rehearsals||[]).map(item=>Object.freeze({
+          label:String(item.label||""),
+          time:String(item.time||"")
+        }))),
         artworkUrl:song.artworkUrl||"",
         artworkSource:song.artworkSource||"",
         futurePalette:Object.freeze((song.futurePalette||[]).map(color=>Object.freeze(color.slice(0,3)))),
@@ -9783,7 +10437,7 @@
       // Use the managed catalog order without re-authoring song IDs in source.
       // The catalog-integrity watchdog intentionally requires every ID literal to
       // appear only once: inside SONG_CATALOG_SOURCE.
-      const overlapSongs=songPipeline.slice(1,3);
+      const overlapSongs=songPipeline.filter(song=>!song.finalOnly).slice(1,3);
       const glorioso=overlapSongs[0];
       const noFallaras=overlapSongs[1];
       if(!glorioso||!noFallaras)throw new Error("Synthetic overlap songs unavailable");
