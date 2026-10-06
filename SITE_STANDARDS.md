@@ -3338,3 +3338,18 @@ Watchdog:
 - Notification export must preserve `finalOnly`, and the planner must skip `learning_start` and `learning_mid` for that song.
 - Watchdogs must verify exact final-preparation dates, absence of Aprendizaje UI, correct countdown, direct-Prep placement, preview/artwork integrity, and notification suppression.
 
+## Automated live social preview snapshot contract v185
+
+- The public WhatsApp/Facebook/X/Open Graph preview must no longer depend on a manually uploaded screenshot after the automated system is initialized.
+- The canonical generated asset is `social-preview-live.jpg`, rendered from the actual production site at `https://worship.ipcdj.org/`.
+- Every successful production Pages deployment triggers the live snapshot workflow. A daily scheduled refresh also captures time-driven visual changes that can occur without a source-code deployment.
+- Capture size is exactly 1200×630 in a real Chromium browser after the launch layer has cleared and the current-song UI is rendered.
+- The generated JPEG is optimized, progressive, RGB, and tagged with an sRGB ICC profile.
+- Every generated snapshot updates all OG, Twitter, `image_src`, and itemprop image references to the same `social-preview-live.jpg?v=<unique-token>` URL so social crawlers receive a cache-busting image URL.
+- The generated preview commit must never recursively trigger another snapshot generation. Its follow-up Pages deployment is intentionally ignored by the snapshot workflow.
+- Before publishing a generated snapshot, the workflow must verify that `main` did not move while the capture was being produced. If it did, discard the stale capture and allow the newer production deployment to trigger a replacement.
+- The legacy `social-preview-v180.jpg` may remain as a fallback/history asset but must not be treated as the long-term canonical preview once the live generated asset exists.
+- Social-preview-only generated commits are verified by the dedicated Social Preview Verify workflow rather than rerunning the full seven-profile Website Health matrix.
+- Website Health must continue validating that social metadata points to a crawler-accessible JPEG with 1200×630 metadata and production crawler access.
+- Existing previews already cached by WhatsApp/Meta or other messaging clients may remain visible in old conversations. The cache-busting URL is intended to make new scrapes and new shares resolve the newest generated image.
+
