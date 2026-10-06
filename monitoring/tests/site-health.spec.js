@@ -34,7 +34,7 @@ async function openHealthyPage(page) {
   expect(response.ok(), 'main document should return 2xx').toBeTruthy();
 
   await expect(page.locator('meta[name="ipcdj-build"]'))
-    .toHaveAttribute('content', /(?:persistent-launch|mobile-refresh|weekly-rollover|campana-weekend|direct-prep)-v\d+/);
+    .toHaveAttribute('content', /(?:persistent-launch|mobile-refresh|weekly-rollover|campana-weekend|direct-prep|final-prep)-v\d+/);
   await expect(page.locator('meta[name="ipcdj-environment"]'))
     .toHaveAttribute('content','staging');
   await expect(page.locator('meta[name="robots"]'))
@@ -1068,9 +1068,15 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
   expect(diosNoEstaMuerto.title).toBe('Dios No Está Muerto');
   expect(diosNoEstaMuerto.artist).toBe('Miel San Marcos');
   expect(diosNoEstaMuerto.skipUpcoming).toBe(true);
+  expect(diosNoEstaMuerto.finalOnly).toBe(true);
   expect(diosNoEstaMuerto.hasPreview).toBe(true);
   expect(diosNoEstaMuerto.artworkUrl).toBe('https://i.scdn.co/image/ab67616d0000b273dd0a598f02b4a196bd9f41b5');
   expect(diosNoEstaMuerto.artworkSource).toBe('spotify-newsboys-original');
+  expect(diosNoEstaMuerto.learningStart).toBe('2026-10-06T00:00:00-04:00');
+  expect(diosNoEstaMuerto.learningEnd).toBe('2026-10-06T00:00:00-04:00');
+  expect(diosNoEstaMuerto.finalStart).toBe('2026-10-06T00:00:00-04:00');
+  expect(diosNoEstaMuerto.finalEnd).toBe('2026-10-08T23:59:59-04:00');
+  expect(diosNoEstaMuerto.finalLabel).toBe('Mar. 6 Oct – Jue. 8 Oct');
   expect(diosNoEstaMuerto.releaseAt).toBe('2026-10-09T19:00:00-04:00');
   expect(diosNoEstaMuerto.releaseClockLabel).toBe('7:00 PM');
   expect(diosNoEstaMuerto.rehearsals).toEqual([
@@ -1116,7 +1122,7 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
     expect(song.releaseLabel.length).toBeGreaterThan(4);
     expect(song.releaseShortLabel.length).toBeGreaterThan(2);
     expect(song.releaseClockLabel).toMatch(/AM|PM/);
-    expect(song.learning).toBe('learning');
+    expect(song.learning).toBe(song.finalOnly?'final':'learning');
     expect(song.finalStage).toBe('final');
     expect(song.release).toBe('release');
     expect(song.released).toBe('released');
@@ -1155,6 +1161,8 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
   expect(source).toContain('if(previewInternalTabSwitchActive())return;');
   expect(source).toContain('previewSource:raw.previewSource||(raw.previewAudioUrl?"webaudio":"")');
   expect(source).toContain('!song.skipUpcoming');
+  expect(source).toContain('if(song.finalOnly)');
+  expect(source).toContain('learningTimelineMarkup=song.finalOnly');
   expect(source).toContain('class="prep-rehearsals"');
   expect(source).toContain('renderOverlapAt(timestamp)');
   expect(source).toContain('function createCurrentSongCardNode(song)');
@@ -1181,7 +1189,7 @@ test('Dios No Está Muerto enters Prep directly with its campaign countdown, reh
 
     expect(snapshot.current).toEqual(['dios-no-esta-muerto','glorioso-dia']);
     expect(snapshot.upcoming).not.toContain('dios-no-esta-muerto');
-    expect(snapshot.phases['dios-no-esta-muerto']).toBe('learning');
+    expect(snapshot.phases['dios-no-esta-muerto']).toBe('final');
 
     const card=page.locator('[data-current-song-card][data-song-id="dios-no-esta-muerto"]');
     await expect(card).toHaveCount(1);
@@ -1189,6 +1197,12 @@ test('Dios No Está Muerto enters Prep directly with its campaign countdown, reh
     await expect(card).toContainText('Miel San Marcos');
     await expect(card.locator('[data-role="status"]')).toHaveText('AHORA EN PREPARACIÓN');
     await expect(card.locator('[data-role="countdown-target"]')).toHaveText('Vie. 9 Oct · 7:00 PM');
+    await expect(card.locator('[data-role="timeline-learning"]')).toHaveCount(0);
+    await expect(card.locator('[data-role="timeline-final"]')).toHaveClass(/active-phase/);
+    await expect(card.locator('[data-role="final-date"]')).toHaveText('Mar. 6 Oct – Jue. 8 Oct');
+    await expect(card).not.toContainText('Aprendizaje');
+    await expect(card.locator('[data-role="progress-phase"]')).toHaveText('Preparación final');
+    await expect(card.locator('[data-role="progress-note"]')).toHaveText('Preparación final · canción en preparación');
     await expect(card.locator('[data-role="countdown-days"]')).toHaveText('03');
     await expect(card.locator('[data-role="countdown-hours"]')).toHaveText('07');
 
@@ -1213,7 +1227,6 @@ test('Dios No Está Muerto enters Prep directly with its campaign countdown, reh
     }, null, {timeout:15000});
 
     await expect(page.locator('#upcoming-songs [data-song-id="dios-no-esta-muerto"]')).toHaveCount(0);
-    await expect(card.locator('[data-role="timeline-learning"]')).toHaveClass(/active-phase/);
   }finally{
     await page.evaluate(() => window.IPCDJ_CATALOG_TEST.resume());
   }
@@ -1241,7 +1254,7 @@ test('multiple simultaneous Prep songs keep independent dates, countdowns, artwo
     );
 
     expect(synthetic).toHaveLength(2);
-    expect(synthetic.map(song=>song.id)).toEqual(['dios-no-esta-muerto','glorioso-dia']);
+    expect(synthetic.map(song=>song.id)).toEqual(['glorioso-dia','no-fallaras']);
     expect(synthetic.every(song=>song.phase==='learning')).toBe(true);
 
     const cards=page.locator('[data-current-song-card]');
@@ -1277,7 +1290,7 @@ test('multiple simultaneous Prep songs keep independent dates, countdowns, artwo
       preservedPreview:card.querySelector('[data-preview-song-id]')?.dataset.watchdogPreviewIdentity||''
     })));
 
-    expect(states.map(state=>state.id)).toEqual(['dios-no-esta-muerto','glorioso-dia']);
+    expect(states.map(state=>state.id)).toEqual(['glorioso-dia','no-fallaras']);
     const preservedGlorioso=states.find(state=>state.id==='glorioso-dia');
     expect(preservedGlorioso?.preservedCard).toBe('preserve');
     expect(preservedGlorioso?.preservedPreview).toBe('preserve');
@@ -1537,7 +1550,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
   });
   expect(serviceWorkerResponse.ok()).toBe(true);
   const serviceWorkerText = await serviceWorkerResponse.text();
-  expect(serviceWorkerText).toContain('ipcdj-worship-v183');
+  expect(serviceWorkerText).toContain('ipcdj-worship-v184');
   expect(serviceWorkerText).toContain('CACHE_FRESH_SHELL');
   expect(serviceWorkerText).toContain('refresh-test');
 
@@ -1584,7 +1597,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     // Simulate the exact failure we are guarding against: an installed PWA has
     // an older shell cached when the user performs one refresh.
-    const staleCache=await caches.open('ipcdj-worship-v183');
+    const staleCache=await caches.open('ipcdj-worship-v184');
     await staleCache.put(
       './__offline_index__',
       new Response('<!doctype html><meta name="ipcdj-build" content="stale-watchdog" />',{
@@ -1594,7 +1607,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     const staged=await window.IPCDJ_REFRESH_TEST.stageLatestShell();
     const keys=await caches.keys();
-    const cacheKey=keys.find(key=>key==='ipcdj-worship-v183')||'';
+    const cacheKey=keys.find(key=>key==='ipcdj-worship-v184')||'';
     let cachedBuild='';
     if(cacheKey){
       const cache=await caches.open(cacheKey);
@@ -1608,7 +1621,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
   expect(refreshStage.staged.ok).toBe(true);
   expect(refreshStage.staged.build).toBe(refreshStage.currentBuild);
-  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v183');
+  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v184');
   expect(refreshStage.cachedBuild).toBe(refreshStage.currentBuild);
 
   // Intentionally coarse runaway guards, not synthetic speed scores.
