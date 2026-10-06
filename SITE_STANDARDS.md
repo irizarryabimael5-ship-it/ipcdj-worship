@@ -3317,3 +3317,14 @@ Watchdog:
 - At the event expiration boundary, the primary event tab is removed, Worship semanal returns to its normal current-week presentation, and no stale event redirect remains visible.
 - Event-day watchdogs must verify exact song order, metadata, playlist/PDF resources, pending-day states, nested keyboard navigation, mobile overflow, primary-tab order, redirect behavior, and event expiry.
 
+## Direct-to-Prep exception contract v183
+
+- A newly added song may intentionally bypass `Después` when it is introduced too late for a meaningful coming-soon period.
+- Such a song must still live only once in `SONG_CATALOG_SOURCE`, use the normal managed lifecycle, and set `skipUpcoming:true`.
+- `renderUpcoming` and catalog snapshots must both respect `skipUpcoming` so the song never appears in Después even at pre-activation timestamps.
+- Direct-to-Prep songs must have a valid `activeFrom`, full release lifecycle, curated artwork provenance, deterministic future palette, and preview data when available.
+- If a Prep song has rehearsal information, author it as structured `rehearsals` data in the managed song object and render it only on that song's current Prep card.
+- Rehearsal information is preparation-only UI and should be hidden once the song reaches post-release states.
+- Dios No Está Muerto uses the Spanish Miel San Marcos recording/preview but the original Newsboys `God's Not Dead` album artwork, per the approved creative direction.
+- Watchdogs must prove direct Prep entry, no Después appearance, exact countdown target, rehearsal metadata, artwork provenance, preview binding, and notification-catalog export.
+
