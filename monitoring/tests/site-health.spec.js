@@ -34,7 +34,7 @@ async function openHealthyPage(page) {
   expect(response.ok(), 'main document should return 2xx').toBeTruthy();
 
   await expect(page.locator('meta[name="ipcdj-build"]'))
-    .toHaveAttribute('content', /(?:persistent-launch|mobile-refresh|weekly-rollover|campana-weekend|prep-dios-no-esta-muerto)-v\d+/);
+    .toHaveAttribute('content', /(?:persistent-launch|mobile-refresh|weekly-rollover|campana-weekend|direct-prep)-v\d+/);
   await expect(page.locator('meta[name="ipcdj-environment"]'))
     .toHaveAttribute('content','staging');
   await expect(page.locator('meta[name="robots"]'))
