@@ -34,7 +34,10 @@ async function openHealthyPage(page) {
   expect(response.ok(), 'main document should return 2xx').toBeTruthy();
 
   await expect(page.locator('meta[name="ipcdj-build"]'))
-    .toHaveAttribute('content', /(?:persistent-launch|mobile-refresh)-v\d+/);
+    .toHaveAttribute('content', /(?:persistent-launch|mobile-refresh|weekly-rollover|campana-weekend|direct-prep|final-prep)-v\d+/);
+  await expect(page.locator('meta[name="ipcdj-environment"]')).toHaveCount(0);
+  await expect(page.locator('meta[name="robots"]'))
+    .toHaveAttribute('content',/index,follow/);
 
   await page.waitForFunction(() => (
     !!window.IPCDJ_HEALTH &&
@@ -448,11 +451,16 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   }
 
   const initialSelected=navLayout.tabStyles.find(tab=>tab.key==='inicio');
+  const initialCampaign=navLayout.tabStyles.find(tab=>tab.key==='campana-gu-2026');
   const initialWeekly=navLayout.tabStyles.find(tab=>tab.key==='worship-semanal');
+  const initialTabOrder=await page.evaluate(()=>window.IPCDJ_NAV.getVisibleTabs());
+  expect(initialTabOrder).toEqual(['inicio','campana-gu-2026','worship-semanal']);
   expect(initialSelected?.selected).toBe(true);
   expect(initialSelected?.accentHeight).toBeGreaterThanOrEqual(3);
   expect(initialSelected?.accentOpacity).toBeGreaterThan(.9);
   expect(initialSelected?.accentBackground).not.toBe('none');
+  expect(initialCampaign).toBeTruthy();
+  expect(initialCampaign?.accentOpacity).toBeLessThan(.1);
   expect(initialWeekly?.accentOpacity).toBeLessThan(.1);
 
   await expect(homeTab).toHaveAttribute('aria-selected', 'true');
@@ -499,56 +507,82 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   const sundayWeeklyTab=weeklyPanel.locator('#weekly-tab-domingo');
   const fridayWeeklyPanel=weeklyPanel.locator('#weekly-panel-viernes');
   const sundayWeeklyPanel=weeklyPanel.locator('#weekly-panel-domingo');
+  const weeklyDashboard=weeklyPanel.locator('[data-weekly-dashboard]');
+  const weeklyHistory=weeklyPanel.locator('.weekly-history');
+  const fridayHistory=weeklyPanel.locator('[data-weekly-history-service="viernes"]');
+  const sundayHistory=weeklyPanel.locator('[data-weekly-history-service="domingo"]');
 
+  // The Oct. 2/4 set remains the single Semana anterior. This weekend is
+  // intentionally routed into the Campaña GU event dashboard instead of being
+  // duplicated as a normal weekly Friday/Sunday set.
+  await expect(weeklyDashboard).toHaveAttribute('data-weekly-state','rolled');
+  await expect(weeklyDashboard).toHaveAttribute('data-weekly-cycle','2026-10-04');
+  await expect(weeklyDashboard).toHaveAttribute('data-weekly-rollover-at','2026-10-04T15:00:00-04:00');
+  await expect(weeklyDashboard).toHaveAttribute('data-weekly-special-event','campana-gu-2026');
+  await expect(weeklyDashboard).toHaveClass(/weekly-event-active/);
   await expect(fridayWeeklyTab).toHaveAttribute('aria-selected','true');
   await expect(sundayWeeklyTab).toHaveAttribute('aria-selected','false');
-  await expect(fridayWeeklyPanel).toBeVisible();
+  await expect(fridayWeeklyTab).toBeHidden();
+  await expect(sundayWeeklyTab).toBeHidden();
+  await expect(fridayWeeklyPanel).toBeHidden();
   await expect(sundayWeeklyPanel).toBeHidden();
-  await expect(fridayWeeklyTab).toContainText('Actualizado');
-  await expect(weeklyPanel).toContainText('Viernes + Domingo actualizados');
+  await expect(fridayWeeklyTab).toContainText('Pendiente');
+  await expect(sundayWeeklyTab).toContainText('Pendiente');
+  await expect(weeklyPanel).toContainText('Campaña GU 2026');
+  const campaignRedirect=weeklyPanel.locator('[data-weekly-event-redirect="campana-gu-2026"]');
+  await expect(campaignRedirect).toBeVisible();
+  await expect(campaignRedirect).toContainText('Este fin de semana es Campaña GU 2026');
+  await expect(campaignRedirect).toContainText('viernes, sábado y domingo');
+  await expect(fridayWeeklyPanel).toContainText('Set pendiente');
+  await expect(sundayWeeklyPanel).toContainText('Set pendiente');
+  await expect(fridayWeeklyPanel.locator('.weekly-song')).toHaveCount(0);
+  await expect(sundayWeeklyPanel.locator('.weekly-song')).toHaveCount(0);
 
-  // Friday is the chronological default and must arrive fully populated.
-  await expect(fridayWeeklyPanel).toContainText('Worship set del viernes');
-  await expect(fridayWeeklyPanel).toContainText('Dayari');
-  await expect(fridayWeeklyPanel.locator('.weekly-song')).toHaveCount(4);
-  await expect(fridayWeeklyPanel.locator('.weekly-corito')).toHaveCount(7);
-  await expect(fridayWeeklyPanel).toContainText('Creados Para Adorar');
-  await expect(fridayWeeklyPanel).toContainText('Elmer Moroy');
-  await expect(fridayWeeklyPanel).toContainText('Sumérgeme');
-  await expect(fridayWeeklyPanel).toContainText('Jesús Adrián Romero');
-  await expect(fridayWeeklyPanel).toContainText('Cristo Yo Te Amo');
-  await expect(fridayWeeklyPanel).toContainText('Vino Nuevo');
-  await expect(fridayWeeklyPanel).toContainText('Tus Cuerdas De Amor');
-  await expect(fridayWeeklyPanel).toContainText('Julio Melgar feat. Lowsan Melgar');
-  await expect(fridayWeeklyPanel).toContainText('La Mayor');
-  await expect(fridayWeeklyPanel).toContainText('BPM · 90/180');
-  await expect(fridayWeeklyPanel).toContainText('Re Mayor');
-  await expect(fridayWeeklyPanel).toContainText('Yo No Sé A Lo Que Tú Has Venido');
-  await expect(fridayWeeklyPanel).toContainText('Cristo Rompe Las Cadenas');
-  await expect(fridayWeeklyPanel).toContainText('+ Mas');
-  await expect(fridayWeeklyPanel).toContainText('Ensayen con la canción, con metrónomo y eventualmente sin letra.');
-  await expect(fridayWeeklyPanel.locator('.weekly-youtube-mark img[src="youtube-music.svg"]')).toHaveCount(1);
-  await expect(fridayWeeklyPanel.locator('.weekly-youtube-mark img')).toHaveAttribute('width','22');
-  await expect(fridayWeeklyPanel.locator('.weekly-youtube-mark img')).toHaveAttribute('height','22');
-    await expect(fridayWeeklyPanel.locator('.weekly-youtube-frame iframe')).toHaveAttribute(
+  // The routing CTA must switch into the campaign without disturbing the app shell.
+  await campaignRedirect.locator('[data-open-campaign="campana-gu-2026"]').click();
+  await expect(page.locator('#tab-campana-gu-2026')).toHaveAttribute('aria-selected','true');
+  await expect(page.locator('#panel-campana-gu-2026')).toBeVisible();
+  await weeklyTab.click();
+  await expect(weeklyPanel).toBeVisible();
+
+  await expect(weeklyHistory.locator('summary')).toContainText('Semana anterior');
+  await expect(weeklyHistory.locator('summary')).toContainText('4 oct 2026');
+  await expect(weeklyPanel.locator('[data-weekly-history-body]')).toHaveAttribute('data-weekly-history-cycle','2026-10-04');
+  await weeklyHistory.locator('summary').click();
+  await expect(fridayHistory).toBeVisible();
+  await expect(sundayHistory).toBeVisible();
+
+  // Friday archive must preserve the completed set and every linked resource.
+  await expect(fridayHistory).toContainText('Worship set del viernes');
+  await expect(fridayHistory).toContainText('Dayari');
+  await expect(fridayHistory.locator('.weekly-song')).toHaveCount(4);
+  await expect(fridayHistory.locator('.weekly-corito')).toHaveCount(7);
+  await expect(fridayHistory).toContainText('Creados Para Adorar');
+  await expect(fridayHistory).toContainText('Elmer Moroy');
+  await expect(fridayHistory).toContainText('Sumérgeme');
+  await expect(fridayHistory).toContainText('Jesús Adrián Romero');
+  await expect(fridayHistory).toContainText('Cristo Yo Te Amo');
+  await expect(fridayHistory).toContainText('Vino Nuevo');
+  await expect(fridayHistory).toContainText('Tus Cuerdas De Amor');
+  await expect(fridayHistory).toContainText('Julio Melgar feat. Lowsan Melgar');
+  await expect(fridayHistory).toContainText('BPM · 90/180');
+  await expect(fridayHistory).toContainText('Cristo Rompe Las Cadenas');
+  await expect(fridayHistory).toContainText('+ Mas');
+  await expect(fridayHistory.locator('.weekly-youtube-mark img[src="youtube-music.svg"]')).toHaveCount(1);
+  await expect(fridayHistory.locator('.weekly-youtube-frame iframe')).toHaveAttribute(
     'src',
     /youtube-nocookie\.com\/embed\/videoseries\?list=PLJHxkkSIlf28/
   );
-  await expect(fridayWeeklyPanel.locator('a[href*="youtube.com/playlist?list=PLJHxkkSIlf28"]')).toHaveCount(1);
-  await expect(fridayWeeklyPanel.locator('a[href="https://u.pone.rs/iifwokqy.pdf"]')).toHaveCount(1);
+  await expect(fridayHistory.locator('a[href*="youtube.com/playlist?list=PLJHxkkSIlf28"]')).toHaveCount(1);
+  await expect(fridayHistory.locator('a[href="https://u.pone.rs/iifwokqy.pdf"]')).toHaveCount(1);
 
-  // Sunday content must remain intact and appear immediately when selected.
-  await sundayWeeklyTab.click();
-  await expect(sundayWeeklyTab).toHaveAttribute('aria-selected','true');
-  await expect(sundayWeeklyPanel).toBeVisible();
-  await expect(fridayWeeklyPanel).toBeHidden();
-  await expect(sundayWeeklyPanel).toContainText('Worship set del domingo');
-  await expect(sundayWeeklyPanel).toContainText('Ensayo');
-  await expect(sundayWeeklyPanel).toContainText('9:30 AM');
-  await expect(sundayWeeklyPanel).toContainText('Dayari');
-  await expect(sundayWeeklyPanel.locator('.weekly-song')).toHaveCount(5);
-  await expect(sundayWeeklyPanel.locator('.weekly-corito')).toHaveCount(5);
-  const sundaySongOrder=await sundayWeeklyPanel.locator('.weekly-song-title').allTextContents();
+  // Sunday archive must preserve the final five-song order and metadata.
+  await expect(sundayHistory).toContainText('Worship set del domingo');
+  await expect(sundayHistory).toContainText('9:30 AM');
+  await expect(sundayHistory).toContainText('Dayari');
+  await expect(sundayHistory.locator('.weekly-song')).toHaveCount(5);
+  await expect(sundayHistory.locator('.weekly-corito')).toHaveCount(5);
+  const sundaySongOrder=await sundayHistory.locator('.weekly-song-title').allTextContents();
   expect(sundaySongOrder).toEqual([
     'Dios De Milagros',
     'Algo Está Pasando',
@@ -556,25 +590,17 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
     'Permanecerás',
     'Yo Quiero Más De Ti'
   ]);
-  await expect(sundayWeeklyPanel).toContainText('Dios De Milagros');
-  await expect(sundayWeeklyPanel).toContainText('Algo Está Pasando');
-  await expect(sundayWeeklyPanel).toContainText('Hay Libertad');
-  await expect(sundayWeeklyPanel).toContainText('Permanecerás');
-  await expect(sundayWeeklyPanel).toContainText('Angel Luis Irizarry');
-  await expect(sundayWeeklyPanel).toContainText('BPM · 60/120');
-  await expect(sundayWeeklyPanel).toContainText('Yo Quiero Más De Ti');
-  await expect(sundayWeeklyPanel).toContainText('Do Sostenido Mayor');
-  await expect(sundayWeeklyPanel).toContainText('Re Mayor · 115 BPM');
-  await expect(sundayWeeklyPanel).toContainText('Ensayen con la canción, con metrónomo y eventualmente sin letra.');
-  await expect(sundayWeeklyPanel.locator('.weekly-youtube-mark img[src="youtube-music.svg"]')).toHaveCount(1);
-  await expect(sundayWeeklyPanel.locator('.weekly-youtube-mark img')).toHaveAttribute('width','22');
-  await expect(sundayWeeklyPanel.locator('.weekly-youtube-mark img')).toHaveAttribute('height','22');
-    await expect(sundayWeeklyPanel.locator('.weekly-youtube-frame iframe')).toHaveAttribute(
+  await expect(sundayHistory).toContainText('Angel Luis Irizarry');
+  await expect(sundayHistory).toContainText('BPM · 60/120');
+  await expect(sundayHistory).toContainText('Do Sostenido Mayor');
+  await expect(sundayHistory).toContainText('Re Mayor · 115 BPM');
+  await expect(sundayHistory.locator('.weekly-youtube-mark img[src="youtube-music.svg"]')).toHaveCount(1);
+  await expect(sundayHistory.locator('.weekly-youtube-frame iframe')).toHaveAttribute(
     'src',
     /youtube-nocookie\.com\/embed\/videoseries\?list=PLkLZ_UC3YYUw0TOBrAw19xENUYunh7URI/
   );
-  await expect(sundayWeeklyPanel.locator('a[href*="youtube.com/playlist?list=PLkLZ_UC3YYUw0TOBrAw19xENUYunh7URI"]')).toHaveCount(1);
-  await expect(sundayWeeklyPanel.locator('a[href="https://u.pone.rs/jzehueif.pdf"]')).toHaveCount(1);
+  await expect(sundayHistory.locator('a[href*="youtube.com/playlist?list=PLkLZ_UC3YYUw0TOBrAw19xENUYunh7URI"]')).toHaveCount(1);
+  await expect(sundayHistory.locator('a[href="https://u.pone.rs/jzehueif.pdf"]')).toHaveCount(1);
 
   const weeklyOverflow=await weeklyPanel.evaluate(node=>({
     scrollWidth:node.scrollWidth,
@@ -582,21 +608,56 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   }));
   expect(weeklyOverflow.scrollWidth).toBeLessThanOrEqual(weeklyOverflow.clientWidth+1);
 
-  await fridayWeeklyTab.click();
-  await expect(fridayWeeklyTab).toHaveAttribute('aria-selected','true');
-  await expect(fridayWeeklyPanel).toBeVisible();
-  await expect(fridayWeeklyPanel).toContainText('Worship set del viernes');
-  await sundayWeeklyTab.click();
-  await expect(sundayWeeklyTab).toHaveAttribute('aria-selected','true');
-  await expect(sundayWeeklyPanel).toBeVisible();
+  // Simulate the next active week to prove the exact 3 PM boundary, replacement
+  // of Semana anterior, pending reset, and idempotency.
+  const rolloverBoundary=await page.evaluate(() => {
+    const prepared=window.IPCDJ_WEEKLY_TEST.prepareFromHistory('2026-10-11T15:00:00-04:00');
+    const before=window.IPCDJ_WEEKLY_TEST.rollover(Date.parse('2026-10-11T14:59:59-04:00'));
+    const beforeSnapshot=window.IPCDJ_WEEKLY_TEST.snapshot();
+    const atBoundary=window.IPCDJ_WEEKLY_TEST.rollover(Date.parse('2026-10-11T15:00:00-04:00'));
+    const afterSnapshot=window.IPCDJ_WEEKLY_TEST.snapshot();
+    const secondAttempt=window.IPCDJ_WEEKLY_TEST.rollover(Date.parse('2026-10-11T16:00:00-04:00'));
+    const ids=[...document.querySelectorAll('[id]')].map(node=>node.id);
+    const duplicateIds=[...new Set(ids.filter((id,index)=>ids.indexOf(id)!==index))];
+    return {prepared,before,beforeSnapshot,atBoundary,afterSnapshot,secondAttempt,duplicateIds};
+  });
 
-  await sundayWeeklyTab.focus();
-  await page.keyboard.press('Home');
-  await expect(fridayWeeklyTab).toBeFocused();
-  await expect(fridayWeeklyTab).toHaveAttribute('aria-selected','true');
-  await page.keyboard.press('End');
-  await expect(sundayWeeklyTab).toBeFocused();
-  await expect(sundayWeeklyTab).toHaveAttribute('aria-selected','true');
+  expect(rolloverBoundary.prepared).toBe(true);
+  expect(rolloverBoundary.before).toBe(false);
+  expect(rolloverBoundary.beforeSnapshot.state).toBe('active');
+  expect(rolloverBoundary.beforeSnapshot.fridayCurrent).toEqual([
+    'Creados Para Adorar',
+    'Sumérgeme',
+    'Cristo Yo Te Amo',
+    'Tus Cuerdas De Amor'
+  ]);
+  expect(rolloverBoundary.beforeSnapshot.sundayCurrent).toEqual([
+    'Dios De Milagros',
+    'Algo Está Pasando',
+    'Hay Libertad',
+    'Permanecerás',
+    'Yo Quiero Más De Ti'
+  ]);
+  expect(rolloverBoundary.atBoundary).toBe(true);
+  expect(rolloverBoundary.afterSnapshot.state).toBe('rolled');
+  expect(rolloverBoundary.afterSnapshot.fridayCurrent).toEqual([]);
+  expect(rolloverBoundary.afterSnapshot.sundayCurrent).toEqual([]);
+  expect(rolloverBoundary.afterSnapshot.history).toHaveLength(2);
+  expect(rolloverBoundary.afterSnapshot.history[0].songs).toEqual([
+    'Creados Para Adorar',
+    'Sumérgeme',
+    'Cristo Yo Te Amo',
+    'Tus Cuerdas De Amor'
+  ]);
+  expect(rolloverBoundary.afterSnapshot.history[1].songs).toEqual([
+    'Dios De Milagros',
+    'Algo Está Pasando',
+    'Hay Libertad',
+    'Permanecerás',
+    'Yo Quiero Más De Ti'
+  ]);
+  expect(rolloverBoundary.secondAttempt).toBe(false);
+  expect(rolloverBoundary.duplicateIds).toEqual([]);
 
   await expect(weeklyPanel).not.toHaveClass(/site-tab-panel-enter/);
 
@@ -605,6 +666,11 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
 
   const weeklySource=await page.locator('#panel-worship-semanal').evaluate(node=>node.outerHTML);
   expect(weeklySource).toContain('data-weekly-dashboard');
+  expect(weeklySource).toContain('data-weekly-state="rolled"');
+  expect(weeklySource).toContain('data-weekly-history-service="viernes"');
+  expect(weeklySource).toContain('data-weekly-history-service="domingo"');
+  expect(weeklySource).toContain('data-weekly-special-event="campana-gu-2026"');
+  expect(weeklySource).toContain('data-open-campaign="campana-gu-2026"');
   expect(weeklySource).toContain('PLkLZ_UC3YYUw0TOBrAw19xENUYunh7URI');
   expect(weeklySource).toContain('https://u.pone.rs/jzehueif.pdf');
 
@@ -661,15 +727,99 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   const eventPanel = page.locator('#panel-campana-gu-2026');
   await expect(eventTab).toHaveAttribute('aria-selected', 'true');
   await expect(eventPanel).toBeVisible();
-  await expect(eventPanel).toContainText('Próximamente');
   await expect(eventPanel).toContainText('Campaña GU 2026');
+  await expect(eventPanel).toContainText('Llenos del Espíritu Santo');
+
+  const campaignFridayTab=eventPanel.locator('#campaign-tab-viernes');
+  const campaignSaturdayTab=eventPanel.locator('#campaign-tab-sabado');
+  const campaignSundayTab=eventPanel.locator('#campaign-tab-domingo');
+  const campaignFriday=eventPanel.locator('#campaign-panel-viernes');
+  const campaignSaturday=eventPanel.locator('#campaign-panel-sabado');
+  const campaignSunday=eventPanel.locator('#campaign-panel-domingo');
+
+  await expect(campaignFridayTab).toHaveAttribute('aria-selected','true');
+  await expect(campaignSaturdayTab).toHaveAttribute('aria-selected','false');
+  await expect(campaignSundayTab).toHaveAttribute('aria-selected','false');
+  await expect(campaignFriday).toBeVisible();
+  await expect(campaignSaturday).toBeHidden();
+  await expect(campaignSunday).toBeHidden();
+
+  await expect(campaignFriday).toContainText('Martes 6');
+  await expect(campaignFriday).toContainText('8:15–9:00 PM');
+  await expect(campaignFriday).toContainText('Viernes 9');
+  await expect(campaignFriday).toContainText('7:00 PM');
+  await expect(campaignFriday).toContainText('Dayari & Josselin');
+  await expect(campaignFriday.locator('.weekly-song')).toHaveCount(5);
+  await expect(campaignFriday.locator('.weekly-corito')).toHaveCount(4);
+  const campaignFridaySongs=await campaignFriday.locator('.weekly-song-title').allTextContents();
+  expect(campaignFridaySongs).toEqual([
+    'Dios No Está Muerto',
+    'Si Tu Presencia Conmigo No Va',
+    'Digno De Adorar',
+    'Mi Dios',
+    'Dios Es Más Grande'
+  ]);
+  await expect(campaignFriday).toContainText('Miel San Marcos');
+  await expect(campaignFriday).toContainText('Oasis Ministry');
+  await expect(campaignFriday).toContainText('Grupo Conexion');
+  await expect(campaignFriday).toContainText('Miel San Marcos & Ingrid Rosario');
+  await expect(campaignFriday).toContainText('Miel San Marcos & Danny Gokey');
+  await expect(campaignFriday).toContainText('Tono · Sol Mayor');
+  await expect(campaignFriday).toContainText('BPM · 65/130');
+  await expect(campaignFriday).toContainText('BPM · 68/136');
+  await expect(campaignFriday).toContainText('BPM · 73/146');
+  await expect(campaignFriday).toContainText('Re Mayor · 115 BPM');
+  await expect(campaignFriday).toContainText('Hay Poder Sin Igual Poder');
+  await expect(campaignFriday).toContainText('Conozco A Un Hombre De Poder');
+  await expect(campaignFriday).toContainText('Una Mirada De Fe');
+  await expect(campaignFriday).toContainText('Solamente En Cristo');
+  await expect(campaignFriday).toContainText('Ensayen con la canción, con metrónomo y eventualmente sin letra.');
+  await expect(campaignFriday.locator('.weekly-youtube-mark img[src="youtube-music.svg"]')).toHaveCount(1);
+  await expect(campaignFriday.locator('.weekly-youtube-frame iframe')).toHaveAttribute(
+    'src',
+    /youtube-nocookie\.com\/embed\/videoseries\?list=PLZPyN3qZEvrQ/
+  );
+  await expect(campaignFriday.locator('a[href*="youtube.com/playlist?list=PLZPyN3qZEvrQ"]')).toHaveCount(1);
+  await expect(campaignFriday.locator('a[href="https://u.pone.rs/xpifqdra.pdf"]')).toHaveCount(1);
+
+  await campaignSaturdayTab.click();
+  await expect(campaignSaturdayTab).toHaveAttribute('aria-selected','true');
+  await expect(campaignSaturday).toBeVisible();
+  await expect(campaignFriday).toBeHidden();
+  await expect(campaignSaturday).toContainText('Set del sábado pendiente');
+
+  await campaignSundayTab.click();
+  await expect(campaignSundayTab).toHaveAttribute('aria-selected','true');
+  await expect(campaignSunday).toBeVisible();
+  await expect(campaignSaturday).toBeHidden();
+  await expect(campaignSunday).toContainText('Set del domingo pendiente');
+
+  await campaignSundayTab.focus();
+  await page.keyboard.press('Home');
+  await expect(campaignFridayTab).toBeFocused();
+  await expect(campaignFridayTab).toHaveAttribute('aria-selected','true');
+  await page.keyboard.press('End');
+  await expect(campaignSundayTab).toBeFocused();
+  await expect(campaignSundayTab).toHaveAttribute('aria-selected','true');
+
+  const campaignOverflow=await eventPanel.evaluate(node=>({
+    scrollWidth:node.scrollWidth,
+    clientWidth:node.clientWidth
+  }));
+  expect(campaignOverflow.scrollWidth).toBeLessThanOrEqual(campaignOverflow.clientWidth+1);
 
   const expiredEventState = await page.evaluate(() => {
     window.IPCDJ_NAV.syncSpecialEvents(Date.parse('2026-10-12T00:00:00-04:00'));
+    const weeklyDashboard=document.querySelector('[data-weekly-dashboard]');
     const snapshot = {
       eventExists: !!document.getElementById('tab-campana-gu-2026'),
       activeKey: window.IPCDJ_NAV.getActiveKey(),
-      homeVisible: !document.getElementById('panel-inicio')?.hidden
+      homeVisible: !document.getElementById('panel-inicio')?.hidden,
+      visibleTabs: window.IPCDJ_NAV.getVisibleTabs(),
+      weeklyEventActive: weeklyDashboard?.classList.contains('weekly-event-active')||false,
+      weeklyRedirectVisible: weeklyDashboard
+        ? getComputedStyle(weeklyDashboard.querySelector('[data-weekly-event-redirect]')).display!=='none'
+        : true
     };
     window.IPCDJ_NAV.syncSpecialEvents(Date.now());
     return snapshot;
@@ -678,6 +828,9 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   expect(expiredEventState.eventExists).toBe(false);
   expect(expiredEventState.activeKey).toBe('inicio');
   expect(expiredEventState.homeVisible).toBe(true);
+  expect(expiredEventState.visibleTabs).toEqual(['inicio','worship-semanal']);
+  expect(expiredEventState.weeklyEventActive).toBe(false);
+  expect(expiredEventState.weeklyRedirectVisible).toBe(false);
 
   const phaseState = await page.locator('[data-current-song-card]').first().evaluate(card => {
     const phase = card.dataset.phase || '';
@@ -748,6 +901,7 @@ test('v184 primary navigation uses clean professional line-tab anatomy', async (
   expect(source).toContain('height:3px');
   expect(source).toContain('.site-tab[aria-selected="true"]::before');
   expect(source).toContain('.site-tab[data-special-event="true"] .site-tab-label::after');
+  expect(source).toContain('siteTabList.insertBefore(tab,weeklyTab)');
   expect(source).toContain('flex:1 1 0');
   expect(source).not.toContain('class="site-tab-selection"');
   expect(source).not.toContain('SITE_TAB_ICONS=Object.freeze');
@@ -905,7 +1059,29 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
 
   const ids = audit.songs.map(song => song.id);
   expect(new Set(ids).size).toBe(ids.length);
+  expect(ids).toContain('dios-no-esta-muerto');
   expect(ids).toContain('no-fallaras');
+
+  const diosNoEstaMuerto = audit.songs.find(song => song.id === 'dios-no-esta-muerto');
+  expect(diosNoEstaMuerto).toBeTruthy();
+  expect(diosNoEstaMuerto.title).toBe('Dios No Está Muerto');
+  expect(diosNoEstaMuerto.artist).toBe('Miel San Marcos');
+  expect(diosNoEstaMuerto.skipUpcoming).toBe(true);
+  expect(diosNoEstaMuerto.finalOnly).toBe(true);
+  expect(diosNoEstaMuerto.hasPreview).toBe(true);
+  expect(diosNoEstaMuerto.artworkUrl).toBe('https://i.scdn.co/image/ab67616d0000b273dd0a598f02b4a196bd9f41b5');
+  expect(diosNoEstaMuerto.artworkSource).toBe('spotify-newsboys-original');
+  expect(diosNoEstaMuerto.learningStart).toBe('2026-10-06T00:00:00-04:00');
+  expect(diosNoEstaMuerto.learningEnd).toBe('2026-10-06T00:00:00-04:00');
+  expect(diosNoEstaMuerto.finalStart).toBe('2026-10-06T00:00:00-04:00');
+  expect(diosNoEstaMuerto.finalEnd).toBe('2026-10-08T23:59:59-04:00');
+  expect(diosNoEstaMuerto.finalLabel).toBe('Mar. 6 Oct – Jue. 8 Oct');
+  expect(diosNoEstaMuerto.releaseAt).toBe('2026-10-09T19:00:00-04:00');
+  expect(diosNoEstaMuerto.releaseClockLabel).toBe('7:00 PM');
+  expect(diosNoEstaMuerto.rehearsals).toEqual([
+    {label:'Martes, 6 de octubre',time:'8:15–9:00 PM'},
+    {label:'Viernes, 9 de octubre',time:'7:00 PM'}
+  ]);
 
   const noFallaras = audit.songs.find(song => song.id === 'no-fallaras');
   expect(noFallaras).toBeTruthy();
@@ -945,7 +1121,7 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
     expect(song.releaseLabel.length).toBeGreaterThan(4);
     expect(song.releaseShortLabel.length).toBeGreaterThan(2);
     expect(song.releaseClockLabel).toMatch(/AM|PM/);
-    expect(song.learning).toBe('learning');
+    expect(song.learning).toBe(song.finalOnly?'final':'learning');
     expect(song.finalStage).toBe('final');
     expect(song.release).toBe('release');
     expect(song.released).toBe('released');
@@ -957,10 +1133,15 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
 
   const orderSnapshots = await page.evaluate(() => ({
     sep21: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-09-21T12:00:00-04:00')),
+    oct5: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-10-05T12:00:00-04:00')),
+    oct6: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-10-06T12:00:00-04:00')),
     oct26Early: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-10-26T01:00:00-04:00')),
     oct26Active: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-10-26T06:01:00-04:00'))
   }));
   expect(orderSnapshots.sep21.upcoming).toEqual(['glorioso-dia','no-fallaras']);
+  expect(orderSnapshots.oct5.upcoming).not.toContain('dios-no-esta-muerto');
+  expect(orderSnapshots.oct6.current).toEqual(['dios-no-esta-muerto','glorioso-dia']);
+  expect(orderSnapshots.oct6.upcoming).not.toContain('dios-no-esta-muerto');
   expect(orderSnapshots.oct26Early.upcoming).toEqual(['no-fallaras']);
   expect(orderSnapshots.oct26Active.current).toContain('no-fallaras');
 
@@ -978,6 +1159,10 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
   expect(source).toContain('function previewInternalTabSwitchActive()');
   expect(source).toContain('if(previewInternalTabSwitchActive())return;');
   expect(source).toContain('previewSource:raw.previewSource||(raw.previewAudioUrl?"webaudio":"")');
+  expect(source).toContain('!song.skipUpcoming');
+  expect(source).toContain('if(song.finalOnly)');
+  expect(source).toContain('learningTimelineMarkup=song.finalOnly');
+  expect(source).toContain('class="prep-rehearsals"');
   expect(source).toContain('renderOverlapAt(timestamp)');
   expect(source).toContain('function createCurrentSongCardNode(song)');
   expect(source).toContain('Reconcile by song ID instead of replacing host.innerHTML.');
@@ -989,6 +1174,60 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
     const escaped = id.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
     const occurrences = (source.match(new RegExp(escaped, 'g')) || []).length;
     expect(occurrences, id + ' should be authored only once in SONG_CATALOG_SOURCE').toBe(1);
+  }
+});
+
+test('Dios No Está Muerto enters Prep directly with its campaign countdown, rehearsals and original Newsboys artwork', async ({ page }) => {
+  await openHealthyPage(page);
+  await page.waitForFunction(() => !!window.IPCDJ_CATALOG_TEST);
+
+  try{
+    const snapshot=await page.evaluate(() =>
+      window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-10-06T12:00:00-04:00'))
+    );
+
+    expect(snapshot.current).toEqual(['dios-no-esta-muerto','glorioso-dia']);
+    expect(snapshot.upcoming).not.toContain('dios-no-esta-muerto');
+    expect(snapshot.phases['dios-no-esta-muerto']).toBe('final');
+
+    const card=page.locator('[data-current-song-card][data-song-id="dios-no-esta-muerto"]');
+    await expect(card).toHaveCount(1);
+    await expect(card).toContainText('Dios No Está Muerto');
+    await expect(card).toContainText('Miel San Marcos');
+    await expect(card.locator('[data-role="status"]')).toHaveText('AHORA EN PREPARACIÓN');
+    await expect(card.locator('[data-role="countdown-target"]')).toHaveText('Vie. 9 Oct · 7:00 PM');
+    await expect(card.locator('[data-role="timeline-learning"]')).toHaveCount(0);
+    await expect(card.locator('[data-role="timeline-final"]')).toHaveClass(/active-phase/);
+    await expect(card.locator('[data-role="final-date"]')).toHaveText('Mar. 6 Oct – Jue. 8 Oct');
+    await expect(card).not.toContainText('Aprendizaje');
+    await expect(card.locator('[data-role="progress-phase"]')).toHaveText('Preparación final');
+    await expect(card.locator('[data-role="progress-note"]')).toHaveText('Preparación final · canción en preparación');
+    await expect(card.locator('[data-role="countdown-days"]')).toHaveText('03');
+    await expect(card.locator('[data-role="countdown-hours"]')).toHaveText('07');
+
+    const rehearsalInfo=card.locator('[data-role="rehearsal-info"]');
+    await expect(rehearsalInfo).toBeVisible();
+    await expect(rehearsalInfo).toContainText('Martes, 6 de octubre');
+    await expect(rehearsalInfo).toContainText('8:15–9:00 PM');
+    await expect(rehearsalInfo).toContainText('Viernes, 9 de octubre');
+    await expect(rehearsalInfo).toContainText('7:00 PM');
+    await expect(rehearsalInfo.locator('.prep-rehearsal')).toHaveCount(2);
+
+    await expect(card).toHaveAttribute(
+      'data-cover-artwork-url',
+      'https://i.scdn.co/image/ab67616d0000b273dd0a598f02b4a196bd9f41b5'
+    );
+    await expect(card).toHaveAttribute('data-cover-artwork-source','verified-spotify-newsboys-original');
+    await expect(card.locator('[data-preview-song-id="dios-no-esta-muerto"]')).toHaveCount(1);
+
+    await page.waitForFunction(() => {
+      const card=document.querySelector('[data-current-song-card][data-song-id="dios-no-esta-muerto"]');
+      return card?.querySelector('.preview-button')?.dataset.bound==='true';
+    }, null, {timeout:15000});
+
+    await expect(page.locator('#upcoming-songs [data-song-id="dios-no-esta-muerto"]')).toHaveCount(0);
+  }finally{
+    await page.evaluate(() => window.IPCDJ_CATALOG_TEST.resume());
   }
 });
 
@@ -1310,7 +1549,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
   });
   expect(serviceWorkerResponse.ok()).toBe(true);
   const serviceWorkerText = await serviceWorkerResponse.text();
-  expect(serviceWorkerText).toContain('ipcdj-worship-v180');
+  expect(serviceWorkerText).toContain('ipcdj-worship-v184');
   expect(serviceWorkerText).toContain('CACHE_FRESH_SHELL');
   expect(serviceWorkerText).toContain('refresh-test');
 
@@ -1357,7 +1596,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     // Simulate the exact failure we are guarding against: an installed PWA has
     // an older shell cached when the user performs one refresh.
-    const staleCache=await caches.open('ipcdj-worship-v180');
+    const staleCache=await caches.open('ipcdj-worship-v184');
     await staleCache.put(
       './__offline_index__',
       new Response('<!doctype html><meta name="ipcdj-build" content="stale-watchdog" />',{
@@ -1367,7 +1606,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     const staged=await window.IPCDJ_REFRESH_TEST.stageLatestShell();
     const keys=await caches.keys();
-    const cacheKey=keys.find(key=>key==='ipcdj-worship-v180')||'';
+    const cacheKey=keys.find(key=>key==='ipcdj-worship-v184')||'';
     let cachedBuild='';
     if(cacheKey){
       const cache=await caches.open(cacheKey);
@@ -1381,7 +1620,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
   expect(refreshStage.staged.ok).toBe(true);
   expect(refreshStage.staged.build).toBe(refreshStage.currentBuild);
-  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v180');
+  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v184');
   expect(refreshStage.cachedBuild).toBe(refreshStage.currentBuild);
 
   // Intentionally coarse runaway guards, not synthetic speed scores.
@@ -1418,8 +1657,9 @@ test('notification shell is safe, opt-in only and service-worker ready', async (
 
   const config=await configResponse.json();
   expect(typeof config.enabled).toBe('boolean');
+  expect(config.enabled).toBe(false);
   expect(config.siteOrigin).toBe('https://worship.ipcdj.org');
-  expect(config.apiOrigin).toMatch(/^https:\/\//);
+  expect(config.apiOrigin).toBe('https://push.worship.ipcdj.org');
 
   const swSource=await swResponse.text();
   expect(swSource).toContain('addEventListener("push"');
@@ -1509,8 +1749,16 @@ test('social share preview is crawler-ready', async ({ page, request }) => {
     expect(html).toContain('name="twitter:card" content="summary_large_image"');
 
     const robots=await robotsResponse.text();
-    expect(robots).toContain('User-agent: facebookexternalhit');
-    expect(robots).toContain('User-agent: meta-externalagent');
+    const stagingEnvironment=html.includes('meta name="ipcdj-environment" content="staging"');
+    if(stagingEnvironment){
+      expect(robots).toContain('User-agent: *');
+      expect(robots).toContain('Disallow: /');
+      expect(robots).not.toContain('User-agent: facebookexternalhit');
+      expect(robots).not.toContain('User-agent: meta-externalagent');
+    }else{
+      expect(robots).toContain('User-agent: facebookexternalhit');
+      expect(robots).toContain('User-agent: meta-externalagent');
+    }
   }
 
   await page.goto('/?social-health='+nonce,{waitUntil:'domcontentloaded'});
