@@ -1575,8 +1575,16 @@ test('social share preview is crawler-ready', async ({ page, request }) => {
     expect(html).toContain('name="twitter:card" content="summary_large_image"');
 
     const robots=await robotsResponse.text();
-    expect(robots).toContain('User-agent: facebookexternalhit');
-    expect(robots).toContain('User-agent: meta-externalagent');
+    const stagingEnvironment=html.includes('meta name="ipcdj-environment" content="staging"');
+    if(stagingEnvironment){
+      expect(robots).toContain('User-agent: *');
+      expect(robots).toContain('Disallow: /');
+      expect(robots).not.toContain('User-agent: facebookexternalhit');
+      expect(robots).not.toContain('User-agent: meta-externalagent');
+    }else{
+      expect(robots).toContain('User-agent: facebookexternalhit');
+      expect(robots).toContain('User-agent: meta-externalagent');
+    }
   }
 
   await page.goto('/?social-health='+nonce,{waitUntil:'domcontentloaded'});
