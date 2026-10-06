@@ -6,7 +6,7 @@
   <meta name="ipcdj-environment" content="staging" />
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="campana-weekend-v182" />
+  <meta name="ipcdj-build" content="prep-dios-no-esta-muerto-v183" />
   <title>IPCDJ Worship | Ministerio de Alabanza</title>
   <meta name="description" content="Próximas canciones, preparación y estrenos del Ministerio de Alabanza de IPCDJ." />
   <link rel="canonical" href="https://worship.ipcdj.org/" />
@@ -2564,6 +2564,74 @@
       margin:8px 0 0;
       color:var(--muted);
       font-size:1rem;
+    }
+
+    .prep-rehearsals{
+      margin-top:18px;
+      padding:14px 15px;
+      border:1px solid rgba(255,255,255,.085);
+      border-radius:15px;
+      background:linear-gradient(145deg,rgba(255,255,255,.032),rgba(255,255,255,.014));
+    }
+
+    .prep-rehearsals-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:10px;
+    }
+
+    .prep-rehearsals-kicker{
+      color:#ece9e2;
+      font-size:.76rem;
+      font-weight:800;
+      letter-spacing:.065em;
+      text-transform:uppercase;
+    }
+
+    .prep-rehearsals-note{
+      color:#8f9aab;
+      font-size:.72rem;
+      font-weight:650;
+    }
+
+    .prep-rehearsals-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:8px;
+    }
+
+    .prep-rehearsal{
+      min-width:0;
+      padding:10px 11px;
+      border:1px solid rgba(255,255,255,.065);
+      border-radius:12px;
+      background:rgba(255,255,255,.018);
+    }
+
+    .prep-rehearsal strong,
+    .prep-rehearsal span{
+      display:block;
+    }
+
+    .prep-rehearsal strong{
+      color:#f3f5f8;
+      font-size:.79rem;
+      line-height:1.35;
+    }
+
+    .prep-rehearsal span{
+      margin-top:3px;
+      color:#d9c991;
+      font-size:.78rem;
+      font-weight:750;
+      font-variant-numeric:tabular-nums;
+    }
+
+    @media (max-width:520px){
+      .prep-rehearsals-grid{grid-template-columns:1fr}
+      .prep-rehearsals-head{align-items:flex-start;flex-direction:column;gap:3px}
     }
 
     .countdown-wrap{
@@ -6071,6 +6139,37 @@
         releaseDayEndAt:"2026-09-28T00:00:00-04:00",
         introducedAt:"2026-09-28T06:00:00-04:00",
         rolloverAt:"2026-09-28T06:00:00-04:00",
+      },
+      {
+        id:"dios-no-esta-muerto",
+        title:"Dios No Está Muerto",
+        artist:"Miel San Marcos",
+        artworkQuery:"God's Not Dead Newsboys 2011",
+        artworkUrl:"https://i.scdn.co/image/ab67616d0000b273dd0a598f02b4a196bd9f41b5",
+        artworkSource:"spotify-newsboys-original",
+        futurePalette:[[48,58,69],[118,127,136],[203,192,164]],
+        spotifyTrackUri:"spotify:track:0XBYD82idDJOtcv4wXCzr5",
+        previewClipDuration:30,
+        previewUseFullAsset:true,
+        previewAudioProvider:"spotify",
+        previewAudioUrl:"https://p.scdn.co/mp3-preview/0330776b42b6e611816a6c0459e6cc3e1ed7df6a.mp3",
+        previewFadeIn:.70,
+        previewFadeOut:1.60,
+        skipUpcoming:true,
+        rehearsals:[
+          {label:"Martes, 6 de octubre",time:"8:15–9:00 PM"},
+          {label:"Viernes, 9 de octubre",time:"7:00 PM"}
+        ],
+        activeFrom:"2026-10-06T00:00:00-04:00",
+        learningStart:"2026-10-06T00:00:00-04:00",
+        learningEnd:"2026-10-07T23:59:59-04:00",
+        finalStart:"2026-10-08T00:00:00-04:00",
+        finalEnd:"2026-10-08T23:59:59-04:00",
+        releaseDayStartAt:"2026-10-09T00:00:00-04:00",
+        releaseAt:"2026-10-09T19:00:00-04:00",
+        releaseDayEndAt:"2026-10-10T00:00:00-04:00",
+        introducedAt:"2026-10-10T06:00:00-04:00",
+        rolloverAt:"2026-10-10T06:00:00-04:00",
       },
       {
         id:"glorioso-dia",
@@ -9675,6 +9774,17 @@
       const currentPreviewSection=currentPreviewMarkup
         ? '<div class="inline-preview" data-role="inline-preview"><div class="preview-queue">'+currentPreviewMarkup+'</div></div>'
         : "";
+      const rehearsalItems=Array.isArray(song.rehearsals)?song.rehearsals.filter(item=>item&&item.label&&item.time):[];
+      const rehearsalMarkup=rehearsalItems.length
+        ? '<section class="prep-rehearsals" data-role="rehearsal-info" aria-label="Ensayos programados">'+
+            '<div class="prep-rehearsals-head"><span class="prep-rehearsals-kicker">Ensayos</span><span class="prep-rehearsals-note">Preparación de esta canción</span></div>'+
+            '<div class="prep-rehearsals-grid">'+
+              rehearsalItems.map(item=>
+                '<div class="prep-rehearsal"><strong>'+escapeHtml(item.label)+'</strong><span>'+escapeHtml(item.time)+'</span></div>'
+              ).join('')+
+            '</div>'+
+          '</section>'
+        : "";
       const explicitCover=song.artworkUrl ? highResolutionArtworkUrl(song.artworkUrl) : "";
       const explicitCoverAttr=explicitCover ? escapeHtml(explicitCover) : "";
       const explicitCoverCss=explicitCover
@@ -9708,6 +9818,7 @@
           </div>
 
           ${currentPreviewSection}
+          ${rehearsalMarkup}
 
           <div class="countdown-wrap" data-role="countdown-wrap">
             <div class="countdown-heading">
@@ -9879,7 +9990,7 @@
       }
 
       const prepControlsHidden=phase.key==="release"||phase.key==="released";
-      ["countdown-wrap","progress-wrap"].forEach(role=>{
+      ["rehearsal-info","countdown-wrap","progress-wrap"].forEach(role=>{
         const el=cardRole(card,role);
         if(el)el.setAttribute("aria-hidden",prepControlsHidden?"true":"false");
       });
@@ -10130,6 +10241,7 @@
       const activeSet=activeIds instanceof Set?activeIds:new Set();
       const future=songPipeline
         .filter(song=>
+          !song.skipUpcoming&&
           !activeSet.has(song.id)&&
           now<new Date(song.activeFrom).getTime()
         )
@@ -10230,7 +10342,7 @@
         now:timestamp,
         current:Object.freeze(current.map(entry=>entry.song.id)),
         upcoming:Object.freeze(songPipeline
-          .filter(song=>!currentIds.has(song.id)&&timestamp<Date.parse(song.activeFrom))
+          .filter(song=>!song.skipUpcoming&&!currentIds.has(song.id)&&timestamp<Date.parse(song.activeFrom))
           .sort((a,b)=>
             Date.parse(a.activeFrom)-Date.parse(b.activeFrom)||
             Date.parse(a.releaseAt)-Date.parse(b.releaseAt)
@@ -10271,6 +10383,11 @@
         releaseLabel:song.releaseLabel,
         releaseShortLabel:song.releaseShortLabel,
         releaseClockLabel:song.releaseClockLabel,
+        skipUpcoming:!!song.skipUpcoming,
+        rehearsals:Object.freeze((song.rehearsals||[]).map(item=>Object.freeze({
+          label:String(item.label||""),
+          time:String(item.time||"")
+        }))),
         artworkUrl:song.artworkUrl||"",
         artworkSource:song.artworkSource||"",
         futurePalette:Object.freeze((song.futurePalette||[]).map(color=>Object.freeze(color.slice(0,3)))),
