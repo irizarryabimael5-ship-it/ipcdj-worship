@@ -81,3 +81,9 @@ Production promotion requires explicit approval such as:
 `Approved. Promote staging to live.`
 
 Follow `STAGING_POLICY.md` for the production promotion and rollback procedure.
+
+## Confirming a new staging release
+
+A Git commit is not proof that Cloudflare Pages deployed it. After each staging update, compare the SHA of `staging` to the exact SHA of the Cloudflare Pages deployment and of the `IPCDJ Staging Health` run. Both should correspond to the current branch head. If no GitHub Actions or Cloudflare check is created for a new commit, investigate Git webhook delivery/Pages repository connectivity and branch controls rather than blaming browser cache or reporting the release as deployed.
+
+Keep `main` unchanged until the staging deployment is confirmed and the user explicitly approves production promotion.
