@@ -16,3 +16,9 @@ https://irizarryabimael5-ship-it.github.io/ipcdj-worship/
 
 ## Publicación
 GitHub Pages publica automáticamente desde la rama `main`.
+
+## Campaña GU 2026 — actualización del 8 de octubre
+- Repertorios aprobados del sábado 10 y domingo 11 de octubre publicados con sus tonos, BPM, playlists, PDFs, coritos y notas de ensayo.
+- Repertorio del viernes 9 de octubre conservado.
+- Versión de la aplicación: `campana-weekend-v185` (caché PWA `ipcdj-worship-v185`).
+- El estreno y el sistema de vista previa social de producción se mantienen sin alteraciones.
