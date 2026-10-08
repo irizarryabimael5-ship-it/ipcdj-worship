@@ -275,6 +275,14 @@ test('preview playback and song-to-song handoff stay functional', async ({ page 
     });
     expect(initialOffset).toBeGreaterThanOrEqual(99);
 
+    // Some WebKit tablet runners report a visible control as outside the
+    // viewport after the preceding geometry reads. Center it explicitly, then
+    // perform the same real user-style click instead of bypassing hit testing.
+    await futureButton.evaluate(button=>{
+      button.scrollIntoView({block:'center',inline:'nearest',behavior:'auto'});
+    });
+    await page.waitForTimeout(80);
+    await expect(futureButton).toBeInViewport();
     await futureButton.click();
 
     await expect.poll(
