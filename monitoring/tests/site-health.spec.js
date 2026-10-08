@@ -787,13 +787,59 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(campaignSaturdayTab).toHaveAttribute('aria-selected','true');
   await expect(campaignSaturday).toBeVisible();
   await expect(campaignFriday).toBeHidden();
-  await expect(campaignSaturday).toContainText('Set del sábado pendiente');
+
+  await expect(campaignSaturdayTab).toContainText('Actualizado');
+  await expect(campaignSaturday).toContainText('Dayari & Josselin');
+  await expect(campaignSaturday).toContainText('Compás · 4/4');
+  await expect(campaignSaturday).toContainText('Re Mayor · 115 BPM');
+  await expect(campaignSaturday).toContainText('Ensayen con la canción, con metrónomo y eventualmente sin letra.');
+  await expect(campaignSaturday.locator('.weekly-song')).toHaveCount(5);
+  await expect(campaignSaturday.locator('.weekly-corito')).toHaveText(["Yo Vine A Alabar A Dios","Así Se Alaba A Dios","Alabaré","Hay Poder (Sin Igual Poder)","Poderoso Es Nuestro Dios"]);
+  await expect(campaignSaturday.locator('.weekly-song-title')).toHaveText(["Yo Te Busco","Cuán Grande Es Dios","Proezas","Tu Fidelidad","Eres Todopoderoso"]);
+  await expect(campaignSaturday.locator('.weekly-song-artist')).toHaveText(["Marcos Witt","En Espíritu Y En Verdad","Miel San Marcos","Marcos Witt","Danilo Montero"]);
+  await expect(campaignSaturday.locator('.weekly-song').nth(0)).toContainText('Tono · Sol Mayor');
+  await expect(campaignSaturday.locator('.weekly-song').nth(0)).toContainText('BPM · 85/170');
+  await expect(campaignSaturday.locator('.weekly-song').nth(1)).toContainText('Tono · Sol Mayor');
+  await expect(campaignSaturday.locator('.weekly-song').nth(1)).toContainText('BPM · 72/144');
+  await expect(campaignSaturday.locator('.weekly-song').nth(2)).toContainText('Tono · La Mayor');
+  await expect(campaignSaturday.locator('.weekly-song').nth(2)).toContainText('BPM · 78/156');
+  await expect(campaignSaturday.locator('.weekly-song').nth(3)).toContainText('Tono · La Mayor');
+  await expect(campaignSaturday.locator('.weekly-song').nth(3)).toContainText('BPM · 57/113');
+  await expect(campaignSaturday.locator('.weekly-song').nth(4)).toContainText('Tono · La Mayor');
+  await expect(campaignSaturday.locator('.weekly-song').nth(4)).toContainText('BPM · 63/125');
+  await expect(campaignSaturday.locator('.weekly-youtube-mark img[src="youtube-music.svg"]')).toHaveCount(1);
+  await expect(campaignSaturday.locator('.weekly-youtube-frame iframe')).toHaveAttribute('src', 'https://www.youtube-nocookie.com/embed/videoseries?list=PLfbkpqopl-bE');
+  await expect(campaignSaturday.locator('a[href*="youtube.com/playlist?list=PLfbkpqopl-bE"]')).toHaveCount(1);
+  await expect(campaignSaturday.locator('a[href="https://u.pone.rs/fqsizwwd.pdf"]')).toHaveCount(1);
 
   await campaignSundayTab.click();
   await expect(campaignSundayTab).toHaveAttribute('aria-selected','true');
   await expect(campaignSunday).toBeVisible();
   await expect(campaignSaturday).toBeHidden();
-  await expect(campaignSunday).toContainText('Set del domingo pendiente');
+
+  await expect(campaignSundayTab).toContainText('Actualizado');
+  await expect(campaignSunday).toContainText('Dayari & Josselin');
+  await expect(campaignSunday).toContainText('Compás · 4/4');
+  await expect(campaignSunday).toContainText('Re Mayor · 115 BPM');
+  await expect(campaignSunday).toContainText('Ensayen con la canción, con metrónomo y eventualmente sin letra.');
+  await expect(campaignSunday.locator('.weekly-song')).toHaveCount(5);
+  await expect(campaignSunday.locator('.weekly-corito')).toHaveText(["Dónde Está El Espíritu De Dios","Va Bajando Ya","Cristo No Está Muerto","Cristo Rompe Las Cadenas","Libre, Tú Me Hiciste Libre"]);
+  await expect(campaignSunday.locator('.weekly-song-title')).toHaveText(["Bienvenido Espíritu Santo","Mi Sanador","Tu Nombre","Ver La Victoria","Sí Y Amén"]);
+  await expect(campaignSunday.locator('.weekly-song-artist')).toHaveText(["Miel San Marcos ft. Marco Barrientos","Miel San Marcos","Miel San Marcos ft. Coalo Zamorano","Elevation Worship","Grupo Barak"]);
+  await expect(campaignSunday.locator('.weekly-song').nth(0)).toContainText('Tono · Do Mayor');
+  await expect(campaignSunday.locator('.weekly-song').nth(0)).toContainText('BPM · 98/196');
+  await expect(campaignSunday.locator('.weekly-song').nth(1)).toContainText('Tono · Do Mayor');
+  await expect(campaignSunday.locator('.weekly-song').nth(1)).toContainText('BPM · 83/166');
+  await expect(campaignSunday.locator('.weekly-song').nth(2)).toContainText('Tono · Re Mayor');
+  await expect(campaignSunday.locator('.weekly-song').nth(2)).toContainText('BPM · 90/180');
+  await expect(campaignSunday.locator('.weekly-song').nth(3)).toContainText('Tono · Si♭ Mayor');
+  await expect(campaignSunday.locator('.weekly-song').nth(3)).toContainText('BPM · 78/156');
+  await expect(campaignSunday.locator('.weekly-song').nth(4)).toContainText('Tono · Mi♭ Mayor');
+  await expect(campaignSunday.locator('.weekly-song').nth(4)).toContainText('BPM · 72/144');
+  await expect(campaignSunday.locator('.weekly-youtube-mark img[src="youtube-music.svg"]')).toHaveCount(1);
+  await expect(campaignSunday.locator('.weekly-youtube-frame iframe')).toHaveAttribute('src', 'https://www.youtube-nocookie.com/embed/videoseries?list=PLXqqjNOyFIbg');
+  await expect(campaignSunday.locator('a[href*="youtube.com/playlist?list=PLXqqjNOyFIbg"]')).toHaveCount(1);
+  await expect(campaignSunday.locator('a[href="https://u.pone.rs/rdcclwvn.pdf"]')).toHaveCount(1);
 
   await campaignSundayTab.focus();
   await page.keyboard.press('Home');
@@ -1550,7 +1596,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
   });
   expect(serviceWorkerResponse.ok()).toBe(true);
   const serviceWorkerText = await serviceWorkerResponse.text();
-  expect(serviceWorkerText).toContain('ipcdj-worship-v184');
+  expect(serviceWorkerText).toContain('ipcdj-worship-v185');
   expect(serviceWorkerText).toContain('CACHE_FRESH_SHELL');
   expect(serviceWorkerText).toContain('refresh-test');
 
@@ -1597,7 +1643,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     // Simulate the exact failure we are guarding against: an installed PWA has
     // an older shell cached when the user performs one refresh.
-    const staleCache=await caches.open('ipcdj-worship-v184');
+    const staleCache=await caches.open('ipcdj-worship-v185');
     await staleCache.put(
       './__offline_index__',
       new Response('<!doctype html><meta name="ipcdj-build" content="stale-watchdog" />',{
@@ -1607,7 +1653,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     const staged=await window.IPCDJ_REFRESH_TEST.stageLatestShell();
     const keys=await caches.keys();
-    const cacheKey=keys.find(key=>key==='ipcdj-worship-v184')||'';
+    const cacheKey=keys.find(key=>key==='ipcdj-worship-v185')||'';
     let cachedBuild='';
     if(cacheKey){
       const cache=await caches.open(cacheKey);
@@ -1621,7 +1667,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
   expect(refreshStage.staged.ok).toBe(true);
   expect(refreshStage.staged.build).toBe(refreshStage.currentBuild);
-  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v184');
+  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v185');
   expect(refreshStage.cachedBuild).toBe(refreshStage.currentBuild);
 
   // Intentionally coarse runaway guards, not synthetic speed scores.
