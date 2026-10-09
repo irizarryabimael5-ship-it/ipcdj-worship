@@ -59,6 +59,56 @@ async function openHealthyPage(page) {
   return { pageErrors, consoleErrors };
 }
 
+// On tablet, exercise a real touchscreen gesture at an unobscured point.
+// Headless WebKit's two-frame locator.click stability gate may stall. Always
+// keep real viewport hit testing; never dispatch an artificial click.
+async function clickVerifiedTabletControl(page, locator, testInfo) {
+  if (testInfo.project.name !== 'webkit-tablet') {
+    await locator.click();
+    return;
+  }
+  await expect(locator).toBeVisible();
+  await expect(locator).toBeEnabled();
+
+  // A CSS smooth-scrolling policy can make behavior:auto asynchronous. Force
+  // an instant jump, then verify hit testing after the viewport settles.
+  const scrollNow=()=>locator.evaluate(element=>{
+    element.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});
+  });
+  await scrollNow();
+  let candidate=null;
+  for (let attempt=0;attempt<12;attempt++) {
+    await page.waitForTimeout(90);
+    candidate=await locator.evaluate(element=>{
+      const rect=element.getBoundingClientRect();
+      const positions=[
+        [.5,.5],[.35,.5],[.65,.5],[.5,.35],[.5,.65],
+        [.3,.3],[.7,.3],[.3,.7],[.7,.7]
+      ];
+      for (const [a,b] of positions) {
+        const x=rect.left+rect.width*a;
+        const y=rect.top+rect.height*b;
+        if(x<0||y<0||x>=innerWidth||y>=innerHeight)continue;
+        const hit=document.elementFromPoint(x,y);
+        if(hit&&(hit===element||element.contains(hit))){
+          return {valid:true,x,y,width:rect.width,height:rect.height};
+        }
+      }
+      const x=rect.left+rect.width/2,y=rect.top+rect.height/2;
+      const hit=document.elementFromPoint(x,y);
+      return {
+        valid:false,x,y,width:rect.width,height:rect.height,
+        viewport:{width:innerWidth,height:innerHeight},
+        topElement:hit?{tag:hit.tagName,id:hit.id,cls:String(hit.className).slice(0,130)}:null
+      };
+    });
+    if(candidate.valid)break;
+    await scrollNow();
+  }
+  expect(candidate?.valid, 'tablet control must have a visible unobscured touch point: '+JSON.stringify(candidate)).toBe(true);
+  await page.touchscreen.tap(candidate.x,candidate.y);
+}
+
 async function scrollSweep(page) {
   const max = await page.evaluate(() => Math.max(
     0,
@@ -95,26 +145,38 @@ test('integrity, launch, layout and scrolling remain healthy', async ({ page }, 
 
   const frameSample = await page.evaluate(() => window.IPCDJ_HEALTH.sampleFrames(1400));
   if (frameSample) {
-    // Shared CI hosts do not provide deterministic refresh rates. Headless WebKit
-    // can aggressively throttle rAF even after Playwright-driven scrolling, so
-    // treat WebKit as a gross-freeze detector instead of requiring a synthetic
-    // minimum frame count. Actual devices still use IPCDJ's stricter in-page
-    // adaptive sampler.
+    // WebKit on Linux CI may starve rAF without a correlated user-visible
+    // failure; retain its existing catastrophic-freeze guard.
     expect(frameSample.duration).toBeGreaterThan(600);
-
     if (/webkit/i.test(testInfo.project.name)) {
-      // Linux CI WebKit can park rAF for long stretches unrelated to real Safari
-      // rendering. Keep only a catastrophic-freeze ceiling here; real-device
-      // IPCDJ_HEALTH sampling remains the stricter performance authority.
       expect(frameSample.frames).toBeGreaterThan(0);
       expect(frameSample.max).toBeLessThan(5000);
     } else {
-      // Headless Chromium/Firefox can run below 20fps under shared CI CPU even
-      // when the page is responsive. Guard catastrophic stalls here; real-device
-      // IPCDJ_HEALTH keeps the stricter over-50ms adaptive-performance signal.
-      expect(frameSample.max).toBeLessThan(1500);
-      expect(frameSample.p95).toBeLessThan(1200);
-      expect(frameSample.frames).toBeGreaterThan(3);
+      // Keep the existing per-sample strict maxima. Detect sustained slowness
+      // across independent windows rather than one shared-runner CPU hiccup.
+      // Preserve *all* raw samples if any window is slow or short.
+      const samples=[frameSample];
+      for(let n=1;n<3;n++){
+        samples.push(await page.evaluate(()=>window.IPCDJ_HEALTH.sampleFrames(1400)));
+      }
+      const healthy=sample=>!!sample &&
+        sample.duration>600 &&
+        sample.max<1500 &&
+        sample.p95<1200 &&
+        sample.frames>3;
+      const healthyCount=samples.filter(healthy).length;
+      if(healthyCount<samples.length){
+        await testInfo.attach('frame-samples.json',{
+          body:Buffer.from(JSON.stringify({
+            project:testInfo.project.name,
+            samples,
+            healthyCount,
+            requiredHealthy:2
+          },null,2)),
+          contentType:'application/json'
+        });
+      }
+      expect(healthyCount, 'at least two independent samples must meet the original strict frame ceilings').toBeGreaterThanOrEqual(2);
     }
   }
 
@@ -273,15 +335,7 @@ test('preview playback and song-to-song handoff stay functional', async ({ page 
     });
     expect(initialOffset).toBeGreaterThanOrEqual(99);
 
-    // Some WebKit tablet runners report a visible control as outside the
-    // viewport after the preceding geometry reads. Center it explicitly, then
-    // perform the same real user-style click instead of bypassing hit testing.
-    await futureButton.evaluate(button=>{
-      button.scrollIntoView({block:'center',inline:'nearest',behavior:'auto'});
-    });
-    await page.waitForTimeout(80);
-    await expect(futureButton).toBeInViewport();
-    await futureButton.click();
+    await clickVerifiedTabletControl(page, futureButton, testInfo);
 
     await expect.poll(
       () => futureRow.evaluate(row => row.classList.contains('is-playing')),
@@ -369,7 +423,7 @@ test('live rendering tolerates translation-style DOM rewrites and text expansion
 });
 
 
-test('primary tabs, weekly panel and special-event lifecycle remain healthy', async ({ page }) => {
+test('primary tabs, weekly panel and special-event lifecycle remain healthy', async ({ page }, testInfo) => {
   await openHealthyPage(page);
 
   await page.waitForFunction(() => !!window.IPCDJ_NAV);
@@ -694,7 +748,7 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(eventTab).toBeVisible();
   await expect(eventTab.locator('.site-tab-label')).toHaveText('Campaña GU 2026');
   await expect(eventTab.locator('.site-tab-icon')).toHaveCount(0);
-  await eventTab.click();
+  await clickVerifiedTabletControl(page, eventTab, testInfo);
   await page.waitForFunction(() => {
     const tab=document.getElementById('tab-campana-gu-2026');
     if(!tab)return false;
@@ -1602,7 +1656,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
   });
   expect(serviceWorkerResponse.ok()).toBe(true);
   const serviceWorkerText = await serviceWorkerResponse.text();
-  expect(serviceWorkerText).toContain('ipcdj-worship-v185');
+  expect(serviceWorkerText).toContain('ipcdj-worship-v186');
   expect(serviceWorkerText).toContain('CACHE_FRESH_SHELL');
   expect(serviceWorkerText).toContain('refresh-test');
 
@@ -1649,7 +1703,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     // Simulate the exact failure we are guarding against: an installed PWA has
     // an older shell cached when the user performs one refresh.
-    const staleCache=await caches.open('ipcdj-worship-v185');
+    const staleCache=await caches.open('ipcdj-worship-v186');
     await staleCache.put(
       './__offline_index__',
       new Response('<!doctype html><meta name="ipcdj-build" content="stale-watchdog" />',{
@@ -1659,7 +1713,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     const staged=await window.IPCDJ_REFRESH_TEST.stageLatestShell();
     const keys=await caches.keys();
-    const cacheKey=keys.find(key=>key==='ipcdj-worship-v185')||'';
+    const cacheKey=keys.find(key=>key==='ipcdj-worship-v186')||'';
     let cachedBuild='';
     if(cacheKey){
       const cache=await caches.open(cacheKey);
@@ -1673,7 +1727,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
   expect(refreshStage.staged.ok).toBe(true);
   expect(refreshStage.staged.build).toBe(refreshStage.currentBuild);
-  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v185');
+  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v186');
   expect(refreshStage.cachedBuild).toBe(refreshStage.currentBuild);
 
   // Intentionally coarse runaway guards, not synthetic speed scores.
