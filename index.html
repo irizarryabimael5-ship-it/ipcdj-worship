@@ -6,7 +6,7 @@
   <meta name="ipcdj-environment" content="staging" />
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="campana-weekend-v185" />
+  <meta name="ipcdj-build" content="campana-weekend-v186" />
   <title>IPCDJ Worship | Ministerio de Alabanza</title>
   <meta name="description" content="Próximas canciones, preparación y estrenos del Ministerio de Alabanza de IPCDJ." />
   <link rel="canonical" href="https://worship.ipcdj.org/" />
@@ -7701,6 +7701,7 @@
     let webPreviewAnalyser=null;
     let webPreviewAnalyserData=null;
     let previewVisualFrame=0;
+    let previewVisualFallbackTimer=0;
     const webPreviewOutgoingVoices=new Set();
 
     function configurePreviewAudioSessionForPlayback(){
@@ -8071,25 +8072,34 @@
       });
     }
 
-    function startPreviewVisualTracking(){
+    function stopPreviewVisualTracking(){
       cancelAnimationFrame(previewVisualFrame);
+      previewVisualFrame=0;
+      clearInterval(previewVisualFallbackTimer);
+      previewVisualFallbackTimer=0;
+    }
 
-      const draw=()=>{
-        if(!webPreviewPlaying||!webPreviewSongId){
-          previewVisualFrame=0;
-          return;
-        }
-
+    function startPreviewVisualTracking(){
+      stopPreviewVisualTracking();
+      let lastAnimationFrameAt=performance.now();
+      const updateClock=()=>{
+        if(!webPreviewPlaying||!webPreviewSongId)return;
         const elapsed=Math.max(0,(performance.now()-webPreviewStartedAt)/1000);
         const duration=Math.max(.01,webPreviewClipDuration);
         const remaining=Math.max(0,duration-elapsed);
         const progress=Math.max(0,Math.min(100,(elapsed/duration)*100));
         setPreviewRemaining(webPreviewSongId,remaining,progress);
-
+      };
+      const draw=()=>{
+        if(!webPreviewPlaying||!webPreviewSongId){
+          stopPreviewVisualTracking();
+          return;
+        }
+        lastAnimationFrameAt=performance.now();
+        updateClock();
         const bars=[...document.querySelectorAll(
           '[data-preview-song-id="'+CSS.escape(webPreviewSongId)+'"] .preview-eq-bar'
         )];
-
         const reduced=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         if(!reduced&&bars.length&&webPreviewAnalyser&&webPreviewAnalyserData){
           try{
@@ -8107,10 +8117,18 @@
             });
           }catch(_){}
         }
-
         previewVisualFrame=requestAnimationFrame(draw);
       };
 
+      // Keep visible WebKit ring/countdown accurate if rAF stalls while
+      // Web Audio continues; idle/hidden playback does not update the DOM.
+      previewVisualFallbackTimer=setInterval(()=>{
+        if(!webPreviewPlaying||!webPreviewSongId){
+          stopPreviewVisualTracking();
+          return;
+        }
+        if(!document.hidden&&performance.now()-lastAnimationFrameAt>250)updateClock();
+      },200);
       previewVisualFrame=requestAnimationFrame(draw);
     }
 
@@ -8237,8 +8255,7 @@
       }
 
       [...webPreviewOutgoingVoices].forEach(disposeWebPreviewVoice);
-      cancelAnimationFrame(previewVisualFrame);
-      previewVisualFrame=0;
+      stopPreviewVisualTracking();
     }
 
     function resetWebAudioPreview(songId="",updateButton=true){
@@ -8508,8 +8525,7 @@
           setPreviewButtonState(song.id,"play");
           finishPreviewVisual(song.id,webPreviewClipDuration);
         }
-        cancelAnimationFrame(previewVisualFrame);
-        previewVisualFrame=0;
+        stopPreviewVisualTracking();
         clearNativePreviewMediaSession();
       };
 
@@ -8579,8 +8595,7 @@
       webPreviewNormalizeGain=null;
       webPreviewGain=null;
       [...webPreviewOutgoingVoices].forEach(disposeWebPreviewVoice);
-      cancelAnimationFrame(previewVisualFrame);
-      previewVisualFrame=0;
+      stopPreviewVisualTracking();
       resetPreviewMeter(songId);
 
       // Destroy the mobile playback context entirely after the graph is already
