@@ -61,6 +61,29 @@ async function openHealthyPage(page) {
   return { pageErrors, consoleErrors };
 }
 
+// Headless WebKit tablet can stall locator.click while waiting for two rAF
+// stability frames. Verify hit testing, then send a real touchscreen gesture;
+// never bypass actual input using force:true or DOM click dispatch.
+async function clickVerifiedTabletControl(page, locator, testInfo) {
+  if (testInfo.project.name !== 'webkit-tablet') {
+    await locator.click();
+    return;
+  }
+  await expect(locator).toBeVisible();
+  await expect(locator).toBeEnabled();
+  const point=await locator.evaluate(element=>{
+    element.scrollIntoView({block:'center',inline:'nearest',behavior:'auto'});
+    const rect=element.getBoundingClientRect();
+    const x=rect.left+rect.width/2, y=rect.top+rect.height/2;
+    const hit=document.elementFromPoint(x,y);
+    return {x,y,valid:rect.width>0&&rect.height>0&&
+      x>=0&&y>=0&&x<innerWidth&&y<innerHeight&&
+      !!hit&&(hit===element||element.contains(hit))};
+  });
+  expect(point.valid,'control must receive a real viewport touch').toBe(true);
+  await page.touchscreen.tap(point.x,point.y);
+}
+
 async function scrollSweep(page) {
   const max = await page.evaluate(() => Math.max(
     0,
@@ -102,6 +125,14 @@ test('integrity, launch, layout and scrolling remain healthy', async ({ page }, 
     // treat WebKit as a gross-freeze detector instead of requiring a synthetic
     // minimum frame count. Actual devices still use IPCDJ's stricter in-page
     // adaptive sampler.
+    // Keep strict thresholds unchanged. Attach the timing sample to any
+    // failure so shared-runner stalls can be investigated, not ignored.
+    if (frameSample.max >= 1500 || frameSample.p95 >= 1200) {
+      await testInfo.attach('slow-frame-sample.json', {
+        body: Buffer.from(JSON.stringify(frameSample,null,2)),
+        contentType: 'application/json'
+      });
+    }
     expect(frameSample.duration).toBeGreaterThan(600);
 
     if (/webkit/i.test(testInfo.project.name)) {
@@ -275,15 +306,7 @@ test('preview playback and song-to-song handoff stay functional', async ({ page 
     });
     expect(initialOffset).toBeGreaterThanOrEqual(99);
 
-    // Some WebKit tablet runners report a visible control as outside the
-    // viewport after the preceding geometry reads. Center it explicitly, then
-    // perform the same real user-style click instead of bypassing hit testing.
-    await futureButton.evaluate(button=>{
-      button.scrollIntoView({block:'center',inline:'nearest',behavior:'auto'});
-    });
-    await page.waitForTimeout(80);
-    await expect(futureButton).toBeInViewport();
-    await futureButton.click();
+    await clickVerifiedTabletControl(page, futureButton, testInfo);
 
     await expect.poll(
       () => futureRow.evaluate(row => row.classList.contains('is-playing')),
@@ -371,7 +394,7 @@ test('live rendering tolerates translation-style DOM rewrites and text expansion
 });
 
 
-test('primary tabs, weekly panel and special-event lifecycle remain healthy', async ({ page }) => {
+test('primary tabs, weekly panel and special-event lifecycle remain healthy', async ({ page }, testInfo) => {
   await openHealthyPage(page);
 
   await page.waitForFunction(() => !!window.IPCDJ_NAV);
@@ -696,7 +719,7 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(eventTab).toBeVisible();
   await expect(eventTab.locator('.site-tab-label')).toHaveText('Campaña GU 2026');
   await expect(eventTab.locator('.site-tab-icon')).toHaveCount(0);
-  await eventTab.click();
+  await clickVerifiedTabletControl(page, eventTab, testInfo);
   await page.waitForFunction(() => {
     const tab=document.getElementById('tab-campana-gu-2026');
     if(!tab)return false;
@@ -1604,7 +1627,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
   });
   expect(serviceWorkerResponse.ok()).toBe(true);
   const serviceWorkerText = await serviceWorkerResponse.text();
-  expect(serviceWorkerText).toContain('ipcdj-worship-v185');
+  expect(serviceWorkerText).toContain('ipcdj-worship-v186');
   expect(serviceWorkerText).toContain('CACHE_FRESH_SHELL');
   expect(serviceWorkerText).toContain('refresh-test');
 
@@ -1651,7 +1674,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     // Simulate the exact failure we are guarding against: an installed PWA has
     // an older shell cached when the user performs one refresh.
-    const staleCache=await caches.open('ipcdj-worship-v185');
+    const staleCache=await caches.open('ipcdj-worship-v186');
     await staleCache.put(
       './__offline_index__',
       new Response('<!doctype html><meta name="ipcdj-build" content="stale-watchdog" />',{
@@ -1661,7 +1684,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     const staged=await window.IPCDJ_REFRESH_TEST.stageLatestShell();
     const keys=await caches.keys();
-    const cacheKey=keys.find(key=>key==='ipcdj-worship-v185')||'';
+    const cacheKey=keys.find(key=>key==='ipcdj-worship-v186')||'';
     let cachedBuild='';
     if(cacheKey){
       const cache=await caches.open(cacheKey);
@@ -1675,7 +1698,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
   expect(refreshStage.staged.ok).toBe(true);
   expect(refreshStage.staged.build).toBe(refreshStage.currentBuild);
-  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v185');
+  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v186');
   expect(refreshStage.cachedBuild).toBe(refreshStage.currentBuild);
 
   // Intentionally coarse runaway guards, not synthetic speed scores.
