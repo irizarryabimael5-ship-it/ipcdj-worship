@@ -25,21 +25,27 @@ function between(source,start,end){
   return source.slice(a+start.length,b).trim();
 }
 
+// Match by the stable data attribute rather than an exact class string.
+// The real dashboard also carries weekly-event-active/campaign classes.
+function dashboardTag(source){
+  return source.match(/<div\b[^>]*\sdata-weekly-dashboard(?=[\s=>])[^>]*>/)?.[0]||'';
+}
+
 function attribute(source,name){
-  const dashboard=source.match(/<div class="weekly-dashboard"[^>]*data-weekly-dashboard[^>]*>/)?.[0]||'';
+  const dashboard=dashboardTag(source);
+  if(!dashboard)throw new Error('weekly dashboard marker missing');
   const match=dashboard.match(new RegExp('\\b'+name+'="([^"]*)"'));
   return match?.[1]||'';
 }
 
 function setDashboardAttribute(source,name,value){
-  return source.replace(
-    /<div class="weekly-dashboard"[^>]*data-weekly-dashboard[^>]*>/,
-    tag=>{
-      const re=new RegExp('\\b'+name+'="[^"]*"');
-      if(re.test(tag))return tag.replace(re,name+'="'+value+'"');
-      return tag.slice(0,-1)+' '+name+'="'+value+'">';
-    }
-  );
+  const dashboard=dashboardTag(source);
+  if(!dashboard)throw new Error('weekly dashboard marker missing');
+  return source.replace(dashboard,tag=>{
+    const re=new RegExp('\\b'+name+'="[^"]*"');
+    if(re.test(tag))return tag.replace(re,name+'="'+value+'"');
+    return tag.slice(0,-1)+' '+name+'="'+value+'">';
+  });
 }
 
 function archivePanel(block,key){
@@ -162,6 +168,20 @@ ${START.history}
 
   const twice=rolloverHtml(at.source,Date.parse('2026-10-11T16:00:00-04:00'));
   if(twice.changed)throw new Error('rolled week archived twice');
+
+  // Regression: production/staging use extra state-specific CSS classes, which
+  // previously caused exact-class matching to silently return "inactive".
+  const decorated=fixture.replace('class="weekly-dashboard"','class="weekly-dashboard weekly-event-active"');
+  const decoratedResult=rolloverHtml(decorated,Date.parse('2026-10-11T15:00:00-04:00'));
+  if(!decoratedResult.changed)throw new Error('decorated weekly dashboard failed to roll');
+  if(!decoratedResult.source.includes('class="weekly-dashboard weekly-event-active"')){
+    throw new Error('extra dashboard CSS class was lost');
+  }
+  if(!decoratedResult.source.includes('data-weekly-state="rolled"')){
+    throw new Error('decorated dashboard state not updated');
+  }
+  const twiceDecorated=rolloverHtml(decoratedResult.source,Date.parse('2026-10-11T16:00:00-04:00'));
+  if(twiceDecorated.changed)throw new Error('decorated week archived twice');
 }
 
 if(process.argv.includes('--self-test')){
