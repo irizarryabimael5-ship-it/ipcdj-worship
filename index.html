@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="campana-weekend-v186" />
+  <meta name="ipcdj-build" content="campana-weekend-v190" />
   <title>IPCDJ Worship | Ministerio de Alabanza</title>
   <meta name="description" content="Próximas canciones, preparación y estrenos del Ministerio de Alabanza de IPCDJ." />
   <link rel="canonical" href="https://worship.ipcdj.org/" />
@@ -1405,6 +1405,7 @@
       -webkit-tap-highlight-color:transparent;
     }
 
+    .weekly-history + .weekly-history{margin-top:12px}
     .weekly-history summary::-webkit-details-marker{display:none}
 
     .weekly-history summary::after{
@@ -5106,19 +5107,29 @@
           <!-- WEEKLY_CURRENT_DOMINGO_END -->
 
           <!-- WEEKLY_HISTORY_START -->
-          <details class="weekly-history">
+          <details class="weekly-history" data-weekly-archive-cycle="2026-10-11">
             <summary>
-              <span>Semana anterior</span>
+              <span>Semana anterior · Campaña GU 2026</span>
+              <small>9–11 oct 2026 · 3 servicios</small>
+            </summary>
+            <div class="weekly-history-body" data-weekly-history-body data-weekly-history-cycle="2026-10-11">
+              <div class="weekly-history-grid" data-weekly-special-archive-grid="campana-gu-2026"></div>
+            </div>
+          </details>
+
+          <details class="weekly-history weekly-history-older" data-weekly-archive-cycle="2026-10-04">
+            <summary>
+              <span>Historial anterior</span>
               <small>Semana terminada · 4 oct 2026</small>
             </summary>
-            <div class="weekly-history-body" data-weekly-history-body data-weekly-history-cycle="2026-10-04">
+            <div class="weekly-history-body" data-weekly-older-history-body data-weekly-history-cycle="2026-10-04">
               <div class="weekly-history-grid">
           <section class="weekly-service-panel weekly-history-service" data-weekly-history-service="viernes">
             <div class="weekly-service-heading">
               <div>
                 <span class="weekly-service-kicker">Servicio · Viernes</span>
                 <h2>Worship set del viernes</h2>
-                <p>Orden del servicio, playlist, recursos y detalles de ensayo.</p>
+                <p>Orden del servicio, repertorio y recursos de ensayo.</p>
               </div>
             </div>
 
@@ -5128,26 +5139,7 @@
                 <span class="weekly-meta-value">Dayari</span>
               </li>
             </ul>
-
-            <section class="weekly-youtube-card">
-              <div class="weekly-youtube-frame">
-                <iframe
-                  src="https://www.youtube-nocookie.com/embed/videoseries?list=PLJHxkkSIlf28"
-                  title="Playlist de worship del viernes"
-                  loading="lazy"
-                  referrerpolicy="strict-origin-when-cross-origin"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowfullscreen></iframe>
-              </div>
-              <div class="weekly-youtube-info">
-                <span class="weekly-youtube-mark"><img src="youtube-music.svg" alt="" aria-hidden="true" width="22" height="22" decoding="async" />YouTube</span>
-                <h3>Playlist del servicio</h3>
-                <p>Escucha y repasa las canciones del viernes directamente desde la playlist del equipo.</p>
-                <a class="weekly-action" href="https://youtube.com/playlist?list=PLJHxkkSIlf28&amp;si=ThKDucscTvGm9U3P" target="_blank" rel="noopener">Abrir playlist en YouTube</a>
-              </div>
-            </section>
-
-            <a class="weekly-resource" href="https://u.pone.rs/iifwokqy.pdf" target="_blank" rel="noopener">
+<a class="weekly-resource" href="https://u.pone.rs/iifwokqy.pdf" target="_blank" rel="noopener">
               <span class="weekly-resource-badge">PDF</span>
               <span class="weekly-resource-text">
                 <strong>Letras &amp; Coritos</strong>
@@ -5235,7 +5227,7 @@
               <div>
                 <span class="weekly-service-kicker">Servicio · Domingo</span>
                 <h2>Worship set del domingo</h2>
-                <p>Orden del servicio, playlist, recursos y detalles de ensayo.</p>
+                <p>Orden del servicio, repertorio y recursos de ensayo.</p>
               </div>
             </div>
 
@@ -5249,26 +5241,7 @@
                 <span class="weekly-meta-value">Dayari</span>
               </li>
             </ul>
-
-            <section class="weekly-youtube-card">
-              <div class="weekly-youtube-frame">
-                <iframe
-                  src="https://www.youtube-nocookie.com/embed/videoseries?list=PLkLZ_UC3YYUw0TOBrAw19xENUYunh7URI"
-                  title="Playlist de worship del domingo"
-                  loading="lazy"
-                  referrerpolicy="strict-origin-when-cross-origin"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowfullscreen></iframe>
-              </div>
-              <div class="weekly-youtube-info">
-                <span class="weekly-youtube-mark"><img src="youtube-music.svg" alt="" aria-hidden="true" width="22" height="22" decoding="async" />YouTube</span>
-                <h3>Playlist del servicio</h3>
-                <p>Escucha y repasa las canciones del domingo directamente desde la playlist del equipo.</p>
-                <a class="weekly-action" href="https://youtube.com/playlist?list=PLkLZ_UC3YYUw0TOBrAw19xENUYunh7URI&amp;si=BySOjP07fJaR0gI7" target="_blank" rel="noopener">Abrir playlist en YouTube</a>
-              </div>
-            </section>
-
-            <a class="weekly-resource" href="https://u.pone.rs/jzehueif.pdf" target="_blank" rel="noopener">
+<a class="weekly-resource" href="https://u.pone.rs/jzehueif.pdf" target="_blank" rel="noopener">
               <span class="weekly-resource-badge">PDF</span>
               <span class="weekly-resource-text">
                 <strong>Letras &amp; Coritos</strong>
@@ -5656,7 +5629,54 @@
     const weeklyDashboard=document.querySelector('[data-weekly-dashboard]');
     const weeklyHistory=document.querySelector('.weekly-history');
     const weeklyHistoryBody=document.querySelector('[data-weekly-history-body]');
+    const weeklyOlderHistoryBody=document.querySelector('[data-weekly-older-history-body][data-weekly-history-cycle="2026-10-04"]');
     const weeklyStatus=document.querySelector('[data-weekly-status]');
+
+    // Archive display contract: preserve the actual songs, coritos, PDF resources,
+    // dates and service metadata, but never display YouTube playlist embeds/links.
+    // Keep the source material and active/current playlists untouched.
+    function stripArchivedWeeklyPlaylists(root){
+      if(!root)return root;
+      root.querySelectorAll(
+        '.weekly-youtube-card, .weekly-youtube-frame, '+
+        'a[href*="youtube.com/playlist"], a[href*="music.youtube.com/playlist"]'
+      ).forEach(element=>element.remove());
+      root.querySelectorAll(".weekly-service-heading p").forEach(description=>{
+        description.textContent=description.textContent.replace(/playlist/gi,"repertorio");
+      });
+      return root;
+    }
+
+    // Historical event songs, artists, coritos and links are sourced from the
+    // completed event template, rather than copied by hand and allowed to drift.
+    function hydrateCompletedCampaignArchive(){
+      const grid=document.querySelector('[data-weekly-special-archive-grid="campana-gu-2026"]');
+      const template=document.getElementById("template-campana-gu-2026");
+      if(!grid||!(template instanceof HTMLTemplateElement))return false;
+      const panels=["viernes","sabado","domingo"].map(day=>{
+        const original=template.content.querySelector('[data-campaign-day-panel="'+day+'"]');
+        if(!original)return null;
+        const panel=original.cloneNode(true);
+        panel.classList.remove("campaign-day-panel");
+        panel.classList.add("weekly-history-service");
+        panel.dataset.weeklyHistoryService=day;
+        panel.removeAttribute("id");
+        panel.removeAttribute("hidden");
+        panel.removeAttribute("role");
+        panel.removeAttribute("aria-labelledby");
+        panel.removeAttribute("data-campaign-day-panel");
+        panel.querySelectorAll("[id]").forEach(node=>node.removeAttribute("id"));
+        panel.querySelectorAll("[aria-labelledby]").forEach(node=>node.removeAttribute("aria-labelledby"));
+        panel.querySelectorAll("[aria-controls]").forEach(node=>node.removeAttribute("aria-controls"));
+        return stripArchivedWeeklyPlaylists(panel);
+      });
+      if(panels.some(panel=>!panel))return false;
+      grid.replaceChildren(...panels);
+      return true;
+    }
+    // Sanitize pre-authored history too (including any older records added later).
+    document.querySelectorAll(".weekly-history").forEach(stripArchivedWeeklyPlaylists);
+    hydrateCompletedCampaignArchive();
 
     const weeklyPendingMarkup=key=>`
       <div class="weekly-empty">
@@ -5689,7 +5709,7 @@
       clone.querySelectorAll("[id]").forEach(node=>node.removeAttribute("id"));
       clone.querySelectorAll("[aria-labelledby]").forEach(node=>node.removeAttribute("aria-labelledby"));
       clone.querySelectorAll("[aria-controls]").forEach(node=>node.removeAttribute("aria-controls"));
-      return clone;
+      return stripArchivedWeeklyPlaylists(clone);
     }
 
     function setWeeklyTabState(key,label){
@@ -5715,8 +5735,22 @@
         cloneWeeklyPanelForHistory(friday,"viernes"),
         cloneWeeklyPanelForHistory(sunday,"domingo")
       );
+      // Demote the entire previous history before the next Sunday replaces it.
+      // Special campaigns remain accessible permanently in Historial anterior.
+      const previousCycle=weeklyHistoryBody.dataset.weeklyHistoryCycle||"";
+      if(previousCycle&&weeklyHistoryBody.querySelector(".weekly-history-service")){
+        const previous=stripArchivedWeeklyPlaylists(weeklyHistory.cloneNode(true));
+        previous.classList.add("weekly-history-older");
+        previous.dataset.weeklyArchiveCycle=previousCycle;
+        const body=previous.querySelector("[data-weekly-history-body]");
+        if(body){body.removeAttribute("data-weekly-history-body");body.dataset.weeklyOlderHistoryBody="";}
+        const summary=previous.querySelector("summary span");
+        if(summary)summary.textContent=summary.textContent.replace(/^Semana anterior/,"Historial");
+        weeklyHistory.after(previous);
+      }
       weeklyHistoryBody.replaceChildren(grid);
       weeklyHistoryBody.dataset.weeklyHistoryCycle=cycle;
+      weeklyHistory.dataset.weeklyArchiveCycle=cycle;
 
       const summarySmall=weeklyHistory?.querySelector("summary small");
       if(summarySmall)summarySmall.textContent=weeklyCycleLabel(cycle);
@@ -5788,7 +5822,7 @@
 
     window.IPCDJ_WEEKLY_TEST=Object.freeze({
       snapshot(){
-        const historyServices=[...document.querySelectorAll('[data-weekly-history-service]')];
+        const historyServices=[...(weeklyHistoryBody?.querySelectorAll('[data-weekly-history-service]')||[])];
         return {
           state:weeklyDashboard?.dataset.weeklyState||"",
           cycle:weeklyDashboard?.dataset.weeklyCycle||"",
@@ -5803,10 +5837,11 @@
           }))
         };
       },
-      prepareFromHistory(rolloverAt){
+      prepareFromHistory(rolloverAt,source="latest"){
         if(!weeklyDashboard||!weeklyHistoryBody)return false;
-        const fridayHistory=weeklyHistoryBody.querySelector('[data-weekly-history-service="viernes"]');
-        const sundayHistory=weeklyHistoryBody.querySelector('[data-weekly-history-service="domingo"]');
+        const archive=source==="older"?(weeklyOlderHistoryBody||weeklyHistoryBody):weeklyHistoryBody;
+        const fridayHistory=archive.querySelector('[data-weekly-history-service="viernes"]');
+        const sundayHistory=archive.querySelector('[data-weekly-history-service="domingo"]');
         const friday=weeklyServicePanels.find(panel=>panel.dataset.weeklyPanel==="viernes");
         const sunday=weeklyServicePanels.find(panel=>panel.dataset.weeklyPanel==="domingo");
         if(!fridayHistory||!sundayHistory||!friday||!sunday)return false;
@@ -6460,6 +6495,28 @@
       }
     ];
 
+    // Songs whose church learning/release calendar is genuinely unknown.
+    // Keep outside the dated pipeline so no artificial dates can trigger phases.
+    const SONG_TBD_SOURCE=Object.freeze([
+      Object.freeze({
+        id:"reinas-por-la-eternidad",
+        title:"Reinas Por La Eternidad",
+        artist:"Hillsong en Español",
+        album:"En Mi Lugar",
+        artworkQuery:"Reinas Por La Eternidad Hillsong en Español En Mi Lugar",
+        coverSearchAlbum:"En Mi Lugar",
+        itunesCollectionId:"1785402414",
+        // Official song #5 on En Mi Lugar. Resolve its live provider URL.
+        itunesTrackId:"1785402419",
+        previewAudioProvider:"itunes",
+        previewClipDuration:30,
+        previewUseFullAsset:true,
+        previewFadeIn:.70,
+        previewFadeOut:1.60,
+        scheduleTbd:true
+      })
+    ]);
+
     // Historical songs that predate the managed pipeline. New scheduled songs do
     // NOT belong here; add them only to SONG_CATALOG_SOURCE and lifecycle automation
     // will move them into Introducciones recientes automatically.
@@ -6564,6 +6621,15 @@
     function isHttpsCatalogUrl(value){
       if(!value)return false;
       try{return new URL(String(value),location.href).protocol==="https:"}catch(_){return false}
+    }
+
+    // Every Después song must have a verified HTTPS preview asset or exact
+    // official provider track ID; never invent a preview URL.
+    function hasSongPreviewSource(song){
+      return !!song&&(
+        isHttpsCatalogUrl(song.previewAudioUrl)||
+        /^[1-9]\d*$/.test(String(song.itunesTrackId||""))
+      );
     }
 
     function productionVisualReadiness(song){
@@ -6678,15 +6744,17 @@
         if(song.artworkUrl&&!validFuturePalette(song.futurePalette)){
           pushIssue("warning",index,"futurePalette","Curated artwork should include a three-color sRGB futurePalette for deterministic cross-device color identity.");
         }
-        if(!song.previewAudioUrl){
-          pushIssue("warning",index,"previewAudioUrl","No preview audio configured; the song will render without an Adelanto control.");
-        }else{
-          if(!isHttpsCatalogUrl(song.previewAudioUrl)){
-            pushIssue("error",index,"previewAudioUrl","Preview audio URL must use HTTPS.");
-          }
-          if(!(Number(song.previewClipDuration)>0)){
-            pushIssue("warning",index,"previewClipDuration","Preview duration missing; normalized 30-second default will be used.");
-          }
+        if(!hasSongPreviewSource(song)){
+          pushIssue("error",index,"previewAudioUrl","Every song requires a verified HTTPS preview or an exact official provider track ID.");
+        }
+        if(song.previewAudioUrl&&!isHttpsCatalogUrl(song.previewAudioUrl)){
+          pushIssue("error",index,"previewAudioUrl","Preview audio URL must use HTTPS.");
+        }
+        if(song.itunesTrackId&&!/^[1-9]\d*$/.test(String(song.itunesTrackId))){
+          pushIssue("error",index,"itunesTrackId","Official iTunes track ID must be a positive integer.");
+        }
+        if(hasSongPreviewSource(song)&&!(Number(song.previewClipDuration)>0)){
+          pushIssue("warning",index,"previewClipDuration","Preview duration missing; normalized 30-second default will be used.");
         }
       });
 
@@ -6700,10 +6768,10 @@
       const normalized={
         ...raw,
         artworkQuery:raw.artworkQuery||[raw.title,raw.artist].filter(Boolean).join(" "),
-        previewClipDuration:raw.previewAudioUrl ? Math.max(1,Number(raw.previewClipDuration)||30) : 0,
-        previewSource:raw.previewSource||(raw.previewAudioUrl?"webaudio":""),
-        previewFadeIn:raw.previewAudioUrl ? Math.max(0,Number(raw.previewFadeIn)||.70) : 0,
-        previewFadeOut:raw.previewAudioUrl ? Math.max(0,Number(raw.previewFadeOut)||1.60) : 0,
+        previewClipDuration:hasSongPreviewSource(raw) ? Math.max(1,Number(raw.previewClipDuration)||30) : 0,
+        previewSource:raw.previewSource||(hasSongPreviewSource(raw)?"webaudio":""),
+        previewFadeIn:hasSongPreviewSource(raw) ? Math.max(0,Number(raw.previewFadeIn)||.70) : 0,
+        previewFadeOut:hasSongPreviewSource(raw) ? Math.max(0,Number(raw.previewFadeOut)||1.60) : 0,
         futurePalette:palette,
         learningLabel:formatSongDateRange(raw.learningStart,raw.learningEnd),
         finalLabel:formatSongDateRange(raw.finalStart,raw.finalEnd),
@@ -6724,6 +6792,21 @@
         .sort((a,b)=>Date.parse(a.releaseAt)-Date.parse(b.releaseAt))
     );
     const songPipelineById=new Map(songPipeline.map(song=>[song.id,song]));
+    const tbdIds=new Set();
+    const tbdErrors=[];
+    const tbdSongs=Object.freeze(SONG_TBD_SOURCE.filter(song=>{
+      const valid=/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(song.id||"")&&
+        !!String(song.title||"").trim()&&!!String(song.artist||"").trim()&&
+        song.scheduleTbd===true&&hasSongPreviewSource(song)&&
+        (!song.itunesTrackId||/^[1-9]\d*$/.test(String(song.itunesTrackId)))&&
+        !songPipelineById.has(song.id)&&!tbdIds.has(song.id);
+      if(!valid)tbdErrors.push(String(song.id||"invalid-id"));
+      tbdIds.add(song.id);
+      return valid;
+    }));
+    if(tbdErrors.length)console.error("IPCDJ TBD catalog validation failed",tbdErrors);
+    // Separate hydration lookup: these songs are not active or released.
+    const futureSongById=new Map([...songPipeline,...tbdSongs].map(song=>[song.id,song]));
     const catalogErrors=Object.freeze(SONG_CATALOG_VALIDATION.issues.filter(issue=>issue.level==="error"));
     const catalogWarnings=Object.freeze(SONG_CATALOG_VALIDATION.issues.filter(issue=>issue.level==="warning"));
     const catalogVisualNotReady=Object.freeze(
@@ -6738,7 +6821,8 @@
         }))
     );
     const SONG_CATALOG_HEALTH=Object.freeze({
-      valid:catalogErrors.length===0&&songPipeline.length===SONG_CATALOG_SOURCE.length,
+      valid:catalogErrors.length===0&&songPipeline.length===SONG_CATALOG_SOURCE.length&&
+        tbdErrors.length===0&&tbdSongs.length===SONG_TBD_SOURCE.length,
       fullVisualReady:catalogVisualNotReady.length===0,
       sourceCount:SONG_CATALOG_SOURCE.length,
       managedCount:songPipeline.length,
@@ -7527,7 +7611,21 @@
       }catch(_){}
 
       let candidates=[];
-      if(song.itunesCollectionId){
+      if(song.itunesTrackId){
+        try{
+          const response=await fetchWithTimeout(
+            "https://itunes.apple.com/lookup?id="+encodeURIComponent(song.itunesTrackId)+"&country=US&entity=song",
+            {cache:"force-cache"},6500
+          );
+          if(response.ok){
+            const data=await response.json();
+            candidates=(data.results||[]).filter(result=>
+              result.previewUrl&&String(result.trackId)===String(song.itunesTrackId)
+            );
+          }
+        }catch(_){}
+      }
+      if(!candidates.length&&song.itunesCollectionId){
         try{
           const response=await fetchWithTimeout(
             "https://itunes.apple.com/lookup?id="+encodeURIComponent(song.itunesCollectionId)+"&entity=song&limit=30",
@@ -7557,7 +7655,10 @@
       }
 
       const candidate=candidates.sort((a,b)=>scoreCatalogResult(song,b)-scoreCatalogResult(song,a))[0];
-      if(!candidate||scoreCatalogResult(song,candidate)<4||!candidate.previewUrl)throw new Error("No reliable song preview");
+      if(
+        !candidate||scoreCatalogResult(song,candidate)<4||!candidate.previewUrl||
+        (song.itunesTrackId&&String(candidate.trackId)!==String(song.itunesTrackId))
+      )throw new Error("No reliable song preview");
 
       const result={
         previewUrl:candidate.previewUrl,
@@ -9497,7 +9598,7 @@
     }
 
     function previewRowMarkup(song,variant="current"){
-      if(!song||!song.previewAudioUrl)return "";
+      if(!hasSongPreviewSource(song))return "";
       const duration=Math.max(1,Number(song.previewClipDuration)||15);
       const common='data-preview-song-id="'+escapeHtml(song.id)+'" data-preview-state="play" data-preview-duration="'+duration+'"';
 
@@ -9557,6 +9658,9 @@
               setPreviewDuration(song.id,data.clipDuration);
             }
             return data;
+          }).catch(error=>{
+            row._previewPromise=null; // A temporary provider outage must allow retries.
+            throw error;
           });
         }
         return row._previewPromise;
@@ -9621,11 +9725,11 @@
               }));
             }catch(_){}
             if(row.isConnected){
-              button.disabled=true;
+              button.disabled=false;
               const iconSlot=button.querySelector(".preview-icon-slot");
               if(iconSlot)iconSlot.innerHTML=previewIcon("play");
               else button.innerHTML=previewIcon("play");
-              button.setAttribute("aria-label","Adelanto no disponible");
+              button.setAttribute("aria-label","Reintentar adelanto de "+song.title);
             }
           }
         });
@@ -10437,7 +10541,7 @@
         const target=event.target instanceof Element ? event.target : null;
         const card=target&&target.closest('[data-song-id]');
         if(!card||!container.contains(card))return;
-        const song=songPipelineById.get(card.dataset.songId);
+        const song=futureSongById.get(card.dataset.songId);
         if(song)hydrateFutureSongCard(song,card);
       };
       container.addEventListener("pointerdown",hydrateFromEvent,{passive:true,capture:true});
@@ -10462,7 +10566,7 @@
           entries.forEach(entry=>{
             if(!entry.isIntersecting)return;
             const card=entry.target;
-            const song=songPipelineById.get(card.dataset.songId);
+            const song=futureSongById.get(card.dataset.songId);
             if(song)hydrateFutureSongCard(song,card);
             futureCardObserver?.unobserve(card);
           });
@@ -10493,7 +10597,7 @@
       const container=$("upcoming-songs");
       if(!container)return;
       const activeSet=activeIds instanceof Set?activeIds:new Set();
-      const future=songPipeline
+      const scheduled=songPipeline
         .filter(song=>
           !song.skipUpcoming&&
           !activeSet.has(song.id)&&
@@ -10503,6 +10607,8 @@
           new Date(a.activeFrom)-new Date(b.activeFrom)||
           new Date(a.releaseAt)-new Date(b.releaseAt)
         );
+      // Scheduled songs retain order; TBD songs follow them.
+      const future=[...scheduled,...tbdSongs.filter(song=>!songPipelineById.has(song.id))];
       const signature=future.map(song=>song.id).join("|")||"__none__";
       if(signature===upcomingRenderSignature)return;
       upcomingRenderSignature=signature;
@@ -10513,7 +10619,7 @@
           ? '<div class="future-preview-corner">'+futurePreview+'</div>'
           : "";
         return `
-        <div class="song-row" data-song-id="${escapeHtml(song.id)}">
+        <div class="song-row" data-song-id="${escapeHtml(song.id)}" data-schedule-status="${song.scheduleTbd?"tbd":"scheduled"}">
           <span class="future-artwork-blur" aria-hidden="true"></span>
           <span class="future-artwork-ghost" aria-hidden="true"></span>
           ${futurePreviewCorner}
@@ -10521,12 +10627,12 @@
             <div>
               <h3 class="notranslate" translate="no">${escapeHtml(song.title)}</h3>
               <p class="notranslate" translate="no">${escapeHtml(song.artist)}</p>
-              <div class="song-date">Estreno: ${escapeHtml(song.releaseShortLabel)}</div>
+              <div class="song-date">Estreno: ${song.scheduleTbd?"Por definir":escapeHtml(song.releaseShortLabel)}</div>
             </div>
           </div>
           <div class="song-meta">
-            <div class="meta-line"><span class="meta-label">Aprendizaje:</span><span>${escapeHtml(song.learningLabel)}</span></div>
-            <div class="meta-line"><span class="meta-label">Preparación final:</span><span>${escapeHtml(song.finalLabel)}</span></div>
+            <div class="meta-line"><span class="meta-label">Aprendizaje:</span><span>${song.scheduleTbd?"Por definir":escapeHtml(song.learningLabel)}</span></div>
+            <div class="meta-line"><span class="meta-label">Preparación final:</span><span>${song.scheduleTbd?"Por definir":escapeHtml(song.finalLabel)}</span></div>
           </div>
         </div>
       `;
@@ -10617,6 +10723,13 @@
       health:SONG_CATALOG_HEALTH,
       sourceCount:SONG_CATALOG_SOURCE.length,
       managedCount:songPipeline.length,
+      tbd:Object.freeze(tbdSongs.map(song=>Object.freeze({
+        id:song.id,title:song.title,artist:song.artist,
+        scheduleTbd:!!song.scheduleTbd,dateLabel:"Por definir",
+        hasPreview:hasSongPreviewSource(song),
+        previewProvider:song.previewAudioProvider||"itunes",
+        itunesTrackId:String(song.itunesTrackId||"")
+      }))),
       songs:Object.freeze(songPipeline.map(song=>Object.freeze({
         id:song.id,
         title:song.title,
@@ -10647,7 +10760,7 @@
         artworkSource:song.artworkSource||"",
         futurePalette:Object.freeze((song.futurePalette||[]).map(color=>Object.freeze(color.slice(0,3)))),
         hasArtwork:!!(song.artworkUrl||song.artworkFallbackUrl||song.artworkQuery),
-        hasPreview:!!song.previewAudioUrl,
+        hasPreview:hasSongPreviewSource(song),
         hasCuratedPalette:validFuturePalette(song.futurePalette),
         fullVisualReady:productionVisualReadiness(song).full,
         visualReadiness:productionVisualReadiness(song),
@@ -10813,7 +10926,7 @@
       });
 
       document.querySelectorAll("#upcoming-songs [data-song-id]").forEach(card=>{
-        const song=songPipelineById.get(card.dataset.songId);
+        const song=futureSongById.get(card.dataset.songId);
         if(!song)return;
         primeFutureCardTheme(song,card);
         if(card.dataset.futureHydrationRequested==="true"){
@@ -10822,7 +10935,7 @@
       });
 
       document.querySelectorAll("[data-preview-song-id]").forEach(row=>{
-        const song=songPipeline.find(item=>item.id===row.dataset.previewSongId);
+        const song=futureSongById.get(row.dataset.previewSongId);
         if(!song||row._previewData||row.dataset.hydrating)return;
         row.dataset.hydrating="true";
         hydratePreviewRow(song).finally(()=>{
