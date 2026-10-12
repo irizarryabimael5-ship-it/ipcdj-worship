@@ -3353,3 +3353,11 @@ Watchdog:
 - Website Health must continue validating that social metadata points to a crawler-accessible JPEG with 1200×630 metadata and production crawler access.
 - Existing previews already cached by WhatsApp/Meta or other messaging clients may remain visible in old conversations. The cache-busting URL is intended to make new scrapes and new shares resolve the newest generated image.
 
+
+## Mandatory Después audio-preview contract (v188)
+
+- Every new song in Después, whether scheduled or Por definir, MUST have a working native Adelanto control in the existing circular Play/Pause ring, matching No Fallarás.
+- The new entry must contain a verified HTTPS preview audio asset or an exact official audio-provider track ID. A date-TBD entry uses SONG_TBD_SOURCE and is excluded from all timed notification/release transitions.
+- When a provider track ID is used, look up the current provider preview URL at runtime and verify the exact recording. Never invent or guess preview CDN links; refuse unrelated matches.
+- Preserve Web Audio fade, normalized volume, pause/resume, countdown, iOS user-gesture unlocking and PWA/background stop. Temporary remote failures must permit retries.
+- Every new Después preview receives watchdog coverage for source validation, Play/Pause UI and actual playback, including the existing mobile/browser matrix.

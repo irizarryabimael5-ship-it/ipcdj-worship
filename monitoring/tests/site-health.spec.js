@@ -1120,6 +1120,92 @@ test('desktop Chrome tab switching cannot replay the launch intro', async ({ pag
 
 
 
+test('TBD song stays in Después without synthetic learning or release dates', async ({ page }) => {
+  await openHealthyPage(page);
+  const pending=await page.evaluate(() => ({
+    tbd:window.IPCDJ_CATALOG.tbd,
+    scheduled:window.IPCDJ_CATALOG.songs.map(song=>song.id),
+    health:window.IPCDJ_CATALOG.health,
+    current:window.IPCDJ_CATALOG.snapshot(Date.now()).current,
+    introduced:window.IPCDJ_CATALOG.snapshot(Date.now()).introduced
+  }));
+  expect(pending.health.valid).toBe(true);
+  expect(pending.tbd).toEqual([{
+    id:'reinas-por-la-eternidad',
+    title:'Reinas Por La Eternidad',
+    artist:'Hillsong en Español',
+    scheduleTbd:true,
+    dateLabel:'Por definir',
+    hasPreview:true,
+    previewProvider:'itunes',
+    itunesTrackId:'1785402419'
+  }]);
+  expect(pending.scheduled).not.toContain('reinas-por-la-eternidad');
+  expect(pending.current).not.toContain('reinas-por-la-eternidad');
+  expect(pending.introduced).not.toContain('reinas-por-la-eternidad');
+  const card=page.locator('#upcoming-songs [data-song-id="reinas-por-la-eternidad"]');
+  await expect(card).toHaveCount(1);
+  await expect(card).toHaveAttribute('data-schedule-status','tbd');
+  await expect(card.locator('h3')).toHaveText('Reinas Por La Eternidad');
+  await expect(card.locator('.song-top p')).toHaveText('Hillsong en Español');
+  await expect(card.locator('.song-date')).toHaveText('Estreno: Por definir');
+  await expect(card.locator('.song-meta .meta-line').first()).toContainText('Aprendizaje:');
+  await expect(card.locator('.song-meta .meta-line').first()).toContainText('Por definir');
+  await expect(card.locator('.song-meta .meta-line').last()).toContainText('Preparación final:');
+  await expect(card.locator('.song-meta .meta-line').last()).toContainText('Por definir');
+  const upcoming=page.locator('#upcoming-songs .song-row[data-song-id]');
+  const everyFutureHasPreview=await upcoming.evaluateAll(cards=>
+    cards.length>0&&cards.every(node=>!!node.querySelector('.preview-row-future .preview-button'))
+  );
+  expect(everyFutureHasPreview).toBe(true);
+  await expect(card.locator('.preview-row-future[data-preview-song-id="reinas-por-la-eternidad"]')).toHaveCount(1);
+  await expect(card.locator('.future-preview-ring-progress')).toHaveCount(1);
+  await expect(card.locator('.future-preview-countdown')).toHaveCount(1);
+  await expect(card.locator('.preview-button')).toBeEnabled();
+  // A TBD entry must not accidentally turn into Current or a past premiere.
+  try {
+    await page.evaluate(() =>
+      window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-12-15T12:00:00-05:00'))
+    );
+    await expect(card).toHaveCount(1);
+    await expect(card.locator('.song-date')).toHaveText('Estreno: Por definir');
+    expect(await page.evaluate(() =>
+      window.IPCDJ_CATALOG.snapshot(Date.parse('2026-12-15T12:00:00-05:00'))
+        .introduced.includes('reinas-por-la-eternidad')
+    )).toBe(false);
+  }finally{
+    await page.evaluate(() => window.IPCDJ_CATALOG_TEST.resume());
+  }
+});
+
+test('TBD official preview resolves and plays through the standard Después player', async ({ page }, testInfo) => {
+  await openHealthyPage(page);
+  const row=page.locator('#upcoming-songs [data-song-id="reinas-por-la-eternidad"] .preview-row');
+  const button=row.locator('.preview-button');
+  await expect(button).toBeEnabled();
+  await clickVerifiedTabletControl(page,button,testInfo);
+  await expect.poll(
+    () => row.evaluate(node=>node.classList.contains('is-playing')),
+    {timeout:20000,message:'official Apple preview should decode and play for TBD song'}
+  ).toBe(true);
+  const playing=await row.evaluate(node=>({
+    state:node.dataset.previewState,
+    provider:node._previewData?.previewProvider,
+    title:node._previewData?.trackName,
+    artist:node._previewData?.artistName,
+    duration:node._previewData?.clipDuration,
+    url:node._previewData?.previewUrl
+  }));
+  expect(playing.state).toBe('pause');
+  expect(playing.provider).toBe('itunes');
+  expect(playing.title?.toLowerCase()).toContain('reinas por la eternidad');
+  expect(playing.artist?.toLowerCase()).toContain('hillsong');
+  expect(playing.duration).toBeGreaterThan(1);
+  expect(playing.url).toMatch(/^https:\/\//);
+  await clickVerifiedTabletControl(page,button,testInfo);
+  await expect(row).not.toHaveClass(/is-playing/);
+});
+
 test('managed song catalog is single-source and lifecycle-safe', async ({ page, request }) => {
   await openHealthyPage(page);
 
@@ -1265,7 +1351,7 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
   expect(source).toContain('introducedAt must exactly match rolloverAt for an atomic rotation/history handoff.');
   expect(source).toContain('function previewInternalTabSwitchActive()');
   expect(source).toContain('if(previewInternalTabSwitchActive())return;');
-  expect(source).toContain('previewSource:raw.previewSource||(raw.previewAudioUrl?"webaudio":"")');
+  expect(source).toContain('previewSource:raw.previewSource||(hasSongPreviewSource(raw)?"webaudio":"")');
   expect(source).toContain('!song.skipUpcoming');
   expect(source).toContain('if(song.finalOnly)');
   expect(source).toContain('learningTimelineMarkup=song.finalOnly');
@@ -1656,7 +1742,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
   });
   expect(serviceWorkerResponse.ok()).toBe(true);
   const serviceWorkerText = await serviceWorkerResponse.text();
-  expect(serviceWorkerText).toContain('ipcdj-worship-v186');
+  expect(serviceWorkerText).toContain('ipcdj-worship-v188');
   expect(serviceWorkerText).toContain('CACHE_FRESH_SHELL');
   expect(serviceWorkerText).toContain('refresh-test');
 
@@ -1703,7 +1789,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     // Simulate the exact failure we are guarding against: an installed PWA has
     // an older shell cached when the user performs one refresh.
-    const staleCache=await caches.open('ipcdj-worship-v186');
+    const staleCache=await caches.open('ipcdj-worship-v188');
     await staleCache.put(
       './__offline_index__',
       new Response('<!doctype html><meta name="ipcdj-build" content="stale-watchdog" />',{
@@ -1713,7 +1799,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     const staged=await window.IPCDJ_REFRESH_TEST.stageLatestShell();
     const keys=await caches.keys();
-    const cacheKey=keys.find(key=>key==='ipcdj-worship-v186')||'';
+    const cacheKey=keys.find(key=>key==='ipcdj-worship-v188')||'';
     let cachedBuild='';
     if(cacheKey){
       const cache=await caches.open(cacheKey);
@@ -1727,7 +1813,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
   expect(refreshStage.staged.ok).toBe(true);
   expect(refreshStage.staged.build).toBe(refreshStage.currentBuild);
-  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v186');
+  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v188');
   expect(refreshStage.cachedBuild).toBe(refreshStage.currentBuild);
 
   // Intentionally coarse runaway guards, not synthetic speed scores.
