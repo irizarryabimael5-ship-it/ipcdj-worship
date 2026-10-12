@@ -110,7 +110,24 @@ export function rolloverHtml(source,now=Date.now()){
     throw new Error('active weekly panels missing');
   }
 
-  const history=`          <details class="weekly-history">
+  // On the next standard Sunday, demote existing Semana anterior to history
+  // rather than deleting Campaña GU (or any other prior special-event week).
+  const prior=between(source,START.history,END.history);
+  const firstOpen=prior.indexOf('<details class="weekly-history"');
+  const firstClose=prior.indexOf('</details>',firstOpen);
+  let preserved=prior;
+  if(firstOpen>=0&&firstClose>=0){
+    const first=prior.slice(firstOpen,firstClose+'</details>'.length);
+    const oldCycle=first.match(/data-weekly-history-cycle="([^"]+)"/)?.[1]||"";
+    const older=oldCycle
+      ? first.replace('class="weekly-history"','class="weekly-history weekly-history-older"')
+        .replace('data-weekly-history-body','data-weekly-older-history-body')
+        .replace('<span>Semana anterior','<span>Historial')
+        .replace(/data-weekly-archive-cycle="[^"]*"/,'data-weekly-archive-cycle="'+oldCycle+'"')
+      : "";
+    preserved=older+prior.slice(firstClose+'</details>'.length);
+  }
+  const history=`          <details class="weekly-history" data-weekly-archive-cycle="${cycle}">
             <summary>
               <span>Semana anterior</span>
               <small>${cycleLabel(cycle)}</small>
@@ -121,7 +138,8 @@ ${archivePanel(friday,'viernes')}
 ${archivePanel(sunday,'domingo')}
               </div>
             </div>
-          </details>`;
+          </details>
+${preserved}`;
 
   let next=source;
   next=replaceBetween(next,START.viernes,END.viernes,pendingPanel('viernes'));
@@ -165,6 +183,23 @@ ${START.history}
   if(!at.source.includes('data-weekly-history-service="domingo"'))throw new Error('Sunday archive missing');
   if(!at.source.includes('Nuevo set pendiente'))throw new Error('pending status missing');
   if((at.source.match(/id="song-[ab]"/g)||[]).length!==0)throw new Error('archived ids were not sanitized');
+
+  const withCampaign=replaceBetween(fixture,START.history,END.history,`
+<details class="weekly-history" data-weekly-archive-cycle="2026-10-11">
+  <summary><span>Semana anterior · Campaña GU 2026</span></summary>
+  <div data-weekly-history-body data-weekly-history-cycle="2026-10-11">
+    <div data-weekly-special-archive-grid="campana-gu-2026">Archived Fri/Sat/Sun event</div>
+  </div>
+</details>
+<details class="weekly-history weekly-history-older" data-weekly-archive-cycle="2026-10-04">
+  <div data-weekly-older-history-body data-weekly-history-cycle="2026-10-04">Older Friday/Sunday</div>
+</details>`);
+  const afterCampaign=rolloverHtml(withCampaign,Date.parse('2026-10-11T15:00:00-04:00'));
+  if(!afterCampaign.changed||!afterCampaign.source.includes('Archived Fri/Sat/Sun event')||
+     !afterCampaign.source.includes('Older Friday/Sunday')||
+     !afterCampaign.source.includes('data-weekly-older-history-body')){
+    throw new Error('weekly rollover lost historic event or older week');
+  }
 
   const twice=rolloverHtml(at.source,Date.parse('2026-10-11T16:00:00-04:00'));
   if(twice.changed)throw new Error('rolled week archived twice');
