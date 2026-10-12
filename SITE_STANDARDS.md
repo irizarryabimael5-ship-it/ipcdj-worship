@@ -3346,3 +3346,12 @@ Watchdog:
 - When a provider track ID is used, look up the current provider preview URL at runtime and verify the exact recording. Never invent or guess preview CDN links; refuse unrelated matches.
 - Preserve Web Audio fade, normalized volume, pause/resume, countdown, iOS user-gesture unlocking and PWA/background stop. Temporary remote failures must permit retries.
 - Every new Después preview receives watchdog coverage for source validation, Play/Pause UI and actual playback, including the existing mobile/browser matrix.
+
+## Completed special-event sets are part of weekly history (v189)
+
+- When a multi-day special event owned the preceding weekend, those actual services MUST appear as the latest `Semana anterior` under Worship semanal even after the temporary event tab expires. Campaña GU 2026: Friday 9, Saturday 10 and Sunday 11 October, 15 songs plus coritos, rehearsal/personnel information, tones/BPM, PDFs and playlists.
+- Keep the earlier regular Friday 2 / Sunday 4 October worship services available as `Historial anterior`; do not lose either archive. Show the most recent historical weekend first, then progressively older weeks.
+- Reuse the already-authored completed event <template> instead of transcribing new static copies of its service cards. Clones must remove duplicate IDs, hidden tab state, and redundant ARIA relationships. Preserve all source URLs.
+- In-browser Sunday rollover and the scheduled `scripts/weekly-rollover.mjs` both demote the former latest history rather than deleting it. Historical archives remain intact even when new services and new special events occur.
+- History remains in the existing professional responsive accordion styling. The top-level concluded-event tab remains absent after its exact expiration; an archive entry is not a live event tab.
+- Dedicated Playwright watchdogs must cover all three actual campaign days, full song ordering, resource links, earlier regular week, duplicate ID and overflow health, and synthetic weekly rollover. The rollover script self-test must assert preservation of prior event history.
