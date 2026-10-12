@@ -3355,3 +3355,11 @@ Watchdog:
 - In-browser Sunday rollover and the scheduled `scripts/weekly-rollover.mjs` both demote the former latest history rather than deleting it. Historical archives remain intact even when new services and new special events occur.
 - History remains in the existing professional responsive accordion styling. The top-level concluded-event tab remains absent after its exact expiration; an archive entry is not a live event tab.
 - Dedicated Playwright watchdogs must cover all three actual campaign days, full song ordering, resource links, earlier regular week, duplicate ID and overflow health, and synthetic weekly rollover. The rollover script self-test must assert preservation of prior event history.
+
+## Worship semanal archive: no YouTube playlists (v190)
+
+- Active Friday/Sunday weekly worship sets and active special-event tabs may continue to show their approved YouTube playlist embeds and links.
+- When a service becomes part of **Semana anterior** or any older historical archive, remove its YouTube playlist card, iframe, and playlist link. This applies equally to regular worship sets and special events, including the Oct. 9–11 Campaña GU archive and the Oct. 2/4 older archive.
+- Retain the ordered worship songs, artists, tonos, BPMs, coritos, rehearsal/service metadata, notes and existing PDF Letras & Coritos resource. Do not alter the original source event template or the historical export: source playlist URLs are kept for preservation/reuse, not displayed on the public archive page.
+- The rule is enforced by `stripArchivedWeeklyPlaylists(root)` in the completed-event archive hydration, pre-authored older archives, weekly panel clone-to-history, and older-history demotion.
+- Every relevant watchdog must verify current-set YouTube availability where applicable, but enforce **zero YouTube playlist cards, embeds, and links anywhere inside .weekly-history** after initialization and after future scheduled rollovers. Do not hide a playlist visually while leaving an iframe fetching background content.

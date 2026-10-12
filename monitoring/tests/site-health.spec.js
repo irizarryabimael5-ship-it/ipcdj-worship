@@ -451,7 +451,8 @@ test('special-event lifecycle is clock-deterministic and retains an archived sou
     await expect(weeklyDashboard).not.toHaveClass(/weekly-event-active/);
     expect(await page.evaluate(()=>window.IPCDJ_NAV.getVisibleTabs()))
       .toEqual(['inicio','worship-semanal']);
-    await expect(page.locator('.weekly-history')).toHaveCount(1);
+    await expect(page.locator('[data-weekly-archive-cycle="2026-10-11"]')).toHaveCount(1);
+    await expect(page.locator('[data-weekly-archive-cycle="2026-10-04"]')).toHaveCount(1);
 
     // Expiration never destroys the reusable, source-authored event snapshot.
     const response=await request.get('/?event-archive-watchdog='+Date.now(),{
@@ -675,7 +676,7 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
     await expect(service.locator('.weekly-song')).toHaveCount(5);
     await expect(service.locator('.weekly-corito').first()).toBeAttached();
     await expect(service.locator('a[href$=".pdf"]')).toHaveCount(1);
-    await expect(service.locator('iframe[src*="youtube-nocookie.com"]')).toHaveCount(1);
+    await expect(service.locator('.weekly-youtube-card, iframe[src*="youtube-nocookie.com"], a[href*="youtube.com/playlist"]')).toHaveCount(0);
   }
   await weeklyHistory.locator('summary').click();
   await expect(campaignArchive.first()).toBeVisible();
@@ -701,12 +702,7 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(fridayHistory).toContainText('BPM · 90/180');
   await expect(fridayHistory).toContainText('Cristo Rompe Las Cadenas');
   await expect(fridayHistory).toContainText('+ Mas');
-  await expect(fridayHistory.locator('.weekly-youtube-mark img[src="youtube-music.svg"]')).toHaveCount(1);
-  await expect(fridayHistory.locator('.weekly-youtube-frame iframe')).toHaveAttribute(
-    'src',
-    /youtube-nocookie\.com\/embed\/videoseries\?list=PLJHxkkSIlf28/
-  );
-  await expect(fridayHistory.locator('a[href*="youtube.com/playlist?list=PLJHxkkSIlf28"]')).toHaveCount(1);
+  await expect(fridayHistory.locator('.weekly-youtube-card, iframe[src*="youtube-nocookie.com"], a[href*="youtube.com/playlist"]')).toHaveCount(0);
   await expect(fridayHistory.locator('a[href="https://u.pone.rs/iifwokqy.pdf"]')).toHaveCount(1);
 
   // Sunday archive must preserve the final five-song order and metadata.
@@ -727,12 +723,7 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(sundayHistory).toContainText('BPM · 60/120');
   await expect(sundayHistory).toContainText('Do Sostenido Mayor');
   await expect(sundayHistory).toContainText('Re Mayor · 115 BPM');
-  await expect(sundayHistory.locator('.weekly-youtube-mark img[src="youtube-music.svg"]')).toHaveCount(1);
-  await expect(sundayHistory.locator('.weekly-youtube-frame iframe')).toHaveAttribute(
-    'src',
-    /youtube-nocookie\.com\/embed\/videoseries\?list=PLkLZ_UC3YYUw0TOBrAw19xENUYunh7URI/
-  );
-  await expect(sundayHistory.locator('a[href*="youtube.com/playlist?list=PLkLZ_UC3YYUw0TOBrAw19xENUYunh7URI"]')).toHaveCount(1);
+  await expect(sundayHistory.locator('.weekly-youtube-card, iframe[src*="youtube-nocookie.com"], a[href*="youtube.com/playlist"]')).toHaveCount(0);
   await expect(sundayHistory.locator('a[href="https://u.pone.rs/jzehueif.pdf"]')).toHaveCount(1);
 
   const weeklyOverflow=await weeklyPanel.evaluate(node=>({
@@ -745,6 +736,13 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   // of Semana anterior, pending reset, and idempotency.
   const rolloverBoundary=await page.evaluate(() => {
     const prepared=window.IPCDJ_WEEKLY_TEST.prepareFromHistory('2026-10-11T15:00:00-04:00','older');
+    // Prove current worship sets may use the full YouTube player, while the
+    // exact same set loses it only when copied into Semana anterior.
+    const activeFriday=document.querySelector('#weekly-panel-viernes');
+    const sourceTemplate=document.querySelector('#template-campana-gu-2026');
+    const playlist=sourceTemplate?.content.querySelector('.weekly-youtube-card');
+    if(playlist&&activeFriday)activeFriday.prepend(playlist.cloneNode(true));
+    const activeCurrentPlaylist=!!activeFriday?.querySelector('.weekly-youtube-card iframe');
     const before=window.IPCDJ_WEEKLY_TEST.rollover(Date.parse('2026-10-11T14:59:59-04:00'));
     const beforeSnapshot=window.IPCDJ_WEEKLY_TEST.snapshot();
     const atBoundary=window.IPCDJ_WEEKLY_TEST.rollover(Date.parse('2026-10-11T15:00:00-04:00'));
@@ -752,10 +750,18 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
     const secondAttempt=window.IPCDJ_WEEKLY_TEST.rollover(Date.parse('2026-10-11T16:00:00-04:00'));
     const ids=[...document.querySelectorAll('[id]')].map(node=>node.id);
     const duplicateIds=[...new Set(ids.filter((id,index)=>ids.indexOf(id)!==index))];
-    return {prepared,before,beforeSnapshot,atBoundary,afterSnapshot,secondAttempt,duplicateIds};
+    const archivedVideoCount=document.querySelectorAll(
+      '.weekly-history .weekly-youtube-card, .weekly-history iframe[src*="youtube-nocookie.com"], '+
+      '.weekly-history a[href*="youtube.com/playlist"]'
+    ).length;
+    const originalTemplatePlaylist=!!sourceTemplate?.content.querySelector('.weekly-youtube-card iframe');
+    return {prepared,activeCurrentPlaylist,before,beforeSnapshot,atBoundary,afterSnapshot,secondAttempt,duplicateIds,archivedVideoCount,originalTemplatePlaylist};
   });
 
   expect(rolloverBoundary.prepared).toBe(true);
+  expect(rolloverBoundary.activeCurrentPlaylist).toBe(true);
+  expect(rolloverBoundary.originalTemplatePlaylist).toBe(true);
+  expect(rolloverBoundary.archivedVideoCount).toBe(0);
   expect(rolloverBoundary.before).toBe(false);
   expect(rolloverBoundary.beforeSnapshot.state).toBe('active');
   expect(rolloverBoundary.beforeSnapshot.fridayCurrent).toEqual([
@@ -806,7 +812,8 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   expect(weeklySource).toContain('data-weekly-older-history-body');
   expect(weeklySource).toContain('data-weekly-special-event="campana-gu-2026"');
   expect(weeklySource).toContain('data-open-campaign="campana-gu-2026"');
-  expect(weeklySource).toContain('PLkLZ_UC3YYUw0TOBrAw19xENUYunh7URI');
+  expect(weeklySource).not.toContain('PLkLZ_UC3YYUw0TOBrAw19xENUYunh7URI');
+  expect(weeklySource).not.toContain('PLJHxkkSIlf28');
   expect(weeklySource).toContain('https://u.pone.rs/jzehueif.pdf');
 
   await weeklyTab.focus();
@@ -1819,7 +1826,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
   });
   expect(serviceWorkerResponse.ok()).toBe(true);
   const serviceWorkerText = await serviceWorkerResponse.text();
-  expect(serviceWorkerText).toContain('ipcdj-worship-v189');
+  expect(serviceWorkerText).toContain('ipcdj-worship-v190');
   expect(serviceWorkerText).toContain('CACHE_FRESH_SHELL');
   expect(serviceWorkerText).toContain('refresh-test');
 
@@ -1866,7 +1873,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     // Simulate the exact failure we are guarding against: an installed PWA has
     // an older shell cached when the user performs one refresh.
-    const staleCache=await caches.open('ipcdj-worship-v189');
+    const staleCache=await caches.open('ipcdj-worship-v190');
     await staleCache.put(
       './__offline_index__',
       new Response('<!doctype html><meta name="ipcdj-build" content="stale-watchdog" />',{
@@ -1876,7 +1883,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     const staged=await window.IPCDJ_REFRESH_TEST.stageLatestShell();
     const keys=await caches.keys();
-    const cacheKey=keys.find(key=>key==='ipcdj-worship-v189')||'';
+    const cacheKey=keys.find(key=>key==='ipcdj-worship-v190')||'';
     let cachedBuild='';
     if(cacheKey){
       const cache=await caches.open(cacheKey);
@@ -1890,7 +1897,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
   expect(refreshStage.staged.ok).toBe(true);
   expect(refreshStage.staged.build).toBe(refreshStage.currentBuild);
-  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v189');
+  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v190');
   expect(refreshStage.cachedBuild).toBe(refreshStage.currentBuild);
 
   // Intentionally coarse runaway guards, not synthetic speed scores.

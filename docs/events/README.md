@@ -39,3 +39,7 @@ Do not write tests asserting that a historical event is still visible on `Date.n
 - `monitoring/WATCHDOG_POLICY.md`: `FEATURE_COVERAGE_ADDED` required for time-gated UI, navigation, routing and keyboard controls.
 
 **Archive note:** This archive is private-project source/version documentation kept in the repository, not a currently visible website tab. Audit resource availability before future reuse.
+
+## Published worship history playlist policy (October 2026)
+
+The event source archive retains all original service playlists and URLs as historically supplied. When the event is shown inside `Semana anterior` or `Historial anterior`, however, the website **must not display any YouTube playlist card/link/embed**. Future weekly rollover also strips YouTube players from the archived clone while keeping the current active set unchanged. All songs, PDF links, coritos, tones/BPM and metadata remain in history. This distinction is mandatory for future event template reuse.

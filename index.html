@@ -6,7 +6,7 @@
   <meta name="ipcdj-environment" content="staging" />
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="campana-weekend-v189" />
+  <meta name="ipcdj-build" content="campana-weekend-v190" />
   <title>IPCDJ Worship | Ministerio de Alabanza</title>
   <meta name="description" content="Próximas canciones, preparación y estrenos del Ministerio de Alabanza de IPCDJ." />
   <link rel="canonical" href="https://worship.ipcdj.org/" />
@@ -5130,7 +5130,7 @@
               <div>
                 <span class="weekly-service-kicker">Servicio · Viernes</span>
                 <h2>Worship set del viernes</h2>
-                <p>Orden del servicio, playlist, recursos y detalles de ensayo.</p>
+                <p>Orden del servicio, repertorio y recursos de ensayo.</p>
               </div>
             </div>
 
@@ -5140,26 +5140,7 @@
                 <span class="weekly-meta-value">Dayari</span>
               </li>
             </ul>
-
-            <section class="weekly-youtube-card">
-              <div class="weekly-youtube-frame">
-                <iframe
-                  src="https://www.youtube-nocookie.com/embed/videoseries?list=PLJHxkkSIlf28"
-                  title="Playlist de worship del viernes"
-                  loading="lazy"
-                  referrerpolicy="strict-origin-when-cross-origin"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowfullscreen></iframe>
-              </div>
-              <div class="weekly-youtube-info">
-                <span class="weekly-youtube-mark"><img src="youtube-music.svg" alt="" aria-hidden="true" width="22" height="22" decoding="async" />YouTube</span>
-                <h3>Playlist del servicio</h3>
-                <p>Escucha y repasa las canciones del viernes directamente desde la playlist del equipo.</p>
-                <a class="weekly-action" href="https://youtube.com/playlist?list=PLJHxkkSIlf28&amp;si=ThKDucscTvGm9U3P" target="_blank" rel="noopener">Abrir playlist en YouTube</a>
-              </div>
-            </section>
-
-            <a class="weekly-resource" href="https://u.pone.rs/iifwokqy.pdf" target="_blank" rel="noopener">
+<a class="weekly-resource" href="https://u.pone.rs/iifwokqy.pdf" target="_blank" rel="noopener">
               <span class="weekly-resource-badge">PDF</span>
               <span class="weekly-resource-text">
                 <strong>Letras &amp; Coritos</strong>
@@ -5247,7 +5228,7 @@
               <div>
                 <span class="weekly-service-kicker">Servicio · Domingo</span>
                 <h2>Worship set del domingo</h2>
-                <p>Orden del servicio, playlist, recursos y detalles de ensayo.</p>
+                <p>Orden del servicio, repertorio y recursos de ensayo.</p>
               </div>
             </div>
 
@@ -5261,26 +5242,7 @@
                 <span class="weekly-meta-value">Dayari</span>
               </li>
             </ul>
-
-            <section class="weekly-youtube-card">
-              <div class="weekly-youtube-frame">
-                <iframe
-                  src="https://www.youtube-nocookie.com/embed/videoseries?list=PLkLZ_UC3YYUw0TOBrAw19xENUYunh7URI"
-                  title="Playlist de worship del domingo"
-                  loading="lazy"
-                  referrerpolicy="strict-origin-when-cross-origin"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowfullscreen></iframe>
-              </div>
-              <div class="weekly-youtube-info">
-                <span class="weekly-youtube-mark"><img src="youtube-music.svg" alt="" aria-hidden="true" width="22" height="22" decoding="async" />YouTube</span>
-                <h3>Playlist del servicio</h3>
-                <p>Escucha y repasa las canciones del domingo directamente desde la playlist del equipo.</p>
-                <a class="weekly-action" href="https://youtube.com/playlist?list=PLkLZ_UC3YYUw0TOBrAw19xENUYunh7URI&amp;si=BySOjP07fJaR0gI7" target="_blank" rel="noopener">Abrir playlist en YouTube</a>
-              </div>
-            </section>
-
-            <a class="weekly-resource" href="https://u.pone.rs/jzehueif.pdf" target="_blank" rel="noopener">
+<a class="weekly-resource" href="https://u.pone.rs/jzehueif.pdf" target="_blank" rel="noopener">
               <span class="weekly-resource-badge">PDF</span>
               <span class="weekly-resource-text">
                 <strong>Letras &amp; Coritos</strong>
@@ -5671,6 +5633,21 @@
     const weeklyOlderHistoryBody=document.querySelector('[data-weekly-older-history-body][data-weekly-history-cycle="2026-10-04"]');
     const weeklyStatus=document.querySelector('[data-weekly-status]');
 
+    // Archive display contract: preserve the actual songs, coritos, PDF resources,
+    // dates and service metadata, but never display YouTube playlist embeds/links.
+    // Keep the source material and active/current playlists untouched.
+    function stripArchivedWeeklyPlaylists(root){
+      if(!root)return root;
+      root.querySelectorAll(
+        '.weekly-youtube-card, .weekly-youtube-frame, '+
+        'a[href*="youtube.com/playlist"], a[href*="music.youtube.com/playlist"]'
+      ).forEach(element=>element.remove());
+      root.querySelectorAll(".weekly-service-heading p").forEach(description=>{
+        description.textContent=description.textContent.replace(/playlist/gi,"repertorio");
+      });
+      return root;
+    }
+
     // Historical event songs, artists, coritos and links are sourced from the
     // completed event template, rather than copied by hand and allowed to drift.
     function hydrateCompletedCampaignArchive(){
@@ -5692,12 +5669,14 @@
         panel.querySelectorAll("[id]").forEach(node=>node.removeAttribute("id"));
         panel.querySelectorAll("[aria-labelledby]").forEach(node=>node.removeAttribute("aria-labelledby"));
         panel.querySelectorAll("[aria-controls]").forEach(node=>node.removeAttribute("aria-controls"));
-        return panel;
+        return stripArchivedWeeklyPlaylists(panel);
       });
       if(panels.some(panel=>!panel))return false;
       grid.replaceChildren(...panels);
       return true;
     }
+    // Sanitize pre-authored history too (including any older records added later).
+    document.querySelectorAll(".weekly-history").forEach(stripArchivedWeeklyPlaylists);
     hydrateCompletedCampaignArchive();
 
     const weeklyPendingMarkup=key=>`
@@ -5731,7 +5710,7 @@
       clone.querySelectorAll("[id]").forEach(node=>node.removeAttribute("id"));
       clone.querySelectorAll("[aria-labelledby]").forEach(node=>node.removeAttribute("aria-labelledby"));
       clone.querySelectorAll("[aria-controls]").forEach(node=>node.removeAttribute("aria-controls"));
-      return clone;
+      return stripArchivedWeeklyPlaylists(clone);
     }
 
     function setWeeklyTabState(key,label){
@@ -5761,7 +5740,7 @@
       // Special campaigns remain accessible permanently in Historial anterior.
       const previousCycle=weeklyHistoryBody.dataset.weeklyHistoryCycle||"";
       if(previousCycle&&weeklyHistoryBody.querySelector(".weekly-history-service")){
-        const previous=weeklyHistory.cloneNode(true);
+        const previous=stripArchivedWeeklyPlaylists(weeklyHistory.cloneNode(true));
         previous.classList.add("weekly-history-older");
         previous.dataset.weeklyArchiveCycle=previousCycle;
         const body=previous.querySelector("[data-weekly-history-body]");
