@@ -1125,6 +1125,53 @@ test('desktop Chrome tab switching cannot replay the launch intro', async ({ pag
 
 
 
+test('TBD song stays in Después without synthetic learning or release dates', async ({ page }) => {
+  await openHealthyPage(page);
+  const pending=await page.evaluate(() => ({
+    tbd:window.IPCDJ_CATALOG.tbd,
+    scheduled:window.IPCDJ_CATALOG.songs.map(song=>song.id),
+    health:window.IPCDJ_CATALOG.health,
+    current:window.IPCDJ_CATALOG.snapshot(Date.now()).current,
+    introduced:window.IPCDJ_CATALOG.snapshot(Date.now()).introduced
+  }));
+  expect(pending.health.valid).toBe(true);
+  expect(pending.tbd).toEqual([{
+    id:'reinas-por-la-eternidad',
+    title:'Reinas Por La Eternidad',
+    artist:'Hillsong en Español',
+    scheduleTbd:true,
+    dateLabel:'Por definir'
+  }]);
+  expect(pending.scheduled).not.toContain('reinas-por-la-eternidad');
+  expect(pending.current).not.toContain('reinas-por-la-eternidad');
+  expect(pending.introduced).not.toContain('reinas-por-la-eternidad');
+  const card=page.locator('#upcoming-songs [data-song-id="reinas-por-la-eternidad"]');
+  await expect(card).toHaveCount(1);
+  await expect(card).toHaveAttribute('data-schedule-status','tbd');
+  await expect(card.locator('h3')).toHaveText('Reinas Por La Eternidad');
+  await expect(card.locator('.song-top p')).toHaveText('Hillsong en Español');
+  await expect(card.locator('.song-date')).toHaveText('Estreno: Por definir');
+  await expect(card.locator('.song-meta .meta-line').first()).toContainText('Aprendizaje:');
+  await expect(card.locator('.song-meta .meta-line').first()).toContainText('Por definir');
+  await expect(card.locator('.song-meta .meta-line').last()).toContainText('Preparación final:');
+  await expect(card.locator('.song-meta .meta-line').last()).toContainText('Por definir');
+  await expect(card.locator('.preview-button')).toHaveCount(0);
+  // A TBD entry must not accidentally turn into Current or a past premiere.
+  try {
+    await page.evaluate(() =>
+      window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-12-15T12:00:00-05:00'))
+    );
+    await expect(card).toHaveCount(1);
+    await expect(card.locator('.song-date')).toHaveText('Estreno: Por definir');
+    expect(await page.evaluate(() =>
+      window.IPCDJ_CATALOG.snapshot(Date.parse('2026-12-15T12:00:00-05:00'))
+        .introduced.includes('reinas-por-la-eternidad')
+    )).toBe(false);
+  }finally{
+    await page.evaluate(() => window.IPCDJ_CATALOG_TEST.resume());
+  }
+});
+
 test('managed song catalog is single-source and lifecycle-safe', async ({ page, request }) => {
   await openHealthyPage(page);
 
@@ -1661,7 +1708,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
   });
   expect(serviceWorkerResponse.ok()).toBe(true);
   const serviceWorkerText = await serviceWorkerResponse.text();
-  expect(serviceWorkerText).toContain('ipcdj-worship-v186');
+  expect(serviceWorkerText).toContain('ipcdj-worship-v187');
   expect(serviceWorkerText).toContain('CACHE_FRESH_SHELL');
   expect(serviceWorkerText).toContain('refresh-test');
 
@@ -1708,7 +1755,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     // Simulate the exact failure we are guarding against: an installed PWA has
     // an older shell cached when the user performs one refresh.
-    const staleCache=await caches.open('ipcdj-worship-v186');
+    const staleCache=await caches.open('ipcdj-worship-v187');
     await staleCache.put(
       './__offline_index__',
       new Response('<!doctype html><meta name="ipcdj-build" content="stale-watchdog" />',{
@@ -1718,7 +1765,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     const staged=await window.IPCDJ_REFRESH_TEST.stageLatestShell();
     const keys=await caches.keys();
-    const cacheKey=keys.find(key=>key==='ipcdj-worship-v186')||'';
+    const cacheKey=keys.find(key=>key==='ipcdj-worship-v187')||'';
     let cachedBuild='';
     if(cacheKey){
       const cache=await caches.open(cacheKey);
@@ -1732,7 +1779,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
   expect(refreshStage.staged.ok).toBe(true);
   expect(refreshStage.staged.build).toBe(refreshStage.currentBuild);
-  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v186');
+  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v187');
   expect(refreshStage.cachedBuild).toBe(refreshStage.currentBuild);
 
   // Intentionally coarse runaway guards, not synthetic speed scores.
