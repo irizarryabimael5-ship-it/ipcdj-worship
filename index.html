@@ -6,7 +6,7 @@
   <meta name="ipcdj-environment" content="staging" />
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="campana-weekend-v186" />
+  <meta name="ipcdj-build" content="campana-weekend-v187" />
   <title>IPCDJ Worship | Ministerio de Alabanza</title>
   <meta name="description" content="Próximas canciones, preparación y estrenos del Ministerio de Alabanza de IPCDJ." />
   <link rel="canonical" href="https://worship.ipcdj.org/" />
@@ -6461,6 +6461,21 @@
       }
     ];
 
+    // Songs whose church learning/release calendar is genuinely unknown.
+    // Keep outside the dated pipeline so no artificial dates can trigger phases.
+    const SONG_TBD_SOURCE=Object.freeze([
+      Object.freeze({
+        id:"reinas-por-la-eternidad",
+        title:"Reinas Por La Eternidad",
+        artist:"Hillsong en Español",
+        album:"En Mi Lugar",
+        artworkQuery:"Reinas Por La Eternidad Hillsong en Español En Mi Lugar",
+        coverSearchAlbum:"En Mi Lugar",
+        itunesCollectionId:"1785402414",
+        scheduleTbd:true
+      })
+    ]);
+
     // Historical songs that predate the managed pipeline. New scheduled songs do
     // NOT belong here; add them only to SONG_CATALOG_SOURCE and lifecycle automation
     // will move them into Introducciones recientes automatically.
@@ -6725,6 +6740,19 @@
         .sort((a,b)=>Date.parse(a.releaseAt)-Date.parse(b.releaseAt))
     );
     const songPipelineById=new Map(songPipeline.map(song=>[song.id,song]));
+    const tbdIds=new Set();
+    const tbdErrors=[];
+    const tbdSongs=Object.freeze(SONG_TBD_SOURCE.filter(song=>{
+      const valid=/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(song.id||"")&&
+        !!String(song.title||"").trim()&&!!String(song.artist||"").trim()&&
+        song.scheduleTbd===true&&!songPipelineById.has(song.id)&&!tbdIds.has(song.id);
+      if(!valid)tbdErrors.push(String(song.id||"invalid-id"));
+      tbdIds.add(song.id);
+      return valid;
+    }));
+    if(tbdErrors.length)console.error("IPCDJ TBD catalog validation failed",tbdErrors);
+    // Separate hydration lookup: these songs are not active or released.
+    const futureSongById=new Map([...songPipeline,...tbdSongs].map(song=>[song.id,song]));
     const catalogErrors=Object.freeze(SONG_CATALOG_VALIDATION.issues.filter(issue=>issue.level==="error"));
     const catalogWarnings=Object.freeze(SONG_CATALOG_VALIDATION.issues.filter(issue=>issue.level==="warning"));
     const catalogVisualNotReady=Object.freeze(
@@ -10438,7 +10466,7 @@
         const target=event.target instanceof Element ? event.target : null;
         const card=target&&target.closest('[data-song-id]');
         if(!card||!container.contains(card))return;
-        const song=songPipelineById.get(card.dataset.songId);
+        const song=futureSongById.get(card.dataset.songId);
         if(song)hydrateFutureSongCard(song,card);
       };
       container.addEventListener("pointerdown",hydrateFromEvent,{passive:true,capture:true});
@@ -10463,7 +10491,7 @@
           entries.forEach(entry=>{
             if(!entry.isIntersecting)return;
             const card=entry.target;
-            const song=songPipelineById.get(card.dataset.songId);
+            const song=futureSongById.get(card.dataset.songId);
             if(song)hydrateFutureSongCard(song,card);
             futureCardObserver?.unobserve(card);
           });
@@ -10494,7 +10522,7 @@
       const container=$("upcoming-songs");
       if(!container)return;
       const activeSet=activeIds instanceof Set?activeIds:new Set();
-      const future=songPipeline
+      const scheduled=songPipeline
         .filter(song=>
           !song.skipUpcoming&&
           !activeSet.has(song.id)&&
@@ -10504,6 +10532,8 @@
           new Date(a.activeFrom)-new Date(b.activeFrom)||
           new Date(a.releaseAt)-new Date(b.releaseAt)
         );
+      // Scheduled songs retain order; TBD songs follow them.
+      const future=[...scheduled,...tbdSongs.filter(song=>!songPipelineById.has(song.id))];
       const signature=future.map(song=>song.id).join("|")||"__none__";
       if(signature===upcomingRenderSignature)return;
       upcomingRenderSignature=signature;
@@ -10514,7 +10544,7 @@
           ? '<div class="future-preview-corner">'+futurePreview+'</div>'
           : "";
         return `
-        <div class="song-row" data-song-id="${escapeHtml(song.id)}">
+        <div class="song-row" data-song-id="${escapeHtml(song.id)}" data-schedule-status="${song.scheduleTbd?"tbd":"scheduled"}">
           <span class="future-artwork-blur" aria-hidden="true"></span>
           <span class="future-artwork-ghost" aria-hidden="true"></span>
           ${futurePreviewCorner}
@@ -10522,12 +10552,12 @@
             <div>
               <h3 class="notranslate" translate="no">${escapeHtml(song.title)}</h3>
               <p class="notranslate" translate="no">${escapeHtml(song.artist)}</p>
-              <div class="song-date">Estreno: ${escapeHtml(song.releaseShortLabel)}</div>
+              <div class="song-date">Estreno: ${song.scheduleTbd?"Por definir":escapeHtml(song.releaseShortLabel)}</div>
             </div>
           </div>
           <div class="song-meta">
-            <div class="meta-line"><span class="meta-label">Aprendizaje:</span><span>${escapeHtml(song.learningLabel)}</span></div>
-            <div class="meta-line"><span class="meta-label">Preparación final:</span><span>${escapeHtml(song.finalLabel)}</span></div>
+            <div class="meta-line"><span class="meta-label">Aprendizaje:</span><span>${song.scheduleTbd?"Por definir":escapeHtml(song.learningLabel)}</span></div>
+            <div class="meta-line"><span class="meta-label">Preparación final:</span><span>${song.scheduleTbd?"Por definir":escapeHtml(song.finalLabel)}</span></div>
           </div>
         </div>
       `;
@@ -10618,6 +10648,10 @@
       health:SONG_CATALOG_HEALTH,
       sourceCount:SONG_CATALOG_SOURCE.length,
       managedCount:songPipeline.length,
+      tbd:Object.freeze(tbdSongs.map(song=>Object.freeze({
+        id:song.id,title:song.title,artist:song.artist,
+        scheduleTbd:!!song.scheduleTbd,dateLabel:"Por definir"
+      }))),
       songs:Object.freeze(songPipeline.map(song=>Object.freeze({
         id:song.id,
         title:song.title,
@@ -10814,7 +10848,7 @@
       });
 
       document.querySelectorAll("#upcoming-songs [data-song-id]").forEach(card=>{
-        const song=songPipelineById.get(card.dataset.songId);
+        const song=futureSongById.get(card.dataset.songId);
         if(!song)return;
         primeFutureCardTheme(song,card);
         if(card.dataset.futureHydrationRequested==="true"){
