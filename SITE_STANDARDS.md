@@ -3361,3 +3361,11 @@ Watchdog:
 - When a provider track ID is used, look up the current provider preview URL at runtime and verify the exact recording. Never invent or guess preview CDN links; refuse unrelated matches.
 - Preserve Web Audio fade, normalized volume, pause/resume, countdown, iOS user-gesture unlocking and PWA/background stop. Temporary remote failures must permit retries.
 - Every new Después preview receives watchdog coverage for source validation, Play/Pause UI and actual playback, including the existing mobile/browser matrix.
+
+## Worship semanal archive: no YouTube playlists (v190)
+
+- Active Friday/Sunday weekly worship sets and active special-event tabs may continue to show their approved YouTube playlist embeds and links.
+- When a service becomes part of **Semana anterior** or any older historical archive, remove its YouTube playlist card, iframe, and playlist link. This applies equally to regular worship sets and special events, including the Oct. 9–11 Campaña GU archive and the Oct. 2/4 older archive.
+- Retain the ordered worship songs, artists, tonos, BPMs, coritos, rehearsal/service metadata, notes and existing PDF Letras & Coritos resource. Do not alter the original source event template or the historical export: source playlist URLs are kept for preservation/reuse, not displayed on the public archive page.
+- The rule is enforced by `stripArchivedWeeklyPlaylists(root)` in the completed-event archive hydration, pre-authored older archives, weekly panel clone-to-history, and older-history demotion.
+- Every relevant watchdog must verify current-set YouTube availability where applicable, but enforce **zero YouTube playlist cards, embeds, and links anywhere inside .weekly-history** after initialization and after future scheduled rollovers. Do not hide a playlist visually while leaving an iframe fetching background content.
