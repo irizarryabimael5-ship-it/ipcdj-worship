@@ -1183,7 +1183,7 @@ test('TBD song stays in Después without synthetic learning or release dates', a
   }
 });
 
-test('TBD official preview resolves and plays through the standard Después player', async ({ page, testInfo }) => {
+test('TBD official preview resolves and plays through the standard Después player', async ({ page }, testInfo) => {
   await openHealthyPage(page);
   const row=page.locator('#upcoming-songs [data-song-id="reinas-por-la-eternidad"] .preview-row');
   const button=row.locator('.preview-button');
