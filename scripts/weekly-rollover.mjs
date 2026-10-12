@@ -48,6 +48,16 @@ function setDashboardAttribute(source,name,value){
   });
 }
 
+// Archived copies exclude YouTube playlist cards, iframes and links.
+// The live weekly set and the original event template retain their playlists.
+function stripArchivedPlaylistsMarkup(markup){
+  return markup
+    .replace(/\s*<section class="weekly-youtube-card">[\s\S]*?<\/section>\s*/g,'\n')
+    .replace(/<a\b[^>]*href="[^"]*youtube\.com\/playlist[^"]*"[^>]*>[\s\S]*?<\/a>/gi,'')
+    .replace(/Orden del servicio, playlist, recursos y detalles de ensayo\./g,
+      'Orden del servicio, repertorio y recursos de ensayo.');
+}
+
 function archivePanel(block,key){
   let x=block;
   x=x.replace(
@@ -60,7 +70,7 @@ function archivePanel(block,key){
   x=x.replace(/\s+id="[^"]*"/g,'');
   x=x.replace(/\s+aria-labelledby="[^"]*"/g,'');
   x=x.replace(/\s+aria-controls="[^"]*"/g,'');
-  return x;
+  return stripArchivedPlaylistsMarkup(x);
 }
 
 function pendingPanel(key){
@@ -144,7 +154,8 @@ ${preserved}`;
   let next=source;
   next=replaceBetween(next,START.viernes,END.viernes,pendingPanel('viernes'));
   next=replaceBetween(next,START.domingo,END.domingo,pendingPanel('domingo'));
-  next=replaceBetween(next,START.history,END.history,history);
+  // Enforce the same policy on newly rolled sets and preserved older history.
+  next=replaceBetween(next,START.history,END.history,stripArchivedPlaylistsMarkup(history));
   next=setDashboardAttribute(next,'data-weekly-state','rolled');
   next=setTabStatus(next,'viernes','Pendiente');
   next=setTabStatus(next,'domingo','Pendiente');
@@ -162,7 +173,7 @@ function selfTest(){
 <button class="weekly-service-tab" data-weekly-service="viernes"><small>Actualizado</small></button>
 <button class="weekly-service-tab" data-weekly-service="domingo"><small>Actualizado</small></button>
 ${START.viernes}
-<section class="weekly-service-panel" id="weekly-panel-viernes" role="tabpanel" aria-labelledby="weekly-tab-viernes" data-weekly-panel="viernes"><strong class="weekly-song-title" id="song-a">A</strong></section>
+<section class="weekly-service-panel" id="weekly-panel-viernes" role="tabpanel" aria-labelledby="weekly-tab-viernes" data-weekly-panel="viernes"><strong class="weekly-song-title" id="song-a">A</strong><section class="weekly-youtube-card"><div class="weekly-youtube-frame"><iframe src="https://www.youtube-nocookie.com/embed/videoseries?list=active-test"></iframe></div><a href="https://youtube.com/playlist?list=active-test">Abrir playlist en YouTube</a></section></section>
           ${END.viernes}
 ${START.domingo}
 <section class="weekly-service-panel" id="weekly-panel-domingo" role="tabpanel" aria-labelledby="weekly-tab-domingo" data-weekly-panel="domingo" hidden><strong class="weekly-song-title" id="song-b">B</strong></section>
@@ -174,6 +185,7 @@ ${START.history}
 
   const before=rolloverHtml(fixture,Date.parse('2026-10-11T14:59:59-04:00'));
   if(before.changed)throw new Error('rollover occurred before 3 PM');
+  if(!before.source.includes('youtube.com/playlist?list=active-test'))throw new Error('active weekly playlist lost before rollover');
 
   const at=rolloverHtml(fixture,Date.parse('2026-10-11T15:00:00-04:00'));
   if(!at.changed)throw new Error('rollover did not occur at 3 PM');
@@ -183,6 +195,7 @@ ${START.history}
   if(!at.source.includes('data-weekly-history-service="domingo"'))throw new Error('Sunday archive missing');
   if(!at.source.includes('Nuevo set pendiente'))throw new Error('pending status missing');
   if((at.source.match(/id="song-[ab]"/g)||[]).length!==0)throw new Error('archived ids were not sanitized');
+  if(at.source.includes('youtube.com/playlist?list=active-test')||at.source.includes('youtube-nocookie.com/embed/videoseries?list=active-test')||at.source.includes('weekly-youtube-card'))throw new Error('archived worship retains a playlist');
 
   const withCampaign=replaceBetween(fixture,START.history,END.history,`
 <details class="weekly-history" data-weekly-archive-cycle="2026-10-11">
@@ -192,7 +205,7 @@ ${START.history}
   </div>
 </details>
 <details class="weekly-history weekly-history-older" data-weekly-archive-cycle="2026-10-04">
-  <div data-weekly-older-history-body data-weekly-history-cycle="2026-10-04">Older Friday/Sunday</div>
+  <div data-weekly-older-history-body data-weekly-history-cycle="2026-10-04">Older Friday/Sunday<section class="weekly-youtube-card"><iframe src="https://www.youtube-nocookie.com/embed/videoseries?list=old-history"></iframe></section></div>
 </details>`);
   const afterCampaign=rolloverHtml(withCampaign,Date.parse('2026-10-11T15:00:00-04:00'));
   if(!afterCampaign.changed||!afterCampaign.source.includes('Archived Fri/Sat/Sun event')||
@@ -200,6 +213,7 @@ ${START.history}
      !afterCampaign.source.includes('data-weekly-older-history-body')){
     throw new Error('weekly rollover lost historic event or older week');
   }
+  if(afterCampaign.source.includes('list=old-history')||afterCampaign.source.includes('weekly-youtube-card'))throw new Error('older history retained YouTube playlist');
 
   const twice=rolloverHtml(at.source,Date.parse('2026-10-11T16:00:00-04:00'));
   if(twice.changed)throw new Error('rolled week archived twice');
