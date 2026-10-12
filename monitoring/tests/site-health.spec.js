@@ -621,13 +621,12 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   const fridayWeeklyPanel=weeklyPanel.locator('#weekly-panel-viernes');
   const sundayWeeklyPanel=weeklyPanel.locator('#weekly-panel-domingo');
   const weeklyDashboard=weeklyPanel.locator('[data-weekly-dashboard]');
-  const weeklyHistory=weeklyPanel.locator('.weekly-history');
-  const fridayHistory=weeklyPanel.locator('[data-weekly-history-service="viernes"]');
-  const sundayHistory=weeklyPanel.locator('[data-weekly-history-service="domingo"]');
+  const weeklyHistory=weeklyPanel.locator('.weekly-history').first();
+  const fridayHistory=weeklyPanel.locator('[data-weekly-older-history-body] [data-weekly-history-service="viernes"]');
+  const sundayHistory=weeklyPanel.locator('[data-weekly-older-history-body] [data-weekly-history-service="domingo"]');
 
-  // The Oct. 2/4 set remains the single Semana anterior. This weekend is
-  // intentionally routed into the Campaña GU event dashboard instead of being
-  // duplicated as a normal weekly Friday/Sunday set.
+  // The finished Campaña GU 9/10/11 is the actual previous worship week.
+  // Oct. 2/4 remains in a separate older historical section.
   await expect(weeklyDashboard).toHaveAttribute('data-weekly-state','rolled');
   await expect(weeklyDashboard).toHaveAttribute('data-weekly-cycle','2026-10-04');
   await expect(weeklyDashboard).toHaveAttribute('data-weekly-rollover-at','2026-10-04T15:00:00-04:00');
@@ -659,9 +658,30 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(weeklyPanel).toBeVisible();
 
   await expect(weeklyHistory.locator('summary')).toContainText('Semana anterior');
-  await expect(weeklyHistory.locator('summary')).toContainText('4 oct 2026');
-  await expect(weeklyPanel.locator('[data-weekly-history-body]')).toHaveAttribute('data-weekly-history-cycle','2026-10-04');
+  await expect(weeklyHistory.locator('summary')).toContainText('Campaña GU 2026');
+  await expect(weeklyHistory.locator('summary')).toContainText('9–11 oct 2026');
+  await expect(weeklyPanel.locator('[data-weekly-history-body]')).toHaveAttribute('data-weekly-history-cycle','2026-10-11');
+  const campaignArchive=weeklyHistory.locator('[data-weekly-history-service]');
+  await expect(campaignArchive).toHaveCount(3);
+  expect(await campaignArchive.evaluateAll(cards=>cards.map(card=>({
+    day:card.dataset.weeklyHistoryService,
+    songs:[...card.querySelectorAll('.weekly-song-title')].map(n=>n.textContent.trim())
+  })))).toEqual([
+    {day:'viernes',songs:['Dios No Está Muerto','Si Tu Presencia Conmigo No Va','Digno De Adorar','Mi Dios','Dios Es Más Grande']},
+    {day:'sabado',songs:['Yo Te Busco','Cuán Grande Es Dios','Proezas','Tu Fidelidad','Eres Todopoderoso']},
+    {day:'domingo',songs:['Bienvenido Espíritu Santo','Mi Sanador','Tu Nombre','Ver La Victoria','Sí Y Amén']}
+  ]);
+  for(const service of await campaignArchive.all()){
+    await expect(service.locator('.weekly-song')).toHaveCount(5);
+    await expect(service.locator('.weekly-corito').first()).toBeAttached();
+    await expect(service.locator('a[href$=".pdf"]')).toHaveCount(1);
+    await expect(service.locator('iframe[src*="youtube-nocookie.com"]')).toHaveCount(1);
+  }
   await weeklyHistory.locator('summary').click();
+  await expect(campaignArchive.first()).toBeVisible();
+  const olderHistory=weeklyPanel.locator('.weekly-history-older[data-weekly-archive-cycle="2026-10-04"]');
+  await expect(olderHistory.locator('summary')).toContainText('4 oct 2026');
+  await olderHistory.locator('summary').click();
   await expect(fridayHistory).toBeVisible();
   await expect(sundayHistory).toBeVisible();
 
@@ -724,7 +744,7 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   // Simulate the next active week to prove the exact 3 PM boundary, replacement
   // of Semana anterior, pending reset, and idempotency.
   const rolloverBoundary=await page.evaluate(() => {
-    const prepared=window.IPCDJ_WEEKLY_TEST.prepareFromHistory('2026-10-11T15:00:00-04:00');
+    const prepared=window.IPCDJ_WEEKLY_TEST.prepareFromHistory('2026-10-11T15:00:00-04:00','older');
     const before=window.IPCDJ_WEEKLY_TEST.rollover(Date.parse('2026-10-11T14:59:59-04:00'));
     const beforeSnapshot=window.IPCDJ_WEEKLY_TEST.snapshot();
     const atBoundary=window.IPCDJ_WEEKLY_TEST.rollover(Date.parse('2026-10-11T15:00:00-04:00'));
@@ -782,6 +802,8 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   expect(weeklySource).toContain('data-weekly-state="rolled"');
   expect(weeklySource).toContain('data-weekly-history-service="viernes"');
   expect(weeklySource).toContain('data-weekly-history-service="domingo"');
+  expect(weeklySource).toContain('data-weekly-special-archive-grid="campana-gu-2026"');
+  expect(weeklySource).toContain('data-weekly-older-history-body');
   expect(weeklySource).toContain('data-weekly-special-event="campana-gu-2026"');
   expect(weeklySource).toContain('data-open-campaign="campana-gu-2026"');
   expect(weeklySource).toContain('PLkLZ_UC3YYUw0TOBrAw19xENUYunh7URI');
@@ -1797,7 +1819,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
   });
   expect(serviceWorkerResponse.ok()).toBe(true);
   const serviceWorkerText = await serviceWorkerResponse.text();
-  expect(serviceWorkerText).toContain('ipcdj-worship-v188');
+  expect(serviceWorkerText).toContain('ipcdj-worship-v189');
   expect(serviceWorkerText).toContain('CACHE_FRESH_SHELL');
   expect(serviceWorkerText).toContain('refresh-test');
 
@@ -1844,7 +1866,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     // Simulate the exact failure we are guarding against: an installed PWA has
     // an older shell cached when the user performs one refresh.
-    const staleCache=await caches.open('ipcdj-worship-v188');
+    const staleCache=await caches.open('ipcdj-worship-v189');
     await staleCache.put(
       './__offline_index__',
       new Response('<!doctype html><meta name="ipcdj-build" content="stale-watchdog" />',{
@@ -1854,7 +1876,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     const staged=await window.IPCDJ_REFRESH_TEST.stageLatestShell();
     const keys=await caches.keys();
-    const cacheKey=keys.find(key=>key==='ipcdj-worship-v188')||'';
+    const cacheKey=keys.find(key=>key==='ipcdj-worship-v189')||'';
     let cachedBuild='';
     if(cacheKey){
       const cache=await caches.open(cacheKey);
@@ -1868,7 +1890,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
   expect(refreshStage.staged.ok).toBe(true);
   expect(refreshStage.staged.build).toBe(refreshStage.currentBuild);
-  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v188');
+  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v189');
   expect(refreshStage.cachedBuild).toBe(refreshStage.currentBuild);
 
   // Intentionally coarse runaway guards, not synthetic speed scores.
