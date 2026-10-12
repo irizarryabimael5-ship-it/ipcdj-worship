@@ -6,7 +6,7 @@
   <meta name="ipcdj-environment" content="staging" />
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="campana-weekend-v188" />
+  <meta name="ipcdj-build" content="campana-weekend-v189" />
   <title>IPCDJ Worship | Ministerio de Alabanza</title>
   <meta name="description" content="Próximas canciones, preparación y estrenos del Ministerio de Alabanza de IPCDJ." />
   <link rel="canonical" href="https://worship.ipcdj.org/" />
@@ -1406,6 +1406,7 @@
       -webkit-tap-highlight-color:transparent;
     }
 
+    .weekly-history + .weekly-history{margin-top:12px}
     .weekly-history summary::-webkit-details-marker{display:none}
 
     .weekly-history summary::after{
@@ -5107,12 +5108,22 @@
           <!-- WEEKLY_CURRENT_DOMINGO_END -->
 
           <!-- WEEKLY_HISTORY_START -->
-          <details class="weekly-history">
+          <details class="weekly-history" data-weekly-archive-cycle="2026-10-11">
             <summary>
-              <span>Semana anterior</span>
+              <span>Semana anterior · Campaña GU 2026</span>
+              <small>9–11 oct 2026 · 3 servicios</small>
+            </summary>
+            <div class="weekly-history-body" data-weekly-history-body data-weekly-history-cycle="2026-10-11">
+              <div class="weekly-history-grid" data-weekly-special-archive-grid="campana-gu-2026"></div>
+            </div>
+          </details>
+
+          <details class="weekly-history weekly-history-older" data-weekly-archive-cycle="2026-10-04">
+            <summary>
+              <span>Historial anterior</span>
               <small>Semana terminada · 4 oct 2026</small>
             </summary>
-            <div class="weekly-history-body" data-weekly-history-body data-weekly-history-cycle="2026-10-04">
+            <div class="weekly-history-body" data-weekly-older-history-body data-weekly-history-cycle="2026-10-04">
               <div class="weekly-history-grid">
           <section class="weekly-service-panel weekly-history-service" data-weekly-history-service="viernes">
             <div class="weekly-service-heading">
@@ -5657,7 +5668,37 @@
     const weeklyDashboard=document.querySelector('[data-weekly-dashboard]');
     const weeklyHistory=document.querySelector('.weekly-history');
     const weeklyHistoryBody=document.querySelector('[data-weekly-history-body]');
+    const weeklyOlderHistoryBody=document.querySelector('[data-weekly-older-history-body][data-weekly-history-cycle="2026-10-04"]');
     const weeklyStatus=document.querySelector('[data-weekly-status]');
+
+    // Historical event songs, artists, coritos and links are sourced from the
+    // completed event template, rather than copied by hand and allowed to drift.
+    function hydrateCompletedCampaignArchive(){
+      const grid=document.querySelector('[data-weekly-special-archive-grid="campana-gu-2026"]');
+      const template=document.getElementById("template-campana-gu-2026");
+      if(!grid||!(template instanceof HTMLTemplateElement))return false;
+      const panels=["viernes","sabado","domingo"].map(day=>{
+        const original=template.content.querySelector('[data-campaign-day-panel="'+day+'"]');
+        if(!original)return null;
+        const panel=original.cloneNode(true);
+        panel.classList.remove("campaign-day-panel");
+        panel.classList.add("weekly-history-service");
+        panel.dataset.weeklyHistoryService=day;
+        panel.removeAttribute("id");
+        panel.removeAttribute("hidden");
+        panel.removeAttribute("role");
+        panel.removeAttribute("aria-labelledby");
+        panel.removeAttribute("data-campaign-day-panel");
+        panel.querySelectorAll("[id]").forEach(node=>node.removeAttribute("id"));
+        panel.querySelectorAll("[aria-labelledby]").forEach(node=>node.removeAttribute("aria-labelledby"));
+        panel.querySelectorAll("[aria-controls]").forEach(node=>node.removeAttribute("aria-controls"));
+        return panel;
+      });
+      if(panels.some(panel=>!panel))return false;
+      grid.replaceChildren(...panels);
+      return true;
+    }
+    hydrateCompletedCampaignArchive();
 
     const weeklyPendingMarkup=key=>`
       <div class="weekly-empty">
@@ -5716,8 +5757,22 @@
         cloneWeeklyPanelForHistory(friday,"viernes"),
         cloneWeeklyPanelForHistory(sunday,"domingo")
       );
+      // Demote the entire previous history before the next Sunday replaces it.
+      // Special campaigns remain accessible permanently in Historial anterior.
+      const previousCycle=weeklyHistoryBody.dataset.weeklyHistoryCycle||"";
+      if(previousCycle&&weeklyHistoryBody.querySelector(".weekly-history-service")){
+        const previous=weeklyHistory.cloneNode(true);
+        previous.classList.add("weekly-history-older");
+        previous.dataset.weeklyArchiveCycle=previousCycle;
+        const body=previous.querySelector("[data-weekly-history-body]");
+        if(body){body.removeAttribute("data-weekly-history-body");body.dataset.weeklyOlderHistoryBody="";}
+        const summary=previous.querySelector("summary span");
+        if(summary)summary.textContent=summary.textContent.replace(/^Semana anterior/,"Historial");
+        weeklyHistory.after(previous);
+      }
       weeklyHistoryBody.replaceChildren(grid);
       weeklyHistoryBody.dataset.weeklyHistoryCycle=cycle;
+      weeklyHistory.dataset.weeklyArchiveCycle=cycle;
 
       const summarySmall=weeklyHistory?.querySelector("summary small");
       if(summarySmall)summarySmall.textContent=weeklyCycleLabel(cycle);
@@ -5789,7 +5844,7 @@
 
     window.IPCDJ_WEEKLY_TEST=Object.freeze({
       snapshot(){
-        const historyServices=[...document.querySelectorAll('[data-weekly-history-service]')];
+        const historyServices=[...(weeklyHistoryBody?.querySelectorAll('[data-weekly-history-service]')||[])];
         return {
           state:weeklyDashboard?.dataset.weeklyState||"",
           cycle:weeklyDashboard?.dataset.weeklyCycle||"",
@@ -5804,10 +5859,11 @@
           }))
         };
       },
-      prepareFromHistory(rolloverAt){
+      prepareFromHistory(rolloverAt,source="latest"){
         if(!weeklyDashboard||!weeklyHistoryBody)return false;
-        const fridayHistory=weeklyHistoryBody.querySelector('[data-weekly-history-service="viernes"]');
-        const sundayHistory=weeklyHistoryBody.querySelector('[data-weekly-history-service="domingo"]');
+        const archive=source==="older"?(weeklyOlderHistoryBody||weeklyHistoryBody):weeklyHistoryBody;
+        const fridayHistory=archive.querySelector('[data-weekly-history-service="viernes"]');
+        const sundayHistory=archive.querySelector('[data-weekly-history-service="domingo"]');
         const friday=weeklyServicePanels.find(panel=>panel.dataset.weeklyPanel==="viernes");
         const sunday=weeklyServicePanels.find(panel=>panel.dataset.weeklyPanel==="domingo");
         if(!fridayHistory||!sundayHistory||!friday||!sunday)return false;
