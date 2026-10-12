@@ -423,9 +423,56 @@ test('live rendering tolerates translation-style DOM rewrites and text expansion
 });
 
 
+test('special-event lifecycle is clock-deterministic and retains an archived source', async ({ page, request }) => {
+  await openHealthyPage(page);
+  const eventTab=page.locator('#tab-campana-gu-2026');
+  const eventPanel=page.locator('#panel-campana-gu-2026');
+  const weeklyDashboard=page.locator('[data-weekly-dashboard]');
+  const prior=Date.parse('2026-10-11T23:59:59-04:00');
+  const expiry=Date.parse('2026-10-12T00:00:00-04:00');
+
+  try{
+    await page.evaluate(at=>window.IPCDJ_CATALOG_TEST.renderAt(at),prior);
+    await expect(eventTab).toBeVisible();
+    await expect(eventPanel).toHaveCount(1);
+    await expect(eventPanel.locator('[data-campaign-day]')).toHaveCount(3);
+    await expect(weeklyDashboard).toHaveClass(/weekly-event-active/);
+    expect(await page.evaluate(()=>window.IPCDJ_NAV.getVisibleTabs()))
+      .toEqual(['inicio','campana-gu-2026','worship-semanal']);
+
+    await page.evaluate(at=>window.IPCDJ_CATALOG_TEST.renderAt(at),expiry);
+    await expect(eventTab).toHaveCount(0);
+    await expect(eventPanel).toHaveCount(0);
+    await expect(weeklyDashboard).not.toHaveClass(/weekly-event-active/);
+    expect(await page.evaluate(()=>window.IPCDJ_NAV.getVisibleTabs()))
+      .toEqual(['inicio','worship-semanal']);
+    await expect(page.locator('.weekly-history')).toHaveCount(1);
+
+    // Expiration never destroys the reusable, source-authored event snapshot.
+    const response=await request.get('/?event-archive-watchdog='+Date.now(),{
+      headers:{'cache-control':'no-cache'}
+    });
+    expect(response.ok()).toBe(true);
+    const source=await response.text();
+    expect(source).toContain('<template id="template-campana-gu-2026">');
+    expect(source).toContain('hideAt:"2026-10-12T00:00:00-04:00"');
+    expect(source).toContain('data-campaign-day="viernes"');
+    expect(source).toContain('data-campaign-day="sabado"');
+    expect(source).toContain('data-campaign-day="domingo"');
+  }finally{
+    await page.evaluate(()=>window.IPCDJ_CATALOG_TEST.resume());
+  }
+});
+
 test('primary tabs, weekly panel and special-event lifecycle remain healthy', async ({ page }, testInfo) => {
   await openHealthyPage(page);
 
+  // Lock the genuine runtime in the event window. After Oct. 12 the same
+  // production code correctly removes this tab, so wall-clock-based tests
+  // would otherwise fail and trigger false GitHub alerts forever.
+  await page.evaluate(() =>
+    window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-10-11T12:00:00-04:00'))
+  );
   await page.waitForFunction(() => !!window.IPCDJ_NAV);
 
   const tablist = page.getByRole('tablist', { name: 'Secciones de IPCDJ Worship' });
@@ -1078,13 +1125,16 @@ test('standalone full-scroll cycle cannot arm launch before tab switching', asyn
   await expect(root).not.toHaveClass(/ipcdj-launch-active/);
 
   await page.evaluate(() => {
-    window.IPCDJ_NAV.syncSpecialEvents(Date.parse('2026-10-11T23:59:59-04:00'));
+    // Keep the event present through the entire PWA tab-switch regression
+    // even after its real-world expiration.
+    window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-10-11T23:59:59-04:00'));
   });
   const eventTab = page.locator('#tab-campana-gu-2026');
   await eventTab.click();
   await expect(eventTab).toHaveAttribute('aria-selected', 'true');
   await expect(launch).toHaveClass(/launch-idle/);
   await expect(root).not.toHaveClass(/ipcdj-launch-active/);
+  await page.evaluate(() => window.IPCDJ_CATALOG_TEST.resume());
 });
 
 
