@@ -72,4 +72,34 @@ test.describe('v193 opt-in historical Dios de Milagros motion (staging only)', (
     expect(t0).not.toBeNull();
     await expect.poll(readTime, { timeout:10000, intervals:[700,900,1300] }).toBeGreaterThan(t0+300);
   });
+  test('the first visible Prep card is the only ambient palette owner', async ({ page }) => {
+    await page.goto('/?visual=original', { waitUntil:'domcontentloaded' });
+    await page.waitForFunction(() => !!window.IPCDJ_CATALOG_TEST?.renderOverlapAt);
+    const beforeTabs=await page.locator('.site-tab').evaluateAll(nodes=>nodes.map(x=>x.id));
+    try {
+      for (const when of [
+        '2026-10-01T12:00:00-04:00',
+        '2026-10-07T12:00:00-04:00',
+        '2026-10-14T12:00:00-04:00'
+      ]) {
+        const sample=await page.evaluate(instant=>{
+          const songs=window.IPCDJ_CATALOG_TEST.renderOverlapAt(Date.parse(instant));
+          const cards=[...document.querySelectorAll('[data-current-song-card][data-song-id]')];
+          return {
+            renderedIds:cards.map(c=>c.dataset.songId),
+            simulatedIds:songs.map(s=>s.id),
+            phases:songs.map(s=>s.phase),
+            driver:document.documentElement.dataset.ambientDriverSongId
+          };
+        },when);
+        expect(sample.renderedIds).toEqual(sample.simulatedIds);
+        expect(sample.renderedIds.length).toBe(2);
+        expect(sample.driver).toBe(sample.renderedIds[0]);
+      }
+      expect(await page.locator('.site-tab').evaluateAll(nodes=>nodes.map(x=>x.id))).toEqual(beforeTabs);
+    } finally {
+      await page.evaluate(()=>window.IPCDJ_CATALOG_TEST.resume());
+    }
+  });
+
 });
