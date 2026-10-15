@@ -6,7 +6,7 @@
   <meta name="ipcdj-environment" content="staging" />
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="campana-weekend-v190" />
+  <meta name="ipcdj-build" content="campana-weekend-v192" />
   <title>IPCDJ Worship | Ministerio de Alabanza</title>
   <meta name="description" content="Próximas canciones, preparación y estrenos del Ministerio de Alabanza de IPCDJ." />
   <link rel="canonical" href="https://worship.ipcdj.org/" />
@@ -10032,6 +10032,17 @@
       const wrap=cardRole(card,"progress-wrap");
       if(!wrap)return;
       const palette=getProgressPalette(song,now);
+      // The clock renders each second, while the RGB palette often stays
+      // identical for many ticks. Skip duplicate inline-style mutations that
+      // otherwise invalidate glass/compositing work throughout the card.
+      // Include every value to preserve exact phase, glow and color semantics.
+      const signature=[
+        song.id,palette.start,palette.end,palette.glow,palette.soft,
+        palette.border,palette.accent,palette.stageGlow,palette.stageText,
+        palette.phaseText
+      ].join("|");
+      if(wrap._ipcdjAppliedPaletteSignature===signature)return;
+      wrap._ipcdjAppliedPaletteSignature=signature;
       wrap.style.setProperty("--progress-c1",palette.start);
       wrap.style.setProperty("--progress-c2",palette.end);
       wrap.style.setProperty("--progress-glow",palette.glow);
@@ -10046,7 +10057,9 @@
       card.style.setProperty("--stage-text",palette.stageText);
 
       const track=cardRole(card,"progress-track");
-      if(track)track.setAttribute("aria-valuetext",palette.phaseText);
+      if(track&&track.getAttribute("aria-valuetext")!==palette.phaseText){
+        track.setAttribute("aria-valuetext",palette.phaseText);
+      }
     }
 
     function getPhase(song, now){
@@ -10341,9 +10354,11 @@
       const activeStart=new Date(song.activeFrom).getTime();
       const previousPhase=card.dataset.phase||"";
 
-      card.classList.toggle("phase-release",phase.key==="release");
-      card.classList.toggle("phase-released",phase.key==="released");
-      card.dataset.phase=phase.key;
+      if(previousPhase!==phase.key){
+        card.classList.toggle("phase-release",phase.key==="release");
+        card.classList.toggle("phase-released",phase.key==="released");
+        card.dataset.phase=phase.key;
+      }
       if(previousPhase!==phase.key||!card.dataset.coverFrameHeight){
         scheduleLifecycleStableCoverFrame(card);
       }
@@ -10351,7 +10366,8 @@
       const prepControlsHidden=phase.key==="release"||phase.key==="released";
       ["rehearsal-info","countdown-wrap","progress-wrap"].forEach(role=>{
         const el=cardRole(card,role);
-        if(el)el.setAttribute("aria-hidden",prepControlsHidden?"true":"false");
+        const value=prepControlsHidden?"true":"false";
+        if(el&&el.getAttribute("aria-hidden")!==value)el.setAttribute("aria-hidden",value);
       });
 
       const statusText=
@@ -10398,13 +10414,17 @@
       }
 
       if(song.previewAccent1){
-        card.style.setProperty("--preview-accent-1",song.previewAccent1);
-      }else{
+        if(card.style.getPropertyValue("--preview-accent-1")!==String(song.previewAccent1)){
+          card.style.setProperty("--preview-accent-1",song.previewAccent1);
+        }
+      }else if(card.style.getPropertyValue("--preview-accent-1")){
         card.style.removeProperty("--preview-accent-1");
       }
       if(song.previewAccent2){
-        card.style.setProperty("--preview-accent-2",song.previewAccent2);
-      }else{
+        if(card.style.getPropertyValue("--preview-accent-2")!==String(song.previewAccent2)){
+          card.style.setProperty("--preview-accent-2",song.previewAccent2);
+        }
+      }else if(card.style.getPropertyValue("--preview-accent-2")){
         card.style.removeProperty("--preview-accent-2");
       }
 
@@ -10447,9 +10467,17 @@
       const elapsed=Math.min(total,Math.max(0,now-activeStart));
       const progress=Math.min(100,Math.max(1,(elapsed/total)*100));
       const fill=cardRole(card,"progress-fill");
-      if(fill)fill.style.width=progress.toFixed(3)+"%";
+      if(fill){
+        const width=progress.toFixed(3)+"%";
+        if(fill.style.width!==width)fill.style.width=width;
+      }
       const track=cardRole(card,"progress-track");
-      if(track)track.setAttribute("aria-valuenow",String(Math.round(progress)));
+      if(track){
+        const numericValue=String(Math.round(progress));
+        if(track.getAttribute("aria-valuenow")!==numericValue){
+          track.setAttribute("aria-valuenow",numericValue);
+        }
+      }
       applyProgressPalette(song,now,card);
 
       const remaining=Math.max(0,release-now);

@@ -216,6 +216,56 @@ test('diagnostic: compare scrolling cost with ambient and glass layers isolated'
   });
 });
 
+test('v192 steady countdown ticks avoid duplicate card and palette mutations', async ({ page }) => {
+  const {pageErrors}=await openHealthyPage(page);
+  const result=await page.evaluate(async()=>{
+    const runtime=window.IPCDJ_CATALOG_TEST;
+    const timestamp=Date.parse('2026-10-20T12:00:00-04:00');
+    try{
+      runtime.renderAt(timestamp);
+      const card=document.querySelector('[data-current-song-card][data-song-id]');
+      const wrap=card?.querySelector('[data-role="progress-wrap"]');
+      const fill=card?.querySelector('[data-role="progress-fill"]');
+      const track=card?.querySelector('[data-role="progress-track"]');
+      if(!card||!wrap||!fill||!track)return {error:'missing prepared card/progress'};
+      const baseline={
+        palette:wrap.style.cssText,
+        width:fill.style.width,
+        stage:card.style.cssText,
+        phase:card.dataset.phase,
+        valueNow:track.getAttribute('aria-valuenow')
+      };
+      let mutations=0;
+      const observer=new MutationObserver(records=>{
+        mutations+=records.filter(record=>record.attributeName==='style'||record.attributeName==='aria-valuenow').length;
+      });
+      for(const node of [card,wrap,fill,track]){
+        observer.observe(node,{attributes:true,attributeFilter:['style','aria-valuenow']});
+      }
+      runtime.renderAt(timestamp);
+      await Promise.resolve();
+      observer.disconnect();
+      return {
+        baseline,
+        after:{
+          palette:wrap.style.cssText,
+          width:fill.style.width,
+          stage:card.style.cssText,
+          phase:card.dataset.phase,
+          valueNow:track.getAttribute('aria-valuenow')
+        },
+        mutations
+      };
+    }finally{
+      runtime.resume();
+    }
+  });
+  expect(result.error).toBeUndefined();
+  expect(result.after).toEqual(result.baseline);
+  expect(result.mutations).toBe(0);
+  expect(fatalPageErrors(pageErrors)).toEqual([]);
+});
+
 test('integrity, launch, layout and scrolling remain healthy', async ({ page }, testInfo) => {
   const { pageErrors, consoleErrors } = await openHealthyPage(page);
 
@@ -1906,7 +1956,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
   });
   expect(serviceWorkerResponse.ok()).toBe(true);
   const serviceWorkerText = await serviceWorkerResponse.text();
-  expect(serviceWorkerText).toContain('ipcdj-worship-v190');
+  expect(serviceWorkerText).toContain('ipcdj-worship-v192');
   expect(serviceWorkerText).toContain('CACHE_FRESH_SHELL');
   expect(serviceWorkerText).toContain('refresh-test');
 
@@ -1953,7 +2003,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     // Simulate the exact failure we are guarding against: an installed PWA has
     // an older shell cached when the user performs one refresh.
-    const staleCache=await caches.open('ipcdj-worship-v190');
+    const staleCache=await caches.open('ipcdj-worship-v192');
     await staleCache.put(
       './__offline_index__',
       new Response('<!doctype html><meta name="ipcdj-build" content="stale-watchdog" />',{
@@ -1963,7 +2013,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     const staged=await window.IPCDJ_REFRESH_TEST.stageLatestShell();
     const keys=await caches.keys();
-    const cacheKey=keys.find(key=>key==='ipcdj-worship-v190')||'';
+    const cacheKey=keys.find(key=>key==='ipcdj-worship-v192')||'';
     let cachedBuild='';
     if(cacheKey){
       const cache=await caches.open(cacheKey);
@@ -1977,7 +2027,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
   expect(refreshStage.staged.ok).toBe(true);
   expect(refreshStage.staged.build).toBe(refreshStage.currentBuild);
-  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v190');
+  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v192');
   expect(refreshStage.cachedBuild).toBe(refreshStage.currentBuild);
 
   // Intentionally coarse runaway guards, not synthetic speed scores.
