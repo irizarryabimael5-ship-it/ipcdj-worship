@@ -1,6 +1,6 @@
 importScripts("./notifications/sw-foundation.js");
 
-const CACHE_NAME = "ipcdj-worship-v194";
+const CACHE_NAME = "ipcdj-worship-v195";
 const OFFLINE_PAGE = "./__offline_index__";
 const STATIC_ASSETS = [
   "./favicon.svg",
