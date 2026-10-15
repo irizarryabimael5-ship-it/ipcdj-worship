@@ -6,7 +6,14 @@
   <meta name="ipcdj-environment" content="staging" />
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="campana-weekend-v190" />
+  <meta name="ipcdj-build" content="campana-weekend-v193" />
+  <script id="ipcdj-original-visual-preview-init">
+    // Explicit staging-only opt-in; default users keep accessibility preferences.
+    (()=>{try{
+      if(new URLSearchParams(location.search).get("visual")==="original")
+        document.documentElement.classList.add("ipcdj-original-motion-preview");
+    }catch(_){}})();
+  </script>
   <title>IPCDJ Worship | Ministerio de Alabanza</title>
   <meta name="description" content="Próximas canciones, preparación y estrenos del Ministerio de Alabanza de IPCDJ." />
   <link rel="canonical" href="https://worship.ipcdj.org/" />
@@ -4248,6 +4255,55 @@
       -webkit-backdrop-filter:none !important;
     }
   </style>
+
+  <!-- Staging trial of historical Dios de Milagros motion; ?visual=original only. -->
+  <style id="ipcdj-original-motion-preview-css">
+    html.ipcdj-original-motion-preview .ambient-field{transition:opacity 2.4s cubic-bezier(.4,0,.2,1)!important}
+    html.ipcdj-original-motion-preview .ambient-field:not(.ambient-field-active){opacity:0!important}
+    html.ipcdj-original-motion-preview .ambient-field-active{opacity:.82!important}
+    html.ipcdj-original-motion-preview.ipcdj-ambient-release .ambient-field-active{opacity:1!important}
+    html.ipcdj-original-motion-preview .ambient-field::before{
+      transition:opacity 1.55s cubic-bezier(.22,.65,.25,1),
+                 transform 1.55s cubic-bezier(.22,.65,.25,1),
+                 filter 1.55s cubic-bezier(.22,.65,.25,1)!important
+    }
+    html.ipcdj-original-motion-preview.ipcdj-ambient-release .ambient-field-active::before{
+      opacity:.98!important;transform:scale(1.07)!important;
+      filter:blur(46px) saturate(1.44) brightness(1.08)!important;
+      -webkit-filter:blur(46px) saturate(1.44) brightness(1.08)!important
+    }
+    html.ipcdj-original-motion-preview .ambient-blob{
+      animation-timing-function:cubic-bezier(.45,.02,.55,.98)!important;
+      animation-iteration-count:infinite!important;
+      animation-direction:alternate!important;
+      animation-play-state:running!important;
+      will-change:transform,opacity!important
+    }
+    html.ipcdj-original-motion-preview .ambient-blob.b1{animation-name:blobDrift1,blobBreathe1!important;animation-duration:18s,11s!important}
+    html.ipcdj-original-motion-preview .ambient-blob.b2{animation-name:blobDrift2,blobBreathe2!important;animation-duration:21s,13s!important}
+    html.ipcdj-original-motion-preview .ambient-blob.b3{animation-name:blobDrift3,blobBreathe3!important;animation-duration:24s,15s!important}
+    html.ipcdj-original-motion-preview .ambient-blob.b4{animation-name:blobDrift4,blobBreathe4!important;animation-duration:19s,12s!important}
+    html.ipcdj-original-motion-preview.ipcdj-performance-lite .ambient-blob{filter:blur(18px)!important}
+    html.ipcdj-original-motion-preview.ipcdj-ambient-release.ipcdj-performance-lite .ambient-field-active .ambient-blob{
+      filter:blur(24px) saturate(1.30) brightness(1.06)!important
+    }
+    html.ipcdj-original-motion-preview .ambient-dither{display:block!important}
+    html.ipcdj-original-motion-preview .progress-fill::after{animation:progress-sheen 2.8s ease-in-out infinite!important}
+    html.ipcdj-original-motion-preview #ipcdj-launch.launch-playing .launch-logo-stage{
+      opacity:1!important;will-change:opacity!important;transition:opacity 1.75s cubic-bezier(.42,0,.58,1) .12s!important
+    }
+    html.ipcdj-original-motion-preview #ipcdj-launch.launch-exit{
+      transition:opacity .82s cubic-bezier(.22,.61,.36,1) .46s,visibility 0s linear 1.28s!important
+    }
+    html.ipcdj-original-motion-preview #ipcdj-launch.launch-exit .launch-logo-stage{
+      opacity:0!important;transition:opacity .74s cubic-bezier(.4,0,.2,1)!important
+    }
+    html.ipcdj-original-motion-preview .reveal.reveal-pending{
+      opacity:0!important;transform:translateY(14px)!important;
+      transition:opacity .42s cubic-bezier(.2,.65,.2,1),transform .42s cubic-bezier(.2,.65,.2,1)!important
+    }
+    html.ipcdj-original-motion-preview .reveal.reveal-pending.visible{opacity:1!important;transform:translateY(0)!important}
+  </style>
 </head>
 <body>
   <div id="ipcdj-launch" class="launch-armed" role="status" aria-label="Abriendo IPCDJ Worship">
@@ -4273,7 +4329,8 @@
       if(!launch)return;
 
       const stage=launch.querySelector(".launch-logo-stage");
-      const reduced=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const reduced=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches &&
+        !document.documentElement.classList.contains("ipcdj-original-motion-preview");
       const standalone=(
         navigator.standalone===true ||
         (window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches) ||
@@ -6126,6 +6183,7 @@
       let active=false;
       let settleTimer=0;
       const enterScrollMode=()=>{
+        if(root.classList.contains("ipcdj-original-motion-preview"))return;
         if(!active){
           active=true;
           root.classList.add("ipcdj-scroll-active");
@@ -11030,7 +11088,10 @@
       requestAnimationFrame(()=>item.classList.remove("reveal-pending"));
     };
 
-    if("IntersectionObserver" in window&&!window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+    if("IntersectionObserver" in window&&(
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+      document.documentElement.classList.contains("ipcdj-original-motion-preview")
+    )){
       const observer=new IntersectionObserver(entries=>{
         entries.forEach(entry=>{
           if(!entry.isIntersecting)return;
