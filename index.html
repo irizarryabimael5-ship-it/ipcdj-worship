@@ -11457,5 +11457,60 @@
       });
     })();
   </script>
-  <script src="./notifications/client.js?v=164"></script>\n  <script src="./notifications/ui.js?v=164"></script>\n</body>
+  <script src="./notifications/client.js?v=164"></script>\n  <script src="./notifications/ui.js?v=164"></script>\n
+  <script id="ipcdj-motion-direct-report">
+    // Optional read-only browser diagnostic, shown on the real homepage.
+    // Unlike the retired separate diagnostic, it uses no iframe or clipboard.
+    (()=>{
+      let enabled=false;
+      try{enabled=new URLSearchParams(location.search).get("motion_report")==="1"}catch(_){}
+      if(!enabled)return;
+      const panel=document.createElement("aside");
+      panel.id="ipcdj-motion-report";
+      panel.setAttribute("role","region");
+      panel.setAttribute("aria-label","Diagnóstico de animaciones");
+      Object.assign(panel.style,{
+        position:"fixed",right:"12px",bottom:"12px",zIndex:"2147483000",
+        width:"min(410px,calc(100vw - 24px))",maxHeight:"55vh",
+        overflow:"auto",padding:"14px",borderRadius:"14px",
+        border:"1px solid #465b88",background:"rgba(8,14,27,.97)",
+        color:"#eaf1ff",boxShadow:"0 15px 40px #0009",
+        font:"12px/1.5 system-ui,sans-serif"
+      });
+      panel.innerHTML='<strong style="font-size:14px">Diagnóstico visual · Staging</strong>'+
+        '<p>Informe directo en pantalla. No se envían datos.</p>'+
+        '<pre id="ipcdj-motion-report-data" style="white-space:pre-wrap;overflow-wrap:anywhere">Cargando…</pre>'+
+        '<button id="ipcdj-motion-report-refresh" type="button">Actualizar</button> '+
+        '<button id="ipcdj-motion-report-close" type="button">Cerrar</button>';
+      document.body.appendChild(panel);
+      const update=()=>{
+        const root=document.documentElement;
+        const blob=document.querySelector(".ambient-field-active .ambient-blob.b1");
+        const fill=document.querySelector('[data-current-song-card] [data-role="progress-fill"]');
+        const ambient=blob?getComputedStyle(blob):null;
+        const sheen=fill?getComputedStyle(fill,"::after"):null;
+        const values=[
+          "Build: "+(document.querySelector('meta[name="ipcdj-build"]')?.content||"N/D"),
+          "Vista original: "+root.classList.contains("ipcdj-original-motion-preview"),
+          "Movimiento reducido: "+matchMedia("(prefers-reduced-motion: reduce)").matches,
+          "Datos reducidos: "+matchMedia("(prefers-reduced-data: reduce)").matches,
+          "Transparencia reducida: "+matchMedia("(prefers-reduced-transparency: reduce)").matches,
+          "Mac desktop: "+root.classList.contains("ipcdj-macos-desktop"),
+          "Scroll pausado: "+root.classList.contains("ipcdj-scroll-active"),
+          "Modo rendimiento lite: "+root.classList.contains("ipcdj-performance-lite"),
+          "Fondo: "+(ambient?ambient.animationName+" / "+ambient.animationPlayState:"sin elemento"),
+          "Brillo: "+(sheen?sheen.animationName+" / "+sheen.animationPlayState:"sin elemento"),
+          "Ancho progreso: "+(fill?Math.round(fill.getBoundingClientRect().width)+"px":"sin elemento"),
+          "Canción: "+(document.querySelector("[data-current-song-card]")?.dataset.songId||"N/D"),
+          "Control PWA: "+!!navigator.serviceWorker?.controller
+        ];
+        const pre=panel.querySelector("#ipcdj-motion-report-data");
+        if(pre)pre.textContent=values.join("\n");
+      };
+      panel.querySelector("#ipcdj-motion-report-refresh").addEventListener("click",update);
+      panel.querySelector("#ipcdj-motion-report-close").addEventListener("click",()=>panel.remove());
+      setTimeout(update,3500);
+    })();
+  </script>
+</body>
 </html>
