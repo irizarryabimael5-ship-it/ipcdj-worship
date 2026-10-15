@@ -1,9 +1,9 @@
 # IPCDJ Worship — mandatory self-contained Markdown handoff protocol
-Version: 1 | Established: 2026-10-15 | Applies to this chat and all successor chats.
+Version: 2 | Established: 2026-10-15 | Applies to this chat and all successor chats.
 
 ## Always-on capture
 After each substantial task and before switching lanes:
-- Update the specific lane file (`MAIN_LANE.md` or matching `SIDEBARS/*.md`), including recent decisions, last action, status, blocker, next precise task, tests and source files.
+- Update the specific lane file (`MAIN_LANE.md`, matching `SIDE_LANES/*.md` or matching `SIDEBARS/*.md`), including recent decisions, last action, status, blocker, next precise task, tests and source files.
 - Update `CHANGELOG.md` with date, active lane, exact paths, commit(s), evidence and whether staging or live was touched.
 - Update `HANDOFF_CURRENT.md` with active lane, all other sidebar states and any new branch/commit/test or unresolved issue.
 - Update `CONTENT_TREE.md` if files, folders, assets or controls move.
@@ -12,7 +12,7 @@ After each substantial task and before switching lanes:
 
 ## Migration trigger
 When the user asks for a new room/chat, conversation becomes too long, or a handoff is requested:
-1. Read the latest `PROJECT_WORKSPACE` README, MAIN_LANE, all SIDEBARS, current handoff, changelog, content tree, `SITE_STANDARDS.md`, `STAGING_POLICY.md`, `monitoring/WATCHDOG_POLICY.md`.
+1. Read the latest `PROJECT_WORKSPACE` README, MAIN_LANE, all SIDE_LANES and all SIDEBARS, current handoff, changelog, content tree, `SITE_STANDARDS.md`, `STAGING_POLICY.md`, `monitoring/WATCHDOG_POLICY.md`.
 2. Verify live/main and staging HEAD SHAs and relevant GitHub Actions on the exact head. Record latest statuses; don't overclaim queued/running/cancelled tests.
 3. Build **one standalone** `IPCDJ_WORSHIP_HANDOFF_YYYY-MM-DD.md`, preferably commit an archival copy under `PROJECT_WORKSPACE/HANDOFF_ARCHIVE/`, and give the user its downloadable .md copy when file tooling can create and verify the path. That file is self-contained enough for a new chat to restart without reviewing prior conversation history.
 4. The handoff MUST contain:
@@ -20,7 +20,8 @@ When the user asks for a new room/chat, conversation becomes too long, or a hand
    - *active* lane and why it is active;
    - exact live/staging refs, latest user-approved presentation and unpromoted staging-only changes;
    - current visual, song-lifecycle, audio, PWA and archive invariants;
-   - summary and explicit status of **every sidebar**, even paused/future ones;
+   - **Worship Semanal** (ongoing Side Lane): exact verified Friday/Sunday current sets, published state, historic archives, member resources, pending content and rollover expectations, without inventing songs;
+   - summary and explicit status of **every Side Lane and every Sidebar**, even paused/future ones;
    - notification system gate, config state, backend state and links to original source;
    - iPhone app/PWA goals and native signing constraints;
    - recent changes, tests/run links, failed experiments and backups;
@@ -39,3 +40,6 @@ When the user asks for a new room/chat, conversation becomes too long, or a hand
 - Do not include unapproved speculative sidebars as if implemented.
 - Do not overwrite production just to make staging match; preserve environment isolation.
 - Handoff is a snapshot; repository code plus recent GitHub Actions remain authoritative.
+
+## Side Lanes are recurring and parallel
+MAIN remains responsible for UI/UX/performance. [WEEKLY](SIDE_LANES/WORSHIP_SEMANAL.md) remains active for member-facing Friday/Sunday sets even while the current conversation focuses MAIN. Every new chat must resume MAIN and be ready to update WEEKLY immediately; read its file and source. Sidebars remain separate, optional and typically paused. One migration Markdown must include ALL workstream classes and their last checkpoints.
