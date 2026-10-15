@@ -16,3 +16,7 @@ https://irizarryabimael5-ship-it.github.io/ipcdj-worship/
 
 ## Publicación
 GitHub Pages publica automáticamente desde la rama `main`.
+
+## IPCDJ Worship project lanes and reusable handoffs
+
+This repository's durable working context now lives in [PROJECT_WORKSPACE/README.md](PROJECT_WORKSPACE/README.md). Main Lane covers UI, visual experience, performance and reliability; independent sidebars cover Additional Features, Notifications and the iPhone/App installed experience. Every lane has its own state/last-work/next-step notes. [PROJECT_WORKSPACE/HANDOFF_CURRENT.md](PROJECT_WORKSPACE/HANDOFF_CURRENT.md) and [PROJECT_WORKSPACE/HANDOFF_PROTOCOL.md](PROJECT_WORKSPACE/HANDOFF_PROTOCOL.md) capture all active and paused work for future chat-room migration. This is a GitHub-repository-only workspace; no Google Drive folders are involved.

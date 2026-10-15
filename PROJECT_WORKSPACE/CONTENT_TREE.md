@@ -1,0 +1,76 @@
+# Verified IPCDJ Worship content tree
+Updated: 2026-10-15. This index was compiled from GitHub repository directory listings on the `staging` branch. It is **not** a mirror of file contents. Use `main` / `staging` explicitly to avoid environment drift.
+
+```text
+ipcdj-worship/
+├── PROJECT_WORKSPACE/                   # all management notes and future handoff
+│   ├── README.md                        # lane router and ownership
+│   ├── MAIN_LANE.md                     # current UI / experience status
+│   ├── CONTENT_TREE.md                  # this source map
+│   ├── HANDOFF_PROTOCOL.md              # future room migration spec
+│   ├── HANDOFF_CURRENT.md               # living migration snapshot
+│   ├── CHANGELOG.md                     # cross-lane event log
+│   └── SIDEBARS/
+│       ├── README.md                    # sidebar router
+│       ├── ADDITIONAL_FEATURES.md       # supplemental features
+│       ├── NOTIFICATIONS.md             # push notifications (on hold)
+│       └── IOS_APP.md                   # installed app / iPhone options
+├── README.md                            # public repository introduction
+├── SITE_STANDARDS.md                    # protected implementation requirements
+├── STAGING_POLICY.md                    # staging/live isolation and promotion
+├── STAGING_SETUP.md
+├── index.html                            # tabs, content, lifecycle, visuals, song catalog
+├── sw.js                                 # root service worker + offline/PWA/notification hooks
+├── manifest-v9.webmanifest              # installed web-app manifest
+├── app-icon-safe.svg / icon-192.png / icon-512.png
+├── apple-touch-icon.png
+├── ios-launch/                          # 13 size-specific launch PNG assets
+├── visual-motion-check.html             # older isolated trial; prior user report: unusable report control
+├── social-preview-v176.jpg / social-preview-v180.jpg
+├── robots.txt / _headers
+├── docs/events/
+│   ├── README.md
+│   └── campana-gu-2026.template.source.txt
+├── notifications/
+│   ├── README.md / backend-contract.md
+│   ├── config.json / event-catalog.json
+│   ├── notification-contract.schema.json
+│   ├── client.js / ui.js
+│   ├── notification-foundation.js / sw-foundation.js
+│   ├── admin.html / admin.js / test.html
+│   ├── core/planner.mjs
+│   ├── scripts/backend-smoke.mjs
+│   ├── scripts/export-catalog.mjs
+│   ├── scripts/sync-catalog.mjs
+│   ├── tests/planner.test.mjs
+│   └── worker/
+│       ├── wrangler.jsonc / schema.sql / package.json
+│       ├── scripts/generate-credentials.mjs
+│       └── src/index.js
+├── monitoring/
+│   ├── WATCHDOG_POLICY.md / playwright.config.js / package.json
+│   └── tests/
+│       ├── site-health.spec.js
+│       └── original-motion-preview.spec.js
+├── scripts/
+│   ├── build-staging-pages.sh
+│   └── weekly-rollover.mjs
+└── .github/workflows/
+    ├── staging-health.yml
+    ├── site-health.yml
+    ├── weekly-worship-rollover.yml
+    ├── notification-backend-health.yml
+    ├── notification-sync.yml
+    └── social-preview.yml
+```
+
+## Authoritative state, not copies
+- **Song dates/details:** `index.html` `SONG_CATALOG_SOURCE`; don't duplicate schedules as editable data in sidebar files.
+- **Current and historical worship tabs/sets:** `index.html` and (for related archived campaign source/templates) `docs/events`.
+- **Real notification enabled/disabled flags:** environment-specific `notifications/config.json`; never trust outdated prose when the config disagrees.
+- **Deployment health evidence:** exact workflow run for the exact branch HEAD.
+- **Real installability:** manifest, SW, Apple launch/cover assets and live user-device tests; a roadmap file is not an install package.
+- **Project status:** `PROJECT_WORKSPACE/README.md` and lane files.
+- **Cross-chat continuity:** `PROJECT_WORKSPACE/HANDOFF_CURRENT.md` plus source of truth and commit identifiers.
+
+This workspace is isolated to the IPCDJ Worship repository. No Google Drive folders or files are owned, indexed, edited or depended on for this workspace.

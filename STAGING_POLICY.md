@@ -73,3 +73,7 @@ These must not be copied into production as feature changes:
 - staging-specific watchdog expectations
 
 The objective is production-equivalent behavior with staging-only safety boundaries.
+
+## Workstream documentation separation
+
+The project-level Main Lane, independent sidebars, source-tree map and future room handoff live under [PROJECT_WORKSPACE/](PROJECT_WORKSPACE/README.md) on the repository's staging development branch. These are documentation-only and do not authorize any runtime/production promotion. The Main Lane is UI/UX/performance/stability; sidebars are Additional Features, Notifications and iPhone App. Workstream switching does not bypass the staging-first checks, cross-device watchdog or explicit release authorization above. Do not access unrelated Google Drive folders for this coordination.

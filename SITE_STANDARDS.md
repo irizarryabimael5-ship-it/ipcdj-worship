@@ -1,5 +1,9 @@
 # IPCDJ Worship — Site Standards
 
+## Project workstreams and handoff (administrative)
+
+The canonical GitHub-only workstream router is [PROJECT_WORKSPACE/README.md](PROJECT_WORKSPACE/README.md). MAIN is website-wide UI/UX, performance, reliability and functionality. Sidebars: FEATURES (additional features), NOTIFICATIONS (paused gated Web Push) and IOS_APP (future installed-app distribution). Each lane keeps separate state, evidence, resume point and decisions. Before switching lanes, update its file and [PROJECT_WORKSPACE/HANDOFF_CURRENT.md](PROJECT_WORKSPACE/HANDOFF_CURRENT.md). At migration compile one complete handoff Markdown per [PROJECT_WORKSPACE/HANDOFF_PROTOCOL.md](PROJECT_WORKSPACE/HANDOFF_PROTOCOL.md), covering ALL lanes and their statuses. Store project coordination in this GitHub repository; do not use other projects' Google Drive folders. These workstream notes are administrative only and do not change runtime implementation rules.
+
 These are protected implementation standards for all future changes to the IPCDJ Worship website.
 
 ## Core invariant
