@@ -10164,11 +10164,10 @@
     }
 
     function chooseAmbientDriver(entries,now){
-      if(!Array.isArray(entries)||!entries.length)return null;
-      const release=entries.find(({phase})=>phase&&phase.key==="release");
-      if(release)return release;
-      const preparation=entries.filter(({phase})=>phase&&phase.key!=="released"&&phase.key!=="complete");
-      return preparation[0]||entries[0]||null;
+      // The first visible Prep card owns the ambient palette, without exception.
+      // getCurrentSongs() sorts the cards by release priority; syncCurrentCards()
+      // renders this same array order. Do not substitute a lower release-phase card.
+      return Array.isArray(entries)&&entries.length?entries[0]:null;
     }
 
     function syncAmbientDriver(entries,now){
