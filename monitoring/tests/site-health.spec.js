@@ -628,9 +628,9 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
 
   // The finished Campaña GU 9/10/11 is the actual previous worship week.
   // Oct. 2/4 remains in a separate older historical section.
-  await expect(weeklyDashboard).toHaveAttribute('data-weekly-state','rolled');
-  await expect(weeklyDashboard).toHaveAttribute('data-weekly-cycle','2026-10-04');
-  await expect(weeklyDashboard).toHaveAttribute('data-weekly-rollover-at','2026-10-04T15:00:00-04:00');
+  await expect(weeklyDashboard).toHaveAttribute('data-weekly-state','active');
+  await expect(weeklyDashboard).toHaveAttribute('data-weekly-cycle','2026-10-18');
+  await expect(weeklyDashboard).toHaveAttribute('data-weekly-rollover-at','2026-10-18T15:00:00-04:00');
   await expect(weeklyDashboard).toHaveAttribute('data-weekly-special-event','campana-gu-2026');
   await expect(weeklyDashboard).toHaveClass(/weekly-event-active/);
   await expect(fridayWeeklyTab).toHaveAttribute('aria-selected','true');
@@ -640,16 +640,27 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(fridayWeeklyPanel).toBeHidden();
   await expect(sundayWeeklyPanel).toBeHidden();
   await expect(fridayWeeklyTab).toContainText('Pendiente');
-  await expect(sundayWeeklyTab).toContainText('Pendiente');
+  await expect(sundayWeeklyTab).toContainText('Actualizado');
   await expect(weeklyPanel).toContainText('Campaña GU 2026');
   const campaignRedirect=weeklyPanel.locator('[data-weekly-event-redirect="campana-gu-2026"]');
   await expect(campaignRedirect).toBeVisible();
   await expect(campaignRedirect).toContainText('Este fin de semana es Campaña GU 2026');
   await expect(campaignRedirect).toContainText('viernes, sábado y domingo');
   await expect(fridayWeeklyPanel).toContainText('Set pendiente');
-  await expect(sundayWeeklyPanel).toContainText('Set pendiente');
+  await expect(sundayWeeklyPanel).toContainText('Domingo, 18 de octubre');
   await expect(fridayWeeklyPanel.locator('.weekly-song')).toHaveCount(0);
-  await expect(sundayWeeklyPanel.locator('.weekly-song')).toHaveCount(0);
+  await expect(sundayWeeklyPanel.locator('.weekly-song')).toHaveCount(5);
+  expect(await sundayWeeklyPanel.locator('.weekly-song-title').allTextContents()).toEqual(["Yo Te Busco","Cuán Grande Es Dios","Proezas","Tu Fidelidad","Eres Todopoderoso"]);
+  expect(await sundayWeeklyPanel.locator('.weekly-song-artist').allTextContents()).toEqual(["Marcos Witt","En Espíritu Y En Verdad","Miel San Marcos","Marcos Witt","Danilo Montero"]);
+  expect(await sundayWeeklyPanel.locator('.weekly-song-meta').allTextContents()).toEqual(["Tono · Sol MayorBPM · 85/170","Tono · Sol MayorBPM · 72/144","Tono · La MayorBPM · 78/156","Tono · La MayorBPM · 57/113","Tono · La MayorBPM · 63/125"]);
+  expect(await sundayWeeklyPanel.locator('.weekly-corito').allTextContents()).toEqual(["Yo Vine A Alabar A Dios","Así Se Alaba A Dios","Alabaré","Hay Poder (Sin Igual Poder)","Poderoso Es Nuestro Dios"]);
+  await expect(sundayWeeklyPanel).toContainText('Josselin');
+  await expect(sundayWeeklyPanel).toContainText('Compás · 4/4');
+  await expect(sundayWeeklyPanel).toContainText('Re Mayor · 115 BPM');
+  await expect(sundayWeeklyPanel).toContainText('Ensayen con la canción, con metrónomo y eventualmente sin letra.');
+  await expect(sundayWeeklyPanel.locator('a[href="https://u.pone.rs/rsegrxgg.pdf"]')).toHaveCount(1);
+  await expect(sundayWeeklyPanel.locator('a[href="https://youtube.com/playlist?list=PLfbkpqopl-bE&si=tUYLsdWc2lOFICbQ"]')).toHaveCount(1);
+  await expect(sundayWeeklyPanel.locator('iframe[src="https://www.youtube-nocookie.com/embed/videoseries?list=PLfbkpqopl-bE"]')).toHaveCount(1);
 
   // The routing CTA must switch into the campaign without disturbing the app shell.
   await campaignRedirect.locator('[data-open-campaign="campana-gu-2026"]').click();

@@ -35,3 +35,9 @@ Written for future Markdown handoffs. Each entry records reality rather than pro
 - Verified `index.html` current Friday/Sunday panels both show `Set pendiente` at this snapshot; completed GU archive and Oct 4 history preserved. Verified Sunday rollover script/workflow present on main and staging. No new member set details supplied.
 - Updated MAIN, optional SIDEBARS router, source content tree and permanent Markdown continuity/handoff; no website runtime, music data, history, worker, notifications, or Live changed.
 - Watchdog: `GENERIC_COVERAGE_SUFFICIENT` (organization-only documentation). A new staging CI run may occur on latest documentation HEAD and must be evaluated separately.
+
+## 2026-10-15 — WEEKLY: Sunday 18 October worship set
+- User supplied Markdown for Sunday October 18; applied exact five-song titles/artists/tonos/BPM, five ordered coritos, Josselin, common-time meter, source rehearsal note, PDF and YouTube playlist to Sunday current panel in Staging.
+- Friday current panel remains Pendiente; October 9–11 GU and October 4 historical archives unchanged; Sunday rollover scheduled 2026-10-18 3 PM Eastern.
+- Staging build/cache advanced to v194 for freshness; existing visual, notification, song-release catalog and Main Lane animation unchanged.
+- Updated affected site-health source expectations and app-build expectation in animation watchdog; all seven profiles must validate before promotion. No Live mutation or approval implied.
