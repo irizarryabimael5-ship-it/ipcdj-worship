@@ -40,3 +40,6 @@ The previous staging v193 CI run [38783527704](https://github.com/irizarryabimae
 
 ## 2026-10-15 — Watchdog-only calibration fix
 After failed v193 staging matrix 38783527704, updated *test assertions only* in `monitoring/tests/original-motion-preview.spec.js` and `monitoring/tests/site-health.spec.js`: project skip now reads Playwright testInfo inside beforeEach; service-worker cache assertions derive the deployed `CACHE_NAME`; ambient source assertions verify the first visible Prep card instead of the removed release override. Existing actual animation/layout/audio checks remain intact. No runtime, song, date, notification, PWA service-worker, or Live source was changed. A new full seven-profile staging certification is required on this exact commit; do not claim pass until it finishes.
+
+## Parallel operational Side Lane
+[WEEKLY / Worship Semanal](SIDE_LANES/WORSHIP_SEMANAL.md) is active and important, owning verified current Friday/Sunday service sets, member resources, and archival lifecycle, while MAIN continues overall UI/UX, motion, performance and functionality. Both may run simultaneously and share the same `index.html` source; reconcile fresh staging commits before any concurrent change.
