@@ -6,7 +6,7 @@
   <meta name="ipcdj-environment" content="staging" />
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="campana-weekend-v195" />
+  <meta name="ipcdj-build" content="campana-weekend-v194" />
   <script id="ipcdj-original-visual-preview-init">
     // Explicit staging-only opt-in; default users keep accessibility preferences.
     (()=>{try{
@@ -4235,9 +4235,25 @@
       }
     }
 
-    /* V195: keep frosted-glass blur and album palette unchanged throughout
-       Mac scrolling. Old per-scroll backdrop-filter:none caused flashing.
-       Standard accessibility/performance controls remain separate. */
+    /* macOS desktop scrolling guard.
+       The fixed ambient field and live glass surfaces are intentionally rich at
+       rest. While a Mac is actively scrolling, pause only decorative blob motion
+       and temporarily bypass backdrop sampling so older iMac GPUs do not have to
+       recompute animated blur + glass every scroll frame. The full treatment
+       returns immediately after scrolling settles. */
+    html.ipcdj-macos-desktop.ipcdj-scroll-active .ambient-blob{
+      animation-play-state:paused !important;
+      will-change:auto;
+    }
+
+    html.ipcdj-macos-desktop.ipcdj-scroll-active .card,
+    html.ipcdj-macos-desktop.ipcdj-scroll-active .eyebrow,
+    html.ipcdj-macos-desktop.ipcdj-scroll-active .future-preview-button,
+    html.ipcdj-macos-desktop.ipcdj-scroll-active .current .countdown-wrap,
+    html.ipcdj-macos-desktop.ipcdj-scroll-active .current .progress-wrap{
+      backdrop-filter:none !important;
+      -webkit-backdrop-filter:none !important;
+    }
   </style>
 
   <!-- Staging trial of historical Dios de Milagros motion; ?visual=original only. -->
@@ -6266,8 +6282,42 @@
 
     window.addEventListener("touchcancel",resetPull,{passive:true});
 
-    // V195: Mac scrolling no longer toggles a visually different glass mode.
-    // The adaptive watchdog and accessibility settings remain independent.
+    // On desktop macOS, keep the exact same ambient palette/glass design at rest
+    // but reduce compositor pressure only while scrolling. iPadOS can identify as
+    // Macintosh, so maxTouchPoints prevents it from entering this desktop path.
+    (() => {
+      const ua=navigator.userAgent||"";
+      const isMacDesktop=(
+        /Macintosh|Mac OS X/i.test(ua) &&
+        Number(navigator.maxTouchPoints||0)<=1
+      );
+      if(!isMacDesktop)return;
+
+      const root=document.documentElement;
+      root.classList.add("ipcdj-macos-desktop");
+
+      let active=false;
+      let settleTimer=0;
+      const enterScrollMode=()=>{
+        if(root.classList.contains("ipcdj-original-motion-preview"))return;
+        if(!active){
+          active=true;
+          root.classList.add("ipcdj-scroll-active");
+        }
+        clearTimeout(settleTimer);
+        settleTimer=setTimeout(()=>{
+          active=false;
+          root.classList.remove("ipcdj-scroll-active");
+        },160);
+      };
+
+      window.addEventListener("scroll",enterScrollMode,{passive:true});
+      window.addEventListener("pagehide",()=>{
+        clearTimeout(settleTimer);
+        active=false;
+        root.classList.remove("ipcdj-scroll-active");
+      },{passive:true});
+    })();
 
     // Song-driven ambient field controller.
     // Two complete moving fields crossfade so a palette can change without any
@@ -6638,8 +6688,6 @@
         previewUseFullAsset:true,
         previewFadeIn:.70,
         previewFadeOut:1.60,
-        // Stable artwork-matched warm rose/umber colors; visible at first paint.
-        futurePalette:[[118,67,67],[177,111,101],[100,87,85]],
         scheduleTbd:true
       })
     ]);
@@ -7205,21 +7253,17 @@
       const fallback=song.futurePalette||COVER_THEME_FALLBACKS[song.id]||[[82,74,68],[116,92,70],[58,68,78]];
       applyFutureCardTheme(song,fallback,card);
 
-      // A curated cover-matched palette must remain authoritative even when
-      // a previous visit cached a different provider-derived color sample.
       let cachedPalette=null;
-      if(!song.futurePalette){
-        try{
-          const cached=localStorage.getItem(COVER_THEME_CACHE_PREFIX+song.id);
-          if(cached){
-            const parsed=JSON.parse(cached);
-            if(Array.isArray(parsed)&&parsed.length>=3){
-              cachedPalette=parsed;
-              applyFutureCardTheme(song,parsed,card);
-            }
+      try{
+        const cached=localStorage.getItem(COVER_THEME_CACHE_PREFIX+song.id);
+        if(cached){
+          const parsed=JSON.parse(cached);
+          if(Array.isArray(parsed)&&parsed.length>=3){
+            cachedPalette=parsed;
+            applyFutureCardTheme(song,parsed,card);
           }
-        }catch(_){}
-      }
+        }
+      }catch(_){}
 
       try{
         const artworkUrl=await resolveFutureArtworkUrl(song);
@@ -10690,11 +10734,7 @@
 
       future.forEach(song=>{
         const card=container.querySelector('[data-song-id="'+CSS.escape(song.id)+'"]');
-        if(!card)continue;
-        primeFutureCardTheme(song,card);
-        // Preload TBD artwork before scrolling or clicking; preview audio is
-        // still only hydrated when visible or after deliberate interaction.
-        if(song.scheduleTbd)ensureFutureCardTheme(song,card);
+        if(card)primeFutureCardTheme(song,card);
       });
 
       if("IntersectionObserver" in window){
