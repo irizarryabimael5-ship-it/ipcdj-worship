@@ -4,15 +4,23 @@ Updated: 2026-10-15 | Repository: irizarryabimael5-ship-it/ipcdj-worship | Autho
 ## Purpose and scope
 This is the project-specific working folder and durable written state of the IPCDJ Worship engineering chat. All project coordination and the future handoff live here **inside this GitHub repository**, not in Google Drive or any other project's files. Source code remains in its existing locations; this folder contains workstream state, boundaries and navigation, not copies of production data.
 
+## Main Lane, Side Lanes, and Sidebars
+**MAIN:** continuous site-wide UI, UX, performance, reliability and functionality.
+**SIDE LANES:** important recurring operational work that can run concurrently with MAIN. **WEEKLY / Worship Semanal** is ACTIVE for current Friday/Sunday sets and team resources; use [SIDE_LANES/README.md](SIDE_LANES/README.md) and [WORSHIP_SEMANAL.md](SIDE_LANES/WORSHIP_SEMANAL.md).
+**SIDEBARS:** optional, paused or exploratory feature development (Additional Features, Notifications, iPhone App), normally entered only by request.
+
+"Update Worship Semanal" routes to WEEKLY and leaves MAIN available; "MAIN + WEEKLY" tracks both simultaneously. Returning focus to MAIN never pauses WEEKLY. All workstreams share a codebase and are included in each Markdown handoff.
+
 ## Lane dashboard
 | ID | Lane | Status | Canonical file |
 | --- | --- | --- | --- |
 | MAIN | **Main Lane — platform-wide UI, experience, performance, stability and functionality** | ACTIVE | [MAIN_LANE.md](./MAIN_LANE.md) |
+| SIDE LANE / WEEKLY | **Worship Semanal — current Friday/Sunday worship sets and history** | ACTIVE / PARALLEL | [SIDE_LANES/WORSHIP_SEMANAL.md](./SIDE_LANES/WORSHIP_SEMANAL.md) |
 | FEATURES | Sidebar — additional features | STANDBY / INTAKE | [SIDEBARS/ADDITIONAL_FEATURES.md](./SIDEBARS/ADDITIONAL_FEATURES.md) |
 | NOTIFICATIONS | Sidebar — notification platform | PAUSED / IMPLEMENTED-BUT-DISABLED | [SIDEBARS/NOTIFICATIONS.md](./SIDEBARS/NOTIFICATIONS.md) |
 | IOS_APP | Sidebar — installed iPhone/iPad experience and potential native-app path | RESEARCH BACKLOG | [SIDEBARS/IOS_APP.md](./SIDEBARS/IOS_APP.md) |
 
-**Active lane: MAIN.** Other lanes stay dormant until the user explicitly switches to them. The same website and codebase may contain features associated with several lanes. Do not fork or duplicate the song schedule, notification config, app manifest or working code merely to create a lane.
+**Primary focus: MAIN, with active ongoing parallel Side Lane WEEKLY.** Optional Sidebars stay on hold until requested. The same website and codebase may contain features associated with several lanes. Do not fork or duplicate the song schedule, notification config, app manifest or working code merely to create a lane.
 
 ## How to switch
 - "Switch to sidebar Notifications" -> read the NOTIFICATIONS sidebar, its original linked source files and latest decisions; explicitly report the active lane.
