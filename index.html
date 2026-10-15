@@ -10179,6 +10179,7 @@
       const {song,phase}=driver;
       document.documentElement.classList.toggle("ipcdj-ambient-release",!!phase&&phase.key==="release");
       ambientDriverSongId=song.id;
+      document.documentElement.dataset.ambientDriverSongId=song.id;
       const palette=ambientSongPalettes.get(song.id)||COVER_THEME_FALLBACKS[song.id]||AMBIENT_FALLBACK;
       setAmbientPalette(palette,"driver:"+song.id+"|phase:"+(phase?.key||"unknown"));
     }
@@ -10535,6 +10536,7 @@
 
       if(!current.length){
         ambientDriverSongId="";
+        delete document.documentElement.dataset.ambientDriverSongId;
         document.documentElement.classList.remove("ipcdj-ambient-release");
         setAmbientPalette(AMBIENT_FALLBACK,"fallback");
         renderEmptyCurrent();
