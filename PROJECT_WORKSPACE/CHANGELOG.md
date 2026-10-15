@@ -28,3 +28,10 @@ Written for future Markdown handoffs. Each entry records reality rather than pro
 - Repaired three classes of documented stale/malformed staging watchdog expectations without changing production or runtime code.
 - Actual paths: `monitoring/tests/original-motion-preview.spec.js`, `monitoring/tests/site-health.spec.js`, and current lane/handoff/changelog notes.
 - Revalidate the exact new staging head with seven-profile deployed tests; note final result rather than assuming success.
+
+## 2026-10-15 — Alert check and concurrent WEEKLY Side Lane
+- Staging health run 38791297574 SUCCESS for `e30b00b...`; automatic recovery closed staging alert #31. Cloudflare Pages branch-preview issue #19 remains OPEN; independent production website health is green.
+- User distinguished important, continuous, MAIN-parallel **Side Lanes** from optional/deferred **Sidebars**; created `PROJECT_WORKSPACE/SIDE_LANES/README.md` and `WORSHIP_SEMANAL.md`.
+- Verified `index.html` current Friday/Sunday panels both show `Set pendiente` at this snapshot; completed GU archive and Oct 4 history preserved. Verified Sunday rollover script/workflow present on main and staging. No new member set details supplied.
+- Updated MAIN, optional SIDEBARS router, source content tree and permanent Markdown continuity/handoff; no website runtime, music data, history, worker, notifications, or Live changed.
+- Watchdog: `GENERIC_COVERAGE_SUFFICIENT` (organization-only documentation). A new staging CI run may occur on latest documentation HEAD and must be evaluated separately.
