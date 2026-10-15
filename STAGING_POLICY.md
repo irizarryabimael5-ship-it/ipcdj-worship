@@ -77,3 +77,6 @@ The objective is production-equivalent behavior with staging-only safety boundar
 ## Workstream documentation separation
 
 The project-level Main Lane, independent sidebars, source-tree map and future room handoff live under [PROJECT_WORKSPACE/](PROJECT_WORKSPACE/README.md) on the repository's staging development branch. These are documentation-only and do not authorize any runtime/production promotion. The Main Lane is UI/UX/performance/stability; sidebars are Additional Features, Notifications and iPhone App. Workstream switching does not bypass the staging-first checks, cross-device watchdog or explicit release authorization above. Do not access unrelated Google Drive folders for this coordination.
+
+## Main Lane and concurrent Worship Semanal Side Lane
+[Worship Semanal](PROJECT_WORKSPACE/SIDE_LANES/WORSHIP_SEMANAL.md) is an important, **ongoing** operational Side Lane—not an optional Sidebar—and may be maintained alongside MAIN. Its Friday/Sunday set and historical archive work shares `index.html` with global UI. Fetch/reconcile fresh staging HEAD before each change, preserve the other lane's code/content, and apply all existing staging isolation, watchdog and explicit Live promotion requirements. Switching workstreams never authorizes publishing unapproved songs or modifying production.
