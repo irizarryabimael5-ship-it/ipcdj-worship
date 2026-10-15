@@ -1,6 +1,8 @@
 # IPCDJ Worship — Site Standards
 
 ## Project workstreams and handoff (administrative)
+**Class distinction (2026-10-15):** MAIN is platform-wide UI/UX/performance and reliability; important ongoing [SIDE LANES](PROJECT_WORKSPACE/SIDE_LANES/README.md) may be active **alongside MAIN**, with [Worship Semanal](PROJECT_WORKSPACE/SIDE_LANES/WORSHIP_SEMANAL.md) covering team Friday/Sunday worship sets, member resources, and service history. Optional SIDEBARS (Additional Features, Notifications, iPhone App) remain separately scoped/on-demand. All three workstream classes have separate state and must be included in each migration handoff. Protect shared `index.html`: MAIN enhancements must preserve current and archived worship-service content; WEEKLY updates must preserve overall site quality and animations. No Google Drive file dependency or unauthorized Live change.
+
 
 The canonical GitHub-only workstream router is [PROJECT_WORKSPACE/README.md](PROJECT_WORKSPACE/README.md). MAIN is website-wide UI/UX, performance, reliability and functionality. Sidebars: FEATURES (additional features), NOTIFICATIONS (paused gated Web Push) and IOS_APP (future installed-app distribution). Each lane keeps separate state, evidence, resume point and decisions. Before switching lanes, update its file and [PROJECT_WORKSPACE/HANDOFF_CURRENT.md](PROJECT_WORKSPACE/HANDOFF_CURRENT.md). At migration compile one complete handoff Markdown per [PROJECT_WORKSPACE/HANDOFF_PROTOCOL.md](PROJECT_WORKSPACE/HANDOFF_PROTOCOL.md), covering ALL lanes and their statuses. Store project coordination in this GitHub repository; do not use other projects' Google Drive folders. These workstream notes are administrative only and do not change runtime implementation rules.
 
