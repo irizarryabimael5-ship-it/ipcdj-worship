@@ -136,136 +136,6 @@ async function scrollSweep(page) {
   }
 }
 
-test('diagnostic: compare scrolling cost with ambient and glass layers isolated', async ({ page }, testInfo) => {
-  const { pageErrors } = await openHealthyPage(page);
-  const profile=await page.evaluate(async()=>{
-    const root=document.documentElement;
-    const style=document.createElement('style');
-    style.id='ipcdj-compositor-diagnostic-only';
-    style.textContent=[
-      'html.ipcdj-diag-ambient .ambient-blob{animation-play-state:paused!important}',
-      'html.ipcdj-diag-glass .card,html.ipcdj-diag-glass .eyebrow,',
-      'html.ipcdj-diag-glass .future-preview-button,html.ipcdj-diag-glass .timeline-item,',
-      'html.ipcdj-diag-glass .countdown-wrap,html.ipcdj-diag-glass .progress-wrap,',
-      'html.ipcdj-diag-glass .status,html.ipcdj-diag-glass .post-release-banner{',
-      'backdrop-filter:none!important;-webkit-backdrop-filter:none!important}'
-    ].join('');
-    document.head.appendChild(style);
-    const modeClasses=['ipcdj-diag-ambient','ipcdj-diag-glass'];
-    const percentile=(sorted,q)=>sorted[Math.min(sorted.length-1,Math.floor((sorted.length-1)*q))]||0;
-    const results=[];
-    try{
-      const limit=Math.max(0,root.scrollHeight-innerHeight);
-      for(const mode of ['baseline','ambient-frozen','glass-off','ambient-and-glass-off']){
-        root.classList.toggle('ipcdj-diag-ambient',mode.includes('ambient'));
-        root.classList.toggle('ipcdj-diag-glass',mode.includes('glass'));
-        scrollTo({top:0,behavior:'instant'});
-        await new Promise(resolve=>setTimeout(resolve,160));
-        const dt=[];
-        let first=0,last=0;
-        await new Promise(resolve=>{
-          const step=now=>{
-            if(!first){first=now;last=now}
-            else{dt.push(now-last);last=now}
-            const elapsed=now-first;
-            if(elapsed>=1100){resolve();return}
-            if(limit>0){
-              const wave=(elapsed%1100)/1100;
-              scrollTo({top:Math.round(limit*(wave<.5?wave*2:(1-wave)*2)),behavior:'instant'});
-            }
-            requestAnimationFrame(step);
-          };
-          requestAnimationFrame(step);
-        });
-        const sorted=dt.slice().sort((a,b)=>a-b);
-        results.push({
-          mode,frames:dt.length,
-          medianMs:Math.round(percentile(sorted,.5)*10)/10,
-          p95Ms:Math.round(percentile(sorted,.95)*10)/10,
-          maxMs:Math.round((sorted[sorted.length-1]||0)*10)/10,
-          over50Ms:dt.filter(x=>x>50).length,
-          scrollRange:limit
-        });
-      }
-    }finally{
-      modeClasses.forEach(c=>root.classList.remove(c));
-      style.remove();
-      scrollTo({top:0,behavior:'instant'});
-    }
-    const nav=performance.getEntriesByType('navigation')[0];
-    return {
-      devicePixelRatio,
-      viewport:{width:innerWidth,height:innerHeight},
-      navigation:nav?{
-        responseStartMs:Math.round(nav.responseStart),
-        domContentLoadedMs:Math.round(nav.domContentLoadedEventEnd),
-        loadMs:Math.round(nav.loadEventEnd)
-      }:null,
-      scenarios:results
-    };
-  });
-  expect(profile.scenarios).toHaveLength(4);
-  expect(profile.scenarios[0].mode).toBe('baseline');
-  expect(profile.scenarios[3].mode).toBe('ambient-and-glass-off');
-  expect(fatalPageErrors(pageErrors)).toEqual([]);
-  const payload={project:testInfo.project.name,...profile};
-  console.log('[IPCDJ COMPOSITOR PROFILE] '+JSON.stringify(payload));
-  await testInfo.attach('compositor-diagnostic.json',{
-    body:Buffer.from(JSON.stringify(payload,null,2)),
-    contentType:'application/json'
-  });
-});
-
-test('v192 steady countdown ticks avoid duplicate card and palette mutations', async ({ page }) => {
-  const {pageErrors}=await openHealthyPage(page);
-  const result=await page.evaluate(async()=>{
-    const runtime=window.IPCDJ_CATALOG_TEST;
-    const timestamp=Date.parse('2026-10-20T12:00:00-04:00');
-    try{
-      runtime.renderAt(timestamp);
-      const card=document.querySelector('[data-current-song-card][data-song-id]');
-      const wrap=card?.querySelector('[data-role="progress-wrap"]');
-      const fill=card?.querySelector('[data-role="progress-fill"]');
-      const track=card?.querySelector('[data-role="progress-track"]');
-      if(!card||!wrap||!fill||!track)return {error:'missing prepared card/progress'};
-      const baseline={
-        palette:wrap.style.cssText,
-        width:fill.style.width,
-        stage:card.style.cssText,
-        phase:card.dataset.phase,
-        valueNow:track.getAttribute('aria-valuenow')
-      };
-      let mutations=0;
-      const observer=new MutationObserver(records=>{
-        mutations+=records.filter(record=>record.attributeName==='style'||record.attributeName==='aria-valuenow').length;
-      });
-      for(const node of [card,wrap,fill,track]){
-        observer.observe(node,{attributes:true,attributeFilter:['style','aria-valuenow']});
-      }
-      runtime.renderAt(timestamp);
-      await Promise.resolve();
-      observer.disconnect();
-      return {
-        baseline,
-        after:{
-          palette:wrap.style.cssText,
-          width:fill.style.width,
-          stage:card.style.cssText,
-          phase:card.dataset.phase,
-          valueNow:track.getAttribute('aria-valuenow')
-        },
-        mutations
-      };
-    }finally{
-      runtime.resume();
-    }
-  });
-  expect(result.error).toBeUndefined();
-  expect(result.after).toEqual(result.baseline);
-  expect(result.mutations).toBe(0);
-  expect(fatalPageErrors(pageErrors)).toEqual([]);
-});
-
 test('integrity, launch, layout and scrolling remain healthy', async ({ page }, testInfo) => {
   const { pageErrors, consoleErrors } = await openHealthyPage(page);
 
@@ -1956,7 +1826,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
   });
   expect(serviceWorkerResponse.ok()).toBe(true);
   const serviceWorkerText = await serviceWorkerResponse.text();
-  expect(serviceWorkerText).toContain('ipcdj-worship-v192');
+  expect(serviceWorkerText).toContain('ipcdj-worship-v190');
   expect(serviceWorkerText).toContain('CACHE_FRESH_SHELL');
   expect(serviceWorkerText).toContain('refresh-test');
 
@@ -2003,7 +1873,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     // Simulate the exact failure we are guarding against: an installed PWA has
     // an older shell cached when the user performs one refresh.
-    const staleCache=await caches.open('ipcdj-worship-v192');
+    const staleCache=await caches.open('ipcdj-worship-v190');
     await staleCache.put(
       './__offline_index__',
       new Response('<!doctype html><meta name="ipcdj-build" content="stale-watchdog" />',{
@@ -2013,7 +1883,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     const staged=await window.IPCDJ_REFRESH_TEST.stageLatestShell();
     const keys=await caches.keys();
-    const cacheKey=keys.find(key=>key==='ipcdj-worship-v192')||'';
+    const cacheKey=keys.find(key=>key==='ipcdj-worship-v190')||'';
     let cachedBuild='';
     if(cacheKey){
       const cache=await caches.open(cacheKey);
@@ -2027,7 +1897,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
   expect(refreshStage.staged.ok).toBe(true);
   expect(refreshStage.staged.build).toBe(refreshStage.currentBuild);
-  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v192');
+  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v190');
   expect(refreshStage.cachedBuild).toBe(refreshStage.currentBuild);
 
   // Intentionally coarse runaway guards, not synthetic speed scores.
