@@ -9,7 +9,10 @@ ipcdj-worship/
 │   ├── CONTENT_TREE.md                  # this source map
 │   ├── HANDOFF_PROTOCOL.md              # future room migration spec
 │   ├── HANDOFF_CURRENT.md               # living migration snapshot
-│   ├── CHANGELOG.md                     # cross-lane event log
+│   ├── CHANGELOG.md                     # cross-workstream event log
+│   ├── SIDE_LANES/
+│   │   ├── README.md                    # important concurrent operational lanes
+│   │   └── WORSHIP_SEMANAL.md           # Friday/Sunday sets, resources, archive
 │   └── SIDEBARS/
 │       ├── README.md                    # sidebar router
 │       ├── ADDITIONAL_FEATURES.md       # supplemental features
@@ -74,3 +77,6 @@ ipcdj-worship/
 - **Cross-chat continuity:** `PROJECT_WORKSPACE/HANDOFF_CURRENT.md` plus source of truth and commit identifiers.
 
 This workspace is isolated to the IPCDJ Worship repository. No Google Drive folders or files are owned, indexed, edited or depended on for this workspace.
+
+## WEEKLY Side Lane ownership
+See [SIDE_LANES/WORSHIP_SEMANAL.md](SIDE_LANES/WORSHIP_SEMANAL.md). Canonical content is in `index.html` Friday/Sunday weekly markers; rollover engine `scripts/weekly-rollover.mjs`; workflow `.github/workflows/weekly-worship-rollover.yml`; completed-event archive in `docs/events/`. WEEKLY is an active Side Lane, not a Sidebar or new independent data store.
