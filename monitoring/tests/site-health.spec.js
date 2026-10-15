@@ -136,6 +136,86 @@ async function scrollSweep(page) {
   }
 }
 
+test('diagnostic: compare scrolling cost with ambient and glass layers isolated', async ({ page }, testInfo) => {
+  const { pageErrors } = await openHealthyPage(page);
+  const profile=await page.evaluate(async()=>{
+    const root=document.documentElement;
+    const style=document.createElement('style');
+    style.id='ipcdj-compositor-diagnostic-only';
+    style.textContent=[
+      'html.ipcdj-diag-ambient .ambient-blob{animation-play-state:paused!important}',
+      'html.ipcdj-diag-glass .card,html.ipcdj-diag-glass .eyebrow,',
+      'html.ipcdj-diag-glass .future-preview-button,html.ipcdj-diag-glass .timeline-item,',
+      'html.ipcdj-diag-glass .countdown-wrap,html.ipcdj-diag-glass .progress-wrap,',
+      'html.ipcdj-diag-glass .status,html.ipcdj-diag-glass .post-release-banner{',
+      'backdrop-filter:none!important;-webkit-backdrop-filter:none!important}'
+    ].join('');
+    document.head.appendChild(style);
+    const modeClasses=['ipcdj-diag-ambient','ipcdj-diag-glass'];
+    const percentile=(sorted,q)=>sorted[Math.min(sorted.length-1,Math.floor((sorted.length-1)*q))]||0;
+    const results=[];
+    try{
+      const limit=Math.max(0,root.scrollHeight-innerHeight);
+      for(const mode of ['baseline','ambient-frozen','glass-off','ambient-and-glass-off']){
+        root.classList.toggle('ipcdj-diag-ambient',mode.includes('ambient'));
+        root.classList.toggle('ipcdj-diag-glass',mode.includes('glass'));
+        scrollTo({top:0,behavior:'instant'});
+        await new Promise(resolve=>setTimeout(resolve,160));
+        const dt=[];
+        let first=0,last=0;
+        await new Promise(resolve=>{
+          const step=now=>{
+            if(!first){first=now;last=now}
+            else{dt.push(now-last);last=now}
+            const elapsed=now-first;
+            if(elapsed>=1100){resolve();return}
+            if(limit>0){
+              const wave=(elapsed%1100)/1100;
+              scrollTo({top:Math.round(limit*(wave<.5?wave*2:(1-wave)*2)),behavior:'instant'});
+            }
+            requestAnimationFrame(step);
+          };
+          requestAnimationFrame(step);
+        });
+        const sorted=dt.slice().sort((a,b)=>a-b);
+        results.push({
+          mode,frames:dt.length,
+          medianMs:Math.round(percentile(sorted,.5)*10)/10,
+          p95Ms:Math.round(percentile(sorted,.95)*10)/10,
+          maxMs:Math.round((sorted[sorted.length-1]||0)*10)/10,
+          over50Ms:dt.filter(x=>x>50).length,
+          scrollRange:limit
+        });
+      }
+    }finally{
+      modeClasses.forEach(c=>root.classList.remove(c));
+      style.remove();
+      scrollTo({top:0,behavior:'instant'});
+    }
+    const nav=performance.getEntriesByType('navigation')[0];
+    return {
+      devicePixelRatio,
+      viewport:{width:innerWidth,height:innerHeight},
+      navigation:nav?{
+        responseStartMs:Math.round(nav.responseStart),
+        domContentLoadedMs:Math.round(nav.domContentLoadedEventEnd),
+        loadMs:Math.round(nav.loadEventEnd)
+      }:null,
+      scenarios:results
+    };
+  });
+  expect(profile.scenarios).toHaveLength(4);
+  expect(profile.scenarios[0].mode).toBe('baseline');
+  expect(profile.scenarios[3].mode).toBe('ambient-and-glass-off');
+  expect(fatalPageErrors(pageErrors)).toEqual([]);
+  const payload={project:testInfo.project.name,...profile};
+  console.log('[IPCDJ COMPOSITOR PROFILE] '+JSON.stringify(payload));
+  await testInfo.attach('compositor-diagnostic.json',{
+    body:Buffer.from(JSON.stringify(payload,null,2)),
+    contentType:'application/json'
+  });
+});
+
 test('integrity, launch, layout and scrolling remain healthy', async ({ page }, testInfo) => {
   const { pageErrors, consoleErrors } = await openHealthyPage(page);
 
