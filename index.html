@@ -6,7 +6,7 @@
   <meta name="ipcdj-environment" content="staging" />
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="campana-weekend-v190" />
+  <meta name="ipcdj-build" content="campana-weekend-v191" />
   <title>IPCDJ Worship | Ministerio de Alabanza</title>
   <meta name="description" content="Próximas canciones, preparación y estrenos del Ministerio de Alabanza de IPCDJ." />
   <link rel="canonical" href="https://worship.ipcdj.org/" />
@@ -210,7 +210,7 @@
 
     #ipcdj-launch.launch-playing .launch-logo-stage{
       opacity:1;
-      transition:opacity 1.75s cubic-bezier(.42,0,.58,1) .12s;
+      transition:opacity 1.08s cubic-bezier(.42,0,.58,1) .12s;
     }
 
     #ipcdj-launch.launch-armed{
@@ -230,8 +230,8 @@
       visibility:hidden;
       pointer-events:none;
       transition:
-        opacity .82s cubic-bezier(.22,.61,.36,1) .46s,
-        visibility 0s linear 1.28s;
+        opacity .56s cubic-bezier(.22,.61,.36,1) .17s,
+        visibility 0s linear .73s;
     }
 
     #ipcdj-launch.launch-exit .launch-logo-stage{
@@ -257,7 +257,7 @@
       }
 
       #ipcdj-launch.launch-playing .launch-logo-stage{
-        transition-duration:1.90s;
+        transition-duration:1.18s;
       }
     }
 
@@ -4228,24 +4228,32 @@
       }
     }
 
-    /* macOS desktop scrolling guard.
-       The fixed ambient field and live glass surfaces are intentionally rich at
-       rest. While a Mac is actively scrolling, pause only decorative blob motion
-       and temporarily bypass backdrop sampling so older iMac GPUs do not have to
-       recompute animated blur + glass every scroll frame. The full treatment
-       returns immediately after scrolling settles. */
-    html.ipcdj-macos-desktop.ipcdj-scroll-active .ambient-blob{
+    /* Platform-wide scroll compositor guard v191.
+       Pause decorative motion and expensive glass sampling ONLY during native
+       scrolling. Current song palettes, cards, artwork and typography persist.
+       This applies to iOS/iPadOS, Android, macOS and Windows equally. */
+    html.ipcdj-scroll-active .ambient-blob{
       animation-play-state:paused !important;
       will-change:auto;
     }
 
-    html.ipcdj-macos-desktop.ipcdj-scroll-active .card,
-    html.ipcdj-macos-desktop.ipcdj-scroll-active .eyebrow,
-    html.ipcdj-macos-desktop.ipcdj-scroll-active .future-preview-button,
-    html.ipcdj-macos-desktop.ipcdj-scroll-active .current .countdown-wrap,
-    html.ipcdj-macos-desktop.ipcdj-scroll-active .current .progress-wrap{
+    html.ipcdj-scroll-active .card,
+    html.ipcdj-scroll-active .eyebrow,
+    html.ipcdj-scroll-active .future-preview-button,
+    html.ipcdj-scroll-active .current .countdown-wrap,
+    html.ipcdj-scroll-active .current .progress-wrap,
+    html.ipcdj-scroll-active .current .timeline-item,
+    html.ipcdj-scroll-active .current.phase-release .status,
+    html.ipcdj-scroll-active .current.phase-release .post-release-banner,
+    html.ipcdj-scroll-active .current.phase-release .timeline-item.estreno.active-phase{
       backdrop-filter:none !important;
       -webkit-backdrop-filter:none !important;
+    }
+
+    /* In the existing adaptive performance-lite mode, prioritize interaction
+       over continuous decorative GPU animation until the monitor recovers. */
+    html.ipcdj-performance-lite .ambient-blob{
+      animation-play-state:paused !important;
     }
   </style>
 </head>
@@ -4399,14 +4407,14 @@
         }
 
         launch.className="launch-exit";
-        setTimeout(()=>settleIdle(token),reduced?280:1320);
+        setTimeout(()=>settleIdle(token),reduced?280:790);
       };
 
       const checkCycle=token=>{
         if(token!==cycleToken||exiting||armed)return;
 
         const elapsed=performance.now()-cycleStarted;
-        const minimumVisible=reduced?280:2300;
+        const minimumVisible=reduced?280:1450;
         const hardMaximum=reduced?800:3900;
 
         if((elapsed>=minimumVisible&&appFrameReady())||elapsed>=hardMaximum){
@@ -6109,19 +6117,17 @@
 
     window.addEventListener("touchcancel",resetPull,{passive:true});
 
-    // On desktop macOS, keep the exact same ambient palette/glass design at rest
-    // but reduce compositor pressure only while scrolling. iPadOS can identify as
-    // Macintosh, so maxTouchPoints prevents it from entering this desktop path.
+    // The scroll compositor guard must run on ALL platforms; Safari/iOS and
+    // Android also pay for glass recomposition. Keep a Mac-desktop marker for
+    // diagnostics only (iPadOS can identify as Macintosh).
     (() => {
       const ua=navigator.userAgent||"";
       const isMacDesktop=(
         /Macintosh|Mac OS X/i.test(ua) &&
         Number(navigator.maxTouchPoints||0)<=1
       );
-      if(!isMacDesktop)return;
-
       const root=document.documentElement;
-      root.classList.add("ipcdj-macos-desktop");
+      if(isMacDesktop)root.classList.add("ipcdj-macos-desktop");
 
       let active=false;
       let settleTimer=0;
