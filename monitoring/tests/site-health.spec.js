@@ -652,7 +652,13 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(sundayWeeklyPanel.locator('.weekly-song')).toHaveCount(5);
   expect(await sundayWeeklyPanel.locator('.weekly-song-title').allTextContents()).toEqual(["Yo Te Busco","Cuán Grande Es Dios","Proezas","Tu Fidelidad","Eres Todopoderoso"]);
   expect(await sundayWeeklyPanel.locator('.weekly-song-artist').allTextContents()).toEqual(["Marcos Witt","En Espíritu Y En Verdad","Miel San Marcos","Marcos Witt","Danilo Montero"]);
-  expect(await sundayWeeklyPanel.locator('.weekly-song-meta').allTextContents()).toEqual(["Tono · Sol MayorBPM · 85/170","Tono · Sol MayorBPM · 72/144","Tono · La MayorBPM · 78/156","Tono · La MayorBPM · 57/113","Tono · La MayorBPM · 63/125"]);
+  expect(await sundayWeeklyPanel.locator('.weekly-song-meta span').allTextContents()).toEqual([
+    'Tono · Sol Mayor','BPM · 85/170',
+    'Tono · Sol Mayor','BPM · 72/144',
+    'Tono · La Mayor','BPM · 78/156',
+    'Tono · La Mayor','BPM · 57/113',
+    'Tono · La Mayor','BPM · 63/125'
+  ]);
   expect(await sundayWeeklyPanel.locator('.weekly-corito').allTextContents()).toEqual(["Yo Vine A Alabar A Dios","Así Se Alaba A Dios","Alabaré","Hay Poder (Sin Igual Poder)","Poderoso Es Nuestro Dios"]);
   await expect(sundayWeeklyPanel).toContainText('Josselin');
   await expect(sundayWeeklyPanel).toContainText('Compás · 4/4');
