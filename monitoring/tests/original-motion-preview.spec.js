@@ -1,8 +1,12 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('v193 opt-in historical Dios de Milagros motion (staging only)', () => {
-  test.skip(({ }, testInfo) => testInfo.project.name !== 'chromium-desktop',
-    'Dedicated computed-style and animation-progress proof uses desktop Chromium; full existing seven-profile matrix still runs');
+  // Project selection is evaluated inside a hook, where Playwright supplies testInfo.
+  // Never use an undefined testInfo argument in a suite-level test.skip predicate.
+  test.beforeEach(async ({}, testInfo) => {
+    test.skip(testInfo.project.name !== 'chromium-desktop',
+      'Dedicated computed-style and animation-progress proof uses desktop Chromium; full existing seven-profile matrix still runs');
+  });
 
   const snapshot = page => page.evaluate(() => {
     const root=document.documentElement;

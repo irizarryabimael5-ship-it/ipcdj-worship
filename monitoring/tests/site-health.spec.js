@@ -1826,7 +1826,12 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
   });
   expect(serviceWorkerResponse.ok()).toBe(true);
   const serviceWorkerText = await serviceWorkerResponse.text();
-  expect(serviceWorkerText).toContain('ipcdj-worship-v190');
+  // Derive the exact deployed cache name rather than hard-coding a prior build.
+  // This tests the same active cache the service worker currently controls.
+  const cacheMatch=serviceWorkerText.match(/const CACHE_NAME\s*=\s*["']([^"']+)["']/);
+  expect(cacheMatch,'deployed service worker declares its cache version').not.toBeNull();
+  const expectedCacheName=cacheMatch[1];
+  expect(expectedCacheName).toMatch(/^ipcdj-worship-v\d+$/);
   expect(serviceWorkerText).toContain('CACHE_FRESH_SHELL');
   expect(serviceWorkerText).toContain('refresh-test');
 
@@ -1868,12 +1873,12 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
     };
   });
 
-  const refreshStage = await page.evaluate(async () => {
+  const refreshStage = await page.evaluate(async activeCacheName => {
     const currentBuild=document.querySelector('meta[name="ipcdj-build"]')?.content||'';
 
     // Simulate the exact failure we are guarding against: an installed PWA has
     // an older shell cached when the user performs one refresh.
-    const staleCache=await caches.open('ipcdj-worship-v190');
+    const staleCache=await caches.open(activeCacheName);
     await staleCache.put(
       './__offline_index__',
       new Response('<!doctype html><meta name="ipcdj-build" content="stale-watchdog" />',{
@@ -1883,7 +1888,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     const staged=await window.IPCDJ_REFRESH_TEST.stageLatestShell();
     const keys=await caches.keys();
-    const cacheKey=keys.find(key=>key==='ipcdj-worship-v190')||'';
+    const cacheKey=keys.find(key=>key===activeCacheName)||'';
     let cachedBuild='';
     if(cacheKey){
       const cache=await caches.open(cacheKey);
@@ -1893,11 +1898,11 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
       cachedBuild=match ? match[1] : '';
     }
     return {currentBuild,staged,cacheKey,cachedBuild};
-  });
+  }, expectedCacheName);
 
   expect(refreshStage.staged.ok).toBe(true);
   expect(refreshStage.staged.build).toBe(refreshStage.currentBuild);
-  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v190');
+  expect(refreshStage.cacheKey).toBe(expectedCacheName);
   expect(refreshStage.cachedBuild).toBe(refreshStage.currentBuild);
 
   // Intentionally coarse runaway guards, not synthetic speed scores.
@@ -2157,7 +2162,9 @@ test('release day amplifies the page ambient field from the song palette', async
   expect(source).toContain('--ambient-c1');
   expect(source).toContain('--ambient-c2');
   expect(source).toContain('--ambient-c3');
-  expect(source).toContain('const release=entries.find(({phase})=>phase&&phase.key==="release")');
+  // The visible top Prep card is now the single authoritative ambient driver.
+  expect(source).toContain('return Array.isArray(entries)&&entries.length?entries[0]:null;');
+  expect(source).toContain('document.documentElement.dataset.ambientDriverSongId=song.id;');
   expect(source).toContain('document.documentElement.classList.toggle("ipcdj-ambient-release"');
   expect(source).toContain('driver:"+song.id+"|phase:"');
 

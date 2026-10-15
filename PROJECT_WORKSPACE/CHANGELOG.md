@@ -23,3 +23,8 @@ Written for future Markdown handoffs. Each entry records reality rather than pro
 - Inspected GitHub completed failed staging run `38783527704` and 11.5 MB action log. 21 failed test cases due to 3 per-device categories: malformed `test.skip` setup, hard-coded v190 cache assertion versus v193 and stale release-driver source assertion contradicting approved top-Prep rule.
 - 183 passed / 21 failed / 6 skipped / 14 not run. CI is **not** certified; no evidence from these failures alone of a new visual regression.
 - New post-workspace staging run `38787351398` was in progress when reviewed. Pending later task in MAIN: correct outdated tests and revalidate all seven profiles. No app/runtime/notifications code or Live was changed during workspace setup.
+
+## 2026-10-15 — MAIN: staged watchdog calibration
+- Repaired three classes of documented stale/malformed staging watchdog expectations without changing production or runtime code.
+- Actual paths: `monitoring/tests/original-motion-preview.spec.js`, `monitoring/tests/site-health.spec.js`, and current lane/handoff/changelog notes.
+- Revalidate the exact new staging head with seven-profile deployed tests; note final result rather than assuming success.
