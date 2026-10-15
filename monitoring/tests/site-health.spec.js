@@ -136,69 +136,6 @@ async function scrollSweep(page) {
   }
 }
 
-test('v191 faster launch and universal scroll guard keep all platforms responsive', async ({ page, request }, testInfo) => {
-  const {pageErrors}=await openHealthyPage(page);
-  const response=await request.get('/?v191-perf-contract='+Date.now(),{
-    headers:{'cache-control':'no-cache'}
-  });
-  expect(response.ok()).toBe(true);
-  const source=await response.text();
-  expect(source).toContain('const minimumVisible=reduced?280:1450;');
-  expect(source).toContain('setTimeout(()=>settleIdle(token),reduced?280:790)');
-  expect(source).toContain('html.ipcdj-scroll-active .ambient-blob');
-  expect(source).toContain('html.ipcdj-performance-lite .ambient-blob');
-  expect(source).toContain('if(isMacDesktop)root.classList.add("ipcdj-macos-desktop");');
-  expect(source).not.toContain('if(!isMacDesktop)return;');
-  await expect(page.locator('#ipcdj-launch')).toHaveClass(/launch-idle/);
-
-  const result=await page.evaluate(async()=>{
-    const root=document.documentElement;
-    const card=document.querySelector('.card');
-    const blob=document.querySelector('.ambient-blob');
-    const metric=()=>{
-      const cardStyle=card?getComputedStyle(card):null;
-      const blobStyle=blob?getComputedStyle(blob):null;
-      return {
-        scrolling:root.classList.contains('ipcdj-scroll-active'),
-        glass:cardStyle?(cardStyle.backdropFilter||cardStyle.webkitBackdropFilter||'none'):'missing-card',
-        blobMotion:blobStyle?.animationPlayState||'missing-blob',
-        scrollY:window.scrollY,
-        width:root.scrollWidth,
-        viewport:root.clientWidth
-      };
-    };
-    window.scrollTo({top:0,behavior:'instant'});
-    await new Promise(resolve=>setTimeout(resolve,200));
-    const before=metric();
-    // Trigger real programmatic scroll AND the same passive listener as touch
-    // /wheel input, without relying on a fixed test-runner scroll event cadence.
-    window.scrollTo({top:Math.max(280,root.scrollHeight-window.innerHeight),behavior:'instant'});
-    window.dispatchEvent(new Event('scroll'));
-    await new Promise(resolve=>requestAnimationFrame(()=>resolve()));
-    const during=metric();
-    return {before,during};
-  });
-  expect(result.during.scrolling).toBe(true);
-  expect(result.during.glass).toBe('none');
-  expect(result.during.blobMotion).toBe('paused');
-  expect(result.during.width).toBeLessThanOrEqual(result.during.viewport+4);
-  await expect(page.locator('html')).not.toHaveClass(/ipcdj-scroll-active/,{timeout:3000});
-  const after=await page.evaluate(()=>{
-    const card=document.querySelector('.card');
-    const style=card?getComputedStyle(card):null;
-    return {
-      scrolling:document.documentElement.classList.contains('ipcdj-scroll-active'),
-      glass:style?(style.backdropFilter||style.webkitBackdropFilter||'none'):'missing-card'
-    };
-  });
-  expect(after.scrolling).toBe(false);
-  expect(fatalPageErrors(pageErrors)).toEqual([]);
-  await testInfo.attach('v191-scroll-performance-state.json',{
-    body:Buffer.from(JSON.stringify({project:testInfo.project.name,...result,after},null,2)),
-    contentType:'application/json'
-  });
-});
-
 test('integrity, launch, layout and scrolling remain healthy', async ({ page }, testInfo) => {
   const { pageErrors, consoleErrors } = await openHealthyPage(page);
 
@@ -1889,7 +1826,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
   });
   expect(serviceWorkerResponse.ok()).toBe(true);
   const serviceWorkerText = await serviceWorkerResponse.text();
-  expect(serviceWorkerText).toContain('ipcdj-worship-v191');
+  expect(serviceWorkerText).toContain('ipcdj-worship-v190');
   expect(serviceWorkerText).toContain('CACHE_FRESH_SHELL');
   expect(serviceWorkerText).toContain('refresh-test');
 
@@ -1936,7 +1873,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     // Simulate the exact failure we are guarding against: an installed PWA has
     // an older shell cached when the user performs one refresh.
-    const staleCache=await caches.open('ipcdj-worship-v191');
+    const staleCache=await caches.open('ipcdj-worship-v190');
     await staleCache.put(
       './__offline_index__',
       new Response('<!doctype html><meta name="ipcdj-build" content="stale-watchdog" />',{
@@ -1946,7 +1883,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     const staged=await window.IPCDJ_REFRESH_TEST.stageLatestShell();
     const keys=await caches.keys();
-    const cacheKey=keys.find(key=>key==='ipcdj-worship-v191')||'';
+    const cacheKey=keys.find(key=>key==='ipcdj-worship-v190')||'';
     let cachedBuild='';
     if(cacheKey){
       const cache=await caches.open(cacheKey);
@@ -1960,7 +1897,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
   expect(refreshStage.staged.ok).toBe(true);
   expect(refreshStage.staged.build).toBe(refreshStage.currentBuild);
-  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v191');
+  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v190');
   expect(refreshStage.cachedBuild).toBe(refreshStage.currentBuild);
 
   // Intentionally coarse runaway guards, not synthetic speed scores.
