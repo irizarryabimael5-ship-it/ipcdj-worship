@@ -18,3 +18,8 @@ Written for future Markdown handoffs. Each entry records reality rather than pro
 - Enforced priority of first Prep song's artwork-derived palette, including overlaps, with a dedicated regression check; recorded in `SITE_STANDARDS.md`.
 - Production stayed at `d75f8d7e90413f4eec87feb63b03765e6f72e8c4`, Staging latest visual code at `87dbd998042f4555c1bc369f07accb1f0bd21c43`.
 - Latest staging run `38783527704` was still running at last check. No Live promotion.
+
+## 2026-10-15 — MAIN CI readback correction
+- Inspected GitHub completed failed staging run `38783527704` and 11.5 MB action log. 21 failed test cases due to 3 per-device categories: malformed `test.skip` setup, hard-coded v190 cache assertion versus v193 and stale release-driver source assertion contradicting approved top-Prep rule.
+- 183 passed / 21 failed / 6 skipped / 14 not run. CI is **not** certified; no evidence from these failures alone of a new visual regression.
+- New post-workspace staging run `38787351398` was in progress when reviewed. Pending later task in MAIN: correct outdated tests and revalidate all seven profiles. No app/runtime/notifications code or Live was changed during workspace setup.
