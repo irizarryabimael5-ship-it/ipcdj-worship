@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="color-scheme" content="dark">
+  <title>IPCDJ Worship — Visual Motion Check (staging only)</title>
+  <style>
+    :root { color-scheme:dark; font-family:system-ui,-apple-system,"Segoe UI",sans-serif; background:#090d16; color:#f4f6fd; }
+    * { box-sizing:border-box; }
+    body { margin:0 auto; padding:20px 15px 45px; max-width:780px; }
+    h1 { font-size:clamp(1.35rem,4vw,1.95rem); line-height:1.3; margin:0 0 8px; }
+    p { line-height:1.5; color:#bdc7de; }
+    a { color:#b6c9ff; }
+    .panel { background:#141c2b; padding:16px; margin:14px 0; border:1px solid #303d55; border-radius:15px; }
+    .row { display:flex; align-items:center; justify-content:space-between; gap:14px; border-bottom:1px solid #31394b; padding:10px 0; }
+    .row:last-child { border-bottom:0; }
+    .label { color:#d8e0f4; }
+    .value { color:#c7d5ff; font-weight:700; text-align:right; font-size:.9rem; word-break:break-word; }
+    .value.warn { color:#ffc782; }
+    .value.ok { color:#87e7b8; }
+    button { width:100%; cursor:pointer; padding:13px; border:1px solid #607cb9; border-radius:10px; color:white; background:#314e86; font:inherit; }
+    button + button { margin-top:9px; background:#1e304e; }
+    iframe { display:block; width:100%; height:230px; border:1px solid #37465f; border-radius:12px; background:#070911; }
+    pre { white-space:pre-wrap; overflow-wrap:anywhere; font-size:.79rem; line-height:1.4; border-radius:9px; background:#090f1c; padding:13px; border:1px solid #303d55; }
+    small { display:block; margin-top:8px; color:#adbcd3; }
+  </style>
+</head>
+<body>
+  <h1>IPCDJ Worship — Visual Motion Check</h1>
+  <p>This is an isolated, read-only check of the staging website in <strong>your actual browser</strong>. It does not change the website, system preferences, animations, or service worker. Results are displayed locally and are not sent anywhere.</p>
+  <div class="panel">
+    <div class="row"><span class="label">Status</span><span id="status" class="value">Loading site…</span></div>
+    <div class="row"><span class="label">Browser requests reduced motion</span><span id="motion" class="value">—</span></div>
+    <div class="row"><span class="label">Browser requests reduced data</span><span id="data" class="value">—</span></div>
+    <div class="row"><span class="label">Browser requests reduced transparency</span><span id="transparency" class="value">—</span></div>
+    <div class="row"><span class="label">Built-in performance-lite active</span><span id="lite" class="value">—</span></div>
+    <div class="row"><span class="label">Ambient background animation</span><span id="ambient" class="value">—</span></div>
+    <div class="row"><span class="label">Progress-bar white shimmer</span><span id="sheen" class="value">—</span></div>
+    <div class="row"><span class="label">Preparation song</span><span id="song" class="value">—</span></div>
+    <div class="row"><span class="label">Preparation bar filled</span><span id="fill" class="value">—</span></div>
+    <div class="row"><span class="label">Site build loaded</span><span id="build" class="value">—</span></div>
+  </div>
+  <div class="panel">
+    <button type="button" id="measure">Check again</button>
+    <button type="button" id="copy">Copy diagnostic report</button>
+    <small>Wait for the site preview and the first reading. You can send me the copied report or a screenshot of the table.</small>
+    <pre id="raw" aria-live="polite">Waiting for site to load.</pre>
+  </div>
+  <p>Live embedded staging preview (scrollable):</p>
+  <iframe id="site" title="Staging website as seen by this browser" loading="eager"></iframe>
+<script>
+(() => {
+  "use strict";
+  const $=id=>document.getElementById(id);
+  const frame=$("site");
+  let lastReport=null;
+  const format=(id,value,problem=false)=>{
+    const el=$(id);el.textContent=String(value);el.className="value "+(problem?"warn":"ok");
+  };
+  function inspect(){
+    try {
+      const win=frame.contentWindow;
+      const doc=frame.contentDocument;
+      if(!win||!doc||!doc.documentElement)throw Error("Staging site is not loaded yet.");
+      const motion=win.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const data=win.matchMedia("(prefers-reduced-data: reduce)").matches;
+      const transparency=win.matchMedia("(prefers-reduced-transparency: reduce)").matches;
+      const root=doc.documentElement;
+      const blob=doc.querySelector(".ambient-field-active .ambient-blob.b1")||doc.querySelector(".ambient-blob.b1");
+      const progress=doc.querySelector('[data-current-song-card] [data-role="progress-fill"]');
+      const track=progress?.parentElement;
+      const card=doc.querySelector("[data-current-song-card]");
+      const blobStyle=blob?win.getComputedStyle(blob):null;
+      const sheenStyle=progress?win.getComputedStyle(progress,"::after"):null;
+      const blobAnimation=blobStyle?.animationName||"missing";
+      const blobState=blobStyle?.animationPlayState||"missing";
+      const sheenAnimation=sheenStyle?.animationName||"missing";
+      const sheenState=sheenStyle?.animationPlayState||"missing";
+      const progressWidth=progress?.getBoundingClientRect().width||0;
+      const trackWidth=track?.getBoundingClientRect().width||0;
+      const result={
+        page:win.location.pathname,
+        loadedBuild:doc.querySelector('meta[name="ipcdj-build"]')?.getAttribute("content")||"unknown",
+        reducedMotion:motion,
+        reducedData:data,
+        reducedTransparency:transparency,
+        performanceLite:root.classList.contains("ipcdj-performance-lite"),
+        scrollingMode:root.classList.contains("ipcdj-scroll-active"),
+        activeAmbientField:!!doc.querySelector(".ambient-field-active"),
+        ambientAnimation:blobAnimation,
+        ambientState:blobState,
+        ambientDuration:blobStyle?.animationDuration||"unknown",
+        ambientOpacity:blobStyle?.opacity||"unknown",
+        shimmerAnimation:sheenAnimation,
+        shimmerState:sheenState,
+        shimmerDuration:sheenStyle?.animationDuration||"unknown",
+        currentSong:card?.querySelector('[data-role="song-name"]')?.textContent.trim()||"not yet loaded",
+        progressPercent:trackWidth>0?Number((100*progressWidth/trackWidth).toFixed(1)):null,
+        pageVisibility:doc.visibilityState
+      };
+      lastReport=result;
+      format("status","Read successfully");
+      format("motion",motion?"YES — site disables motion":"No",motion);
+      format("data",data?"YES — site disables background motion":"No",data);
+      format("transparency",transparency?"YES — glass may look flatter":"No",transparency);
+      format("lite",result.performanceLite?"YES — two background blobs paused":"No",result.performanceLite);
+      const ambientRunning=blobAnimation!=="none"&&blobAnimation!=="missing"&&blobState.includes("running");
+      const sheenRunning=sheenAnimation!=="none"&&sheenAnimation!=="missing"&&sheenState.includes("running");
+      format("ambient",ambientRunning?"CSS animation running":blobAnimation+" / "+blobState,!ambientRunning);
+      format("sheen",sheenRunning?"CSS animation running":sheenAnimation+" / "+sheenState,!sheenRunning);
+      format("song",result.currentSong,result.currentSong==="not yet loaded");
+      format("fill",result.progressPercent===null?"Not available":result.progressPercent+"%");
+      format("build",result.loadedBuild,!/v190/.test(result.loadedBuild));
+      $("raw").textContent=JSON.stringify(result,null,2);
+      return true;
+    }catch(error){
+      format("status","Waiting / could not inspect",true);
+      $("raw").textContent=String(error.message||error);
+      return false;
+    }
+  }
+  $("measure").addEventListener("click",inspect);
+  $("copy").addEventListener("click",async()=>{
+    const report=lastReport?JSON.stringify(lastReport,null,2):"No report yet";
+    try{
+      await navigator.clipboard.writeText(report);
+      $("copy").textContent="Copied — send to ChatGPT";
+    }catch(_){
+      $("raw").focus();
+      $("raw").textContent=report;
+      $("copy").textContent="Select the report below to copy";
+    }
+  });
+  frame.addEventListener("load",()=>{inspect();setTimeout(inspect,1700);setTimeout(inspect,4400)});
+  frame.src="./?visual-motion-diagnostic="+Date.now();
+  setTimeout(inspect,5500);
+})();
+</script>
+</body>
+</html>
