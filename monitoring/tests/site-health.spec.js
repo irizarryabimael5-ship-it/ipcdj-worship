@@ -471,6 +471,10 @@ test('special-event lifecycle is clock-deterministic and retains an archived sou
 });
 
 test('primary tabs, weekly panel and special-event lifecycle remain healthy', async ({ page }, testInfo) => {
+  // Freeze calendar date before page creation so the approved Oct 18 Sunday
+  // current set remains testable after its real Sunday 3 PM archival boundary.
+  // setFixedTime only overrides the clock; native animation/timers still run.
+  await page.clock.setFixedTime(new Date('2026-10-15T12:00:00-04:00'));
   await openHealthyPage(page);
 
   // Lock the genuine runtime in the event window. After Oct. 12 the same
