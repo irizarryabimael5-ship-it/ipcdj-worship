@@ -3,6 +3,12 @@
 These are protected implementation standards for all future changes to the IPCDJ Worship website.
 
 ## Core invariant
+## Ambient background palette ownership — permanent
+
+When one or more songs are displayed in **En Preparación / Prep**, the topmost visible current-song card is the sole source of the site's moving ambient-background palette. Typically that is the nearest upcoming estreno, ordered by the active song lifecycle; the actual first rendered Prep card has priority, including overlapping preparation/release phases. Do not allow a lower song's release phase, date, or artwork-loading callback to override the visible first card. When that first card changes, transition smoothly to the new leader's own album-artwork palette with the existing moving, soft multi-color blobs. Preserve the original Dios de Milagros animation/fade timings, white reflective progress sheen, artwork-derived gradients, and all song dates, active tabs, archives, and audio functionality.
+
+Any modification to Prep ordering or ambient palette selection must have a watchdog check that compares the chosen driver with the first rendered Prep card across synthetic overlap/phase transitions, and must preserve default accessibility preferences unless an individual visitor explicitly opts into a full-motion preview.
+
 
 Every future change must preserve the existing visual identity, responsive behavior, current-song countdown, calibrated time source, progress bar, automatic phase transitions, automatic Monday rollover, upcoming-song rendering, introduced-song history, pull-to-refresh behavior, PWA behavior, and custom-domain operation unless a change is explicitly requested.
 
