@@ -1,6 +1,6 @@
 # IPCDJ Worship — Sidebars
 
-Sidebars are independent workstream views **within the same IPCDJ Worship website**. They are not separate websites, repository forks, external Drive folders or alternate song data stores.
+Sidebars are optional/on-demand workstreams **within the same IPCDJ Worship website**, distinct from important [SIDE LANES](../SIDE_LANES/README.md) that may continue alongside MAIN. **Worship Semanal** is an active Side Lane, not an elective Sidebar. They are not separate websites, repository forks, external Drive folders or alternate song data stores.
 
 | Name to say | Sidebar file | Current state |
 | --- | --- | --- |
