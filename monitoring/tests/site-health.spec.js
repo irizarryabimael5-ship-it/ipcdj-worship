@@ -671,6 +671,11 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(sundayWeeklyPanel.locator('a[href="https://u.pone.rs/rsegrxgg.pdf"]')).toHaveCount(1);
   await expect(sundayWeeklyPanel.locator('a[href="https://youtube.com/playlist?list=PLfbkpqopl-bE&si=tUYLsdWc2lOFICbQ"]')).toHaveCount(1);
   await expect(sundayWeeklyPanel.locator('iframe[src="https://www.youtube-nocookie.com/embed/videoseries?list=PLfbkpqopl-bE"]')).toHaveCount(1);
+  // Only the current Sunday playlist loads eagerly during the intro.
+  await expect(sundayWeeklyPanel.locator('iframe[src*="youtube-nocookie.com"]')).toHaveAttribute('loading','eager');
+  await expect(page.locator('head link[rel="preconnect"][href="https://www.youtube-nocookie.com"]')).toHaveCount(1);
+  await expect(page.locator('head link[rel="preconnect"][href="https://i.ytimg.com"]')).toHaveCount(1);
+  await expect(page.locator('#template-campana-gu-2026 iframe[loading="lazy"]')).toHaveCount(3);
 
   // The routing CTA must switch into the campaign without disturbing the app shell.
   await campaignRedirect.locator('[data-open-campaign="campana-gu-2026"]').click();
