@@ -662,8 +662,9 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(fridayWeeklyPanel).toContainText('Re Mayor · 115 BPM');
   await expect(fridayWeeklyPanel).toContainText('Los Niños cantaran los coritos.');
   await expect(fridayWeeklyPanel).toContainText('Ensayen con la canción, con metrónomo y eventualmente sin letra.');
-  await expect(fridayWeeklyPanel).toContainText('Enlace pendiente');
-  await expect(fridayWeeklyPanel.locator('a[href$=".pdf"]')).toHaveCount(0);
+  await expect(fridayWeeklyPanel.locator('a.weekly-resource[href="https://u.pone.rs/ywgzacgv.pdf"]')).toHaveCount(1);
+  await expect(fridayWeeklyPanel.locator('a.weekly-resource')).toContainText('Letras & Coritos');
+  await expect(fridayWeeklyPanel.locator('a[href$=".pdf"]')).toHaveCount(1);
   await expect(fridayWeeklyPanel.locator('a[href="https://youtube.com/playlist?list=PLXqqjNOyFIbg&si=yA9UpmWJEv2g7LPY"]')).toHaveCount(1);
   await expect(fridayWeeklyPanel.locator('iframe[src="https://www.youtube-nocookie.com/embed/videoseries?list=PLXqqjNOyFIbg"]')).toHaveCount(1);
   const weeklyDates=await page.evaluate(()=>{
