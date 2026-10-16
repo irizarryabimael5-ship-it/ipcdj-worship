@@ -17,7 +17,7 @@ concurrency:
 jobs:
   staging-deploy:
     name: Requests Worker isolated Staging deployment
-    if: github.ref == 'refs/heads/staging' && startsWith(github.event.head_commit.message, 'Deploy IPCDJ requests Staging: ')
+    if: "github.ref == 'refs/heads/staging' && startsWith(github.event.head_commit.message, 'Deploy IPCDJ requests Staging: ')"
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: ipcdj-requests-staging
