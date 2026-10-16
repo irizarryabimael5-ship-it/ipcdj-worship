@@ -1,5 +1,7 @@
 # IPCDJ Worship — Song Requests Backend (Phase 1)
 
+**CLOUD ONLY:** [CLOUD_ONLY_SETUP.md](./CLOUD_ONLY_SETUP.md) is the default project setup and deployment procedure. GitHub-hosted CI/CD + Cloudflare Dashboard and D1; no local terminal or persistent user computer. The previous [PROVISION_STAGING.md](./PROVISION_STAGING.md) is an archived optional fallback, not a task to execute.
+
 Status 2026-10-16: source and tests only. NO requests Worker deployed; NO public intake, email sends or automatic publishing; main/Live unchanged.
 
 ## Isolation

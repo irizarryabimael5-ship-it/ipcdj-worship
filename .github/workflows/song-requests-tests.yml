@@ -5,6 +5,7 @@ on:
     paths:
       - "requests/**"
       - ".github/workflows/song-requests-tests.yml"
+      - ".github/workflows/song-requests-staging-cloud-deploy.yml"
   workflow_dispatch:
 
 permissions:
@@ -26,6 +27,17 @@ jobs:
         run: node --check requests/worker/scripts/provision-staging.mjs
       - name: Test Worker with real in-memory SQLite and atomic D1-compatible batches
         run: node --test --experimental-sqlite requests/worker/test/requests.test.mjs
+      - name: Validate cloud-only gated Staging deploy workflow contract
+        run: |
+          node --input-type=module -e "
+          import fs from 'node:fs';
+          const p=fs.readFileSync('.github/workflows/song-requests-staging-cloud-deploy.yml','utf8');
+          if(!p.includes('workflow_dispatch:') || !p.includes('STAGING_ONLY'))throw new Error('Missing manual approval gate');
+          if(!p.includes(\"github.ref == 'refs/heads/staging'\"))throw new Error('Staging ref gate missing');
+          if(!p.includes(\"INGEST_ENABLED!=='false'\"))throw new Error('Intake must remain disabled in setup');
+          if(!p.includes('ipcdj-requests-staging') || !p.includes('REQUESTS_STAGING_D1_ID'))throw new Error('Missing isolated Staging environment or binding');
+          if(p.includes('on:\\n  push:'))throw new Error('Cloud deploy must not run on push');
+          "
       - name: Verify no production routing / no active intake by default
         shell: bash
         run: |

@@ -1,5 +1,5 @@
 # FEATURE SPEC — Solicitudes de Canciones
-Lane: FEATURES / Request Songs | Created: 2026-10-16 | Status: SPECIFIED / MANUAL-LIVE-PILOT NEEDS SONG / NO BACKEND ENABLED
+Lane: FEATURES / Request Songs | Created: 2026-10-16 | Status: STAGING v202 DESIGN CERTIFIED / BACKEND CI GREEN / CLOUD RESOURCE SETUP PENDING / SINGLE COMPLETE LIVE RELEASE ONLY
 
 ## User intention (16 Oct 2026)
 Three connected deliverables:
@@ -76,3 +76,8 @@ New repository files under requests/worker: Cloudflare Worker API with separate 
 
 ## 2026-10-16 — Cloudflare Staging bootstrap helper added (account action pending)
 The account connection is not available through connected ChatGPT tools. Added guarded Node CLI helper requests/worker/scripts/provision-staging.mjs and safety instructions requests/worker/PROVISION_STAGING.md. From a Mac logged into Cloudflare via Wrangler, it only creates/reuses a uniquely named isolated D1, validates it is not production Web Push D1, updates local staging binding with backup, then applies schema. It does not deploy Worker, enable intake, provision secrets on behalf of user, or touch Live. GitHub CI checks helper syntax. User must authenticate locally and create Staging Turnstile public sitekey + secret and configure staging worker secrets. No passwords or secret keys to be sent to chat. Real Cloudflare completion cannot be claimed until verified by a real authenticated run.
+
+
+## 2026-10-16 — Cloud-only setup directive (SUPERCEDES ALL MAC/LOCAL STEPS)
+User explicitly requires **100% cloud hosting and setup**, with no reliance on a local MacBook Pro or other personal device. The earlier Terminal instructions were only an optional one-time bootstrap suggestion, and have been superseded. The user should NOT run local commands. Default workflow: browser-only creation of isolated Cloudflare Staging D1, Turnstile widget and cloud secrets; GitHub environment secrets/variables; guarded, manual GitHub-hosted deployment workflow `.github/workflows/song-requests-staging-cloud-deploy.yml` with `INGEST_ENABLED=false` until all features are ready. Authenticated GitHub-hosted runners handle schema and deploy without any personal machine. Complete checklist: [../../requests/worker/CLOUD_ONLY_SETUP.md](../../requests/worker/CLOUD_ONLY_SETUP.md). Local script remains available as optional emergency fallback but is NOT part of the active plan.
+Rollback and memory guarantees: Git commit history preserves source revision, handoff continuity document records every milestone; future Cloudflare Worker deployments require a recorded git SHA and staging-only environment; Git rollback does NOT restore remote D1 contents. Use versioned migrations and D1 Time Travel/backup retention after database provisioning, verify backups, and require approval before any destructive restore. Current isolated D1/Turnstile/email are NOT provisioned; code and workflow existence are not proof of remote setup. Existing Web Push D1/Worker and production remain untouched. The current cloud deploy workflow is manual only; no automatically triggered backend deployments until separately authorized.

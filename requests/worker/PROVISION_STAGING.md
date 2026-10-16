@@ -1,4 +1,7 @@
-# IPCDJ Worship — Cloudflare Staging provisioning
+# IPCDJ Worship — Optional local provisioning (NOT THE ACTIVE WORKFLOW)
+
+> **CLOUD-ONLY DIRECTIVE (2026-10-16):** The user requires everything to reside in the cloud and does not want local Terminal or laptop-dependent operations. Use [CLOUD_ONLY_SETUP.md](./CLOUD_ONLY_SETUP.md) and the manually gated GitHub-hosted Cloudflare deployment workflow instead. All Mac/CLI steps below are merely an archived, optional fallback; **do not instruct the user to run them** as part of the active project.
+
 
 Status: account-side actions required. This is for the new isolated song requests Worker and database, never the existing Web Push platform. No song-request functionality can be promoted to Live until the entire feature is finished and certified.
 
