@@ -673,6 +673,16 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(sundayWeeklyPanel.locator('iframe[src="https://www.youtube-nocookie.com/embed/videoseries?list=PLfbkpqopl-bE"]')).toHaveCount(1);
   // Only the current Sunday playlist loads eagerly during the intro.
   await expect(sundayWeeklyPanel.locator('iframe[src*="youtube-nocookie.com"]')).toHaveAttribute('loading','eager');
+  // Local vector/CSS cover remains crisp while YouTube provides a low-res
+  // embedded thumbnail. It is removed with one explicit user activation.
+  const sundayPoster=sundayWeeklyPanel.locator('[data-weekly-youtube-poster]');
+  await expect(sundayPoster).toBeVisible();
+  await expect(sundayPoster).toContainText('Worship semanal');
+  await expect(sundayPoster).toContainText('Mostrar reproductor');
+  await sundayPoster.click();
+  await expect(sundayPoster).toHaveCount(0);
+  await expect(sundayWeeklyPanel.locator('iframe[src="https://www.youtube-nocookie.com/embed/videoseries?list=PLfbkpqopl-bE"]')).toHaveCount(1);
+  await expect(page.locator('.weekly-history [data-weekly-youtube-poster]')).toHaveCount(0);
   await expect(page.locator('head link[rel="preconnect"][href="https://www.youtube-nocookie.com"]')).toHaveCount(1);
   await expect(page.locator('head link[rel="preconnect"][href="https://i.ytimg.com"]')).toHaveCount(1);
   await expect(page.locator('#template-campana-gu-2026 iframe[loading="lazy"]')).toHaveCount(3);

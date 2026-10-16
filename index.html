@@ -6,7 +6,7 @@
   <meta name="ipcdj-environment" content="staging" />
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="campana-weekend-v197" />
+  <meta name="ipcdj-build" content="campana-weekend-v198" />
   <script id="ipcdj-original-visual-preview-init">
     // Explicit staging-only opt-in; default users keep accessibility preferences.
     (()=>{try{
@@ -1078,6 +1078,106 @@
       height:100%;
       border:0;
       display:block;
+    }
+
+    /* Sharp first-frame cover: the provider's low-resolution default
+       thumbnail stays behind this local, resolution-independent artwork.
+       The underlying native player is still preloaded and fully available. */
+    .weekly-youtube-poster{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      z-index:2;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:10px;
+      padding:clamp(14px,3vw,27px);
+      overflow:hidden;
+      border:0;
+      border-radius:0;
+      text-align:left;
+      cursor:pointer;
+      color:#fff;
+      font:inherit;
+      appearance:none;
+      isolation:isolate;
+      background:
+        radial-gradient(ellipse at 86% 22%,rgba(226,141,104,.62),transparent 41%),
+        radial-gradient(ellipse at 21% 84%,rgba(91,119,219,.51),transparent 51%),
+        linear-gradient(127deg,#111a37 0%,#292449 52%,#5b354b 100%);
+      -webkit-tap-highlight-color:transparent;
+    }
+    .weekly-youtube-poster::before{
+      content:"";
+      position:absolute;
+      z-index:-1;
+      width:70%;
+      aspect-ratio:1;
+      top:-48%;
+      right:-11%;
+      border:1px solid rgba(255,255,255,.19);
+      border-radius:50%;
+      box-shadow:0 0 0 29px rgba(255,255,255,.035),0 0 0 70px rgba(255,255,255,.025);
+      pointer-events:none;
+    }
+    .weekly-youtube-poster::after{
+      content:"";
+      position:absolute;
+      z-index:-1;
+      inset:0;
+      background:linear-gradient(100deg,rgba(7,11,25,.37),transparent 75%);
+      pointer-events:none;
+    }
+    .weekly-youtube-poster:focus-visible{
+      outline:3px solid #a8bbff;
+      outline-offset:-5px;
+    }
+    .weekly-youtube-poster-eyebrow{
+      color:#f0d6d1;
+      font-size:clamp(.60rem,1.2vw,.72rem);
+      font-weight:850;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+    }
+    .weekly-youtube-poster-copy{
+      display:flex;
+      flex-direction:column;
+      gap:3px;
+      max-width:92%;
+    }
+    .weekly-youtube-poster-copy strong{
+      color:#fff;
+      font-size:clamp(1.2rem,3.7vw,2.1rem);
+      font-weight:850;
+      line-height:1.08;
+      letter-spacing:-.045em;
+      text-shadow:0 2px 24px rgba(0,0,0,.18);
+    }
+    .weekly-youtube-poster-copy small{
+      color:#e4dbe6;
+      font-size:clamp(.64rem,1.4vw,.80rem);
+      font-weight:650;
+    }
+    .weekly-youtube-poster-action{
+      display:inline-flex;
+      align-items:center;
+      gap:9px;
+      padding:8px 13px;
+      border-radius:999px;
+      background:rgba(255,255,255,.16);
+      border:1px solid rgba(255,255,255,.28);
+      color:#fff;
+      font-size:clamp(.68rem,1.2vw,.80rem);
+      font-weight:790;
+      backdrop-filter:blur(8px);
+      -webkit-backdrop-filter:blur(8px);
+    }
+    .weekly-youtube-poster-action .poster-play{
+      font-size:1rem;
+      line-height:1;
     }
 
     .weekly-youtube-info{
@@ -5164,6 +5264,15 @@
                   referrerpolicy="strict-origin-when-cross-origin"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowfullscreen></iframe>
+                <button type="button" class="weekly-youtube-poster" data-weekly-youtube-poster
+                  aria-label="Mostrar reproductor de YouTube del domingo 18 de octubre">
+                  <span class="weekly-youtube-poster-eyebrow">IPCDJ · Alabanza</span>
+                  <span class="weekly-youtube-poster-copy">
+                    <strong>Worship semanal</strong>
+                    <small>Domingo 18 de octubre · 5 canciones</small>
+                  </span>
+                  <span class="weekly-youtube-poster-action"><span class="poster-play" aria-hidden="true">▶</span>Mostrar reproductor</span>
+                </button>
               </div>
               <div class="weekly-youtube-info">
                 <span class="weekly-youtube-mark"><img src="youtube-music.svg" alt="" aria-hidden="true" width="22" height="22" decoding="async" />YouTube</span>
@@ -5969,6 +6078,16 @@
         else if(event.key==="ArrowRight")next=(current+1)%weeklyServiceTabs.length;
         else if(event.key==="ArrowLeft")next=(current-1+weeklyServiceTabs.length)%weeklyServiceTabs.length;
         activateWeeklyService(weeklyServiceTabs[next].dataset.weeklyService,{focus:true});
+      });
+    });
+
+    // High-resolution local playlist cover; the third-party player loads
+    // underneath and its original controls become available on activation.
+    document.querySelectorAll("[data-weekly-youtube-poster]").forEach(poster=>{
+      poster.addEventListener("click",()=>{
+        const player=poster.parentElement?.querySelector("iframe");
+        poster.remove();
+        if(player)player.focus({preventScroll:true});
       });
     });
 
