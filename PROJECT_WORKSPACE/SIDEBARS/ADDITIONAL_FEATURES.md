@@ -1,5 +1,5 @@
 # SIDEBAR — Additional Features
-Lane ID: FEATURES | State: **ACTIVE / SONG REQUESTS PLANNING** | Updated: 2026-10-16
+Lane ID: FEATURES | State: **ACTIVE / SONG REQUESTS INTEGRATED BUILD** | Updated: 2026-10-16
 
 ## Purpose
 Optional new features to extend IPCDJ Worship beyond the core Main Lane's UI, animation, reliability, established tabs and normal lifecycle. Changes originate from the user's request, not from automatic ideation or exploratory installation.
@@ -16,7 +16,7 @@ Optional new features to extend IPCDJ Worship beyond the core Main Lane's UI, an
 ## Queue
 | Feature | State | Decision |
 | --- | --- | --- |
-| **Solicitudes de Canciones** | **SPECIFIED / AWAITING FIRST ACTUAL SONG** | [Dedicated song-requests spec](./FEATURES_SONG_REQUESTS.md): first manually publish one verified user-named song after Staging review, then email intake and controlled automation |
+| **Solicitudes de Canciones** | **V202 PROTOTYPE CERTIFIED / FULL BACKEND PENDING** | [Dedicated song-requests spec](./FEATURES_SONG_REQUESTS.md): owner approved design; NO piecemeal Live launch. Complete intake + email + automatic validated publication + full Staging certification before one combined release |
 
 ## Execution checklist for any feature
 - User's exact intention and acceptance criteria.
@@ -34,3 +34,6 @@ When user says "switch to sidebar Additional Features", confirm current backlog 
 
 ## 2026-10-16 — Active feature: Solicitudes de Canciones
 User requested three coordinated modules: website request tab with Despues-style cover/palette/preview cards and "Solicitada" status; admin email or SMS alert; automatic verified song enrichment and stacking. Detailed scoped plan, strict no-untrusted-auto-publication safety, backend/DB/notification options and coverage in [FEATURES_SONG_REQUESTS.md](./FEATURES_SONG_REQUESTS.md). Live v201 is fully certified; do not disturb while configuring this feature. **No song specified for the initial manual Live pilot yet**, no preview invented, no runtime/backend code changed. Next: get the exact song (and preferred recording/version), prototype on isolated staging, certify, review then selectively publish to Live.
+
+## 2026-10-16 — User changes release scope (authoritative)
+Visual format approved; Staging v202 exact-SHA watchdog run 38940435585 SUCCESS. **No approval to promote any portion to Live.** A fully functional end-to-end request form, admin email, durable data, automatic safe song-card publication, security/failure paths, and platform-wide/real-device testing must all be finished before requesting one final Live authorization. Detailed plan and gates in [FEATURES_SONG_REQUESTS.md](./FEATURES_SONG_REQUESTS.md); next task is isolated request Worker/D1 architecture and API, not another Live promotion.
