@@ -22,6 +22,8 @@ jobs:
           node-version: "22"
       - name: Validate isolated Worker syntax
         run: node --check requests/worker/src/index.js
+      - name: Validate safe Cloudflare D1 provisioning helper syntax
+        run: node --check requests/worker/scripts/provision-staging.mjs
       - name: Test Worker with real in-memory SQLite and atomic D1-compatible batches
         run: node --test --experimental-sqlite requests/worker/test/requests.test.mjs
       - name: Verify no production routing / no active intake by default

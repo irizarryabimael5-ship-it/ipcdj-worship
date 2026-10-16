@@ -8,6 +8,7 @@
     "check": "node --check src/index.js && npm test",
     "dev:staging": "wrangler dev --env staging",
     "deploy:staging": "wrangler deploy --env staging",
+    "provision:staging": "node scripts/provision-staging.mjs",
     "db:local": "wrangler d1 execute DB --env staging --local --file=./schema.sql --yes",
     "db:remote": "wrangler d1 execute DB --env staging --remote --file=./schema.sql --yes"
   },

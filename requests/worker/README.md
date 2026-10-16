@@ -48,3 +48,5 @@ Production policy: NO piecemeal deployment of song requests to Live; final relea
 
 ## Phase 1 concurrency hardening
 D1 also enforces the rolling-hour rate cap in a database trigger so simultaneous accepted submissions cannot evade the pre-check. A second trigger logs real committed administrator status transitions, with compare-and-swap updates to reject stale reviews. JSON is read in bounded chunks; missing Content-Length cannot force unbounded body buffering. Tests cover both constraints.
+
+Provisioning automation and account-side checklist: [PROVISION_STAGING.md](./PROVISION_STAGING.md). Run `npm run provision:staging` only from a locally authenticated Cloudflare environment, not GitHub CI.

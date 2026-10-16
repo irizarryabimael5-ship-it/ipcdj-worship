@@ -3,3 +3,8 @@ node_modules/
 notifications/worker/.push-credentials.local.json
 notifications/worker/.dev.vars
 notifications/worker/.env
+
+# Local isolated song-request backend credentials / Staging D1 backup
+requests/worker/wrangler.jsonc.before-staging-d1
+requests/worker/.dev.vars*
+requests/worker/.env*
