@@ -82,8 +82,13 @@ test.describe('Intelligent Eastern-time calendar (v200)',()=>{
     await expect(page.locator('#weekly-tab-viernes')).toHaveAttribute('aria-selected','true');
     await page.locator('#weekly-tab-domingo').click();
     await expect(page.locator('#weekly-panel-domingo')).toBeVisible();
-    await page.evaluate(()=>window.IPCDJ_CALENDAR.refresh(Date.parse('2026-10-17T12:00:00-04:00')));
+    // Advance the actual browser wall clock along with the calendar.
+    // An explicit refresh into Saturday alone is temporary: navigation
+    // correctly recalculates from the Friday wall clock on the next event.
+    await page.clock.setFixedTime(new Date('2026-10-17T12:00:00-04:00'));
+    await page.evaluate(()=>window.IPCDJ_CALENDAR.refresh());
     await expect(page.locator('#weekly-panel-domingo')).toBeVisible();
+    expect(await page.evaluate(()=>window.IPCDJ_CALENDAR.getSnapshot().nextService.date)).toBe('2026-10-18');
     await page.locator('#tab-inicio').click();
     await expect(page.locator('#panel-inicio')).toBeVisible();
     expect(await page.evaluate(()=>window.IPCDJ_CALENDAR.getSnapshot().nextService.date)).toBe('2026-10-18');
