@@ -18,15 +18,15 @@ Updated 2026-10-16. **User directive: all development, storage, deployment and r
 5. In the GitHub Environment's **Secrets**, add `IPCDJ_CF_STAGING_ACCOUNT_ID` and `IPCDJ_CF_STAGING_API_TOKEN`. Under **Variables**, add `IPCDJ_REQUESTS_STAGING_D1_ID` with the isolated Staging database UUID. Keep the API token out of files, commits and chat; repository or environment encrypted secrets are the intended storage. Never reuse the existing Web Push credentials.
 
 ## Cloud-only deployment pipeline — intentionally MANUAL until integration is complete
-After the above browser actions, run [IPCDJ Song Requests Staging Cloud Deploy](../../.github/workflows/song-requests-staging-cloud-deploy.yml) from GitHub Actions on branch `staging`, and type `STAGING_ONLY` into its confirmation field. The workflow:
+After the above browser actions, **do not press Run workflow**; GitHub documents that a manually dispatched workflow must exist on the default branch, whereas we are not modifying `main`. Instead, ask the project maintainer to create the one-file *authorized Staging deployment marker commit* `requests/worker/deploy-control.json` (changed from disabled to enabled, referencing the previously certified parent SHA) with commit message starting `Deploy IPCDJ requests Staging: `. The staging-only workflow triggers on that exact file change; all other pushes are ignored. The GitHub Environment `ipcdj-requests-staging` enforces branch protection and any required human review. The workflow:
 - verifies exact branch, Staging Worker name and environment, `INGEST_ENABLED=false`, valid D1 UUID and that the UUID is NOT the existing Web Push D1;
 - installs Wrangler on an **ephemeral GitHub-hosted runner**;
 - substitutes the GitHub Environment DB UUID into that runner's transient Wrangler config (nothing written to your Mac or committed);
 - applies the idempotent Staging SQL schema to that isolated Cloudflare D1;
 - deploys only the **Staging requests Worker**. Live is never targeted;
-- verifies the remote /health response reports intake, email and auto-publication all disabled.
+- verifies the actual deployed remote /health endpoint reports intake, email and auto-publication all disabled. A missing/unhealthy URL fails certification.
 
-**The presence of this workflow does NOT create a Cloudflare database, token, secret or Worker by itself.** It does not run automatically, and cannot run successfully until the above browser-only account setup is completed. Owner authorization to develop is NOT authorization to publish to Live.
+**The presence of this workflow does NOT create a Cloudflare database, token, secret or Worker by itself. The initial marker is disabled and cannot deploy. An intentional staging-only marker commit is required, and the job verifies that only this file changed and the approved parent SHA matches.** It does not run automatically, and cannot run successfully until the above browser-only account setup is completed. Owner authorization to develop is NOT authorization to publish to Live.
 
 ## Worker secrets (browser-only, after Worker exists)
 In Cloudflare Dashboard → Workers & Pages → `ipcdj-song-requests-staging` → Settings → Variables and Secrets, create:
@@ -49,3 +49,6 @@ Check that GET `/health` on the Staging Worker reports `intakeEnabled:false`, `n
 - [Cloudflare D1](https://developers.cloudflare.com/d1/get-started/)
 - [Cloudflare Worker secrets in dashboard](https://developers.cloudflare.com/workers/configuration/secrets/)
 - [D1 Time Travel](https://developers.cloudflare.com/d1/reference/time-travel/)
+
+## GitHub Actions default-branch nuance (2026-10-16)
+Official GitHub documentation requires a `workflow_dispatch` workflow to be on the default branch to appear as a manually runnable workflow. A prior setup plan incorrectly assumed a Staging-only workflow would appear in the Actions `Run workflow` menu. This has been corrected: Staging-only `push` trigger scoped to a control-file change **and** a special commit message, with environment protections, explicit disabled marker, approved parent-SHA guard, backend test gate, an actual remote health check, and production untouched. A regular Staging code or docs commit cannot deploy this Worker. Source: https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow

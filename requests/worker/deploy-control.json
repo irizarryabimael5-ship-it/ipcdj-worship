@@ -1,0 +1,6 @@
+{
+  "enabled": false,
+  "environment": "staging",
+  "approvedTestedSha": "",
+  "note": "Disabled placeholder. Later an authorized, single-file Staging commit can deploy the exact preceding tested SHA; never enable for ordinary code commits."
+}

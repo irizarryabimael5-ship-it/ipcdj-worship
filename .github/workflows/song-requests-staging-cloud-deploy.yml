@@ -1,28 +1,26 @@
-name: IPCDJ Song Requests — Staging Cloud Deploy
-# Cloud-only, explicit, guarded release of isolated requests Worker.
-# Not called by push; GitHub-hosted ephemeral runner, never a personal Mac.
+name: IPCDJ Requests Staging Deployment — Cloud Only
+# Staging-only request Worker. A deploy can be triggered by a dedicated
+# user-authorized control-file commit; ordinary pushes never deploy.
 on:
-  workflow_dispatch:
-    inputs:
-      approval:
-        description: "Enter STAGING_ONLY to authorize isolated backend deploy (intake disabled)"
-        required: true
-        type: string
+  push:
+    branches: [staging]
+    paths:
+      - "requests/worker/deploy-control.json"
 
 permissions:
   contents: read
 
 concurrency:
-  group: ipcdj-song-requests-staging-cloud-deploy
+  group: ipcdj-requests-staging-deploy
   cancel-in-progress: false
 
 jobs:
   staging-deploy:
-    name: Isolated song-requests Staging Worker
-    if: github.ref == 'refs/heads/staging' && inputs.approval == 'STAGING_ONLY'
-    environment: ipcdj-requests-staging
+    name: Requests Worker isolated Staging deployment
+    if: github.ref == 'refs/heads/staging' && startsWith(github.event.head_commit.message, 'Deploy IPCDJ requests Staging: ')
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    environment: ipcdj-requests-staging
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.IPCDJ_CF_STAGING_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.IPCDJ_CF_STAGING_API_TOKEN }}
@@ -32,49 +30,74 @@ jobs:
         working-directory: requests/worker
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install isolated Wrangler dependency
+      - name: Verify exact authorization and isolation before any external write
+        run: |
+          node --input-type=module <<'NODE'
+          import {execFileSync} from 'node:child_process';
+          import {readFileSync,writeFileSync} from 'node:fs';
+          const control=JSON.parse(readFileSync('deploy-control.json','utf8'));
+          const config=JSON.parse(readFileSync('wrangler.jsonc','utf8'));
+          const e=config.env?.staging;
+          const binding=e?.d1_databases?.[0];
+          const uuid=/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i;
+          const id=process.env.REQUESTS_STAGING_D1_ID||'';
+          const parent=execFileSync('git',['rev-parse','HEAD^'],{encoding:'utf8'}).trim();
+          const files=execFileSync('git',['show','--format=','--name-only','HEAD'],{encoding:'utf8'}).trim().split(/\n/);
+          if(control.enabled!==true || control.environment!=='staging' || control.approvedTestedSha!==parent)
+            throw new Error('Expected explicit authorization for the tested parent SHA');
+          if(files.length!==1 || files[0]!=='requests/worker/deploy-control.json')
+            throw new Error('Deployment authorization commit changed unrelated files');
+          if(!process.env.CLOUDFLARE_ACCOUNT_ID || !process.env.CLOUDFLARE_API_TOKEN)
+            throw new Error('Missing GitHub environment Cloudflare credentials');
+          if(!uuid.test(id) || id==='00000000-0000-0000-0000-000000000000' ||
+             id==='e474b5be-f2a9-4c19-8756-f1adb0a5ef6a')
+            throw new Error('Staging D1 ID invalid or existing Web Push ID reused');
+          if(config.workers_dev!==false || Object.keys(config.env||{}).join(',')!=='staging' ||
+             e?.name!=='ipcdj-song-requests-staging' || e?.workers_dev!==true ||
+             e.vars?.APP_ENV!=='staging' ||
+             e.vars?.SITE_ORIGIN!=='https://staging.worship.ipcdj.org' ||
+             e.vars?.INGEST_ENABLED!=='false' ||
+             binding?.binding!=='DB' || binding?.database_name!=='ipcdj-song-requests-staging')
+            throw new Error('Isolation config mismatch: refusing all deployment');
+          if(binding.database_id!=='00000000-0000-0000-0000-000000000000' &&
+             binding.database_id!==id)throw new Error('D1 binding differs from approved Staging database');
+          config.env.staging.d1_databases[0].database_id=id;
+          writeFileSync('wrangler.jsonc',JSON.stringify(config,null,2));
+          console.log('Guard PASS: staging-only, approved parent SHA, safe D1, intake disabled');
+          NODE
+      - name: Install Wrangler on ephemeral GitHub-hosted runner
         run: npm install --no-audit --no-fund
-      - name: Verify Worker source and API tests
+      - name: Verify backend syntax and SQLite integration
         run: |
           node --check src/index.js
           node --test --experimental-sqlite test/requests.test.mjs
-      - name: Hard fail on absent credentials, other environments or reused D1
+      - name: Apply non-destructive SQL schema to isolated Staging D1
+        run: npx wrangler d1 execute DB --env staging --remote --file=./schema.sql --yes
+      - name: Deploy Staging requests Worker
+        run: |
+          npx wrangler deploy --env staging 2>&1 | tee deploy-output.log
+      - name: Verify real remote Worker health, intake OFF
         run: |
           node --input-type=module <<'NODE'
-          import {readFileSync,writeFileSync} from 'node:fs';
-          const cfg=JSON.parse(readFileSync('wrangler.jsonc','utf8'));
-          const env=cfg.env?.staging;
-          const db=env?.d1_databases?.[0];
-          const id=process.env.REQUESTS_STAGING_D1_ID||'';
-          const uuid=/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i;
-          if(!process.env.CLOUDFLARE_ACCOUNT_ID || !process.env.CLOUDFLARE_API_TOKEN)
-            throw new Error('GitHub Staging environment Cloudflare credentials missing');
-          if(!uuid.test(id) || id==='00000000-0000-0000-0000-000000000000')
-            throw new Error('Isolated Staging D1 variable missing or invalid');
-          if(id==='e474b5be-f2a9-4c19-8756-f1adb0a5ef6a')
-            throw new Error('Refusing existing Web Push D1 database');
-          if(cfg.workers_dev!==false || Object.keys(cfg.env||{}).join(',')!=='staging' ||
-             env?.name!=='ipcdj-song-requests-staging' || env.workers_dev!==true ||
-             env.vars?.APP_ENV!=='staging' ||
-             env.vars?.SITE_ORIGIN!=='https://staging.worship.ipcdj.org' ||
-             env.vars?.INGEST_ENABLED!=='false' ||
-             db?.binding!=='DB' || db?.database_name!=='ipcdj-song-requests-staging')
-            throw new Error('Staging-only isolation guard failed');
-          if(db.database_id!=='00000000-0000-0000-0000-000000000000' && db.database_id!==id)
-            throw new Error('Repository D1 binding differs from authorized Staging DB');
-          cfg.env.staging.d1_databases[0].database_id=id;
-          writeFileSync('wrangler.jsonc',JSON.stringify(cfg,null,2)+'\n');
-          console.log('Staging-only D1 binding validated and substituted in ephemeral runner');
+          import {readFileSync} from 'node:fs';
+          const log=readFileSync('deploy-output.log','utf8').replace(/\u001b\[[0-9;]*m/g,'');
+          const match=log.match(/https:\/\/ipcdj-song-requests-staging\.[a-z0-9-]+\.workers\.dev/i);
+          if(!match)throw new Error('Deployed Worker address was not confirmed in Wrangler output');
+          const res=await fetch(match[0]+'/health',{headers:{'Cache-Control':'no-cache'},signal:AbortSignal.timeout(15000)});
+          if(!res.ok)throw new Error('Remote health returned '+res.status);
+          const h=await res.json();
+          if(h.ok!==true||h.service!=='ipcdj-song-requests'||h.environment!=='staging'||
+             h.intakeEnabled!==false||h.notificationsEnabled!==false||
+             h.publicationEnabled!==false||h.storageConfigured!==true)
+            throw new Error('Remote Staging Worker safety state invalid');
+          console.log('REMOTE HEALTH PASS: '+match[0]+' — intake/email/publication disabled');
           NODE
-      - name: Apply isolated Staging D1 schema
-        run: npx wrangler d1 execute DB --env staging --remote --file=./schema.sql --yes
-      - name: Deploy requests Worker to Cloudflare Staging only
-        run: npx wrangler deploy --env staging
-      - name: Record guarded deployment checkpoint
+      - name: Record deployment revision
         run: |
-          echo "Deployed only the isolated Staging song-requests Worker."
-          echo "Source SHA ${{ github.sha }}"
-          echo "Submission intake stays disabled, email not implemented, autonomous publication disabled."
+          echo "Isolated Staging request Worker: code ${{ github.sha }}"
+          echo "No production release. No user submissions, outbound email or automatic publishing enabled."

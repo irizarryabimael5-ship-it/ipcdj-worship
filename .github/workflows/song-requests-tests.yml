@@ -27,17 +27,31 @@ jobs:
         run: node --check requests/worker/scripts/provision-staging.mjs
       - name: Test Worker with real in-memory SQLite and atomic D1-compatible batches
         run: node --test --experimental-sqlite requests/worker/test/requests.test.mjs
-      - name: Validate cloud-only gated Staging deploy workflow contract
+      - name: Validate explicit isolated Staging deployment marker contract
         run: |
-          node --input-type=module -e "
+          node --input-type=module <<'NODE'
           import fs from 'node:fs';
           const p=fs.readFileSync('.github/workflows/song-requests-staging-cloud-deploy.yml','utf8');
-          if(!p.includes('workflow_dispatch:') || !p.includes('STAGING_ONLY'))throw new Error('Missing manual approval gate');
-          if(!p.includes(\"github.ref == 'refs/heads/staging'\"))throw new Error('Staging ref gate missing');
-          if(!p.includes(\"INGEST_ENABLED!=='false'\"))throw new Error('Intake must remain disabled in setup');
-          if(!p.includes('ipcdj-requests-staging') || !p.includes('REQUESTS_STAGING_D1_ID'))throw new Error('Missing isolated Staging environment or binding');
-          if(p.includes('on:\\n  push:'))throw new Error('Cloud deploy must not run on push');
-          "
+          const control=JSON.parse(fs.readFileSync('requests/worker/deploy-control.json','utf8'));
+          if(!p.includes('push:') || !p.includes('branches: [staging]') ||
+             !p.includes('requests/worker/deploy-control.json'))
+            throw new Error('Deployment must trigger only from Staging control-file changes');
+          if(!p.includes("startsWith(github.event.head_commit.message") ||
+             !p.includes("Deploy IPCDJ requests Staging: "))
+            throw new Error('Explicit deploy commit intent marker missing');
+          if(!p.includes('files.length!==1') || !p.includes('approvedTestedSha!==parent'))
+            throw new Error('Only single-file approved previous-SHA deploy permitted');
+          if(!p.includes("INGEST_ENABLED!=='false'"))
+            throw new Error('Staging intake must remain disabled');
+          if(!p.includes('ipcdj-requests-staging') ||
+             !p.includes('REQUESTS_STAGING_D1_ID'))
+            throw new Error('Missing isolated protected deployment environment');
+          if(!p.includes('REMOTE HEALTH PASS'))
+            throw new Error('Remote deployed health validation missing');
+          if(control.enabled!==false || control.environment!=='staging' ||
+             control.approvedTestedSha!=='')
+            throw new Error('Initial deployment marker must remain disabled');
+          NODE
       - name: Verify no production routing / no active intake by default
         shell: bash
         run: |
