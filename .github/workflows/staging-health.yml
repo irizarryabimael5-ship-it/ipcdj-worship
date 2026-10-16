@@ -24,6 +24,19 @@ jobs:
       ready: ${{ steps.endpoint.outputs.ready }}
       base_url: ${{ steps.endpoint.outputs.base_url }}
     steps:
+      - name: Check out staging source
+        uses: actions/checkout@v4
+
+      - name: Use Node.js for immediate syntax gate
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate all executable website scripts
+        run: |
+          node scripts/check-inline-js.mjs
+          node --check sw.js
+
       - name: Check staging endpoint
         id: endpoint
         shell: bash
