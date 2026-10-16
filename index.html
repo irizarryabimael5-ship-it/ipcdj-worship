@@ -6,7 +6,7 @@
   <meta name="ipcdj-environment" content="staging" />
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="campana-weekend-v199" />
+  <meta name="ipcdj-build" content="campana-weekend-v200" />
   <script id="ipcdj-original-visual-preview-init">
     // Explicit staging-only opt-in; default users keep accessibility preferences.
     (()=>{try{
@@ -6036,10 +6036,10 @@
       if(!Number.isFinite(rolloverAt))return;
       const delay=rolloverAt-Date.now();
       if(delay<=0){
-        applyWeeklyRolloverIfDue(Date.now());
+        refreshLivingCalendar(weeklyClockNow(),"rollover-deadline");
         return;
       }
-      setTimeout(()=>applyWeeklyRolloverIfDue(Date.now()),Math.min(delay+50,2147483000));
+      setTimeout(()=>refreshLivingCalendar(weeklyClockNow(),"rollover-deadline"),Math.min(delay+50,2147483000));
     }
 
         function activateWeeklyService(key,{focus=false}={}){
@@ -6073,10 +6073,10 @@
       });
     });
 
-    // Read-only current ministry week awareness: reuse the existing authored
-    // Sunday cycle, exact Eastern rollover and normal browser clock.
-    // No new scheduler, duplicate repertoire store, or automatic tab selection.
-    function weeklyContext(now=Date.now()){
+    // One Eastern-aware calendar for MAIN, WEEKLY, and later opt-in features.
+    // This is runtime state, not a second song catalog or a publishing system.
+    let weeklyClockNow=()=>Date.now();
+    function weeklyContext(now=weeklyClockNow()){
       const date=new Date(Number(now));
       if(Number.isNaN(date.getTime()))return null;
       const parts=new Intl.DateTimeFormat("en-US",{
@@ -6086,35 +6086,93 @@
       const part=type=>parts.find(item=>item.type===type)?.value||"";
       const today=[part("year"),part("month"),part("day")].join("-");
       const sunday=weeklyDashboard?.dataset.weeklyCycle||"";
-      const sundayUTC=/^\d{4}-\d{2}-\d{2}$/.test(sunday)
-        ?new Date(sunday+"T12:00:00Z"):null;
-      const addDays=days=>{
-        if(!sundayUTC||Number.isNaN(sundayUTC.getTime()))return "";
-        const shifted=new Date(sundayUTC.getTime());
-        shifted.setUTCDate(shifted.getUTCDate()+days);
-        return shifted.toISOString().slice(0,10);
+      const addDays=(dateString,days)=>{
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(dateString))return "";
+        const base=new Date(dateString+"T12:00:00Z");
+        if(Number.isNaN(base.getTime()))return "";
+        base.setUTCDate(base.getUTCDate()+days);
+        return base.toISOString().slice(0,10);
       };
-      const friday=addDays(-2);
-      const monday=addDays(-6);
+      // Published week (source-controlled) and actual calendar week differ
+      // after archival. Always calculate the actual week independently.
+      const friday=addDays(sunday,-2);
+      const monday=addDays(sunday,-6);
+      const todayUTC=new Date(today+"T12:00:00Z");
+      const weekdayIndex=(todayUTC.getUTCDay()+6)%7; // Monday 0 .. Sunday 6
+      const currentWeekStart=addDays(today,-weekdayIndex);
+      const currentFriday=addDays(currentWeekStart,4);
+      const currentSunday=addDays(currentWeekStart,6);
       const state=weeklyDashboard?.dataset.weeklyState||"";
       const rolloverAt=weeklyDashboard?.dataset.weeklyRolloverAt||"";
       const dueAt=Date.parse(rolloverAt);
       const pastDeadline=Number.isFinite(dueAt)&&date.getTime()>=dueAt;
-      const todayService=today===friday?"viernes":today===sunday?"domingo":null;
+      const todayService=today===currentFriday?"viernes":today===currentSunday?"domingo":null;
       const phase=state==="rolled"||pastDeadline?"cerrada"
         :today<monday?"proxima"
         :today<friday?"preparacion"
         :today===friday?"viernes"
         :today<sunday?"entre-servicios"
         :today===sunday?"domingo":"cerrada";
+      let nextServiceDay="viernes";
+      let nextServiceDate=currentFriday;
+      if(today>currentFriday){
+        nextServiceDay="domingo";
+        nextServiceDate=currentSunday;
+      }
+      if(today>currentSunday||(today===currentSunday&&pastDeadline)){
+        nextServiceDay="viernes";
+        nextServiceDate=addDays(currentWeekStart,11);
+      }
       return Object.freeze({
         timeZone:"America/New_York",
         localDate:today,weekday:part("weekday"),
         weekStart:monday,friday,sunday,cycle:sunday,
+        currentWeekStart,currentFriday,currentSunday,
+        publishedIsCurrentWeek:sunday===currentSunday,
+        nextService:Object.freeze({day:nextServiceDay,date:nextServiceDate}),
         activeState:state,rolloverAt,rolloverDue:pastDeadline,
         serviceToday:todayService,phase
       });
     }
+
+    // A low-cost heartbeat only observes time, never edits authored music.
+    // Scheduled persistent archiving remains with the existing GitHub workflow.
+    let latestCalendarContext=null;
+    let calendarSignature="";
+    let specialEventSignature="";
+    const specialEventState=now=>SPECIAL_EVENT_TABS.map(event=>{
+      const stop=Date.parse(event.hideAt);
+      return event.key+":"+(Number.isFinite(stop)&&now<stop?"1":"0");
+    }).join("|");
+    function refreshLivingCalendar(now=weeklyClockNow(),reason="tick"){
+      const timestamp=Number(now);
+      if(!Number.isFinite(timestamp))return null;
+      const archived=applyWeeklyRolloverIfDue(timestamp);
+      const context=weeklyContext(timestamp);
+      if(!context)return null;
+      const eventState=specialEventState(timestamp);
+      // Only refresh event tabs when their visibility threshold changes.
+      if(eventState!==specialEventSignature){
+        specialEventSignature=eventState;
+        syncSpecialEventTabs(timestamp);
+      }
+      const signature=[
+        context.localDate,context.currentWeekStart,context.nextService.date,
+        context.nextService.day,context.phase,context.activeState,
+        context.publishedIsCurrentWeek,context.rolloverDue,eventState
+      ].join("|");
+      latestCalendarContext=context;
+      if(archived||signature!==calendarSignature){
+        calendarSignature=signature;
+        window.dispatchEvent(new CustomEvent("ipcdj:calendarchange",{
+          detail:Object.freeze({context,reason,archived:Boolean(archived)})
+        }));
+      }
+      return context;
+    }
+    const refreshCalendarOnResume=()=>{
+      if(!document.hidden)refreshLivingCalendar(weeklyClockNow(),"resume");
+    };
 
     activateWeeklyService("viernes");
 
@@ -6123,6 +6181,13 @@
       getActive:()=>weeklyServiceTabs.find(tab=>tab.getAttribute("aria-selected")==="true")?.dataset.weeklyService||"",
       getContext:now=>weeklyContext(now),
       rolloverIfDue:now=>applyWeeklyRolloverIfDue(now)
+    });
+
+    window.IPCDJ_CALENDAR=Object.freeze({
+      timeZone:"America/New_York",
+      getContext:now=>weeklyContext(now),
+      getSnapshot:()=>latestCalendarContext||weeklyContext(),
+      refresh:now=>refreshLivingCalendar(now,"manual")
     });
 
     window.IPCDJ_WEEKLY_TEST=Object.freeze({
@@ -6164,9 +6229,18 @@
       rollover:now=>applyWeeklyRolloverIfDue(now)
     });
 
-    document.addEventListener("visibilitychange",()=>{
-      if(!document.hidden)applyWeeklyRolloverIfDue(Date.now());
-    });
+    // Background throttling is normal on Safari and PWAs. On resume, compute
+    // the absolute date rather than replaying missed intervals or notifications.
+    document.addEventListener("visibilitychange",refreshCalendarOnResume,{passive:true});
+    document.addEventListener("webkitvisibilitychange",refreshCalendarOnResume,{passive:true});
+    window.addEventListener("pageshow",refreshCalendarOnResume,{passive:true});
+    window.addEventListener("focus",refreshCalendarOnResume,{passive:true});
+    window.addEventListener("online",refreshCalendarOnResume,{passive:true});
+    window.addEventListener("ipcdj:internalnavigation",refreshCalendarOnResume);
+    setInterval(()=>{
+      if(!document.hidden)refreshLivingCalendar(weeklyClockNow(),"heartbeat");
+    },30000);
+    refreshLivingCalendar(Date.now(),"startup");
     scheduleWeeklyRollover();
 
     const pullRefresh=document.querySelector(".pull-refresh");
@@ -6583,6 +6657,17 @@
       : Date.now();
 
     restoreClockSeed();
+    // The ministry calendar reuses the song pipeline's server-calibrated clock
+    // after it is initialized; it still works from the device clock offline.
+    weeklyClockNow=()=>{
+      const wall=Date.now();
+      const calibrated=calibratedNow();
+      // Some systems suspend the monotonic clock during sleep while the wall
+      // clock advances. Recover immediately, then allow the existing network
+      // clock sync to reconcile. Keep normal calibrated precision otherwise.
+      return Math.abs(wall-calibrated)>120000?wall:calibrated;
+    };
+    refreshLivingCalendar(weeklyClockNow(),"clock-ready");
 
     async function fetchWithTimeout(url,options={},timeoutMs=6500){
       if(!("AbortController" in window)){
@@ -6626,6 +6711,7 @@
         performanceAtSync=performance.now();
         serverClockSynced=true;
         persistClockSeed();
+        refreshLivingCalendar(calibratedNow(),"server-calibrated");
         return true;
       }catch(_){
         return false;
