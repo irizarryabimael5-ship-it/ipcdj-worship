@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ipcdj-song-requests",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-16",
+  "workers_dev": false,
+  "env": {
+    "staging": {
+      "name": "ipcdj-song-requests-staging",
+      "workers_dev": true,
+      "vars": {
+        "APP_ENV": "staging",
+        "SITE_ORIGIN": "https://staging.worship.ipcdj.org",
+        "TURNSTILE_EXPECTED_HOSTNAME": "staging.worship.ipcdj.org",
+        "INGEST_ENABLED": "false"
+      },
+      "secrets": {
+        "required": ["ADMIN_TOKEN", "TURNSTILE_SECRET", "IP_HASH_SALT"]
+      },
+      "d1_databases": [{
+        "binding": "DB",
+        "database_name": "ipcdj-song-requests-staging",
+        "database_id": "00000000-0000-0000-0000-000000000000"
+      }]
+    }
+  }
+}

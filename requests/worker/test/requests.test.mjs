@@ -1,0 +1,210 @@
+import { test, beforeEach, afterEach } from "node:test";
+import assert from "node:assert/strict";
+import { DatabaseSync } from "node:sqlite";
+import { readFileSync } from "node:fs";
+import app from "../src/index.js";
+
+const ORIGIN="https://staging.worship.ipcdj.org";
+const API="https://ipcdj-song-requests-staging.example.workers.dev";
+const ADMIN="x".repeat(40);
+const SALT="testing-isolated-salt-00000000000000000000000000001";
+const schema=readFileSync(new URL("../schema.sql",import.meta.url),"utf8");
+let sqlite,env,originalFetch,verificationMode,verifyCalls;
+const UUIDS=[
+  "c9692e06-7d2c-4d0d-bce9-2b79f2c24301",
+  "c9692e06-7d2c-4d0d-bce9-2b79f2c24302",
+  "c9692e06-7d2c-4d0d-bce9-2b79f2c24303",
+  "c9692e06-7d2c-4d0d-bce9-2b79f2c24304",
+  "c9692e06-7d2c-4d0d-bce9-2b79f2c24305",
+  "c9692e06-7d2c-4d0d-bce9-2b79f2c24306",
+  "c9692e06-7d2c-4d0d-bce9-2b79f2c24307",
+  "c9692e06-7d2c-4d0d-bce9-2b79f2c24308"
+];
+function d1(db){
+  const prepare=(sql,args=[])=>({
+    bind:(...values)=>prepare(sql,values),
+    first:async()=>db.prepare(sql).get(...args)||null,
+    all:async()=>({results:db.prepare(sql).all(...args)}),
+    run:async()=>db.prepare(sql).run(...args)
+  });
+  return {
+    prepare:(sql)=>prepare(sql),
+    async batch(statements){
+      db.exec("BEGIN IMMEDIATE");
+      try{
+        const results=[];
+        for(const stmt of statements)results.push(await stmt.run());
+        db.exec("COMMIT");
+        return results;
+      }catch(e){db.exec("ROLLBACK");throw e;}
+    }
+  };
+}
+beforeEach(()=>{
+  sqlite=new DatabaseSync(":memory:");
+  sqlite.exec(schema);
+  env={
+    DB:d1(sqlite),
+    APP_ENV:"staging",
+    INGEST_ENABLED:"true",
+    SITE_ORIGIN:ORIGIN,
+    TURNSTILE_EXPECTED_HOSTNAME:"staging.worship.ipcdj.org",
+    TURNSTILE_SECRET:"test-secret-not-for-production",
+    IP_HASH_SALT:SALT,
+    ADMIN_TOKEN:ADMIN
+  };
+  verifyCalls=0;verificationMode="valid";
+  originalFetch=globalThis.fetch;
+  globalThis.fetch=async(url,options)=>{
+    assert.equal(String(url),"https://challenges.cloudflare.com/turnstile/v0/siteverify");
+    assert.equal(options.method,"POST");
+    verifyCalls++;
+    const valid=verificationMode==="valid";
+    return new Response(JSON.stringify({
+      success:valid,
+      hostname:verificationMode==="wrong-host"?"worship.ipcdj.org":"staging.worship.ipcdj.org",
+      action:verificationMode==="wrong-action"?"login":"song_request"
+    }),{status:200,headers:{"Content-Type":"application/json"}});
+  };
+});
+afterEach(()=>{globalThis.fetch=originalFetch;sqlite.close();});
+const baseBody=()=>({
+  title:"Háblame de Cerca",
+  artist:"Grupo Grace & Kairo Worship",
+  link:"https://open.spotify.com/track/4DYvC8ozC0SF3SoyIpkuiY",
+  comment:"",
+  turnstileToken:"accepted-test-token",
+  idempotencyKey:UUIDS[0]
+});
+const request=(path,method="GET",body=null,options={})=>{
+  const headers=new Headers(options.headers||{});
+  if(options.origin!==false)headers.set("Origin",options.origin||ORIGIN);
+  if(method==="POST"){
+    headers.set("Content-Type","application/json");
+    if(options.ip!==false)headers.set("CF-Connecting-IP",options.ip||"203.0.113.15");
+  }
+  return new Request(API+path,{method,headers,body:body?JSON.stringify(body):undefined});
+};
+const call=async(path,method,body,options)=>{
+  const response=await app.fetch(request(path,method,body,options),env);
+  return {status:response.status,body:await response.json(),headers:response.headers};
+};
+const row=(table)=>sqlite.prepare("SELECT * FROM "+table).all();
+
+test("health reports config without exposing secrets or enabling email/publication",async()=>{
+  const result=await call("/health","GET");
+  assert.equal(result.status,200);
+  assert.equal(result.body.intakeEnabled,true);
+  assert.equal(result.body.notificationsEnabled,false);
+  assert.equal(result.body.publicationEnabled,false);
+  assert.equal(JSON.stringify(result.body).includes(ADMIN),false);
+});
+test("unconfigured or disabled intake fails closed",async()=>{
+  env.INGEST_ENABLED="false";
+  assert.equal((await call("/v1/requests","POST",baseBody())).status,503);
+  env.INGEST_ENABLED="true";
+  env.TURNSTILE_SECRET="";
+  assert.equal((await call("/v1/requests","POST",baseBody())).status,503);
+  assert.equal(row("song_requests").length,0);
+});
+test("correct request persists atomically, creates one outbox event, but stays private",async()=>{
+  const first=await call("/v1/requests","POST",baseBody());
+  assert.equal(first.status,202);
+  assert.equal(first.body.ok,true);
+  assert.equal(first.body.review,"pending");
+  assert.equal(first.body.replayed,false);
+  assert.equal(verifyCalls,1);
+  assert.equal(row("song_requests").length,1);
+  assert.equal(row("request_submissions").length,1);
+  assert.equal(row("request_rate_events").length,1);
+  assert.equal(row("request_outbox").length,1);
+  assert.equal(row("request_outbox")[0].status,"pending");
+  assert.equal(row("song_requests")[0].status,"pending");
+  assert.equal(row("song_requests")[0].title,"Háblame de Cerca");
+  assert.equal(row("song_requests")[0].request_count,1);
+  const publicFeed=await call("/v1/requests","GET");
+  assert.deepEqual(publicFeed.body.songs,[]);
+});
+test("idempotent retries return same id with no extra verification, count or events",async()=>{
+  const a=await call("/v1/requests","POST",baseBody());
+  const b=await call("/v1/requests","POST",baseBody());
+  assert.equal(a.status,202);assert.equal(b.status,200);
+  assert.equal(a.body.requestId,b.body.requestId);
+  assert.equal(b.body.replayed,true);
+  assert.equal(verifyCalls,1);
+  for(const table of ["song_requests","request_submissions","request_rate_events","request_outbox"]){
+    assert.equal(row(table).length,1);
+  }
+});
+test("same idempotency key cannot be reused with a different request",async()=>{
+  await call("/v1/requests","POST",baseBody());
+  const altered={...baseBody(),title:"Another song"};
+  const next=await call("/v1/requests","POST",altered);
+  assert.equal(next.status,409);
+  assert.equal(next.body.error,"idempotency-conflict");
+  assert.equal(row("song_requests").length,1);
+});
+test("accent and case variations deduplicate to one pending song with request count",async()=>{
+  await call("/v1/requests","POST",baseBody());
+  const second={...baseBody(),title:"HABLAME DE CERCA",artist:"GRUPO GRACE & KAIRO WORSHIP",idempotencyKey:UUIDS[1]};
+  const result=await call("/v1/requests","POST",second);
+  assert.equal(result.status,202);
+  assert.equal(row("song_requests").length,1);
+  assert.equal(row("song_requests")[0].request_count,2);
+  assert.equal(row("request_submissions").length,2);
+  assert.equal(row("request_outbox").length,2);
+});
+test("strict origin, IP presence, malformed inputs and source allowlist",async()=>{
+  assert.equal((await call("/v1/requests","POST",baseBody(),{origin:"https://evil.example"})).status,403);
+  assert.equal((await call("/v1/requests","POST",baseBody(),{origin:false})).status,403);
+  assert.equal((await call("/v1/requests","POST",baseBody(),{ip:false})).status,403);
+  assert.equal((await call("/v1/requests","POST",{...baseBody(),title:"A".repeat(130)})).status,400);
+  assert.equal((await call("/v1/requests","POST",{...baseBody(),link:"https://evil.example/audio.mp3"})).status,400);
+  assert.equal((await call("/v1/requests","POST",{...baseBody(),link:"javascript:alert(1)"})).status,400);
+  assert.equal((await call("/v1/requests","POST",{...baseBody(),idempotencyKey:"fake-key"})).status,400);
+  assert.equal(row("song_requests").length,0);
+});
+test("Turnstile rejects failed, wrong-host and wrong-action tokens",async()=>{
+  for(const state of ["invalid","wrong-host","wrong-action"]){
+    verificationMode=state;
+    const response=await call("/v1/requests","POST",baseBody());
+    assert.equal(response.status,403);
+    assert.equal(response.body.error,"verification-failed");
+  }
+  assert.equal(row("song_requests").length,0);
+  assert.equal(row("request_outbox").length,0);
+});
+test("rate limit permits 5 new requests per IP per hour, then refuses a sixth",async()=>{
+  for(let i=0;i<5;i++){
+    const req={...baseBody(),title:"New Title "+i,idempotencyKey:UUIDS[i]};
+    assert.equal((await call("/v1/requests","POST",req)).status,202);
+  }
+  const next=await call("/v1/requests","POST",{...baseBody(),title:"Sixth",idempotencyKey:UUIDS[5]});
+  assert.equal(next.status,429);
+  assert.equal(next.body.error,"rate-limited");
+  assert.equal(row("request_outbox").length,5);
+});
+test("admin listing and review are authenticated, auditable and do not publish",async()=>{
+  const added=await call("/v1/requests","POST",baseBody());
+  const id=added.body.requestId;
+  assert.equal((await call("/v1/admin/requests","GET")).status,401);
+  assert.equal((await call("/v1/admin/requests/"+id+"/review","POST",{action:"approve"})).status,401);
+  const headers={Authorization:"Bearer "+ADMIN};
+  let lst=await call("/v1/admin/requests","GET",null,{headers});
+  assert.equal(lst.status,200);
+  assert.equal(lst.body.requests.length,1);
+  assert.equal(lst.body.requests[0].status,"pending");
+  const approved=await call("/v1/admin/requests/"+id+"/review","POST",{action:"approve"},{headers});
+  assert.equal(approved.status,200);assert.equal(approved.body.status,"approved");
+  assert.equal(row("request_audit").length,1);
+  assert.equal(row("song_requests")[0].status,"approved");
+  assert.equal((await call("/v1/requests","GET")).body.songs.length,0);
+  const reject=await call("/v1/admin/requests/"+id+"/review","POST",{action:"reject"},{headers});
+  assert.equal(reject.body.status,"rejected");
+  assert.equal(row("request_audit").length,2);
+});
+test("production environment never opens endpoints even with valid staging binding",async()=>{
+  env.APP_ENV="production";
+  assert.equal((await call("/v1/requests","POST",baseBody())).status,503);
+  assert.equal((await call("/v1/admin/requests","GET",null,{headers:{Authorization:"Bearer "+ADMIN}})).status,503);
+});

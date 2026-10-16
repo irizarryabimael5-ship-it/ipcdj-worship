@@ -1,0 +1,17 @@
+{
+  "name": "ipcdj-song-requests-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test --experimental-sqlite test/*.test.mjs",
+    "check": "node --check src/index.js && npm test",
+    "dev:staging": "wrangler dev --env staging",
+    "deploy:staging": "wrangler deploy --env staging",
+    "db:local": "wrangler d1 execute DB --env staging --local --file=./schema.sql --yes",
+    "db:remote": "wrangler d1 execute DB --env staging --remote --file=./schema.sql --yes"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

@@ -1,0 +1,38 @@
+name: IPCDJ Song Requests Backend Tests
+on:
+  push:
+    branches: [staging]
+    paths:
+      - "requests/**"
+      - ".github/workflows/song-requests-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  request-api:
+    name: request-api
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate isolated Worker syntax
+        run: node --check requests/worker/src/index.js
+      - name: Test Worker with real in-memory SQLite and atomic D1-compatible batches
+        run: node --test --experimental-sqlite requests/worker/test/requests.test.mjs
+      - name: Verify no production routing / no active intake by default
+        shell: bash
+        run: |
+          node --input-type=module -e "
+          import fs from 'node:fs';
+          const config=JSON.parse(fs.readFileSync('requests/worker/wrangler.jsonc','utf8'));
+          if(config.workers_dev!==false)throw new Error('Unexpected root public Worker');
+          if(Object.keys(config.env||{}).join(',')!=='staging')throw new Error('Unexpected production Worker env');
+          if(config.env.staging.vars.INGEST_ENABLED!=='false')throw new Error('Intake enabled without rollout');
+          if(config.env.staging.vars.SITE_ORIGIN!=='https://staging.worship.ipcdj.org')throw new Error('Not isolated Staging origin');
+          if(config.env.staging.d1_databases[0].database_name!=='ipcdj-song-requests-staging')throw new Error('DB isolation changed');
+          "
