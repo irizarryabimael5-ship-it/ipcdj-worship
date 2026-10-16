@@ -45,3 +45,6 @@ A Staging-only GitHub Action runs the syntax, SQLite API tests and environment i
 5. Integrate public form/dynamic feed, reliable email sender/outbox retry, verified metadata enrichment and fully automatic high-confidence card publication. Test full end-to-end staging with real D1 and actual delivered emails before any final Live approval.
 
 Production policy: NO piecemeal deployment of song requests to Live; final release must be complete and seven-profile certified.
+
+## Phase 1 concurrency hardening
+D1 also enforces the rolling-hour rate cap in a database trigger so simultaneous accepted submissions cannot evade the pre-check. A second trigger logs real committed administrator status transitions, with compare-and-swap updates to reject stale reviews. JSON is read in bounded chunks; missing Content-Length cannot force unbounded body buffering. Tests cover both constraints.

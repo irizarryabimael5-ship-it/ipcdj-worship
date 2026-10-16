@@ -203,6 +203,31 @@ test("admin listing and review are authenticated, auditable and do not publish",
   assert.equal(reject.body.status,"rejected");
   assert.equal(row("request_audit").length,2);
 });
+test("database trigger enforces rate cap even if concurrent workers missed a stale pre-read",async()=>{
+  for(let i=0;i<5;i++){
+    assert.equal((await call("/v1/requests","POST",{
+      ...baseBody(),title:"Simultaneous-"+i,idempotencyKey:UUIDS[i]
+    })).status,202);
+  }
+  const hash=row("request_rate_events")[0].ip_hash;
+  assert.throws(()=>sqlite.prepare(
+    "INSERT INTO request_rate_events(id,ip_hash,created_at) VALUES(?,?,?)"
+  ).run("sixth-manual-test",hash,new Date().toISOString()),/rate-limited/);
+  assert.equal(row("request_rate_events").length,5);
+  assert.equal(row("song_requests").length,5);
+});
+test("admin audit trigger records the committed previous and new moderation states",async()=>{
+  const added=await call("/v1/requests","POST",baseBody());
+  const id=added.body.requestId;
+  const options={headers:{Authorization:"Bearer "+ADMIN}};
+  assert.equal((await call("/v1/admin/requests/"+id+"/review","POST",{action:"hold"},options)).status,200);
+  assert.equal((await call("/v1/admin/requests/"+id+"/review","POST",{action:"approve"},options)).status,200);
+  const audit=row("request_audit");
+  assert.equal(audit.length,2);
+  assert.deepEqual(audit.map(a=>[a.previous_status,a.next_status]),[
+    ["pending","held"],["held","approved"]
+  ]);
+});
 test("production environment never opens endpoints even with valid staging binding",async()=>{
   env.APP_ENV="production";
   assert.equal((await call("/v1/requests","POST",baseBody())).status,503);

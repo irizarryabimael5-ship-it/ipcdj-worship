@@ -62,9 +62,29 @@ async function readSmallJson(request){
   if(!/application\/json(?:;|$)/i.test(request.headers.get("content-type")||""))return null;
   const reported=Number(request.headers.get("content-length")||"0");
   if(reported>MAX_BYTES)return null;
-  const body=await request.text();
-  if(new TextEncoder().encode(body).length>MAX_BYTES)return null;
-  try{return JSON.parse(body)}catch(_){return null}
+  if(!request.body)return null;
+  // Never buffer an unbounded request merely because Content-Length was omitted.
+  const reader=request.body.getReader(),chunks=[];
+  let size=0;
+  try{
+    while(true){
+      const {value,done}=await reader.read();
+      if(done)break;
+      size+=value.byteLength;
+      if(size>MAX_BYTES){
+        try{await reader.cancel()}catch(_){}
+        return null;
+      }
+      chunks.push(value);
+    }
+  }finally{reader.releaseLock();}
+  const bytes=new Uint8Array(size);
+  let position=0;
+  for(const chunk of chunks){bytes.set(chunk,position);position+=chunk.byteLength;}
+  try{
+    const body=new TextDecoder("utf-8",{fatal:true}).decode(bytes);
+    return JSON.parse(body);
+  }catch(_){return null}
 }
 const adminAuthorized=(req,env)=>{
   const token=env.ADMIN_TOKEN;
@@ -144,7 +164,12 @@ async function submit(req,env,headers){
         "INSERT INTO request_rate_events(id,ip_hash,created_at) VALUES(?,?,?)"
       ).bind(eventRateId,ipHash,now)
     ]);
-  }catch(_){
+  }catch(writeError){
+    // A database trigger also enforces this limit atomically across concurrent requests.
+    // D1 rolls back the full request/outbox transaction if the insert is denied.
+    if(String(writeError?.message||writeError).includes("rate-limited")){
+      return error("rate-limited",429,{"Retry-After":"3600",...headers});
+    }
     // An idempotency race must not double-count or emit a duplicate event.
     const replay=await env.DB.prepare("SELECT request_id,payload_hash FROM request_submissions WHERE idempotency_hash=?")
       .bind(idemHash).first();
@@ -196,12 +221,13 @@ async function review(req,env,id,headers){
   if(existing.status==="published")return error("published-lock",409,headers);
   const status=decisions[action],now=nowIso();
   if(status===existing.status)return json({ok:true,requestId:id,status,unchanged:true},200,headers);
-  await env.DB.batch([
-    env.DB.prepare("UPDATE song_requests SET status=?,updated_at=? WHERE id=? AND status!='published'")
-      .bind(status,now,id),
-    env.DB.prepare("INSERT INTO request_audit(id,request_id,previous_status,next_status,created_at) VALUES(?,?,?,?,?)")
-      .bind(crypto.randomUUID(),id,existing.status,status,now)
-  ]);
+  // Compare-and-swap rejects overlapping moderation. An SQLite trigger writes
+  // the audit event from the actual old/new row, never stale application state.
+  const result=await env.DB.prepare(
+    "UPDATE song_requests SET status=?,updated_at=? WHERE id=? AND status=?"
+  ).bind(status,now,id,existing.status).run();
+  const changed=Number(result?.meta?.changes??result?.changes??0);
+  if(changed!==1)return error("review-conflict",409,headers);
   return json({ok:true,requestId:id,status},200,headers);
 }
 export default {
