@@ -643,16 +643,40 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(sundayWeeklyTab).toBeHidden();
   await expect(fridayWeeklyPanel).toBeHidden();
   await expect(sundayWeeklyPanel).toBeHidden();
-  await expect(fridayWeeklyTab).toContainText('Pendiente');
+  await expect(fridayWeeklyTab).toContainText('Actualizado');
   await expect(sundayWeeklyTab).toContainText('Actualizado');
   await expect(weeklyPanel).toContainText('Campaña GU 2026');
   const campaignRedirect=weeklyPanel.locator('[data-weekly-event-redirect="campana-gu-2026"]');
   await expect(campaignRedirect).toBeVisible();
   await expect(campaignRedirect).toContainText('Este fin de semana es Campaña GU 2026');
   await expect(campaignRedirect).toContainText('viernes, sábado y domingo');
-  await expect(fridayWeeklyPanel).toContainText('Set pendiente');
+  await expect(fridayWeeklyPanel).toContainText('Viernes, 16 de octubre');
   await expect(sundayWeeklyPanel).toContainText('Domingo, 18 de octubre');
-  await expect(fridayWeeklyPanel.locator('.weekly-song')).toHaveCount(0);
+  await expect(fridayWeeklyPanel.locator('.weekly-song')).toHaveCount(4);
+  expect(await fridayWeeklyPanel.locator('.weekly-song-title').allTextContents()).toEqual(["Dios No Está Muerto","Dios Es Más Grande","El Gran Yo Soy","Ver La Victoria"]);
+  expect(await fridayWeeklyPanel.locator('.weekly-song-artist').allTextContents()).toEqual(["Miel San Marcos","Miel San Marcos & Danny Gokey","En Espíritu y En Verdad","Elevation Worship"]);
+  expect(await fridayWeeklyPanel.locator('.weekly-song-meta span').allTextContents()).toEqual(["Tono · Sol Mayor","BPM · 65/130","Tono · La Mayor","BPM · 73/146","Tono · La Mayor","BPM · 80/160","Tono · Si♭ Mayor","BPM · 78/156"]);
+  expect(await fridayWeeklyPanel.locator('.weekly-corito').allTextContents()).toEqual(["Yo tengo un amigo que me ama","Alabaré, Alabaré, Alabaré a mi Señor","Mirad, Bendecid a Jehová","No hay Dios tan grande como tú","No es con espada, ni con ejército","Conozco a un hombre de poder","Viva la Fe, Viva la esperanza, Viva el amor"]);
+  await expect(fridayWeeklyPanel).toContainText('Josselin');
+  await expect(fridayWeeklyPanel).toContainText('Compás · 4/4');
+  await expect(fridayWeeklyPanel).toContainText('Re Mayor · 115 BPM');
+  await expect(fridayWeeklyPanel).toContainText('Los Niños cantaran los coritos.');
+  await expect(fridayWeeklyPanel).toContainText('Ensayen con la canción, con metrónomo y eventualmente sin letra.');
+  await expect(fridayWeeklyPanel).toContainText('Enlace pendiente');
+  await expect(fridayWeeklyPanel.locator('a[href$=".pdf"]')).toHaveCount(0);
+  await expect(fridayWeeklyPanel.locator('a[href="https://youtube.com/playlist?list=PLXqqjNOyFIbg&si=yA9UpmWJEv2g7LPY"]')).toHaveCount(1);
+  await expect(fridayWeeklyPanel.locator('iframe[src="https://www.youtube-nocookie.com/embed/videoseries?list=PLXqqjNOyFIbg"]')).toHaveCount(1);
+  const weeklyDates=await page.evaluate(()=>{
+    const samples=['2026-10-15T12:00:00-04:00','2026-10-16T12:00:00-04:00',
+      '2026-10-17T12:00:00-04:00','2026-10-18T14:59:59-04:00',
+      '2026-10-18T15:00:00-04:00','2026-10-19T09:00:00-04:00'];
+    return samples.map(when=>window.IPCDJ_WEEKLY.getContext(Date.parse(when)));
+  });
+  expect(weeklyDates.map(s=>s.localDate)).toEqual(['2026-10-15','2026-10-16','2026-10-17','2026-10-18','2026-10-18','2026-10-19']);
+  expect(weeklyDates.map(s=>s.phase)).toEqual(['preparacion','viernes','entre-servicios','domingo','cerrada','cerrada']);
+  expect(weeklyDates.map(s=>s.serviceToday)).toEqual([null,'viernes',null,'domingo','domingo',null]);
+  expect(weeklyDates.every(s=>s.timeZone==='America/New_York'&&s.friday==='2026-10-16'&&s.sunday==='2026-10-18'&&s.weekStart==='2026-10-12')).toBe(true);
+  await expect(fridayWeeklyPanel.locator('.weekly-song')).toHaveCount(4);
   await expect(sundayWeeklyPanel.locator('.weekly-song')).toHaveCount(5);
   expect(await sundayWeeklyPanel.locator('.weekly-song-title').allTextContents()).toEqual(["Yo Te Busco","Cuán Grande Es Dios","Proezas","Tu Fidelidad","Eres Todopoderoso"]);
   expect(await sundayWeeklyPanel.locator('.weekly-song-artist').allTextContents()).toEqual(["Marcos Witt","En Espíritu Y En Verdad","Miel San Marcos","Marcos Witt","Danilo Montero"]);
