@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="campana-weekend-v190" />
+  <meta name="ipcdj-build" content="campana-weekend-v201" />
   <title>IPCDJ Worship | Ministerio de Alabanza</title>
   <meta name="description" content="Próximas canciones, preparación y estrenos del Ministerio de Alabanza de IPCDJ." />
   <link rel="canonical" href="https://worship.ipcdj.org/" />
@@ -4227,26 +4227,11 @@
       }
     }
 
-    /* macOS desktop scrolling guard.
-       The fixed ambient field and live glass surfaces are intentionally rich at
-       rest. While a Mac is actively scrolling, pause only decorative blob motion
-       and temporarily bypass backdrop sampling so older iMac GPUs do not have to
-       recompute animated blur + glass every scroll frame. The full treatment
-       returns immediately after scrolling settles. */
-    html.ipcdj-macos-desktop.ipcdj-scroll-active .ambient-blob{
-      animation-play-state:paused !important;
-      will-change:auto;
-    }
-
-    html.ipcdj-macos-desktop.ipcdj-scroll-active .card,
-    html.ipcdj-macos-desktop.ipcdj-scroll-active .eyebrow,
-    html.ipcdj-macos-desktop.ipcdj-scroll-active .future-preview-button,
-    html.ipcdj-macos-desktop.ipcdj-scroll-active .current .countdown-wrap,
-    html.ipcdj-macos-desktop.ipcdj-scroll-active .current .progress-wrap{
-      backdrop-filter:none !important;
-      -webkit-backdrop-filter:none !important;
-    }
+    /* Keep the original frosted-glass and ambient motion throughout scrolling.
+       The old scroll-only bypass caused visible flat-to-frosted flashes. */
   </style>
+
+
 </head>
 <body>
   <div id="ipcdj-launch" class="launch-armed" role="status" aria-label="Abriendo IPCDJ Worship">
@@ -4272,7 +4257,8 @@
       if(!launch)return;
 
       const stage=launch.querySelector(".launch-logo-stage");
-      const reduced=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const reduced=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches &&
+        !document.documentElement.classList.contains("ipcdj-original-motion-preview");
       const standalone=(
         navigator.standalone===true ||
         (window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches) ||
@@ -5050,7 +5036,7 @@
       </section>
 
       <section class="site-tab-panel" id="panel-worship-semanal" role="tabpanel" aria-labelledby="tab-worship-semanal" tabindex="0" hidden>
-        <div class="weekly-dashboard weekly-event-active" data-weekly-dashboard data-weekly-state="rolled" data-weekly-cycle="2026-10-04" data-weekly-rollover-at="2026-10-04T15:00:00-04:00" data-weekly-special-event="campana-gu-2026">
+        <div class="weekly-dashboard" data-weekly-dashboard data-weekly-state="active" data-weekly-cycle="2026-10-18" data-weekly-rollover-at="2026-10-18T15:00:00-04:00" data-weekly-special-event="campana-gu-2026">
           <section class="weekly-overview">
             <div class="weekly-overview-top">
               <div>
@@ -5058,17 +5044,17 @@
                 <h2>Esta semana</h2>
                 <p>Sets, ensayo y recursos del equipo de adoración en un solo lugar.</p>
               </div>
-              <span class="weekly-status" data-weekly-status>Campaña GU 2026</span>
+              <span class="weekly-status" data-weekly-status>Viernes + Domingo actualizados</span>
             </div>
 
             <div class="weekly-service-tabs" role="tablist" aria-label="Servicios de Worship semanal">
               <button class="weekly-service-tab" id="weekly-tab-viernes" type="button" role="tab" aria-selected="true" aria-controls="weekly-panel-viernes" tabindex="0" data-weekly-service="viernes">
                 <strong>Viernes</strong>
-                <small>Pendiente</small>
+                <small>Actualizado</small>
               </button>
               <button class="weekly-service-tab" id="weekly-tab-domingo" type="button" role="tab" aria-selected="false" aria-controls="weekly-panel-domingo" tabindex="-1" data-weekly-service="domingo">
                 <strong>Domingo</strong>
-                <small>Pendiente</small>
+                <small>Actualizado</small>
               </button>
             </div>
           </section>
@@ -5084,25 +5070,249 @@
 
           <!-- WEEKLY_CURRENT_VIERNES_START -->
           <section class="weekly-service-panel" id="weekly-panel-viernes" role="tabpanel" aria-labelledby="weekly-tab-viernes" data-weekly-panel="viernes">
-            <div class="weekly-empty">
-              <div class="weekly-empty-inner">
-                <span class="weekly-service-kicker">Viernes</span>
-                <h3>Set pendiente</h3>
-                <p>El nuevo worship set del viernes aparecerá aquí cuando sea actualizado.</p>
+            <div class="weekly-service-heading">
+              <div>
+                <span class="weekly-service-kicker">Servicio · Viernes, 16 de octubre</span>
+                <h2>Worship set del viernes</h2>
+                <p>Orden del servicio, playlist, coritos y recursos de ensayo.</p>
               </div>
             </div>
+
+            <ul class="weekly-service-meta" aria-label="Detalles del servicio del viernes">
+              <li class="weekly-meta-card">
+                <span class="weekly-meta-label">Corista</span>
+                <span class="weekly-meta-value">Josselin</span>
+              </li>
+            </ul>
+
+            <section class="weekly-youtube-card" aria-labelledby="weekly-youtube-title-viernes">
+              <div class="weekly-youtube-frame">
+                <iframe
+                  src="https://www.youtube-nocookie.com/embed/videoseries?list=PLXqqjNOyFIbg"
+                  title="Playlist de worship del viernes 16 de octubre"
+                  loading="lazy"
+                  referrerpolicy="strict-origin-when-cross-origin"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowfullscreen></iframe>
+              </div>
+              <div class="weekly-youtube-info">
+                <span class="weekly-youtube-mark"><img src="youtube-music.svg" alt="" aria-hidden="true" width="22" height="22" decoding="async" />YouTube</span>
+                <h3 id="weekly-youtube-title-viernes">Playlist del viernes</h3>
+                <p>Escucha y repasa el repertorio del viernes 16 de octubre.</p>
+                <a class="weekly-action" href="https://youtube.com/playlist?list=PLXqqjNOyFIbg&amp;si=yA9UpmWJEv2g7LPY" target="_blank" rel="noopener">Abrir playlist en YouTube</a>
+              </div>
+            </section>
+
+            <a class="weekly-resource" href="https://u.pone.rs/ywgzacgv.pdf" target="_blank" rel="noopener">
+              <span class="weekly-resource-badge">PDF</span>
+              <span class="weekly-resource-text">
+                <strong>Letras &amp; Coritos</strong>
+                <small>Abrir recurso del viernes</small>
+              </span>
+            </a>
+
+            <section class="weekly-set-card">
+              <div class="weekly-section-head">
+                <h3>Canciones CDJ</h3>
+                <span>Compás · 4/4</span>
+              </div>
+              <ol class="weekly-song-list">
+                <li class="weekly-song">
+                  <span class="weekly-song-index">01</span>
+                  <span class="weekly-song-copy">
+                    <strong class="weekly-song-title">Dios No Está Muerto</strong>
+                    <span class="weekly-song-artist">Miel San Marcos</span>
+                    <span class="weekly-song-meta">
+                      <span>Tono · Sol Mayor</span>
+                      <span>BPM · 65/130</span>
+                    </span>
+                  </span>
+                </li>
+                <li class="weekly-song">
+                  <span class="weekly-song-index">02</span>
+                  <span class="weekly-song-copy">
+                    <strong class="weekly-song-title">Dios Es Más Grande</strong>
+                    <span class="weekly-song-artist">Miel San Marcos &amp; Danny Gokey</span>
+                    <span class="weekly-song-meta">
+                      <span>Tono · La Mayor</span>
+                      <span>BPM · 73/146</span>
+                    </span>
+                  </span>
+                </li>
+                <li class="weekly-song">
+                  <span class="weekly-song-index">03</span>
+                  <span class="weekly-song-copy">
+                    <strong class="weekly-song-title">El Gran Yo Soy</strong>
+                    <span class="weekly-song-artist">En Espíritu y En Verdad</span>
+                    <span class="weekly-song-meta">
+                      <span>Tono · La Mayor</span>
+                      <span>BPM · 80/160</span>
+                    </span>
+                  </span>
+                </li>
+                <li class="weekly-song">
+                  <span class="weekly-song-index">04</span>
+                  <span class="weekly-song-copy">
+                    <strong class="weekly-song-title">Ver La Victoria</strong>
+                    <span class="weekly-song-artist">Elevation Worship</span>
+                    <span class="weekly-song-meta">
+                      <span>Tono · Si♭ Mayor</span>
+                      <span>BPM · 78/156</span>
+                    </span>
+                  </span>
+                </li>
+              </ol>
+            </section>
+
+            <section class="weekly-coritos-card">
+              <div class="weekly-section-head">
+                <h3>Coritos</h3>
+                <span>Re Mayor · 115 BPM</span>
+              </div>
+              <ol class="weekly-coritos-list">
+                <li class="weekly-corito">Yo tengo un amigo que me ama</li>
+                <li class="weekly-corito">Alabaré, Alabaré, Alabaré a mi Señor</li>
+                <li class="weekly-corito">Mirad, Bendecid a Jehová</li>
+                <li class="weekly-corito">No hay Dios tan grande como tú</li>
+                <li class="weekly-corito">No es con espada, ni con ejército</li>
+                <li class="weekly-corito">Conozco a un hombre de poder</li>
+                <li class="weekly-corito">Viva la Fe, Viva la esperanza, Viva el amor</li>
+              </ol>
+            </section>
+
+            <section class="weekly-note-card">
+              <h3>Notas de ensayo</h3>
+              <p>Ensayen con la canción, con metrónomo y eventualmente sin letra.</p>
+              <p>Los Niños cantaran los coritos.</p>
+            </section>
           </section>
           <!-- WEEKLY_CURRENT_VIERNES_END -->
 
           <!-- WEEKLY_CURRENT_DOMINGO_START -->
           <section class="weekly-service-panel" id="weekly-panel-domingo" role="tabpanel" aria-labelledby="weekly-tab-domingo" data-weekly-panel="domingo" hidden>
-            <div class="weekly-empty">
-              <div class="weekly-empty-inner">
-                <span class="weekly-service-kicker">Domingo</span>
-                <h3>Set pendiente</h3>
-                <p>El nuevo worship set del domingo aparecerá aquí cuando sea actualizado.</p>
+            <div class="weekly-service-heading">
+              <div>
+                <span class="weekly-service-kicker">Servicio · Domingo, 18 de octubre</span>
+                <h2>Worship set del domingo</h2>
+                <p>Orden del servicio, playlist, letras y recursos de ensayo.</p>
               </div>
             </div>
+
+            <ul class="weekly-service-meta" aria-label="Detalles del servicio del domingo">
+              <li class="weekly-meta-card">
+                <span class="weekly-meta-label">Corista</span>
+                <span class="weekly-meta-value">Josselin</span>
+              </li>
+            </ul>
+
+            <section class="weekly-youtube-card" aria-labelledby="weekly-youtube-title-domingo">
+              <div class="weekly-youtube-frame">
+                <iframe
+                  src="https://www.youtube-nocookie.com/embed/videoseries?list=PLfbkpqopl-bE"
+                  title="Playlist de worship del domingo 18 de octubre"
+                  loading="lazy"
+                  referrerpolicy="strict-origin-when-cross-origin"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowfullscreen></iframe>
+              </div>
+              <div class="weekly-youtube-info">
+                <span class="weekly-youtube-mark"><img src="youtube-music.svg" alt="" aria-hidden="true" width="22" height="22" decoding="async" />YouTube</span>
+                <h3 id="weekly-youtube-title-domingo">Playlist del domingo</h3>
+                <p>Escucha y repasa el repertorio del domingo 18 de octubre.</p>
+                <a class="weekly-action" href="https://youtube.com/playlist?list=PLfbkpqopl-bE&amp;si=tUYLsdWc2lOFICbQ" target="_blank" rel="noopener">Abrir playlist en YouTube</a>
+              </div>
+            </section>
+
+            <a class="weekly-resource" href="https://u.pone.rs/rsegrxgg.pdf" target="_blank" rel="noopener">
+              <span class="weekly-resource-badge">PDF</span>
+              <span class="weekly-resource-text">
+                <strong>Letras &amp; Coritos</strong>
+                <small>Abrir recurso del domingo</small>
+              </span>
+            </a>
+
+            <section class="weekly-set-card">
+              <div class="weekly-section-head">
+                <h3>Canciones CDJ</h3>
+                <span>Compás · 4/4</span>
+              </div>
+              <ol class="weekly-song-list">
+                <li class="weekly-song">
+                  <span class="weekly-song-index">01</span>
+                  <span class="weekly-song-copy">
+                    <strong class="weekly-song-title">Yo Te Busco</strong>
+                    <span class="weekly-song-artist">Marcos Witt</span>
+                    <span class="weekly-song-meta">
+                      <span>Tono · Sol Mayor</span>
+                      <span>BPM · 85/170</span>
+                    </span>
+                  </span>
+                </li>
+                <li class="weekly-song">
+                  <span class="weekly-song-index">02</span>
+                  <span class="weekly-song-copy">
+                    <strong class="weekly-song-title">Cuán Grande Es Dios</strong>
+                    <span class="weekly-song-artist">En Espíritu Y En Verdad</span>
+                    <span class="weekly-song-meta">
+                      <span>Tono · Sol Mayor</span>
+                      <span>BPM · 72/144</span>
+                    </span>
+                  </span>
+                </li>
+                <li class="weekly-song">
+                  <span class="weekly-song-index">03</span>
+                  <span class="weekly-song-copy">
+                    <strong class="weekly-song-title">Proezas</strong>
+                    <span class="weekly-song-artist">Miel San Marcos</span>
+                    <span class="weekly-song-meta">
+                      <span>Tono · La Mayor</span>
+                      <span>BPM · 78/156</span>
+                    </span>
+                  </span>
+                </li>
+                <li class="weekly-song">
+                  <span class="weekly-song-index">04</span>
+                  <span class="weekly-song-copy">
+                    <strong class="weekly-song-title">Tu Fidelidad</strong>
+                    <span class="weekly-song-artist">Marcos Witt</span>
+                    <span class="weekly-song-meta">
+                      <span>Tono · La Mayor</span>
+                      <span>BPM · 57/113</span>
+                    </span>
+                  </span>
+                </li>
+                <li class="weekly-song">
+                  <span class="weekly-song-index">05</span>
+                  <span class="weekly-song-copy">
+                    <strong class="weekly-song-title">Eres Todopoderoso</strong>
+                    <span class="weekly-song-artist">Danilo Montero</span>
+                    <span class="weekly-song-meta">
+                      <span>Tono · La Mayor</span>
+                      <span>BPM · 63/125</span>
+                    </span>
+                  </span>
+                </li>
+              </ol>
+            </section>
+
+            <section class="weekly-coritos-card">
+              <div class="weekly-section-head">
+                <h3>Coritos</h3>
+                <span>Re Mayor · 115 BPM</span>
+              </div>
+              <ol class="weekly-coritos-list">
+                <li class="weekly-corito">Yo Vine A Alabar A Dios</li>
+                <li class="weekly-corito">Así Se Alaba A Dios</li>
+                <li class="weekly-corito">Alabaré</li>
+                <li class="weekly-corito">Hay Poder (Sin Igual Poder)</li>
+                <li class="weekly-corito">Poderoso Es Nuestro Dios</li>
+              </ol>
+            </section>
+
+            <section class="weekly-note-card">
+              <h3>Nota de ensayo</h3>
+              <p>Ensayen con la canción, con metrónomo y eventualmente sin letra.</p>
+            </section>
           </section>
           <!-- WEEKLY_CURRENT_DOMINGO_END -->
 
@@ -5775,10 +5985,10 @@
       if(!Number.isFinite(rolloverAt))return;
       const delay=rolloverAt-Date.now();
       if(delay<=0){
-        applyWeeklyRolloverIfDue(Date.now());
+        refreshLivingCalendar(weeklyClockNow(),"rollover-deadline");
         return;
       }
-      setTimeout(()=>applyWeeklyRolloverIfDue(Date.now()),Math.min(delay+50,2147483000));
+      setTimeout(()=>refreshLivingCalendar(weeklyClockNow(),"rollover-deadline"),Math.min(delay+50,2147483000));
     }
 
         function activateWeeklyService(key,{focus=false}={}){
@@ -5812,12 +6022,121 @@
       });
     });
 
+    // One Eastern-aware calendar for MAIN, WEEKLY, and later opt-in features.
+    // This is runtime state, not a second song catalog or a publishing system.
+    let weeklyClockNow=()=>Date.now();
+    function weeklyContext(now=weeklyClockNow()){
+      const date=new Date(Number(now));
+      if(Number.isNaN(date.getTime()))return null;
+      const parts=new Intl.DateTimeFormat("en-US",{
+        timeZone:"America/New_York",year:"numeric",month:"2-digit",
+        day:"2-digit",weekday:"short"
+      }).formatToParts(date);
+      const part=type=>parts.find(item=>item.type===type)?.value||"";
+      const today=[part("year"),part("month"),part("day")].join("-");
+      const sunday=weeklyDashboard?.dataset.weeklyCycle||"";
+      const addDays=(dateString,days)=>{
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(dateString))return "";
+        const base=new Date(dateString+"T12:00:00Z");
+        if(Number.isNaN(base.getTime()))return "";
+        base.setUTCDate(base.getUTCDate()+days);
+        return base.toISOString().slice(0,10);
+      };
+      // Published week (source-controlled) and actual calendar week differ
+      // after archival. Always calculate the actual week independently.
+      const friday=addDays(sunday,-2);
+      const monday=addDays(sunday,-6);
+      const todayUTC=new Date(today+"T12:00:00Z");
+      const weekdayIndex=(todayUTC.getUTCDay()+6)%7; // Monday 0 .. Sunday 6
+      const currentWeekStart=addDays(today,-weekdayIndex);
+      const currentFriday=addDays(currentWeekStart,4);
+      const currentSunday=addDays(currentWeekStart,6);
+      const state=weeklyDashboard?.dataset.weeklyState||"";
+      const rolloverAt=weeklyDashboard?.dataset.weeklyRolloverAt||"";
+      const dueAt=Date.parse(rolloverAt);
+      const pastDeadline=Number.isFinite(dueAt)&&date.getTime()>=dueAt;
+      const todayService=today===currentFriday?"viernes":today===currentSunday?"domingo":null;
+      const phase=state==="rolled"||pastDeadline?"cerrada"
+        :today<monday?"proxima"
+        :today<friday?"preparacion"
+        :today===friday?"viernes"
+        :today<sunday?"entre-servicios"
+        :today===sunday?"domingo":"cerrada";
+      let nextServiceDay="viernes";
+      let nextServiceDate=currentFriday;
+      if(today>currentFriday){
+        nextServiceDay="domingo";
+        nextServiceDate=currentSunday;
+      }
+      if(today>currentSunday||(today===currentSunday&&pastDeadline)){
+        nextServiceDay="viernes";
+        nextServiceDate=addDays(currentWeekStart,11);
+      }
+      return Object.freeze({
+        timeZone:"America/New_York",
+        localDate:today,weekday:part("weekday"),
+        weekStart:monday,friday,sunday,cycle:sunday,
+        currentWeekStart,currentFriday,currentSunday,
+        publishedIsCurrentWeek:sunday===currentSunday,
+        nextService:Object.freeze({day:nextServiceDay,date:nextServiceDate}),
+        activeState:state,rolloverAt,rolloverDue:pastDeadline,
+        serviceToday:todayService,phase
+      });
+    }
+
+    // A low-cost heartbeat only observes time, never edits authored music.
+    // Scheduled persistent archiving remains with the existing GitHub workflow.
+    let latestCalendarContext=null;
+    let calendarSignature="";
+    let specialEventSignature="";
+    const specialEventState=now=>SPECIAL_EVENT_TABS.map(event=>{
+      const stop=Date.parse(event.hideAt);
+      return event.key+":"+(Number.isFinite(stop)&&now<stop?"1":"0");
+    }).join("|");
+    function refreshLivingCalendar(now=weeklyClockNow(),reason="tick"){
+      const timestamp=Number(now);
+      if(!Number.isFinite(timestamp))return null;
+      const archived=applyWeeklyRolloverIfDue(timestamp);
+      const context=weeklyContext(timestamp);
+      if(!context)return null;
+      const eventState=specialEventState(timestamp);
+      // Only refresh event tabs when their visibility threshold changes.
+      if(eventState!==specialEventSignature){
+        specialEventSignature=eventState;
+        syncSpecialEventTabs(timestamp);
+      }
+      const signature=[
+        context.localDate,context.currentWeekStart,context.nextService.date,
+        context.nextService.day,context.phase,context.activeState,
+        context.publishedIsCurrentWeek,context.rolloverDue,eventState
+      ].join("|");
+      latestCalendarContext=context;
+      if(archived||signature!==calendarSignature){
+        calendarSignature=signature;
+        window.dispatchEvent(new CustomEvent("ipcdj:calendarchange",{
+          detail:Object.freeze({context,reason,archived:Boolean(archived)})
+        }));
+      }
+      return context;
+    }
+    const refreshCalendarOnResume=()=>{
+      if(!document.hidden)refreshLivingCalendar(weeklyClockNow(),"resume");
+    };
+
     activateWeeklyService("viernes");
 
     window.IPCDJ_WEEKLY=Object.freeze({
       activate:key=>activateWeeklyService(String(key||"")),
       getActive:()=>weeklyServiceTabs.find(tab=>tab.getAttribute("aria-selected")==="true")?.dataset.weeklyService||"",
+      getContext:now=>weeklyContext(now),
       rolloverIfDue:now=>applyWeeklyRolloverIfDue(now)
+    });
+
+    window.IPCDJ_CALENDAR=Object.freeze({
+      timeZone:"America/New_York",
+      getContext:now=>weeklyContext(now),
+      getSnapshot:()=>latestCalendarContext||weeklyContext(),
+      refresh:now=>refreshLivingCalendar(now,"manual")
     });
 
     window.IPCDJ_WEEKLY_TEST=Object.freeze({
@@ -5859,9 +6178,18 @@
       rollover:now=>applyWeeklyRolloverIfDue(now)
     });
 
-    document.addEventListener("visibilitychange",()=>{
-      if(!document.hidden)applyWeeklyRolloverIfDue(Date.now());
-    });
+    // Background throttling is normal on Safari and PWAs. On resume, compute
+    // the absolute date rather than replaying missed intervals or notifications.
+    document.addEventListener("visibilitychange",refreshCalendarOnResume,{passive:true});
+    document.addEventListener("webkitvisibilitychange",refreshCalendarOnResume,{passive:true});
+    window.addEventListener("pageshow",refreshCalendarOnResume,{passive:true});
+    window.addEventListener("focus",refreshCalendarOnResume,{passive:true});
+    window.addEventListener("online",refreshCalendarOnResume,{passive:true});
+    window.addEventListener("ipcdj:internalnavigation",refreshCalendarOnResume);
+    setInterval(()=>{
+      if(!document.hidden)refreshLivingCalendar(weeklyClockNow(),"heartbeat");
+    },30000);
+    refreshLivingCalendar(Date.now(),"startup");
     scheduleWeeklyRollover();
 
     const pullRefresh=document.querySelector(".pull-refresh");
@@ -6108,41 +6436,7 @@
 
     window.addEventListener("touchcancel",resetPull,{passive:true});
 
-    // On desktop macOS, keep the exact same ambient palette/glass design at rest
-    // but reduce compositor pressure only while scrolling. iPadOS can identify as
-    // Macintosh, so maxTouchPoints prevents it from entering this desktop path.
-    (() => {
-      const ua=navigator.userAgent||"";
-      const isMacDesktop=(
-        /Macintosh|Mac OS X/i.test(ua) &&
-        Number(navigator.maxTouchPoints||0)<=1
-      );
-      if(!isMacDesktop)return;
-
-      const root=document.documentElement;
-      root.classList.add("ipcdj-macos-desktop");
-
-      let active=false;
-      let settleTimer=0;
-      const enterScrollMode=()=>{
-        if(!active){
-          active=true;
-          root.classList.add("ipcdj-scroll-active");
-        }
-        clearTimeout(settleTimer);
-        settleTimer=setTimeout(()=>{
-          active=false;
-          root.classList.remove("ipcdj-scroll-active");
-        },160);
-      };
-
-      window.addEventListener("scroll",enterScrollMode,{passive:true});
-      window.addEventListener("pagehide",()=>{
-        clearTimeout(settleTimer);
-        active=false;
-        root.classList.remove("ipcdj-scroll-active");
-      },{passive:true});
-    })();
+    // No scroll-only visual degradation. Accessibility and adaptive FPS controls remain.
 
     // Song-driven ambient field controller.
     // Two complete moving fields crossfade so a palette can change without any
@@ -6312,6 +6606,17 @@
       : Date.now();
 
     restoreClockSeed();
+    // The ministry calendar reuses the song pipeline's server-calibrated clock
+    // after it is initialized; it still works from the device clock offline.
+    weeklyClockNow=()=>{
+      const wall=Date.now();
+      const calibrated=calibratedNow();
+      // Some systems suspend the monotonic clock during sleep while the wall
+      // clock advances. Recover immediately, then allow the existing network
+      // clock sync to reconcile. Keep normal calibrated precision otherwise.
+      return Math.abs(wall-calibrated)>120000?wall:calibrated;
+    };
+    refreshLivingCalendar(weeklyClockNow(),"clock-ready");
 
     async function fetchWithTimeout(url,options={},timeoutMs=6500){
       if(!("AbortController" in window)){
@@ -6355,6 +6660,7 @@
         performanceAtSync=performance.now();
         serverClockSynced=true;
         persistClockSeed();
+        refreshLivingCalendar(calibratedNow(),"server-calibrated");
         return true;
       }catch(_){
         return false;
@@ -6508,6 +6814,8 @@
         itunesCollectionId:"1785402414",
         // Official song #5 on En Mi Lugar. Resolve its live provider URL.
         itunesTrackId:"1785402419",
+        // Fixed artwork-matched Reinas rose/umber colors from the first paint.
+        futurePalette:[[118,67,67],[177,111,101],[100,87,85]],
         previewAudioProvider:"itunes",
         previewClipDuration:30,
         previewUseFullAsset:true,
@@ -7078,17 +7386,20 @@
       const fallback=song.futurePalette||COVER_THEME_FALLBACKS[song.id]||[[82,74,68],[116,92,70],[58,68,78]];
       applyFutureCardTheme(song,fallback,card);
 
+      // An explicit curated palette always beats a cached provider color sample.
       let cachedPalette=null;
-      try{
-        const cached=localStorage.getItem(COVER_THEME_CACHE_PREFIX+song.id);
-        if(cached){
-          const parsed=JSON.parse(cached);
-          if(Array.isArray(parsed)&&parsed.length>=3){
-            cachedPalette=parsed;
-            applyFutureCardTheme(song,parsed,card);
+      if(!song.futurePalette){
+        try{
+          const cached=localStorage.getItem(COVER_THEME_CACHE_PREFIX+song.id);
+          if(cached){
+            const parsed=JSON.parse(cached);
+            if(Array.isArray(parsed)&&parsed.length>=3){
+              cachedPalette=parsed;
+              applyFutureCardTheme(song,parsed,card);
+            }
           }
-        }
-      }catch(_){}
+        }catch(_){}
+      }
 
       try{
         const artworkUrl=await resolveFutureArtworkUrl(song);
@@ -10105,11 +10416,10 @@
     }
 
     function chooseAmbientDriver(entries,now){
-      if(!Array.isArray(entries)||!entries.length)return null;
-      const release=entries.find(({phase})=>phase&&phase.key==="release");
-      if(release)return release;
-      const preparation=entries.filter(({phase})=>phase&&phase.key!=="released"&&phase.key!=="complete");
-      return preparation[0]||entries[0]||null;
+      // The first visible Prep card owns the ambient palette, without exception.
+      // getCurrentSongs() sorts the cards by release priority; syncCurrentCards()
+      // renders this same array order. Do not substitute a lower release-phase card.
+      return Array.isArray(entries)&&entries.length?entries[0]:null;
     }
 
     function syncAmbientDriver(entries,now){
@@ -10121,6 +10431,7 @@
       const {song,phase}=driver;
       document.documentElement.classList.toggle("ipcdj-ambient-release",!!phase&&phase.key==="release");
       ambientDriverSongId=song.id;
+      document.documentElement.dataset.ambientDriverSongId=song.id;
       const palette=ambientSongPalettes.get(song.id)||COVER_THEME_FALLBACKS[song.id]||AMBIENT_FALLBACK;
       setAmbientPalette(palette,"driver:"+song.id+"|phase:"+(phase?.key||"unknown"));
     }
@@ -10477,6 +10788,7 @@
 
       if(!current.length){
         ambientDriverSongId="";
+        delete document.documentElement.dataset.ambientDriverSongId;
         document.documentElement.classList.remove("ipcdj-ambient-release");
         setAmbientPalette(AMBIENT_FALLBACK,"fallback");
         renderEmptyCurrent();
@@ -10558,7 +10870,11 @@
 
       future.forEach(song=>{
         const card=container.querySelector('[data-song-id="'+CSS.escape(song.id)+'"]');
-        if(card)primeFutureCardTheme(song,card);
+        if(card){
+          primeFutureCardTheme(song,card);
+          // Preload TBD artwork but never autoplay song previews.
+          if(song.scheduleTbd)ensureFutureCardTheme(song,card);
+        }
       });
 
       if("IntersectionObserver" in window){
@@ -11029,7 +11345,10 @@
       requestAnimationFrame(()=>item.classList.remove("reveal-pending"));
     };
 
-    if("IntersectionObserver" in window&&!window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+    if("IntersectionObserver" in window&&(
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+      document.documentElement.classList.contains("ipcdj-original-motion-preview")
+    )){
       const observer=new IntersectionObserver(entries=>{
         entries.forEach(entry=>{
           if(!entry.isIntersecting)return;
@@ -11395,5 +11714,6 @@
       });
     })();
   </script>
-  <script src="./notifications/client.js?v=164"></script>\n  <script src="./notifications/ui.js?v=164"></script>\n</body>
+  <script src="./notifications/client.js?v=164"></script>\n  <script src="./notifications/ui.js?v=164"></script>\n
+</body>
 </html>

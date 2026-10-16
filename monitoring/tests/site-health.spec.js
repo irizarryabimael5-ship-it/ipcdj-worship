@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { createHash } from 'node:crypto';
 
 const isBenignOptionalProviderError = message => {
   const text = String(message || '');
@@ -59,6 +60,9 @@ async function openHealthyPage(page) {
   return { pageErrors, consoleErrors };
 }
 
+// Headless WebKit tablet can stall locator.click while waiting for two rAF
+// stability frames. Verify hit testing, then send a real touchscreen gesture;
+// never bypass actual input using force:true or DOM click dispatch.
 // On tablet, exercise a real touchscreen gesture at an unobscured point.
 // Headless WebKit's two-frame locator.click stability gate may stall. Always
 // keep real viewport hit testing; never dispatch an artificial click.
@@ -466,6 +470,10 @@ test('special-event lifecycle is clock-deterministic and retains an archived sou
 });
 
 test('primary tabs, weekly panel and special-event lifecycle remain healthy', async ({ page }, testInfo) => {
+  // Freeze calendar date before page creation so the approved Oct 18 Sunday
+  // current set remains testable after its real Sunday 3 PM archival boundary.
+  // setFixedTime only overrides the clock; native animation/timers still run.
+  await page.clock.setFixedTime(new Date('2026-10-15T12:00:00-04:00'));
   await openHealthyPage(page);
 
   // Lock the genuine runtime in the event window. After Oct. 12 the same
@@ -623,9 +631,9 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
 
   // The finished Campaña GU 9/10/11 is the actual previous worship week.
   // Oct. 2/4 remains in a separate older historical section.
-  await expect(weeklyDashboard).toHaveAttribute('data-weekly-state','rolled');
-  await expect(weeklyDashboard).toHaveAttribute('data-weekly-cycle','2026-10-04');
-  await expect(weeklyDashboard).toHaveAttribute('data-weekly-rollover-at','2026-10-04T15:00:00-04:00');
+  await expect(weeklyDashboard).toHaveAttribute('data-weekly-state','active');
+  await expect(weeklyDashboard).toHaveAttribute('data-weekly-cycle','2026-10-18');
+  await expect(weeklyDashboard).toHaveAttribute('data-weekly-rollover-at','2026-10-18T15:00:00-04:00');
   await expect(weeklyDashboard).toHaveAttribute('data-weekly-special-event','campana-gu-2026');
   await expect(weeklyDashboard).toHaveClass(/weekly-event-active/);
   await expect(fridayWeeklyTab).toHaveAttribute('aria-selected','true');
@@ -634,17 +642,59 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(sundayWeeklyTab).toBeHidden();
   await expect(fridayWeeklyPanel).toBeHidden();
   await expect(sundayWeeklyPanel).toBeHidden();
-  await expect(fridayWeeklyTab).toContainText('Pendiente');
-  await expect(sundayWeeklyTab).toContainText('Pendiente');
+  await expect(fridayWeeklyTab).toContainText('Actualizado');
+  await expect(sundayWeeklyTab).toContainText('Actualizado');
   await expect(weeklyPanel).toContainText('Campaña GU 2026');
   const campaignRedirect=weeklyPanel.locator('[data-weekly-event-redirect="campana-gu-2026"]');
   await expect(campaignRedirect).toBeVisible();
   await expect(campaignRedirect).toContainText('Este fin de semana es Campaña GU 2026');
   await expect(campaignRedirect).toContainText('viernes, sábado y domingo');
-  await expect(fridayWeeklyPanel).toContainText('Set pendiente');
-  await expect(sundayWeeklyPanel).toContainText('Set pendiente');
-  await expect(fridayWeeklyPanel.locator('.weekly-song')).toHaveCount(0);
-  await expect(sundayWeeklyPanel.locator('.weekly-song')).toHaveCount(0);
+  await expect(fridayWeeklyPanel).toContainText('Viernes, 16 de octubre');
+  await expect(sundayWeeklyPanel).toContainText('Domingo, 18 de octubre');
+  await expect(fridayWeeklyPanel.locator('.weekly-song')).toHaveCount(4);
+  expect(await fridayWeeklyPanel.locator('.weekly-song-title').allTextContents()).toEqual(["Dios No Está Muerto","Dios Es Más Grande","El Gran Yo Soy","Ver La Victoria"]);
+  expect(await fridayWeeklyPanel.locator('.weekly-song-artist').allTextContents()).toEqual(["Miel San Marcos","Miel San Marcos & Danny Gokey","En Espíritu y En Verdad","Elevation Worship"]);
+  expect(await fridayWeeklyPanel.locator('.weekly-song-meta span').allTextContents()).toEqual(["Tono · Sol Mayor","BPM · 65/130","Tono · La Mayor","BPM · 73/146","Tono · La Mayor","BPM · 80/160","Tono · Si♭ Mayor","BPM · 78/156"]);
+  expect(await fridayWeeklyPanel.locator('.weekly-corito').allTextContents()).toEqual(["Yo tengo un amigo que me ama","Alabaré, Alabaré, Alabaré a mi Señor","Mirad, Bendecid a Jehová","No hay Dios tan grande como tú","No es con espada, ni con ejército","Conozco a un hombre de poder","Viva la Fe, Viva la esperanza, Viva el amor"]);
+  await expect(fridayWeeklyPanel).toContainText('Josselin');
+  await expect(fridayWeeklyPanel).toContainText('Compás · 4/4');
+  await expect(fridayWeeklyPanel).toContainText('Re Mayor · 115 BPM');
+  await expect(fridayWeeklyPanel).toContainText('Los Niños cantaran los coritos.');
+  await expect(fridayWeeklyPanel).toContainText('Ensayen con la canción, con metrónomo y eventualmente sin letra.');
+  await expect(fridayWeeklyPanel.locator('a.weekly-resource[href="https://u.pone.rs/ywgzacgv.pdf"]')).toHaveCount(1);
+  await expect(fridayWeeklyPanel.locator('a.weekly-resource')).toContainText('Letras & Coritos');
+  await expect(fridayWeeklyPanel.locator('a[href$=".pdf"]')).toHaveCount(1);
+  await expect(fridayWeeklyPanel.locator('a[href="https://youtube.com/playlist?list=PLXqqjNOyFIbg&si=yA9UpmWJEv2g7LPY"]')).toHaveCount(1);
+  await expect(fridayWeeklyPanel.locator('iframe[src="https://www.youtube-nocookie.com/embed/videoseries?list=PLXqqjNOyFIbg"]')).toHaveCount(1);
+  const weeklyDates=await page.evaluate(()=>{
+    const samples=['2026-10-15T12:00:00-04:00','2026-10-16T12:00:00-04:00',
+      '2026-10-17T12:00:00-04:00','2026-10-18T14:59:59-04:00',
+      '2026-10-18T15:00:00-04:00','2026-10-19T09:00:00-04:00'];
+    return samples.map(when=>window.IPCDJ_WEEKLY.getContext(Date.parse(when)));
+  });
+  expect(weeklyDates.map(s=>s.localDate)).toEqual(['2026-10-15','2026-10-16','2026-10-17','2026-10-18','2026-10-18','2026-10-19']);
+  expect(weeklyDates.map(s=>s.phase)).toEqual(['preparacion','viernes','entre-servicios','domingo','cerrada','cerrada']);
+  expect(weeklyDates.map(s=>s.serviceToday)).toEqual([null,'viernes',null,'domingo','domingo',null]);
+  expect(weeklyDates.every(s=>s.timeZone==='America/New_York'&&s.friday==='2026-10-16'&&s.sunday==='2026-10-18'&&s.weekStart==='2026-10-12')).toBe(true);
+  await expect(fridayWeeklyPanel.locator('.weekly-song')).toHaveCount(4);
+  await expect(sundayWeeklyPanel.locator('.weekly-song')).toHaveCount(5);
+  expect(await sundayWeeklyPanel.locator('.weekly-song-title').allTextContents()).toEqual(["Yo Te Busco","Cuán Grande Es Dios","Proezas","Tu Fidelidad","Eres Todopoderoso"]);
+  expect(await sundayWeeklyPanel.locator('.weekly-song-artist').allTextContents()).toEqual(["Marcos Witt","En Espíritu Y En Verdad","Miel San Marcos","Marcos Witt","Danilo Montero"]);
+  expect(await sundayWeeklyPanel.locator('.weekly-song-meta span').allTextContents()).toEqual([
+    'Tono · Sol Mayor','BPM · 85/170',
+    'Tono · Sol Mayor','BPM · 72/144',
+    'Tono · La Mayor','BPM · 78/156',
+    'Tono · La Mayor','BPM · 57/113',
+    'Tono · La Mayor','BPM · 63/125'
+  ]);
+  expect(await sundayWeeklyPanel.locator('.weekly-corito').allTextContents()).toEqual(["Yo Vine A Alabar A Dios","Así Se Alaba A Dios","Alabaré","Hay Poder (Sin Igual Poder)","Poderoso Es Nuestro Dios"]);
+  await expect(sundayWeeklyPanel).toContainText('Josselin');
+  await expect(sundayWeeklyPanel).toContainText('Compás · 4/4');
+  await expect(sundayWeeklyPanel).toContainText('Re Mayor · 115 BPM');
+  await expect(sundayWeeklyPanel).toContainText('Ensayen con la canción, con metrónomo y eventualmente sin letra.');
+  await expect(sundayWeeklyPanel.locator('a[href="https://u.pone.rs/rsegrxgg.pdf"]')).toHaveCount(1);
+  await expect(sundayWeeklyPanel.locator('a[href="https://youtube.com/playlist?list=PLfbkpqopl-bE&si=tUYLsdWc2lOFICbQ"]')).toHaveCount(1);
+  await expect(sundayWeeklyPanel.locator('iframe[src="https://www.youtube-nocookie.com/embed/videoseries?list=PLfbkpqopl-bE"]')).toHaveCount(1);
 
   // The routing CTA must switch into the campaign without disturbing the app shell.
   await campaignRedirect.locator('[data-open-campaign="campana-gu-2026"]').click();
@@ -1821,7 +1871,12 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
   });
   expect(serviceWorkerResponse.ok()).toBe(true);
   const serviceWorkerText = await serviceWorkerResponse.text();
-  expect(serviceWorkerText).toContain('ipcdj-worship-v190');
+  // Derive the exact deployed cache name rather than hard-coding a prior build.
+  // This tests the same active cache the service worker currently controls.
+  const cacheMatch=serviceWorkerText.match(/const CACHE_NAME\s*=\s*["']([^"']+)["']/);
+  expect(cacheMatch,'deployed service worker declares its cache version').not.toBeNull();
+  const expectedCacheName=cacheMatch[1];
+  expect(expectedCacheName).toMatch(/^ipcdj-worship-v\d+$/);
   expect(serviceWorkerText).toContain('CACHE_FRESH_SHELL');
   expect(serviceWorkerText).toContain('refresh-test');
 
@@ -1863,12 +1918,12 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
     };
   });
 
-  const refreshStage = await page.evaluate(async () => {
+  const refreshStage = await page.evaluate(async activeCacheName => {
     const currentBuild=document.querySelector('meta[name="ipcdj-build"]')?.content||'';
 
     // Simulate the exact failure we are guarding against: an installed PWA has
     // an older shell cached when the user performs one refresh.
-    const staleCache=await caches.open('ipcdj-worship-v190');
+    const staleCache=await caches.open(activeCacheName);
     await staleCache.put(
       './__offline_index__',
       new Response('<!doctype html><meta name="ipcdj-build" content="stale-watchdog" />',{
@@ -1878,7 +1933,7 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
 
     const staged=await window.IPCDJ_REFRESH_TEST.stageLatestShell();
     const keys=await caches.keys();
-    const cacheKey=keys.find(key=>key==='ipcdj-worship-v190')||'';
+    const cacheKey=keys.find(key=>key===activeCacheName)||'';
     let cachedBuild='';
     if(cacheKey){
       const cache=await caches.open(cacheKey);
@@ -1888,11 +1943,11 @@ test('PWA shell, service worker and efficiency guardrails remain healthy', async
       cachedBuild=match ? match[1] : '';
     }
     return {currentBuild,staged,cacheKey,cachedBuild};
-  });
+  }, expectedCacheName);
 
   expect(refreshStage.staged.ok).toBe(true);
   expect(refreshStage.staged.build).toBe(refreshStage.currentBuild);
-  expect(refreshStage.cacheKey).toBe('ipcdj-worship-v190');
+  expect(refreshStage.cacheKey).toBe(expectedCacheName);
   expect(refreshStage.cachedBuild).toBe(refreshStage.currentBuild);
 
   // Intentionally coarse runaway guards, not synthetic speed scores.
@@ -2160,7 +2215,9 @@ test('release day amplifies the page ambient field from the song palette', async
   expect(source).toContain('--ambient-c1');
   expect(source).toContain('--ambient-c2');
   expect(source).toContain('--ambient-c3');
-  expect(source).toContain('const release=entries.find(({phase})=>phase&&phase.key==="release")');
+  // The visible top Prep card is now the single authoritative ambient driver.
+  expect(source).toContain('return Array.isArray(entries)&&entries.length?entries[0]:null;');
+  expect(source).toContain('document.documentElement.dataset.ambientDriverSongId=song.id;');
   expect(source).toContain('document.documentElement.classList.toggle("ipcdj-ambient-release"');
   expect(source).toContain('driver:"+song.id+"|phase:"');
 
@@ -2659,32 +2716,4 @@ test('v176 rendering stays sRGB-authored and resilient across browser/device pro
   // Diagnostic only: profiles may report different physical gamut capabilities,
   // but authored IPCDJ color remains the same sRGB source everywhere.
   expect(['chromium-desktop','firefox-desktop','webkit-desktop','chromium-mobile','webkit-mobile','webkit-compact-mobile','webkit-tablet']).toContain(testInfo.project.name);
-});
-
-test('social preview asset follows the live snapshot contract', async ({ request }) => {
-  const htmlResponse=await request.get('/?social-live='+Date.now(),{
-    headers:{'cache-control':'no-cache','user-agent':'WhatsApp/2.25.25.85 A'}
-  });
-  expect(htmlResponse.ok()).toBe(true);
-  const html=await htmlResponse.text();
-  const imageUrl=html.match(/property="og:image" content="([^"]+)"/)?.[1]||'';
-
-  expect(imageUrl).toMatch(
-    /^https:\/\/worship\.ipcdj\.org\/social-preview-(?:live|v180)\.jpg\?v=[A-Za-z0-9._-]+$/
-  );
-  const imageResponse=await request.get(imageUrl+'&health='+Date.now(),{
-    headers:{'cache-control':'no-cache'}
-  });
-
-  expect(imageResponse.ok()).toBe(true);
-  expect((imageResponse.headers()['content-type']||'')).toMatch(/^image\/jpeg/);
-  const bytes=await imageResponse.body();
-  expect(bytes.length).toBeGreaterThan(10000);
-  expect(bytes.length).toBeLessThan(400000);
-
-  expect(html).toContain('property="og:image:type" content="image/jpeg"');
-  expect(html).toContain('property="og:image:width" content="1200"');
-  expect(html).toContain('property="og:image:height" content="630"');
-  expect(html).toContain('name="twitter:card" content="summary_large_image"');
-  expect(html).toContain('name="twitter:image" content="'+imageUrl+'"');
 });

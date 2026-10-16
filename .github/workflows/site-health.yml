@@ -52,6 +52,12 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Validate inline JavaScript and service worker syntax
+        shell: bash
+        run: |
+          node ../scripts/check-inline-js.mjs
+          node --check ../sw.js
+
       - name: Validate notification platform contracts
         shell: bash
         run: |
