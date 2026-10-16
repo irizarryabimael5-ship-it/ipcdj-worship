@@ -443,14 +443,14 @@ test('special-event lifecycle is clock-deterministic and retains an archived sou
     await expect(eventPanel.locator('[data-campaign-day]')).toHaveCount(3);
     await expect(weeklyDashboard).toHaveClass(/weekly-event-active/);
     expect(await page.evaluate(()=>window.IPCDJ_NAV.getVisibleTabs()))
-      .toEqual(['inicio','campana-gu-2026','worship-semanal']);
+      .toEqual(['inicio','campana-gu-2026','worship-semanal','solicitudes']);
 
     await page.evaluate(at=>window.IPCDJ_CATALOG_TEST.renderAt(at),expiry);
     await expect(eventTab).toHaveCount(0);
     await expect(eventPanel).toHaveCount(0);
     await expect(weeklyDashboard).not.toHaveClass(/weekly-event-active/);
     expect(await page.evaluate(()=>window.IPCDJ_NAV.getVisibleTabs()))
-      .toEqual(['inicio','worship-semanal']);
+      .toEqual(['inicio','worship-semanal','solicitudes']);
     await expect(page.locator('[data-weekly-archive-cycle="2026-10-11"]')).toHaveCount(1);
     await expect(page.locator('[data-weekly-archive-cycle="2026-10-04"]')).toHaveCount(1);
 
@@ -468,6 +468,51 @@ test('special-event lifecycle is clock-deterministic and retains an archived sou
   }finally{
     await page.evaluate(()=>window.IPCDJ_CATALOG_TEST.resume());
   }
+});
+
+test('FEATURES song request pilot is isolated, themed, accessible and preview-ready',async({page,request})=>{
+  await openHealthyPage(page);
+  const source=await request.get('/?requests-pilot='+Date.now(),{headers:{'cache-control':'no-cache'}});
+  expect(source.ok()).toBe(true);
+  const html=await source.text();
+  expect(html).toContain('itunesTrackId:"1884087646"');
+  expect(html).toContain('https://open.spotify.com/track/4DYvC8ozC0SF3SoyIpkuiY');
+  expect(html).toContain('REQUESTED_SONGS_SOURCE');
+  await expect(page.locator('#tab-solicitudes')).toHaveCount(1);
+  await expect(page.locator('#panel-solicitudes')).toBeHidden();
+  await expect(page.locator('#upcoming-songs [data-request-song-id]')).toHaveCount(0);
+  await expect(page.locator('#current-song-cards [data-request-song-id]')).toHaveCount(0);
+  await expect(page.locator('#introduced-songs [data-request-song-id]')).toHaveCount(0);
+  await page.locator('#tab-solicitudes').click();
+  const panel=page.locator('#panel-solicitudes');
+  await expect(panel).toBeVisible();
+  await expect(page.locator('#tab-solicitudes')).toHaveAttribute('aria-selected','true');
+  await expect(page.locator('#panel-inicio')).toBeHidden();
+  await expect(page.locator('#panel-worship-semanal')).toBeHidden();
+  const cards=panel.locator('[data-request-song-id]');
+  await expect(cards).toHaveCount(1);
+  const card=cards.first();
+  await expect(card).toHaveAttribute('data-request-song-id','request-hablame-de-cerca-grupo-grace');
+  await expect(card.locator('.song-top h3')).toHaveText('Háblame de Cerca');
+  await expect(card.locator('.song-top p')).toHaveText('Grupo Grace & Kairo Worship');
+  await expect(card.locator('.song-date')).toHaveText('Solicitada');
+  await expect(card.locator('.song-meta')).toHaveCount(0);
+  await expect(card.locator('.future-artwork-ghost')).toHaveCount(1);
+  await expect(card.locator('.preview-row-future .preview-button')).toBeVisible();
+  await expect(card).toHaveClass(/future-themed/);
+  const computed=await card.evaluate(el=>({
+    palette:[1,2,3].map(i=>getComputedStyle(el).getPropertyValue('--future-c'+i).trim()),
+    noOverflow:document.documentElement.scrollWidth<=innerWidth+4
+  }));
+  expect(computed.palette.every(s=>s.length>4)).toBe(true);
+  expect(computed.noOverflow).toBe(true);
+  await page.locator('#tab-solicitudes').focus();
+  await page.keyboard.press('ArrowLeft');
+  await expect(page.locator('#tab-worship-semanal')).toHaveAttribute('aria-selected','true');
+  await expect(panel).toBeHidden();
+  await expect(page.locator('#panel-worship-semanal')).toBeVisible();
+  expect(await page.evaluate(()=>window.IPCDJ_CATALOG.songs.some(song=>song.id==='request-hablame-de-cerca-grupo-grace'))).toBe(false);
+  expect(await page.evaluate(()=>window.IPCDJ_CATALOG.tbd.some(song=>song.id==='request-hablame-de-cerca-grupo-grace'))).toBe(false);
 });
 
 test('primary tabs, weekly panel and special-event lifecycle remain healthy', async ({ page }, testInfo) => {
@@ -572,7 +617,7 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   const initialCampaign=navLayout.tabStyles.find(tab=>tab.key==='campana-gu-2026');
   const initialWeekly=navLayout.tabStyles.find(tab=>tab.key==='worship-semanal');
   const initialTabOrder=await page.evaluate(()=>window.IPCDJ_NAV.getVisibleTabs());
-  expect(initialTabOrder).toEqual(['inicio','campana-gu-2026','worship-semanal']);
+  expect(initialTabOrder).toEqual(['inicio','campana-gu-2026','worship-semanal','solicitudes']);
   expect(initialSelected?.selected).toBe(true);
   expect(initialSelected?.accentHeight).toBeGreaterThanOrEqual(3);
   expect(initialSelected?.accentOpacity).toBeGreaterThan(.9);
@@ -1062,7 +1107,7 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   expect(expiredEventState.eventExists).toBe(false);
   expect(expiredEventState.activeKey).toBe('inicio');
   expect(expiredEventState.homeVisible).toBe(true);
-  expect(expiredEventState.visibleTabs).toEqual(['inicio','worship-semanal']);
+  expect(expiredEventState.visibleTabs).toEqual(['inicio','worship-semanal','solicitudes']);
   expect(expiredEventState.weeklyEventActive).toBe(false);
   expect(expiredEventState.weeklyRedirectVisible).toBe(false);
 

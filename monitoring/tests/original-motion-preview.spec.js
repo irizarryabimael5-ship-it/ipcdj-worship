@@ -40,7 +40,7 @@ test.describe('v193 opt-in historical Dios de Milagros motion (staging only)', (
     expect(s.reduced).toBe(true);
     expect(s.ambientName).toBe('none');
     expect(s.sheenName).toBe('none');
-    expect(s.build).toBe('campana-weekend-v201');
+    expect(s.build).toBe('campana-weekend-v202');
     expect(s.reportVisible).toBe(true);
     expect(s.noHorizontalOverflow).toBe(true);
   });

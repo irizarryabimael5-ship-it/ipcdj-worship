@@ -64,7 +64,7 @@ test.describe('First-paint Reinas art, scrolling glass, essential navigation',()
     await page.goto('/',{waitUntil:'domcontentloaded'});
     await expect(page.locator('[data-song-id="reinas-por-la-eternidad"]')).toBeAttached();
     await expect(page.locator('[data-song-id="no-fallaras"]')).toBeAttached();
-    await expect(page.locator('.site-tab')).toHaveCount(2);
+    await expect(page.locator('.site-tab')).toHaveCount(3);
     await page.locator('#tab-worship-semanal').click();
     await expect(page.locator('#panel-worship-semanal')).toBeVisible();
     await page.locator('#weekly-tab-domingo').click();

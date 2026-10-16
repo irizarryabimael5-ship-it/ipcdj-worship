@@ -6,7 +6,7 @@
   <meta name="ipcdj-environment" content="staging" />
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="campana-weekend-v201" />
+  <meta name="ipcdj-build" content="campana-weekend-v202" />
   <script id="ipcdj-original-visual-preview-init">
     // Explicit staging-only opt-in; default users keep accessibility preferences.
     (()=>{try{
@@ -4239,6 +4239,21 @@
        The old scroll-only bypass caused visible flat-to-frosted flashes. */
   </style>
 
+  <style id="ipcdj-song-requests-styles">
+    /* Reuses the established Después gradients, artwork and circular audio preview. */
+    #panel-solicitudes .requests-list-card{padding-bottom:22px}
+    #panel-solicitudes .requests-coming-note{
+      margin:17px 2px 0;color:var(--muted);font-size:.82rem;
+      line-height:1.5;text-align:center;
+    }
+    #requested-songs .song-row{isolation:isolate}
+    #requested-songs .song-date{margin-top:12px}
+    @media(max-width:520px){
+      #panel-solicitudes .requests-list-card{padding-bottom:19px}
+      #requested-songs .song-row{min-width:0}
+    }
+  </style>
+
   <!-- Staging trial of historical Dios de Milagros motion; ?visual=original only. -->
   <style id="ipcdj-original-motion-preview-css">
     html.ipcdj-original-motion-preview .ambient-field{transition:opacity 2.4s cubic-bezier(.4,0,.2,1)!important}
@@ -4622,6 +4637,9 @@
         </button>
         <button class="site-tab" id="tab-worship-semanal" type="button" role="tab" aria-selected="false" aria-controls="panel-worship-semanal" tabindex="-1" data-site-tab="worship-semanal">
           <span class="site-tab-label">Worship semanal</span>
+        </button>
+        <button class="site-tab" id="tab-solicitudes" type="button" role="tab" aria-selected="false" aria-controls="panel-solicitudes" tabindex="-1" data-site-tab="solicitudes">
+          <span class="site-tab-label">Solicitudes</span>
         </button>
       </div>
     </nav>
@@ -5089,6 +5107,17 @@
     </footer>
 
       </section>
+
+      <!-- REQUEST_SONGS_PANEL_START -->
+      <section class="site-tab-panel" id="panel-solicitudes" role="tabpanel" aria-labelledby="tab-solicitudes" tabindex="0" hidden>
+        <section class="card requests-list-card" aria-labelledby="requests-title">
+          <h2 class="section-title" id="requests-title">Canciones solicitadas</h2>
+          <p class="section-note">Sugerencias de canciones para considerar en el futuro. Una solicitud no significa que esté programada para aprenderse o estrenarse.</p>
+          <div class="songs" id="requested-songs" aria-live="polite"></div>
+          <p class="requests-coming-note">Formulario de solicitudes: próximamente.</p>
+        </section>
+      </section>
+      <!-- REQUEST_SONGS_PANEL_END -->
 
       <section class="site-tab-panel" id="panel-worship-semanal" role="tabpanel" aria-labelledby="tab-worship-semanal" tabindex="0" hidden>
         <div class="weekly-dashboard" data-weekly-dashboard data-weekly-state="active" data-weekly-cycle="2026-10-18" data-weekly-rollover-at="2026-10-18T15:00:00-04:00" data-weekly-special-event="campana-gu-2026">
@@ -5702,6 +5731,7 @@
       });
 
       activeSiteTabKey=key;
+      if(key==="solicitudes")window.dispatchEvent(new Event("ipcdj:requests-visible"));
       if(focus)button.focus({preventScroll:true});
       return true;
     }
@@ -7170,6 +7200,33 @@
     if(tbdErrors.length)console.error("IPCDJ TBD catalog validation failed",tbdErrors);
     // Separate hydration lookup: these songs are not active or released.
     const futureSongById=new Map([...songPipeline,...tbdSongs].map(song=>[song.id,song]));
+    // FEATURES sidebar: accepted community requests have no release dates,
+    // no managed pipeline membership and no automation or notification side effects.
+    const REQUESTED_SONGS_SOURCE=Object.freeze([
+      Object.freeze({
+        id:"request-hablame-de-cerca-grupo-grace",
+        title:"Háblame de Cerca",
+        artist:"Grupo Grace & Kairo Worship",
+        requestedAt:"2026-10-16T17:26:38Z",
+        status:"Solicitada",
+        trackUrl:"https://open.spotify.com/track/4DYvC8ozC0SF3SoyIpkuiY",
+        artworkUrl:"https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/f5/67/f5/f567f59e-abdd-6ea5-fdd2-ea84ec36b657/820200377111.jpg/800x800cc.jpg",
+        artworkSource:"apple-music-official-2026-single",
+        futurePalette:[[29,59,80],[56,88,106],[157,113,72]],
+        itunesTrackId:"1884087646",
+        previewAudioProvider:"itunes",
+        previewClipDuration:30,
+        previewUseFullAsset:true,
+        previewFadeIn:.70,
+        previewFadeOut:1.60
+      })
+    ]);
+    const requestedSongs=Object.freeze(REQUESTED_SONGS_SOURCE
+      .filter(song=>/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(song.id) &&
+        song.status==="Solicitada" &&
+        !songPipelineById.has(song.id) && !futureSongById.has(song.id))
+      .slice().sort((a,b)=>Date.parse(b.requestedAt)-Date.parse(a.requestedAt)||a.id.localeCompare(b.id)));
+
     const catalogErrors=Object.freeze(SONG_CATALOG_VALIDATION.issues.filter(issue=>issue.level==="error"));
     const catalogWarnings=Object.freeze(SONG_CATALOG_VALIDATION.issues.filter(issue=>issue.level==="warning"));
     const catalogVisualNotReady=Object.freeze(
@@ -11021,6 +11078,47 @@
       scheduleFutureHydration(future,container);
     }
 
+    // FEATURES pilot: requests are independent of Después/release scheduling.
+    // The same validated card themes, lazy-preview controls and provider lookup
+    // are reused; the existing preview engine retains exclusive audio ownership.
+    function renderRequestedSongs(){
+      const container=$("requested-songs");
+      const panel=$("panel-solicitudes");
+      if(!container||!panel)return;
+      container.innerHTML=requestedSongs.length
+        ? requestedSongs.map(song=>{
+            const preview=previewRowMarkup(song,"future");
+            return `
+        <div class="song-row" data-request-song-id="${escapeHtml(song.id)}" data-song-id="${escapeHtml(song.id)}" data-request-status="requested">
+          <span class="future-artwork-blur" aria-hidden="true"></span>
+          <span class="future-artwork-ghost" aria-hidden="true"></span>
+          ${preview?'<div class="future-preview-corner">'+preview+'</div>':""}
+          <div class="song-top">
+            <div>
+              <h3 class="notranslate" translate="no">${escapeHtml(song.title)}</h3>
+              <p class="notranslate" translate="no">${escapeHtml(song.artist)}</p>
+              <div class="song-date">Solicitada</div>
+            </div>
+          </div>
+        </div>`;
+          }).join("")
+        : '<div class="song-row"><div class="song-top"><div><h3>Sin solicitudes publicadas</h3><p>Aquí aparecerán las canciones verificadas.</p></div></div></div>';
+      requestedSongs.forEach(song=>{
+        const card=container.querySelector('[data-request-song-id="'+CSS.escape(song.id)+'"]');
+        if(card){
+          primeFutureCardTheme(song,card);
+          if(song.artworkUrl)applyFutureArtwork(song,song.artworkUrl,card);
+        }
+      });
+      // Lazy initialization: no preview fetch until the requests tab opens.
+      window.addEventListener("ipcdj:requests-visible",()=>{
+        requestedSongs.forEach(song=>{
+          const card=container.querySelector('[data-request-song-id="'+CSS.escape(song.id)+'"]');
+          if(card)hydrateFutureSongCard(song,card);
+        });
+      });
+    }
+
     function spanishReleaseLabel(song){
       return song.releaseLongLabel||formatSongLongDate(song.releaseAt);
     }
@@ -11145,6 +11243,7 @@
     });
 
     renderCurrent(calibratedNow());
+    renderRequestedSongs();
 
     let liveClockTimer=null;
     let catalogHealthRenderLocked=false;
