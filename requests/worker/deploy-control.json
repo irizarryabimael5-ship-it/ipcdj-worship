@@ -1,6 +1,6 @@
 {
   "enabled": true,
   "environment": "staging",
-  "approvedTestedSha": "809a9f35bb6f99869981980f3331d9934ff5f093",
-  "note": "Authorized once for isolated Cloudflare Staging Worker D1 schema and backend only. Intake, email and automatic publication remain OFF; no Live release permitted."
+  "approvedTestedSha": "d64b5fae8fc904d9893486e070310f404deb48eb",
+  "note": "Second authorized Staging-only rollout after Cloudflare Workers Metadata Read-Only was added. The isolated D1 schema is idempotent; ingestion, notifications and auto publishing must stay disabled."
 }
