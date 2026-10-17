@@ -1,6 +1,6 @@
 {
   "enabled": true,
   "environment": "staging",
-  "approvedTestedSha": "380e832a8bbd7decd98529da6e2c34aef5dc8d15",
-  "note": "Owner-approved one-shot email acceptance test from solicitudes@ipcdj.org to ipcdjofficial@gmail.com. Exact source staging backend tests passed. D1 fence enforces at-most-once, form+outbox remain disabled."
+  "approvedTestedSha": "570fc510c9ca98447a52119115b42f8639515973",
+  "note": "Re-deploy Staging after provider-accepted email test, turning MAIL_PROBE_ENABLED=false. Does not send any emails; normal EMAIL_NOTIFICATIONS_ENABLED and INGEST_ENABLED stay false. Preserves D1 audit."
 }
