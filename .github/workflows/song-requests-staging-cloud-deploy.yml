@@ -64,7 +64,9 @@ jobs:
              e.vars?.INGEST_ENABLED!=='false' ||
              e.vars?.EMAIL_NOTIFICATIONS_ENABLED!=='false' ||
              e.vars?.EMAIL_TO!=='ipcdjofficial@gmail.com' ||
-             e.vars?.EMAIL_FROM!=='' ||
+             e.vars?.EMAIL_FROM!=='solicitudes@ipcdj.org' ||
+             e.vars?.MAIL_PROBE_ENABLED!=='true' ||
+             e.vars?.MAIL_PROBE_ID!=='ipcdj-email-probe-20261017-01' ||
              !Array.isArray(e.send_email) || e.send_email.length!==1 ||
              e.send_email[0]?.name!=='EMAIL' ||
              e.send_email[0]?.destination_address!=='ipcdjofficial@gmail.com' ||

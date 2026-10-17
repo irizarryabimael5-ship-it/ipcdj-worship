@@ -49,6 +49,12 @@ jobs:
           if(!p.includes('ipcdj-requests-staging') ||
              !p.includes('REQUESTS_STAGING_D1_ID'))
             throw new Error('Missing isolated protected deployment environment');
+          if(!p.includes("e.vars?.EMAIL_FROM!=='solicitudes@ipcdj.org'") ||
+             !p.includes("e.vars?.MAIL_PROBE_ID!=='ipcdj-email-probe-20261017-01'") ||
+             !p.includes("e.vars?.MAIL_PROBE_ENABLED!=='true'"))
+            throw new Error('Deploy guard must match only owner-approved one-shot Gmail probe');
+          if(!p.includes('Inspect one-shot Gmail probe result after Cloudflare Cron'))
+            throw new Error('Remote probe result verification missing');
           if(!p.includes('REMOTE HEALTH PASS'))
             throw new Error('Remote deployed health validation missing');
           const validDisabled=(control.enabled===false && control.approvedTestedSha==='');
