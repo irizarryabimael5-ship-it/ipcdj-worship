@@ -1,6 +1,6 @@
 {
   "enabled": true,
   "environment": "staging",
-  "approvedTestedSha": "f91b7de0be59ada0f9191c19dba09c4a21c8ceee",
-  "note": "OWNER AUTHORIZATION: one controlled Cloudflare Staging email acceptance test FROM solicitudes@ipcdj.org TO verified ipcdjofficial@gmail.com. DB fence enforces a single attempt. Normal notification/outbox and intake flags remain disabled. Do not promote Live."
+  "approvedTestedSha": "380e832a8bbd7decd98529da6e2c34aef5dc8d15",
+  "note": "Owner-approved one-shot email acceptance test from solicitudes@ipcdj.org to ipcdjofficial@gmail.com. Exact source staging backend tests passed. D1 fence enforces at-most-once, form+outbox remain disabled."
 }
