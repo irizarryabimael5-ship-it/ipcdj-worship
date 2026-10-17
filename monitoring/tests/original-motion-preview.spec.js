@@ -42,7 +42,7 @@ test.describe('v193 opt-in historical Dios de Milagros motion (staging only)', (
     expect(s.sheenName).toBe('none');
     // Exact deployed source bytes/build are covered by site-health preflight;
     // this behavior test must not require a retired historical build number.
-    expect(s.build).toMatch(/^campana-weekend-v\\d+$/);
+    expect(s.build).toMatch(/^campana-weekend-v\d+$/);
     expect(s.reportVisible).toBe(true);
     expect(s.noHorizontalOverflow).toBe(true);
   });
