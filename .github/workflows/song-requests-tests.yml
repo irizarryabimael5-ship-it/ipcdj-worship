@@ -48,9 +48,13 @@ jobs:
             throw new Error('Missing isolated protected deployment environment');
           if(!p.includes('REMOTE HEALTH PASS'))
             throw new Error('Remote deployed health validation missing');
-          if(control.enabled!==false || control.environment!=='staging' ||
-             control.approvedTestedSha!=='')
-            throw new Error('Initial deployment marker must remain disabled');
+          const validDisabled=(control.enabled===false && control.approvedTestedSha==='');
+          const validAuthorized=(control.enabled===true &&
+            /^[a-f0-9]{40}$/.test(control.approvedTestedSha));
+          if(control.environment!=='staging'||(!validDisabled&&!validAuthorized))
+            throw new Error('Deployment marker must be disabled or pin a full tested SHA');
+          // The deploy workflow performs the stronger commit-message,
+          // one-file-diff and exact-parent-SHA authorization check before any writes.
           NODE
       - name: Verify no production routing / no active intake by default
         shell: bash
