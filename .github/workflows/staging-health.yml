@@ -36,6 +36,7 @@ jobs:
         run: |
           node scripts/check-inline-js.mjs
           node --check sw.js
+          node --check requests/client.js
 
       - name: Check staging endpoint
         id: endpoint
@@ -135,6 +136,7 @@ jobs:
           test -f dist/sw.js
           test -f dist/_headers
           test -f dist/notifications/client.js
+          test -f dist/requests/client.js
           test -f dist/notifications/config.json
 
       - name: Install health test dependencies

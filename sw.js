@@ -1,6 +1,6 @@
 importScripts("./notifications/sw-foundation.js");
 
-const CACHE_NAME = "ipcdj-worship-v202";
+const CACHE_NAME = "ipcdj-worship-v203";
 const OFFLINE_PAGE = "./__offline_index__";
 const STATIC_ASSETS = [
   "./favicon.svg",
@@ -31,7 +31,8 @@ const STATIC_ASSETS = [
   "./notifications/sw-foundation.js",
   "./notifications/client.js",
   "./notifications/ui.js",
-  "./notifications/config.json"
+  "./notifications/config.json",
+  "./requests/client.js"
 ];
 
 self.addEventListener("install",event=>{

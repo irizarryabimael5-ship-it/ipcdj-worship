@@ -19,6 +19,7 @@ copy_file sw.js
 copy_file manifest-v9.webmanifest
 copy_file robots.txt
 copy_file _headers
+copy_file requests/client.js
 
 for path in   app-icon-safe.svg   apple-music.svg   apple-touch-icon.png   favicon-32.png   favicon.ico   favicon.svg   icon-192.png   icon-512.png   launch-logo-white.svg   social-preview-v176.jpg   social-preview-v180.jpg   spotify.svg   youtube-music.svg
 do
@@ -36,6 +37,7 @@ test -f "$DIST/index.html"
 test -f "$DIST/sw.js"
 test -f "$DIST/_headers"
 test -f "$DIST/notifications/client.js"
+test -f "$DIST/requests/client.js"
 test -f "$DIST/notifications/config.json"
 
 echo "Prepared IPCDJ Worship staging assets in $DIST"

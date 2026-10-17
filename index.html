@@ -6,7 +6,7 @@
   <meta name="ipcdj-environment" content="staging" />
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="campana-weekend-v202" />
+  <meta name="ipcdj-build" content="campana-weekend-v203" />
   <script id="ipcdj-original-visual-preview-init">
     // Explicit staging-only opt-in; default users keep accessibility preferences.
     (()=>{try{
@@ -4248,6 +4248,30 @@
     }
     #requested-songs .song-row{isolation:isolate}
     #requested-songs .song-date{margin-top:12px}
+    #panel-solicitudes .requests-feed-status{color:var(--muted);font-size:.79rem;line-height:1.5;margin:0 0 13px}
+    #panel-solicitudes .requests-form-card{margin-top:16px}
+    #panel-solicitudes .requests-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0 14px}
+    #panel-solicitudes .requests-fields label{display:flex;flex-direction:column;gap:8px;min-width:0;color:#e9edf3;font-size:.85rem;font-weight:650}
+    #panel-solicitudes .requests-fields .requests-field-wide{grid-column:1/-1}
+    #panel-solicitudes .requests-fields input,#panel-solicitudes .requests-fields textarea{
+      width:100%;box-sizing:border-box;color:#fff;background:rgba(7,13,26,.65);
+      border:1px solid rgba(255,255,255,.20);border-radius:12px;
+      font:inherit;font-weight:400;padding:12px 13px;min-height:46px;
+    }
+    #panel-solicitudes .requests-fields textarea{resize:vertical;min-height:80px}
+    #panel-solicitudes .requests-fields :is(input,textarea):focus-visible,
+    #panel-solicitudes .requests-submit:focus-visible{outline:2px solid #95ceff;outline-offset:3px}
+    #panel-solicitudes .requests-privacy{font-size:.77rem;line-height:1.55;color:var(--muted);margin:8px 0 13px}
+    #panel-solicitudes .requests-submit{min-height:46px;padding:11px 22px;border-radius:12px;
+      border:1px solid rgba(255,255,255,.24);background:linear-gradient(125deg,#244d8b,#3669a0);
+      color:#fff;font:inherit;font-weight:700;cursor:pointer;transition:opacity .2s,box-shadow .2s}
+    #panel-solicitudes .requests-submit:disabled{opacity:.48;cursor:not-allowed}
+    #panel-solicitudes .requests-form-status{font-size:.84rem;line-height:1.55;color:var(--muted);margin:12px 0 0}
+    #panel-solicitudes .requests-form-status[data-state="success"]{color:#9ae9c3}
+    #panel-solicitudes .requests-form-status[data-state="error"]{color:#ffd0af}
+    #panel-solicitudes .requests-turnstile{margin:12px 0}
+    #panel-solicitudes .requests-no-preview{font-size:.77rem;color:var(--muted);margin:9px 0 0}
+    @media(max-width:560px){#panel-solicitudes .requests-fields{grid-template-columns:1fr}}
     @media(max-width:520px){
       #panel-solicitudes .requests-list-card{padding-bottom:19px}
       #requested-songs .song-row{min-width:0}
@@ -4302,6 +4326,8 @@
     }
     html.ipcdj-original-motion-preview .reveal.reveal-pending.visible{opacity:1!important;transform:translateY(0)!important}
   </style>
+  <!-- Staging-only user requests client; Worker stores secrets, never the browser. -->
+  <script src="/requests/client.js" defer></script>
 </head>
 <body>
   <div id="ipcdj-launch" class="launch-armed" role="status" aria-label="Abriendo IPCDJ Worship">
@@ -5113,8 +5139,32 @@
         <section class="card requests-list-card" aria-labelledby="requests-title">
           <h2 class="section-title" id="requests-title">Canciones solicitadas</h2>
           <p class="section-note">Sugerencias de canciones para considerar en el futuro. Una solicitud no significa que esté programada para aprenderse o estrenarse.</p>
+          <p class="requests-feed-status" id="requested-feed-status" role="status" aria-live="polite">Mostrando canciones solicitadas.</p>
           <div class="songs" id="requested-songs" aria-live="polite"></div>
-          <p class="requests-coming-note">Formulario de solicitudes: próximamente.</p>
+        </section>
+        <section class="card requests-form-card" aria-labelledby="requests-form-title">
+          <h2 class="section-title" id="requests-form-title">Solicita una canción</h2>
+          <p class="section-note">Puedes sugerir una canción para el ministerio. Ninguna sugerencia queda programada automáticamente en nuestros cultos.</p>
+          <form id="song-request-form" autocomplete="on" novalidate>
+            <div class="requests-fields">
+              <label>Nombre de la canción <span aria-hidden="true">*</span>
+                <input name="title" type="text" maxlength="120" required placeholder="Título de la canción" autocomplete="off" />
+              </label>
+              <label>Artista <span aria-hidden="true">*</span>
+                <input name="artist" type="text" maxlength="120" required placeholder="Cantante o grupo" autocomplete="off" />
+              </label>
+              <label class="requests-field-wide">Enlace a la grabación (opcional)
+                <input name="link" type="url" maxlength="500" inputmode="url" placeholder="Spotify, Apple Music o YouTube" />
+              </label>
+              <label class="requests-field-wide">Comentario (opcional)
+                <textarea name="comment" maxlength="350" rows="3" placeholder="Versión o detalle que quieras compartir"></textarea>
+              </label>
+            </div>
+            <div id="requests-turnstile" class="requests-turnstile" aria-label="Verificación de seguridad"></div>
+            <p class="requests-privacy">No solicitamos tu correo ni teléfono. Evita incluir información personal en tu comentario.</p>
+            <button class="requests-submit" id="requests-submit" type="submit" disabled aria-disabled="true">Enviar solicitud</button>
+            <p class="requests-form-status" id="requests-form-status" role="status" aria-live="polite">Estamos preparando las solicitudes. Pronto podrás enviar una canción.</p>
+          </form>
         </section>
       </section>
       <!-- REQUEST_SONGS_PANEL_END -->
@@ -7221,7 +7271,7 @@
         previewFadeOut:1.60
       })
     ]);
-    const requestedSongs=Object.freeze(REQUESTED_SONGS_SOURCE
+    let requestedSongs=Object.freeze(REQUESTED_SONGS_SOURCE
       .filter(song=>/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(song.id) &&
         song.status==="Solicitada" &&
         !songPipelineById.has(song.id) && !futureSongById.has(song.id))
@@ -11097,7 +11147,8 @@
             <div>
               <h3 class="notranslate" translate="no">${escapeHtml(song.title)}</h3>
               <p class="notranslate" translate="no">${escapeHtml(song.artist)}</p>
-              <div class="song-date">Solicitada</div>
+              <div class="song-date">Solicitada${Number(song.requestCount)>1?" · "+Math.min(Number(song.requestCount),999999)+" solicitudes":""}</div>
+              ${!preview?'<p class="requests-no-preview">Adelanto no disponible</p>':""}
             </div>
           </div>
         </div>`;
@@ -11110,14 +11161,68 @@
           if(song.artworkUrl)applyFutureArtwork(song,song.artworkUrl,card);
         }
       });
-      // Lazy initialization: no preview fetch until the requests tab opens.
-      window.addEventListener("ipcdj:requests-visible",()=>{
-        requestedSongs.forEach(song=>{
-          const card=container.querySelector('[data-request-song-id="'+CSS.escape(song.id)+'"]');
-          if(card)hydrateFutureSongCard(song,card);
-        });
+      // Hydration stays lazy and is triggered by a single listener below.
+    }
+    function hydrateVisibleRequests(){
+      const container=$("requested-songs");
+      if(!container)return;
+      requestedSongs.forEach(song=>{
+        const card=container.querySelector('[data-request-song-id="'+CSS.escape(song.id)+'"]');
+        // No guessed provider match when an accepted request has no verified asset.
+        if(card&&(song.artworkUrl||hasSongPreviewSource(song)))hydrateFutureSongCard(song,card);
       });
     }
+    window.addEventListener("ipcdj:requests-visible",hydrateVisibleRequests);
+    function verifiedRequestedMedia(value,kind){
+      if(typeof value!=="string"||value.length>600)return "";
+      try{
+        const url=new URL(value);
+        if(url.protocol!=="https:"||url.username||url.password||url.port)return "";
+        const host=url.hostname.toLowerCase();
+        if(kind==="art"&&!(/^is[0-9]*-ssl\.mzstatic\.com$/.test(host)||host==="i.scdn.co"))return "";
+        if(kind==="audio"&&!["audio-ssl.itunes.apple.com","audio.itunes.apple.com"].includes(host))return "";
+        return url.href;
+      }catch(_){return ""}
+    }
+    const requestedCanonical=(title,artist)=>[title,artist].map(value=>
+      String(value||"").normalize("NFKD").replace(/[\u0300-\u036f]/g,"")
+      .toLowerCase().replace(/[^a-z0-9]+/g," ").trim()).join("|");
+    window.addEventListener("ipcdj:requests-published-feed",event=>{
+      const published=Array.isArray(event.detail?.songs)?event.detail.songs.slice(0,100):[];
+      const songs=new Map();
+      for(const item of published){
+        if(!item||item.status!=="Solicitada")continue;
+        const id=String(item.id||""),title=String(item.title||"").trim(),artist=String(item.artist||"").trim();
+        const stamp=Date.parse(item.publishedAt);
+        if(!/^[a-z0-9-]{8,64}$/i.test(id)||!title||title.length>120||!artist||artist.length>120||
+           !Number.isFinite(stamp)||songPipelineById.has(id)||futureSongById.has(id))continue;
+        const metadata=item.metadata&&typeof item.metadata==="object"&&!Array.isArray(item.metadata)?item.metadata:{};
+        const palette=validFuturePalette(metadata.futurePalette)
+          ? metadata.futurePalette.slice(0,3).map(rgb=>rgb.map(n=>Math.round(Number(n)))):undefined;
+        const artworkUrl=verifiedRequestedMedia(item.artworkUrl,"art");
+        const previewAudioUrl=verifiedRequestedMedia(item.previewUrl,"audio");
+        const itunesTrackId=/^[1-9][0-9]{0,19}$/.test(String(metadata.itunesTrackId||""))
+          ?String(metadata.itunesTrackId):"";
+        const count=Number.isSafeInteger(item.requestCount)&&item.requestCount>0
+          ?Math.min(item.requestCount,999999):1;
+        const song={id:"community-"+id.toLowerCase(),title,artist,status:"Solicitada",
+          requestedAt:new Date(stamp).toISOString(),artworkUrl,
+          artworkSource:artworkUrl?"published-provider":"",futurePalette:palette,
+          previewAudioUrl,itunesTrackId,previewClipDuration:30,
+          previewUseFullAsset:true,requestCount:count};
+        const key=requestedCanonical(title,artist);
+        if(key!=="|"&&!songs.has(key))songs.set(key,song);
+      }
+      // Retain the explicitly approved Staging pilot card without duplicates.
+      REQUESTED_SONGS_SOURCE.forEach(song=>{
+        const key=requestedCanonical(song.title,song.artist);
+        if(!songs.has(key))songs.set(key,song);
+      });
+      requestedSongs=Object.freeze([...songs.values()].sort((a,b)=>
+        Date.parse(b.requestedAt)-Date.parse(a.requestedAt)||a.id.localeCompare(b.id)));
+      renderRequestedSongs();
+      if(!$("panel-solicitudes")?.hidden)hydrateVisibleRequests();
+    });
 
     function spanishReleaseLabel(song){
       return song.releaseLongLabel||formatSongLongDate(song.releaseAt);
