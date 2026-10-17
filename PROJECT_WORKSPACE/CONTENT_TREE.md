@@ -80,3 +80,15 @@ This workspace is isolated to the IPCDJ Worship repository. No Google Drive fold
 
 ## WEEKLY Side Lane ownership
 See [SIDE_LANES/WORSHIP_SEMANAL.md](SIDE_LANES/WORSHIP_SEMANAL.md). Canonical content is in `index.html` Friday/Sunday weekly markers; rollover engine `scripts/weekly-rollover.mjs`; workflow `.github/workflows/weekly-worship-rollover.yml`; completed-event archive in `docs/events/`. WEEKLY is an active Side Lane, not a Sidebar or new independent data store.
+
+
+## 2026-10-17 current request-feature additions and new archive path
+Original 2026-10-15 directory diagram predates the following now-verified Staging paths:
+- PROJECT_WORKSPACE/HANDOFF_ARCHIVE/IPCDJ_WORSHIP_HANDOFF_2026-10-17.md (canonical complete migration).
+- PROJECT_WORKSPACE/SIDEBARS/FEATURES_SONG_REQUESTS.md (active dedicated feature).
+- requests/client.js (Staging form + published-only feed), index.html v203 and sw.js v203.
+- requests/worker/wrangler.jsonc, schema.sql, deploy-control.json, README.md, CLOUD_ONLY_SETUP.md, EMAIL_NOTIFICATIONS_SETUP.md.
+- requests/worker/src/index.js, email-outbox.js, email-probe.js; requests/worker/test/requests.test.mjs.
+- monitoring/tests/requests-system.spec.js; scripts/build-staging-pages.sh copies requests/client.js.
+- .github/workflows/song-requests-tests.yml and song-requests-staging-cloud-deploy.yml.
+The request Worker / D1 are separate Cloudflare resources from the website and older Web Push backend. The one-time Gmail test is accepted AND owner-confirmed delivered, then disabled; normal mailing/public intake off. Live main excludes unfinished requests tab. Fetch fresh GitHub tree before making changes.

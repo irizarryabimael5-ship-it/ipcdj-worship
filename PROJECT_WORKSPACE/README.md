@@ -61,3 +61,7 @@ At chat migration, compile `IPCDJ_WORSHIP_HANDOFF_YYYY-MM-DD.md` from these file
 - Staging: https://staging.worship.ipcdj.org/ (staging)
 - Approved Mac visual trial: https://staging.worship.ipcdj.org/?visual=original
 - Repository: https://github.com/irizarryabimael5-ship-it/ipcdj-worship
+
+
+## Active song-request sidebar and permanent migration checkpoint (2026-10-17)
+Most recent owner-directed active workstream is FEATURES / Solicitudes de Canciones, integrated within same IPCDJ Worship product; MAIN and WEEKLY remain active in parallel, Web Push sidebar paused, iOS-app sidebar future. Latest complete migration archive [IPCDJ_WORSHIP_HANDOFF_2026-10-17.md](HANDOFF_ARCHIVE/IPCDJ_WORSHIP_HANDOFF_2026-10-17.md) supersedes historical v190-v202 status claims. The owner verified one actual controlled Gmail email was delivered from solicitudes@ipcdj.org to ipcdjofficial@gmail.com. One-time probe and automatic notifications/public intake remain OFF. Staging backend tests passed 39054643026, but seven-browser v203 website certification FAILED 39054643025 (9 cases); no feature-complete release authorization. Next chat FIRST answer deferred Cloudflare Free sending limits question for verified destination and projected ~100 requests across two years. Then continue safe Staging development; no partial Live promotion.

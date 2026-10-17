@@ -37,3 +37,7 @@ User requested three coordinated modules: website request tab with Despues-style
 
 ## 2026-10-16 — User changes release scope (authoritative)
 Visual format approved; Staging v202 exact-SHA watchdog run 38940435585 SUCCESS. **No approval to promote any portion to Live.** A fully functional end-to-end request form, admin email, durable data, automatic safe song-card publication, security/failure paths, and platform-wide/real-device testing must all be finished before requesting one final Live authorization. Detailed plan and gates in [FEATURES_SONG_REQUESTS.md](./FEATURES_SONG_REQUESTS.md); next task is isolated request Worker/D1 architecture and API, not another Live promotion.
+
+
+## 2026-10-17 verified feature transition and handoff
+Solicitudes de Canciones remains ACTIVE on Staging only (v203 form/feed and approved Háblame de Cerca style); NOT a finished Live feature. Cloudflare/Gmail one-time notification test actually arrived at owner's verified ipcdjofficial@gmail.com from approved solicitudes@ipcdj.org. Probe cleaned/off; normal email, intake and publication still off. Backend green 39054643026, full Staging browser FAIL 39054643025 (9 failing cases). Automated song matching/correct artwork & preview, approval/publish workflow and real requester email path still outstanding. Owner reserves Cloudflare Free verified-recipient sending limits (~100 total requests in two years) for NEXT CHAT FIRST ANSWER. Preserve whole-feature-only Live authorization. Full archive under PROJECT_WORKSPACE/HANDOFF_ARCHIVE/IPCDJ_WORSHIP_HANDOFF_2026-10-17.md.

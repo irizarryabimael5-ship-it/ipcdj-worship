@@ -59,3 +59,7 @@ Quiet hours: **9:00 PM to 8:00 AM America/New_York**. No automated post-release 
 
 ## Last completed and next resumption
 2026-10-15 — Audited code, source catalog, Worker/D1 schema, current flags and recent backend/catalog workflows. Created this sidebar; **no notification state changed**. When user says "switch to sidebar Notifications", resume at step 1, not from the beginning, and maintain the gated status.
+
+
+## 2026-10-17 migration note — keep independent Web Push PAUSED
+Cloudflare song-request one-time test email successfully reached verified ipcdjofficial@gmail.com, sender solicitudes@ipcdj.org. This does NOT activate old Web Push. Separate main website health run 39062763333 failed because notifications/worker/scripts/generate-credentials.mjs threw 'Unexpected VAPID private key length' (open issue #34). Newer main website check 39074909931 was still in progress at last 22:53 UTC poll, while main backend health 39075842873 passed. Inspect real test root cause, not a reason to touch Live push settings or subscribers during handoff. Web Push remains publicly disabled; independent Gmail outbox remains normally disabled. See project archive HANDOFF_ARCHIVE/IPCDJ_WORSHIP_HANDOFF_2026-10-17.md.
