@@ -42,6 +42,8 @@ function d1(db){
 }
 beforeEach(()=>{
   sqlite=new DatabaseSync(":memory:");
+  // Node SQLite tests opt into FK enforcement; Cloudflare D1 enforces it by default.
+  sqlite.exec("PRAGMA foreign_keys=ON;");
   sqlite.exec(schema);
   env={
     DB:d1(sqlite),
@@ -91,6 +93,11 @@ const call=async(path,method,body,options)=>{
 };
 const row=(table)=>sqlite.prepare("SELECT * FROM "+table).all();
 
+test("foreign key constraints reject orphan submission/outbox writes",()=>{
+  assert.throws(()=>sqlite.prepare(
+    "INSERT INTO request_outbox(id,request_id,event_type,created_at,next_attempt_at) VALUES(?,?,?,?,?)"
+  ).run("orphan-id","not-a-real-song","new_submission",new Date().toISOString(),new Date().toISOString()),/FOREIGN KEY constraint failed/);
+});
 test("health reports config without exposing secrets or enabling email/publication",async()=>{
   const result=await call("/health","GET");
   assert.equal(result.status,200);

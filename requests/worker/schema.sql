@@ -1,5 +1,5 @@
 -- IPCDJ Requests v1: isolated staging database (never reuse Web Push D1).
-PRAGMA foreign_keys=ON;
+-- Cloudflare D1 already enforces foreign keys and forbids changing this PRAGMA in SQL migrations.
 CREATE TABLE IF NOT EXISTS song_requests(
   id TEXT PRIMARY KEY,
   canonical_key TEXT NOT NULL UNIQUE,
