@@ -1,6 +1,6 @@
 {
-  "enabled": false,
+  "enabled": true,
   "environment": "staging",
-  "approvedTestedSha": "",
-  "note": "Disabled placeholder. Later an authorized, single-file Staging commit can deploy the exact preceding tested SHA; never enable for ordinary code commits."
+  "approvedTestedSha": "809a9f35bb6f99869981980f3331d9934ff5f093",
+  "note": "Authorized once for isolated Cloudflare Staging Worker D1 schema and backend only. Intake, email and automatic publication remain OFF; no Live release permitted."
 }
