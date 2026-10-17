@@ -69,7 +69,15 @@ jobs:
           if(config.env.staging.vars.INGEST_ENABLED!=='false')throw new Error('Intake enabled without rollout');
           if(config.env.staging.vars.EMAIL_NOTIFICATIONS_ENABLED!=='false')throw new Error('Email enabled before sender verification');
           if(config.env.staging.vars.EMAIL_TO!=='ipcdjofficial@gmail.com')throw new Error('Staging email destination mismatch');
-          if(config.env.staging.send_email?.length)throw new Error('Unverified Cloudflare Email binding added prematurely');
+          const bindings=config.env.staging.send_email;
+          if(!Array.isArray(bindings)||bindings.length!==1||
+             bindings[0].name!=='EMAIL'||bindings[0].destination_address!=='ipcdjofficial@gmail.com'||
+             bindings[0].allowed_destination_addresses!==undefined)
+             throw new Error('Staging Worker Email Service must be bound to only verified Gmail recipient');
+          if(config.env.staging.vars.EMAIL_FROM!=='')
+             throw new Error('Sender not verified; must remain empty');
+          if(config.env.staging.vars.EMAIL_NOTIFICATIONS_ENABLED!=='false')
+             throw new Error('Email sending unexpectedly active');
           if(config.env.staging.vars.SITE_ORIGIN!=='https://staging.worship.ipcdj.org')throw new Error('Not isolated Staging origin');
           if(config.env.staging.d1_databases[0].database_name!=='ipcdj-song-requests-staging')throw new Error('DB isolation changed');
           "

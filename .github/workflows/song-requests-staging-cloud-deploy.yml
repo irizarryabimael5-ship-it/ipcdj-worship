@@ -64,7 +64,12 @@ jobs:
              e.vars?.INGEST_ENABLED!=='false' ||
              e.vars?.EMAIL_NOTIFICATIONS_ENABLED!=='false' ||
              e.vars?.EMAIL_TO!=='ipcdjofficial@gmail.com' ||
-             (e.send_email?.length??0)!==0 ||
+             e.vars?.EMAIL_FROM!=='' ||
+             !Array.isArray(e.send_email) || e.send_email.length!==1 ||
+             e.send_email[0]?.name!=='EMAIL' ||
+             e.send_email[0]?.destination_address!=='ipcdjofficial@gmail.com' ||
+             e.send_email[0]?.allowed_destination_addresses!==undefined ||
+             e.send_email[0]?.allowed_sender_addresses!==undefined ||
              binding?.binding!=='DB' || binding?.database_name!=='ipcdj-song-requests-staging')
             throw new Error('Isolation config mismatch: refusing all deployment');
           if(binding.database_id!=='00000000-0000-0000-0000-000000000000' &&

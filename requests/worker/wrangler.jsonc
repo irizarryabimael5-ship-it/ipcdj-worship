@@ -35,7 +35,13 @@
         "crons": [
           "*/5 * * * *"
         ]
-      }
+      },
+      "send_email": [
+        {
+          "name": "EMAIL",
+          "destination_address": "ipcdjofficial@gmail.com"
+        }
+      ]
     }
   }
 }
