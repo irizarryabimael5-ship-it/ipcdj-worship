@@ -78,24 +78,27 @@ jobs:
           node --test --experimental-sqlite test/requests.test.mjs
       - name: Apply non-destructive SQL schema to isolated Staging D1
         run: npx wrangler d1 execute DB --env staging --remote --file=./schema.sql --yes
-      - name: Deploy Staging requests Worker
+      - name: Deploy Staging requests Worker (propagate Wrangler failures)
+        shell: bash
         run: |
+          set -euo pipefail
           npx wrangler deploy --env staging 2>&1 | tee deploy-output.log
       - name: Verify real remote Worker health, intake OFF
         run: |
           node --input-type=module <<'NODE'
-          import {readFileSync} from 'node:fs';
-          const log=readFileSync('deploy-output.log','utf8').replace(/\u001b\[[0-9;]*m/g,'');
-          const match=log.match(/https:\/\/ipcdj-song-requests-staging\.[a-z0-9-]+\.workers\.dev/i);
-          if(!match)throw new Error('Deployed Worker address was not confirmed in Wrangler output');
-          const res=await fetch(match[0]+'/health',{headers:{'Cache-Control':'no-cache'},signal:AbortSignal.timeout(15000)});
+          const endpoint='https://ipcdj-song-requests-staging.ipcdjofficial.workers.dev';
+          // Target is a previously verified staging-only workers.dev address.
+          // Never infer target URLs from untrusted or failed deployment output.
+          const res=await fetch(endpoint+'/health',{
+            headers:{'Cache-Control':'no-cache'},signal:AbortSignal.timeout(15000)
+          });
           if(!res.ok)throw new Error('Remote health returned '+res.status);
           const h=await res.json();
           if(h.ok!==true||h.service!=='ipcdj-song-requests'||h.environment!=='staging'||
              h.intakeEnabled!==false||h.notificationsEnabled!==false||
              h.publicationEnabled!==false||h.storageConfigured!==true)
             throw new Error('Remote Staging Worker safety state invalid');
-          console.log('REMOTE HEALTH PASS: '+match[0]+' — intake/email/publication disabled');
+          console.log('REMOTE HEALTH PASS: '+endpoint+' — intake/email/publication disabled');
           NODE
       - name: Record deployment revision
         run: |
