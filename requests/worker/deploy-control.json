@@ -1,6 +1,6 @@
 {
   "enabled": true,
   "environment": "staging",
-  "approvedTestedSha": "d64b5fae8fc904d9893486e070310f404deb48eb",
-  "note": "Second authorized Staging-only rollout after Cloudflare Workers Metadata Read-Only was added. The isolated D1 schema is idempotent; ingestion, notifications and auto publishing must stay disabled."
+  "approvedTestedSha": "18d4ed5e77de2ded38ce0f49178c189e22f5d2b2",
+  "note": "Owner-confirmed Cloudflare Routing Enabled and Email Service binding available; isolated Staging deploy ONLY with recipient lock to verified Gmail; EMAIL_FROM remains empty, email notifications and public intake OFF. No messages sent."
 }
