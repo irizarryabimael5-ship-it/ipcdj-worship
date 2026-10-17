@@ -1,3 +1,4 @@
+import {processEmailOutbox,emailConfigured,NOTIFY_TO} from "../src/email-outbox.js";
 import { test, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
@@ -239,4 +240,114 @@ test("production environment never opens endpoints even with valid staging bindi
   env.APP_ENV="production";
   assert.equal((await call("/v1/requests","POST",baseBody())).status,503);
   assert.equal((await call("/v1/admin/requests","GET",null,{headers:{Authorization:"Bearer "+ADMIN}})).status,503);
+});
+
+test("email delivery is fail-closed until transport, address and verified domain are configured",async()=>{
+  assert.equal(NOTIFY_TO,"ipcdjofficial@gmail.com");
+  assert.equal((await processEmailOutbox(env)).configured,false);
+  env.EMAIL_NOTIFICATIONS_ENABLED="true";
+  env.EMAIL_TO=NOTIFY_TO;
+  env.EMAIL_FROM="solicitudes@ipcdj.org";
+  assert.equal(emailConfigured(env),false); // no Email Service binding yet
+  env.EMAIL={send:async()=>({messageId:"msg-x"})};
+  assert.equal(emailConfigured(env),true);
+  env.EMAIL_TO="incorrect@gmail.com";assert.equal(emailConfigured(env),false);
+  env.EMAIL_TO=NOTIFY_TO;env.EMAIL_FROM="someone@gmail.com";assert.equal(emailConfigured(env),false);
+  env.EMAIL_FROM="solicitudes@ipcdj.org";env.APP_ENV="production";assert.equal(emailConfigured(env),false);
+  assert.equal(row("request_outbox").length,0);
+});
+test("pending notification is emailed to fixed inbox once then acknowledged and not resent",async()=>{
+  const accepted=await call("/v1/requests","POST",baseBody());
+  assert.equal(accepted.status,202);
+  const sent=[];
+  env.EMAIL_NOTIFICATIONS_ENABLED="true";
+  env.EMAIL_TO=NOTIFY_TO;
+  env.EMAIL_FROM="solicitudes@ipcdj.org";
+  env.EMAIL={send:async mail=>{sent.push(mail);return {messageId:"cloudflare-accepted-01"};}};
+  const stats=await processEmailOutbox(env);
+  assert.deepEqual(stats,{configured:true,claimed:1,accepted:1,retried:0,failed:0});
+  assert.equal(sent.length,1);
+  assert.equal(sent[0].to,NOTIFY_TO);
+  assert.equal(sent[0].from.email,"solicitudes@ipcdj.org");
+  assert.match(sent[0].text,/Háblame de Cerca/);
+  assert.equal(row("request_outbox")[0].status,"sent");
+  assert.ok(row("request_outbox")[0].sent_at);
+  const again=await processEmailOutbox(env);
+  assert.equal(again.claimed,0);
+  assert.equal(sent.length,1);
+});
+test("temporary Email Service failure persists a retry and does not claim delivery",async()=>{
+  await call("/v1/requests","POST",baseBody());
+  env.EMAIL_NOTIFICATIONS_ENABLED="true";env.EMAIL_TO=NOTIFY_TO;
+  env.EMAIL_FROM="solicitudes@ipcdj.org";
+  let sends=0;
+  env.EMAIL={send:async()=>{sends++;if(sends===1){
+    const error=new Error("do not store sensitive provider message");error.code="E_RATE_LIMIT_EXCEEDED";throw error;
+  }return {messageId:"ack-on-retry"};}};
+  const first=await processEmailOutbox(env);
+  assert.equal(first.retried,1);
+  assert.equal(row("request_outbox")[0].status,"retry");
+  assert.equal(row("request_outbox")[0].last_error,"E_RATE_LIMIT_EXCEEDED");
+  assert.equal(JSON.stringify(row("request_outbox")).includes("sensitive provider message"),false);
+  const premature=await processEmailOutbox(env);
+  assert.equal(premature.claimed,0);
+  const after=await processEmailOutbox(env,{clock:()=>new Date(Date.now()+15*60*1000)});
+  assert.equal(after.accepted,1);
+  assert.equal(row("request_outbox")[0].status,"sent");
+  assert.equal(sends,2);
+});
+test("missing acknowledgement retries, permanent suppressed-recipient errors terminate",async()=>{
+  await call("/v1/requests","POST",baseBody());
+  env.EMAIL_NOTIFICATIONS_ENABLED="true";env.EMAIL_TO=NOTIFY_TO;
+  env.EMAIL_FROM="alerts@ipcdj.org";
+  env.EMAIL={send:async()=>({})};
+  let s=await processEmailOutbox(env);
+  assert.equal(s.retried,1);
+  assert.equal(row("request_outbox")[0].last_error,"E_NO_ACK");
+  const error=new Error("suppressed");error.code="E_RECIPIENT_SUPPRESSED";
+  env.EMAIL={send:async()=>{throw error;}};
+  s=await processEmailOutbox(env,{clock:()=>new Date(Date.now()+20*60*1000)});
+  assert.equal(s.failed,1);
+  assert.equal(row("request_outbox")[0].status,"failed");
+  assert.equal(row("request_outbox")[0].last_error,"E_RECIPIENT_SUPPRESSED");
+});
+test("stale sending leases are recovered; claim fences concurrent schedulers",async()=>{
+  await call("/v1/requests","POST",baseBody());
+  env.EMAIL_NOTIFICATIONS_ENABLED="true";env.EMAIL_TO=NOTIFY_TO;
+  env.EMAIL_FROM="alerts@ipcdj.org";
+  let sends=0;
+  env.EMAIL={send:async()=>{sends++;return {messageId:"accepted-"+sends};}};
+  const one=row("request_outbox")[0],past=new Date(Date.now()-60000).toISOString();
+  sqlite.prepare("UPDATE request_outbox SET status='sending',attempts=1,next_attempt_at=? WHERE id=?")
+    .run(past,one.id);
+  const [a,b]=await Promise.all([processEmailOutbox(env),processEmailOutbox(env)]);
+  assert.equal(a.accepted+b.accepted,1);
+  assert.equal(sends,1);
+  assert.equal(row("request_outbox")[0].attempts,2);
+  assert.equal(row("request_outbox")[0].status,"sent");
+});
+test("Cron handler does not send with disabled email regardless of pending outbox",async()=>{
+  await call("/v1/requests","POST",baseBody());
+  let invoked=false;
+  env.EMAIL={send:async()=>{invoked=true;return {messageId:"x"};}};
+  env.EMAIL_TO=NOTIFY_TO;env.EMAIL_FROM="alerts@ipcdj.org";
+  await app.scheduled({},env,{waitUntil:()=>{throw new Error("should not schedule");}});
+  assert.equal(invoked,false);
+  assert.equal(row("request_outbox")[0].status,"pending");
+});
+
+test("abandoned final attempt becomes failed after its lease expires",async()=>{
+  await call("/v1/requests","POST",baseBody());
+  env.EMAIL_NOTIFICATIONS_ENABLED="true";env.EMAIL_TO=NOTIFY_TO;
+  env.EMAIL_FROM="alerts@ipcdj.org";
+  let sends=0;
+  env.EMAIL={send:async()=>{sends++;return {messageId:"unexpected"};}};
+  const o=row("request_outbox")[0];
+  sqlite.prepare("UPDATE request_outbox SET status='sending',attempts=8,next_attempt_at=? WHERE id=?")
+    .run(new Date(Date.now()-360000).toISOString(),o.id);
+  const s=await processEmailOutbox(env);
+  assert.equal(s.failed,1);assert.equal(s.claimed,0);
+  assert.equal(row("request_outbox")[0].status,"failed");
+  assert.equal(row("request_outbox")[0].last_error,"EMAIL_ATTEMPTS_EXHAUSTED");
+  assert.equal(sends,0);
 });

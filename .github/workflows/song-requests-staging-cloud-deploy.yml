@@ -62,6 +62,9 @@ jobs:
              e.vars?.APP_ENV!=='staging' ||
              e.vars?.SITE_ORIGIN!=='https://staging.worship.ipcdj.org' ||
              e.vars?.INGEST_ENABLED!=='false' ||
+             e.vars?.EMAIL_NOTIFICATIONS_ENABLED!=='false' ||
+             e.vars?.EMAIL_TO!=='ipcdjofficial@gmail.com' ||
+             (e.send_email?.length??0)!==0 ||
              binding?.binding!=='DB' || binding?.database_name!=='ipcdj-song-requests-staging')
             throw new Error('Isolation config mismatch: refusing all deployment');
           if(binding.database_id!=='00000000-0000-0000-0000-000000000000' &&
@@ -75,6 +78,7 @@ jobs:
       - name: Verify backend syntax and SQLite integration
         run: |
           node --check src/index.js
+          node --check src/email-outbox.js
           node --test --experimental-sqlite test/requests.test.mjs
       - name: Apply non-destructive SQL schema to isolated Staging D1
         run: npx wrangler d1 execute DB --env staging --remote --file=./schema.sql --yes

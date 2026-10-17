@@ -12,16 +12,30 @@
         "APP_ENV": "staging",
         "SITE_ORIGIN": "https://staging.worship.ipcdj.org",
         "TURNSTILE_EXPECTED_HOSTNAME": "staging.worship.ipcdj.org",
-        "INGEST_ENABLED": "false"
+        "INGEST_ENABLED": "false",
+        "EMAIL_NOTIFICATIONS_ENABLED": "false",
+        "EMAIL_TO": "ipcdjofficial@gmail.com",
+        "EMAIL_FROM": ""
       },
       "secrets": {
-        "required": ["ADMIN_TOKEN", "TURNSTILE_SECRET", "IP_HASH_SALT"]
+        "required": [
+          "ADMIN_TOKEN",
+          "TURNSTILE_SECRET",
+          "IP_HASH_SALT"
+        ]
       },
-      "d1_databases": [{
-        "binding": "DB",
-        "database_name": "ipcdj-song-requests-staging",
-        "database_id": "62ecdd60-5805-402d-92aa-71269eeb6fd1"
-      }]
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "ipcdj-song-requests-staging",
+          "database_id": "62ecdd60-5805-402d-92aa-71269eeb6fd1"
+        }
+      ],
+      "triggers": {
+        "crons": [
+          "*/5 * * * *"
+        ]
+      }
     }
   }
 }

@@ -22,7 +22,9 @@ jobs:
         with:
           node-version: "22"
       - name: Validate isolated Worker syntax
-        run: node --check requests/worker/src/index.js
+        run: |
+          node --check requests/worker/src/index.js
+          node --check requests/worker/src/email-outbox.js
       - name: Validate safe Cloudflare D1 provisioning helper syntax
         run: node --check requests/worker/scripts/provision-staging.mjs
       - name: Test Worker with real in-memory SQLite and atomic D1-compatible batches
@@ -65,6 +67,9 @@ jobs:
           if(config.workers_dev!==false)throw new Error('Unexpected root public Worker');
           if(Object.keys(config.env||{}).join(',')!=='staging')throw new Error('Unexpected production Worker env');
           if(config.env.staging.vars.INGEST_ENABLED!=='false')throw new Error('Intake enabled without rollout');
+          if(config.env.staging.vars.EMAIL_NOTIFICATIONS_ENABLED!=='false')throw new Error('Email enabled before sender verification');
+          if(config.env.staging.vars.EMAIL_TO!=='ipcdjofficial@gmail.com')throw new Error('Staging email destination mismatch');
+          if(config.env.staging.send_email?.length)throw new Error('Unverified Cloudflare Email binding added prematurely');
           if(config.env.staging.vars.SITE_ORIGIN!=='https://staging.worship.ipcdj.org')throw new Error('Not isolated Staging origin');
           if(config.env.staging.d1_databases[0].database_name!=='ipcdj-song-requests-staging')throw new Error('DB isolation changed');
           "
