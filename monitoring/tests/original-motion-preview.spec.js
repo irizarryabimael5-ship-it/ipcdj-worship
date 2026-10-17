@@ -40,7 +40,9 @@ test.describe('v193 opt-in historical Dios de Milagros motion (staging only)', (
     expect(s.reduced).toBe(true);
     expect(s.ambientName).toBe('none');
     expect(s.sheenName).toBe('none');
-    expect(s.build).toBe('campana-weekend-v202');
+    // Exact deployed source bytes/build are covered by site-health preflight;
+    // this behavior test must not require a retired historical build number.
+    expect(s.build).toMatch(/^campana-weekend-v\\d+$/);
     expect(s.reportVisible).toBe(true);
     expect(s.noHorizontalOverflow).toBe(true);
   });
@@ -59,6 +61,7 @@ test.describe('v193 opt-in historical Dios de Milagros motion (staging only)', (
     expect(original.ambientState).toContain('running');
     expect(original.sheenName).toBe('progress-sheen');
     expect(original.sheenState).toBe('running');
+    expect(original.build).toBe(baseline.build);
     expect(original.tabs).toEqual(baseline.tabs);
     expect(original.songs).toEqual(baseline.songs);
     expect(original.noHorizontalOverflow).toBe(true);
