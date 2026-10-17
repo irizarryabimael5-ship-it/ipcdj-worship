@@ -25,6 +25,7 @@ jobs:
         run: |
           node --check requests/worker/src/index.js
           node --check requests/worker/src/email-outbox.js
+          node --check requests/worker/src/email-probe.js
       - name: Validate safe Cloudflare D1 provisioning helper syntax
         run: node --check requests/worker/scripts/provision-staging.mjs
       - name: Test Worker with real in-memory SQLite and atomic D1-compatible batches
@@ -74,8 +75,11 @@ jobs:
              bindings[0].name!=='EMAIL'||bindings[0].destination_address!=='ipcdjofficial@gmail.com'||
              bindings[0].allowed_destination_addresses!==undefined)
              throw new Error('Staging Worker Email Service must be bound to only verified Gmail recipient');
-          if(config.env.staging.vars.EMAIL_FROM!=='')
-             throw new Error('Sender not verified; must remain empty');
+          if(config.env.staging.vars.EMAIL_FROM!=='solicitudes@ipcdj.org')
+             throw new Error('Sender address mismatch');
+          if(config.env.staging.vars.MAIL_PROBE_ENABLED!=='true'||
+             config.env.staging.vars.MAIL_PROBE_ID!=='ipcdj-email-probe-20261017-01')
+             throw new Error('One-shot email probe mismatch');
           if(config.env.staging.vars.EMAIL_NOTIFICATIONS_ENABLED!=='false')
              throw new Error('Email sending unexpectedly active');
           if(config.env.staging.vars.SITE_ORIGIN!=='https://staging.worship.ipcdj.org')throw new Error('Not isolated Staging origin');

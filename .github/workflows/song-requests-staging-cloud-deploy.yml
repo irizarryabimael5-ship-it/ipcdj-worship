@@ -109,6 +109,32 @@ jobs:
             throw new Error('Remote Staging Worker safety state invalid');
           console.log('REMOTE HEALTH PASS: '+endpoint+' — intake/email/publication disabled');
           NODE
+      - name: Inspect one-shot Gmail probe result after Cloudflare Cron
+        timeout-minutes: 10
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Cron is every 5 min; at-most-one send is fenced in D1.
+          # This step never invokes EMAIL.send directly.
+          for attempt in $(seq 1 12); do
+            npx wrangler d1 execute DB --env staging --remote --json \
+              --command "SELECT status,error_code FROM email_probe_results WHERE id='ipcdj-email-probe-20261017-01' LIMIT 1" \
+              > probe-status.json
+            state=$(jq -r '.[0].results[0].status // "pending"' probe-status.json)
+            if [ "$state" = "accepted" ]; then
+              echo "EMAIL PROBE PROVIDER ACCEPTED — owner must still confirm Gmail inbox receipt."
+              exit 0
+            fi
+            if [ "$state" = "failed" ]; then
+              code=$(jq -r '.[0].results[0].error_code // "EMAIL_SEND_ERROR"' probe-status.json)
+              echo "EMAIL PROBE REJECTED by provider: $code. No automatic retry was attempted."
+              exit 1
+            fi
+            echo "Probe outcome pending at check $attempt/12; waiting for isolated Cloudflare Cron."
+            sleep 40
+          done
+          echo "EMAIL PROBE UNKNOWN: no recorded Cron attempt; normal notifications disabled."
+          exit 1
       - name: Record deployment revision
         run: |
           echo "Isolated Staging request Worker: code ${{ github.sha }}"

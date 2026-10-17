@@ -72,3 +72,13 @@ BEGIN
   INSERT INTO request_audit(id,request_id,previous_status,next_status,created_at)
   VALUES(lower(hex(randomblob(16))),NEW.id,OLD.status,NEW.status,NEW.updated_at);
 END;
+
+-- One-shot Staging Gmail delivery probe. DB primary key prevents repeated sends.
+CREATE TABLE IF NOT EXISTS email_probe_results(
+  id TEXT PRIMARY KEY,
+  status TEXT NOT NULL CHECK(status IN('attempting','accepted','failed')),
+  started_at TEXT NOT NULL,
+  completed_at TEXT,
+  message_id TEXT,
+  error_code TEXT
+);

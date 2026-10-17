@@ -1,4 +1,5 @@
 import {processEmailOutbox} from "./email-outbox.js";
+import {runOneTimeEmailProbe,probeAllowed} from "./email-probe.js";
 // IPCDJ Worship — Song Requests, isolated from the existing Web Push Worker.
 // Stage 1: durable intake, abuse controls, private review, and email outbox.
 // Automatic media matching, outbox delivery and public forms are deliberately gated.
@@ -266,7 +267,14 @@ export default {
     // Private Cloudflare Cron handler, not exposed as an HTTP route.
     // No send occurs until EMAIL_NOTIFICATIONS_ENABLED is explicitly enabled
     // and the Email Service binding + verified sender are present.
-    if(env.APP_ENV!=="staging"||env.EMAIL_NOTIFICATIONS_ENABLED!=="true")return;
+    if(env.APP_ENV!=="staging")return;
+    if(probeAllowed(env)){
+      const once=runOneTimeEmailProbe(env);
+      if(ctx&&typeof ctx.waitUntil==="function")ctx.waitUntil(once);
+      else await once;
+      return;
+    }
+    if(env.EMAIL_NOTIFICATIONS_ENABLED!=="true")return;
     const task=processEmailOutbox(env);
     if(ctx&&typeof ctx.waitUntil==="function")ctx.waitUntil(task);
     else await task;
