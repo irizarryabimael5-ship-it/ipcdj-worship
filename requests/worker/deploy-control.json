@@ -1,6 +1,6 @@
 {
   "enabled": true,
   "environment": "staging",
-  "approvedTestedSha": "18d4ed5e77de2ded38ce0f49178c189e22f5d2b2",
-  "note": "Owner-confirmed Cloudflare Routing Enabled and Email Service binding available; isolated Staging deploy ONLY with recipient lock to verified Gmail; EMAIL_FROM remains empty, email notifications and public intake OFF. No messages sent."
+  "approvedTestedSha": "f91b7de0be59ada0f9191c19dba09c4a21c8ceee",
+  "note": "OWNER AUTHORIZATION: one controlled Cloudflare Staging email acceptance test FROM solicitudes@ipcdj.org TO verified ipcdjofficial@gmail.com. DB fence enforces a single attempt. Normal notification/outbox and intake flags remain disabled. Do not promote Live."
 }
