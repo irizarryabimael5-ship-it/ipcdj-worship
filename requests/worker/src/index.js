@@ -1,5 +1,6 @@
 import {processEmailOutbox} from "./email-outbox.js";
 import {processPendingSongMatches} from "./match-pipeline.js";
+import {publicSong,publishVerifiedCandidates} from "./publication-policy.js";
 import {runOneTimeEmailProbe,probeAllowed} from "./email-probe.js";
 // IPCDJ Worship — Song Requests, isolated from the existing Web Push Worker.
 // Stage 1: durable intake, abuse controls, private review, and email outbox.
@@ -191,12 +192,7 @@ async function publicList(env,headers){
     "SELECT id,title,artist,artwork_url,preview_url,metadata_json,request_count,published_at "+
     "FROM song_requests WHERE status='published' ORDER BY published_at DESC,id ASC LIMIT 100"
   ).all()).results||[];
-  return json({ok:true,songs:rows.map(row=>({
-    id:row.id,title:row.title,artist:row.artist,
-    artworkUrl:row.artwork_url||"",previewUrl:row.preview_url||"",
-    requestCount:row.request_count,publishedAt:row.published_at,
-    metadata:JSON.parse(row.metadata_json||"{}"),status:"Solicitada"
-  }))},200,{"Cache-Control":"public, max-age=30",...headers});
+  return json({ok:true,songs:rows.map(publicSong)},200,{"Cache-Control":"public, max-age=30",...headers});
 }
 async function adminList(req,env,headers){
   if(!adminAuthorized(req,env))return error("unauthorized",401,headers);
@@ -279,6 +275,9 @@ export default {
     const jobs=[];
     if(env.EMAIL_NOTIFICATIONS_ENABLED==="true")jobs.push(processEmailOutbox(env));
     if(env.MATCH_PENDING_ENABLED==="true")jobs.push(processPendingSongMatches(env));
+    if(env.PUBLICATION_ENABLED==="true"&&env.PUBLIC_PROMO_DISPLAY_CERTIFIED==="true"){
+      jobs.push(publishVerifiedCandidates(env));
+    }
     if(!jobs.length)return;
     const task=Promise.all(jobs);
     if(ctx&&typeof ctx.waitUntil==="function")ctx.waitUntil(task);
