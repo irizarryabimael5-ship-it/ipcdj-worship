@@ -13,6 +13,7 @@
         "SITE_ORIGIN": "https://staging.worship.ipcdj.org",
         "TURNSTILE_EXPECTED_HOSTNAME": "staging.worship.ipcdj.org",
         "INGEST_ENABLED": "false",
+        "MATCH_PENDING_ENABLED": "false",
         "EMAIL_NOTIFICATIONS_ENABLED": "false",
         "EMAIL_TO": "ipcdjofficial@gmail.com",
         "EMAIL_FROM": "solicitudes@ipcdj.org",

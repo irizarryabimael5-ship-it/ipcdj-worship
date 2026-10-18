@@ -1,4 +1,5 @@
 import {processEmailOutbox} from "./email-outbox.js";
+import {processPendingSongMatches} from "./match-pipeline.js";
 import {runOneTimeEmailProbe,probeAllowed} from "./email-probe.js";
 // IPCDJ Worship — Song Requests, isolated from the existing Web Push Worker.
 // Stage 1: durable intake, abuse controls, private review, and email outbox.
@@ -274,8 +275,12 @@ export default {
       else await once;
       return;
     }
-    if(env.EMAIL_NOTIFICATIONS_ENABLED!=="true")return;
-    const task=processEmailOutbox(env);
+    // Matching never enables public intake, email, or publication by itself.
+    const jobs=[];
+    if(env.EMAIL_NOTIFICATIONS_ENABLED==="true")jobs.push(processEmailOutbox(env));
+    if(env.MATCH_PENDING_ENABLED==="true")jobs.push(processPendingSongMatches(env));
+    if(!jobs.length)return;
+    const task=Promise.all(jobs);
     if(ctx&&typeof ctx.waitUntil==="function")ctx.waitUntil(task);
     else await task;
   }
