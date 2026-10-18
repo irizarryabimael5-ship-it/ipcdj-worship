@@ -1,5 +1,7 @@
 // IPCDJ Worship: private Staging metadata enrichment, not publication.
 import {evaluateAppleCandidates} from "./song-resolver.js";
+import {spotifyId} from "./spotify-verifier.js";
+import {lookupSpotifyCandidate} from "./spotify-provider.js";
 const MAX_PER_TICK=2, MAX_BYTES=262144, LEASE_MS=10*60*1000;
 const changed=r=>Number(r?.meta?.changes??r?.changes??0)===1;
 const plus=(at,ms)=>new Date(at.getTime()+ms).toISOString();
@@ -55,9 +57,16 @@ export async function processPendingSongMatches(env,{fetchImpl=fetch,clock=()=>n
     const request={title:row.title,artist:row.artist,link:row.link_url};
     let verdict;
     try{
-      verdict=evaluateAppleCandidates(request,[]);
-      if(!["CROSS_PROVIDER_LINK_REQUIRES_REVIEW","SOURCE_LINK_REQUIRES_REVIEW"].includes(verdict.reason))
-        verdict=evaluateAppleCandidates(request,await search(request,fetchImpl));
+      // A supplied Spotify recording ID wins over cross-provider fuzzy guesses.
+      // All Spotify HTTP traffic uses OAuth client credentials on the Worker,
+      // never browser JavaScript. Missing credentials take the retry path.
+      if(spotifyId(request.link)){
+        verdict=await lookupSpotifyCandidate(request,env,{fetchImpl});
+      }else{
+        verdict=evaluateAppleCandidates(request,[]);
+        if(!["CROSS_PROVIDER_LINK_REQUIRES_REVIEW","SOURCE_LINK_REQUIRES_REVIEW"].includes(verdict.reason))
+          verdict=evaluateAppleCandidates(request,await search(request,fetchImpl));
+      }
     }catch(_){
       const delay=Math.min(12*60*60*1000,Math.pow(2,Math.min(attempts,8))*5*60*1000);
       const retry={...original,match:{status:"retry",attempts,

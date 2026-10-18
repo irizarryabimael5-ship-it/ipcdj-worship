@@ -64,10 +64,35 @@ test("ambiguous recordings are held with database audit",async()=>{
     assert.equal(JSON.parse(d.row().metadata_json).match.reason,"AMBIGUOUS_RECORDING");
   }finally{d.close()}
 });
-test("Spotify link is not silently treated as exact Apple version",async()=>{
+test("Spotify source without secret credentials remains private and retries, no Apple requests",async()=>{
   const d=setup("https://open.spotify.com/track/4DYvC8ozC0SF3SoyIpkuiY");try{
     let calls=0;const out=await process(env(d),{fetchImpl:async()=>{calls++;return response([])},clock});
-    assert.equal(out.held,1);assert.equal(calls,0);
+    assert.equal(out.held,0);assert.equal(out.retries,1);assert.equal(calls,0);
+    assert.equal(d.row().status,"pending");
+    assert.equal(JSON.parse(d.row().metadata_json).match.status,"retry");
+  }finally{d.close()}
+});
+test("official Spotify exact track can be stored privately without publishing",async()=>{
+  const d=setup("https://open.spotify.com/track/4DYvC8ozC0SF3SoyIpkuiY");try{
+    const vars={...env(d),SPOTIFY_CLIENT_ID:"a".repeat(32),SPOTIFY_CLIENT_SECRET:"b".repeat(32)};
+    const url="https://open.spotify.com/track/4DYvC8ozC0SF3SoyIpkuiY";
+    let calls=0;
+    const fetchImpl=async (urlString)=>{
+      calls++;
+      if(calls===1){assert.equal(urlString,"https://accounts.spotify.com/api/token");
+        return new Response(JSON.stringify({access_token:"testing-bearer-token",token_type:"Bearer"}),{status:200});}
+      assert.equal(urlString,"https://api.spotify.com/v1/tracks/4DYvC8ozC0SF3SoyIpkuiY?market=US");
+      return new Response(JSON.stringify({type:"track",id:"4DYvC8ozC0SF3SoyIpkuiY",
+        name:"Háblame de Cerca",artists:[{name:"Grupo Grace"},{name:"Kairo Worship"}],
+        explicit:false,is_playable:true,external_urls:{spotify:url},
+        album:{name:"Háblame de Cerca",images:[{width:640,url:"https://i.scdn.co/image/original-art"}]},
+        preview_url:null}),{status:200});
+    };
+    const out=await process(vars,{fetchImpl,clock});
+    assert.equal(out.matched,1);assert.equal(calls,2);
+    assert.equal(d.row().status,"pending");assert.equal(d.row().published_at,null);
+    assert.equal(d.row().artwork_url,"");assert.equal(d.row().preview_url,"");
+    assert.equal(JSON.parse(d.row().metadata_json).match.candidate.source,"spotify_official_track_api");
   }finally{d.close()}
 });
 test("failed provider lookup backs off without a public side effect",async()=>{
