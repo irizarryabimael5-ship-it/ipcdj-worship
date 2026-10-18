@@ -1407,7 +1407,7 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
 
   const noFallaras = audit.songs.find(song => song.id === 'no-fallaras');
   expect(noFallaras).toBeTruthy();
-  expect(Date.parse(noFallaras.activeFrom)).toBeGreaterThan(Date.parse(noFallaras.learningStart));
+  expect(Date.parse(noFallaras.activeFrom)).toBeLessThan(Date.parse(noFallaras.learningStart));
   expect(Date.parse(noFallaras.activeFrom)).toBeLessThan(Date.parse(noFallaras.releaseAt));
 
   const dios = audit.songs.find(song => song.id === 'dios-de-milagros');
@@ -1457,15 +1457,15 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
     sep21: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-09-21T12:00:00-04:00')),
     oct5: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-10-05T12:00:00-04:00')),
     oct6: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-10-06T12:00:00-04:00')),
-    oct26Early: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-10-26T01:00:00-04:00')),
-    oct26Active: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-10-26T06:01:00-04:00'))
+    nov16Early: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-11-16T01:00:00-05:00')),
+    nov16Active: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-11-16T06:01:00-05:00'))
   }));
   expect(orderSnapshots.sep21.upcoming).toEqual(['glorioso-dia','no-fallaras']);
   expect(orderSnapshots.oct5.upcoming).not.toContain('dios-no-esta-muerto');
   expect(orderSnapshots.oct6.current).toEqual(['dios-no-esta-muerto','glorioso-dia']);
   expect(orderSnapshots.oct6.upcoming).not.toContain('dios-no-esta-muerto');
-  expect(orderSnapshots.oct26Early.upcoming).toEqual(['no-fallaras']);
-  expect(orderSnapshots.oct26Active.current).toContain('no-fallaras');
+  expect(orderSnapshots.nov16Early.upcoming).toEqual(['no-fallaras']);
+  expect(orderSnapshots.nov16Active.current).toContain('no-fallaras');
 
   const sourceResponse = await request.get('/?catalog-source-check=' + Date.now(), {
     headers: { 'cache-control': 'no-cache' }
@@ -2232,7 +2232,7 @@ test('release day amplifies the page ambient field from the song palette', async
     try{
       // Lock the real runtime into an actual release-day phase so the one-second
       // live clock cannot race this visual assertion back to today's released state.
-      window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-10-25T00:00:01-04:00'));
+      window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-11-15T00:00:01-05:00'));
       await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
 
       const field=document.querySelector('.ambient-field-active')||document.querySelector('.ambient-field');
@@ -2319,7 +2319,7 @@ test('v174 dominant artwork color drives release ambience', async ({ page, reque
     settle.textContent='.ambient-field,.ambient-field::before,.ambient-blob{transition:none!important;animation:none!important}';
     document.head.appendChild(settle);
     try{
-      window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-10-25T00:00:01-04:00'));
+      window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-11-15T00:00:01-05:00'));
       await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
 
       const field=document.querySelector('.ambient-field-active')||document.querySelector('.ambient-field');
@@ -2509,23 +2509,23 @@ test('v176 lifecycle UI transitions cleanly through Después, prep, release, Est
         beforeActive:await renderAt('2026-09-28T05:59:59-04:00'),
         afterActive:await renderAt('2026-09-28T06:00:00-04:00'),
         diosIntroduced:await renderAt('2026-09-29T00:00:01-04:00'),
-        learning:await renderAt('2026-10-12T12:00:00-04:00'),
-        finalPrep:await renderAt('2026-10-20T12:00:00-04:00'),
-        releaseStart:await renderAt('2026-10-25T00:00:01-04:00'),
-        justBeforeSettled:await renderAt('2026-10-25T11:29:59-04:00'),
-        settled:await renderAt('2026-10-25T11:30:00-04:00'),
-        gloriosoBeforeRollover:await renderAt('2026-10-26T05:59:59-04:00'),
-        gloriosoRollover:await renderAt('2026-10-26T06:00:00-04:00'),
-        introduced:await renderAt('2026-10-27T00:00:01-04:00'),
-        noFallarasReleased:await renderAt('2026-11-08T11:30:00-05:00')
+        learning:await renderAt('2026-11-02T12:00:00-05:00'),
+        finalPrep:await renderAt('2026-11-10T12:00:00-05:00'),
+        releaseStart:await renderAt('2026-11-15T00:00:01-05:00'),
+        justBeforeSettled:await renderAt('2026-11-15T11:29:59-05:00'),
+        settled:await renderAt('2026-11-15T11:30:00-05:00'),
+        gloriosoBeforeRollover:await renderAt('2026-11-16T05:59:59-05:00'),
+        gloriosoRollover:await renderAt('2026-11-16T06:00:00-05:00'),
+        introduced:await renderAt('2026-11-17T00:00:01-05:00'),
+        noFallarasReleased:await renderAt('2026-12-06T11:30:00-05:00')
       };
 
       const stressTimes=[
         '2026-09-28T05:59:59-04:00','2026-09-28T06:00:01-04:00',
-        '2026-10-12T12:00:00-04:00','2026-10-20T12:00:00-04:00',
-        '2026-10-25T00:00:01-04:00','2026-10-25T11:29:59-04:00',
-        '2026-10-25T11:30:00-04:00','2026-10-26T05:59:59-04:00',
-        '2026-10-26T06:00:00-04:00','2026-10-27T00:00:01-04:00'
+        '2026-11-02T12:00:00-05:00','2026-11-10T12:00:00-05:00',
+        '2026-11-15T00:00:01-05:00','2026-11-15T11:29:59-05:00',
+        '2026-11-15T11:30:00-05:00','2026-11-16T05:59:59-05:00',
+        '2026-11-16T06:00:00-05:00','2026-11-17T00:00:01-05:00'
       ];
 
       const transitionStart=performance.now();
@@ -2535,7 +2535,7 @@ test('v176 lifecycle UI transitions cleanly through Después, prep, release, Est
       const transitionRenderMs=performance.now()-transitionStart;
 
       // Model the real one-second countdown cadence separately from rare lifecycle jumps.
-      const steadyStart=Date.parse('2026-10-20T12:00:00-04:00');
+      const steadyStart=Date.parse('2026-11-10T12:00:00-05:00');
       const steadyTickStart=performance.now();
       for(let tick=0;tick<30;tick++){
         window.IPCDJ_CATALOG_TEST.renderAt(steadyStart+(tick*1000));
@@ -2623,7 +2623,7 @@ test('v176 lifecycle UI transitions cleanly through Después, prep, release, Est
   expect(result.checkpoints.gloriosoRollover.snapshot.introduced).toContain('glorioso-dia');
   const gloriosoHistoryRow=result.checkpoints.gloriosoRollover.introducedRows.find(x=>x.title==='Glorioso Día');
   expect(gloriosoHistoryRow).toBeTruthy();
-  expect(gloriosoHistoryRow.date).toBe('Estrenada · 25 de octubre');
+  expect(gloriosoHistoryRow.date).toBe('Estrenada · 15 de noviembre');
 
   expect(result.checkpoints.introduced.current.map(x=>x.id)).not.toContain('glorioso-dia');
   expect(result.checkpoints.introduced.introduced).toContain('Glorioso Día');
