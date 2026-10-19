@@ -92,3 +92,6 @@ Original 2026-10-15 directory diagram predates the following now-verified Stagin
 - monitoring/tests/requests-system.spec.js; scripts/build-staging-pages.sh copies requests/client.js.
 - .github/workflows/song-requests-tests.yml and song-requests-staging-cloud-deploy.yml.
 The request Worker / D1 are separate Cloudflare resources from the website and older Web Push backend. The one-time Gmail test is accepted AND owner-confirmed delivered, then disabled; normal mailing/public intake off. Live main excludes unfinished requests tab. Fetch fresh GitHub tree before making changes.
+
+## 2026-10-19 new deferred specification
+`PROJECT_WORKSPACE/SIDE_LANES/WORSHIP_MONTHLY_ARCHIVE_SPEC.md` — planned month -> dated weekend -> service archive navigation; currently notes only, not a new data store or runtime. Authoritative source remains `index.html` and `scripts/weekly-rollover.mjs`. Registered in [Worship Semanal](./SIDE_LANES/WORSHIP_SEMANAL.md) and [Additional Features](./SIDEBARS/ADDITIONAL_FEATURES.md).

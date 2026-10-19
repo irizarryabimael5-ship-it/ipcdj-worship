@@ -17,6 +17,7 @@ Optional new features to extend IPCDJ Worship beyond the core Main Lane's UI, an
 | Feature | State | Decision |
 | --- | --- | --- |
 | **Solicitudes de Canciones** | **V202 PROTOTYPE CERTIFIED / FULL BACKEND PENDING** | [Dedicated song-requests spec](./FEATURES_SONG_REQUESTS.md): owner approved design; NO piecemeal Live launch. Complete intake + email + automatic validated publication + full Staging certification before one combined release |
+| **Archivo mensual de Worship Semanal** | **Documented / Deferred / No runtime change** | [Monthly archive spec](../SIDE_LANES/WORSHIP_MONTHLY_ARCHIVE_SPEC.md): current month's weekends remain individually accessible until next month's first set becomes next-up; prior month grouped as month -> weekend -> service. Owner has NOT authorized implementation or Live release. |
 
 ## Execution checklist for any feature
 - User's exact intention and acceptance criteria.
