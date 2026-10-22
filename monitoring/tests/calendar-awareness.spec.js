@@ -23,11 +23,11 @@ test.describe('Intelligent Eastern-time calendar (v200)',()=>{
     expect(contexts.map(x=>x.currentFriday)).toEqual(['2026-10-16','2026-10-23','2026-10-30','2027-01-01']);
     expect(contexts.map(x=>x.currentSunday)).toEqual(['2026-10-18','2026-10-25','2026-11-01','2027-01-03']);
     expect(contexts.map(x=>x.nextService.date)).toEqual(['2026-10-16','2026-10-23','2026-11-06','2027-01-01']);
-    expect(contexts.map(x=>x.publishedIsCurrentWeek)).toEqual([true,false,false,false]);
-    expect(contexts.every(x=>x.cycle==='2026-10-18'&&x.timeZone==='America/New_York')).toBe(true);
-    expect(contexts[1].phase).toBe('cerrada');
+    expect(contexts.map(x=>x.publishedIsCurrentWeek)).toEqual([false,true,false,false]);
+    expect(contexts.every(x=>x.cycle==='2026-10-25'&&x.timeZone==='America/New_York')).toBe(true);
+    expect(contexts[1].phase).toBe('preparacion');
     await expect(page.locator('#weekly-panel-viernes .weekly-song')).toHaveCount(4);
-    await expect(page.locator('#weekly-panel-domingo .weekly-song')).toHaveCount(5);
+    await expect(page.locator('#weekly-panel-domingo .weekly-song')).toHaveCount(0);
   });
 
   test('wakes across midnight and reports only meaningful changes',async({page})=>{
@@ -48,30 +48,30 @@ test.describe('Intelligent Eastern-time calendar (v200)',()=>{
     await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
     expect(await page.evaluate(()=>window.__calendarEvents.length)).toBe(1);
     await expect(page.locator('#weekly-panel-viernes .weekly-song')).toHaveCount(4);
-    await expect(page.locator('#weekly-panel-domingo .weekly-song')).toHaveCount(5);
+    await expect(page.locator('#weekly-panel-domingo .weekly-song')).toHaveCount(0);
   });
 
   test('archives once at the configured Sunday cutoff, not before, with playlists removed',async({page})=>{
-    await page.clock.setFixedTime(new Date('2026-10-15T12:00:00-04:00'));
+    await page.clock.setFixedTime(new Date('2026-10-22T12:00:00-04:00'));
     await page.goto('/',{waitUntil:'domcontentloaded'});
     await page.waitForFunction(()=>!!window.IPCDJ_CALENDAR&&!!window.IPCDJ_WEEKLY_TEST);
-    const before=await page.evaluate(()=>window.IPCDJ_CALENDAR.refresh(Date.parse('2026-10-18T14:59:59-04:00')));
+    const before=await page.evaluate(()=>window.IPCDJ_CALENDAR.refresh(Date.parse('2026-10-25T14:59:59-04:00')));
     expect(before.activeState).toBe('active');
     expect(before.rolloverDue).toBe(false);
     await expect(page.locator('#weekly-panel-viernes .weekly-song')).toHaveCount(4);
-    const after=await page.evaluate(()=>window.IPCDJ_CALENDAR.refresh(Date.parse('2026-10-18T15:00:00-04:00')));
+    const after=await page.evaluate(()=>window.IPCDJ_CALENDAR.refresh(Date.parse('2026-10-25T15:00:00-04:00')));
     expect(after.activeState).toBe('rolled');
     expect(after.rolloverDue).toBe(true);
-    const archive=page.locator('[data-weekly-history-body][data-weekly-history-cycle="2026-10-18"]');
+    const archive=page.locator('[data-weekly-history-body][data-weekly-history-cycle="2026-10-25"]');
     await expect(archive).toBeAttached();
     await expect(archive.locator('.weekly-history-service')).toHaveCount(2);
-    await expect(archive.locator('.weekly-song')).toHaveCount(9);
+    await expect(archive.locator('.weekly-song')).toHaveCount(4);
     await expect(archive.locator('iframe')).toHaveCount(0);
     await expect(archive.locator('a[href*="youtube.com/playlist"]')).toHaveCount(0);
     await expect(page.locator('#weekly-panel-viernes .weekly-song')).toHaveCount(0);
     await expect(page.locator('#weekly-panel-domingo .weekly-song')).toHaveCount(0);
-    await page.evaluate(()=>window.IPCDJ_CALENDAR.refresh(Date.parse('2026-10-18T15:00:01-04:00')));
-    await expect(page.locator('[data-weekly-history-body][data-weekly-history-cycle="2026-10-18"] .weekly-history-service')).toHaveCount(2);
+    await page.evaluate(()=>window.IPCDJ_CALENDAR.refresh(Date.parse('2026-10-25T15:00:01-04:00')));
+    await expect(page.locator('[data-weekly-history-body][data-weekly-history-cycle="2026-10-25"] .weekly-history-service')).toHaveCount(2);
   });
 
   test('main and nested tabs still work without automatic weekday switching',async({page})=>{
