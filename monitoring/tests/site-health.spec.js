@@ -620,6 +620,9 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(weeklyPanel).toBeVisible();
   await expect(homePanel).toBeHidden();
   await expect(weeklyPanel).not.toContainText('Próximamente');
+  // Earlier in this test, the archived Oct 9–11 campaign is deliberately
+  // simulated. Return navigation to the actual Oct 23 normal weekend first.
+  await page.evaluate(()=>window.IPCDJ_NAV.syncSpecialEvents(Date.parse('2026-10-22T12:00:00-04:00')));
   const friday=weeklyPanel.locator('#weekly-panel-viernes');
   const sunday=weeklyPanel.locator('#weekly-panel-domingo');
   const dashboard=weeklyPanel.locator('[data-weekly-dashboard]');
