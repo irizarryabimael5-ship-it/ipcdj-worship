@@ -11,3 +11,6 @@ Do not duplicate current set lists or historic service content in a parallel dat
 
 ## Planned improvement (2026-10-19)
 [Automatic Monthly Worship Archive — deferred specification](./WORSHIP_MONTHLY_ARCHIVE_SPEC.md) belongs to the ongoing Worship Semanal lane, with backlog visibility in Additional Features. Documented only, no implementation or Live approval.
+
+## Deferred visual/media enhancement (2026-10-22)
+[Worship Semanal compact song-card artwork & previews](./WORSHIP_SONG_CARDS_ARTWORK_PREVIEWS_SPEC.md): owner requested reference to Después-style official covers/gradients and right-side preview controls with **no increase in weekly row sizes**. Notes only; active Solicitudes work takes precedence and no Live approval granted.

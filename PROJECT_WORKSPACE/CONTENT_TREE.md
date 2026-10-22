@@ -95,3 +95,6 @@ The request Worker / D1 are separate Cloudflare resources from the website and o
 
 ## 2026-10-19 new deferred specification
 `PROJECT_WORKSPACE/SIDE_LANES/WORSHIP_MONTHLY_ARCHIVE_SPEC.md` — planned month -> dated weekend -> service archive navigation; currently notes only, not a new data store or runtime. Authoritative source remains `index.html` and `scripts/weekly-rollover.mjs`. Registered in [Worship Semanal](./SIDE_LANES/WORSHIP_SEMANAL.md) and [Additional Features](./SIDEBARS/ADDITIONAL_FEATURES.md).
+
+## 2026-10-22 additional deferred documentation
+`PROJECT_WORKSPACE/SIDE_LANES/WORSHIP_SONG_CARDS_ARTWORK_PREVIEWS_SPEC.md` — user-referenced screenshot-derived specification for compact weekly song-row authentic artwork, song-specific gradients and right-side previews; no code or independent song catalog. Indexed from Worship Semanal and Additional Features.
