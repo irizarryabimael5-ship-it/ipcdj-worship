@@ -2603,3 +2603,45 @@ test('v180 social preview is the approved WhatsApp screenshot', async ({ request
   expect(html).toContain('name="twitter:card" content="summary_large_image"');
   expect(html).toContain('name="twitter:image" content="https://worship.ipcdj.org/social-preview-v180.jpg?v=180"');
 });
+
+
+test('progress tracks Glorioso Día formal Nov 2–15 preparation, not Sept 28 announcement',async({page})=>{
+  await page.clock.setFixedTime(new Date('2026-10-22T22:29:00-04:00'));
+  await page.goto('/',{waitUntil:'domcontentloaded'});
+  await page.waitForFunction(()=>!!window.IPCDJ_CATALOG_TEST);
+  const inspect=async(id,time)=>page.evaluate(({id,time})=>{
+    window.IPCDJ_CATALOG_TEST.renderAt(Date.parse(time));
+    const card=document.querySelector('[data-current-song-card][data-song-id="'+id+'"]');
+    if(!card)return null;
+    return {
+      percentage:Number.parseFloat(card.querySelector('[data-role="progress-fill"]')?.style.width||'NaN'),
+      aria:Number(card.querySelector('[data-role="progress-track"]')?.getAttribute('aria-valuenow')),
+      days:card.querySelector('[data-role="countdown-days"]')?.textContent?.trim(),
+      phase:card.dataset.phase
+    };
+  },{id,time});
+  const early=await inspect('glorioso-dia','2026-10-22T22:29:00-04:00');
+  expect(early).toMatchObject({percentage:0,aria:0,days:'23',phase:'upcoming'});
+  const learning=await inspect('glorioso-dia','2026-11-02T00:00:00-05:00');
+  expect(learning.percentage).toBe(0);
+  expect(learning.phase).toBe('learning');
+  const mid=await inspect('glorioso-dia','2026-11-05T12:00:00-05:00');
+  expect(mid.percentage).toBeGreaterThan(20);
+  expect(mid.percentage).toBeLessThan(35);
+  const final=await inspect('glorioso-dia','2026-11-09T12:00:00-05:00');
+  expect(final.phase).toBe('final');
+  expect(final.percentage).toBeGreaterThan(mid.percentage);
+  expect(final.percentage).toBeLessThan(60);
+  const near=await inspect('glorioso-dia','2026-11-15T10:59:59-05:00');
+  expect(near.percentage).toBeGreaterThan(99);
+  expect(near.percentage).toBeLessThan(100);
+  const release=await inspect('glorioso-dia','2026-11-15T11:00:00-05:00');
+  expect(release.percentage).toBe(100);
+  expect(release.aria).toBe(100);
+  const future=await inspect('no-fallaras','2026-11-18T12:00:00-05:00');
+  expect(future.phase).toBe('upcoming');
+  expect(future.percentage).toBe(0);
+  const futureLearning=await inspect('no-fallaras','2026-11-26T12:00:00-05:00');
+  expect(futureLearning.percentage).toBeGreaterThan(20);
+  expect(futureLearning.percentage).toBeLessThan(35);
+});

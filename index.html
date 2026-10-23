@@ -10905,7 +10905,6 @@
       if(!card)return;
       const phase=getPhase(song,now);
       const release=new Date(song.releaseAt).getTime();
-      const activeStart=new Date(song.activeFrom).getTime();
       const previousPhase=card.dataset.phase||"";
 
       card.classList.toggle("phase-release",phase.key==="release");
@@ -11010,9 +11009,12 @@
         if(el)el.classList.add("active-phase");
       }
 
-      const total=Math.max(1,release-activeStart);
-      const elapsed=Math.min(total,Math.max(0,now-activeStart));
-      const progress=Math.min(100,Math.max(1,(elapsed/total)*100));
+      // Preparation progress begins when formal learning starts, not when
+      // the song was announced. Countdown and premiere timestamps are unchanged.
+      const preparationStart=new Date(song.finalOnly?song.finalStart:song.learningStart).getTime();
+      const total=Math.max(1,release-preparationStart);
+      const elapsed=Math.max(0,Math.min(total,now-preparationStart));
+      const progress=Math.max(0,Math.min(100,(elapsed/total)*100));
       const fill=cardRole(card,"progress-fill");
       if(fill)fill.style.width=progress.toFixed(3)+"%";
       const track=cardRole(card,"progress-track");
