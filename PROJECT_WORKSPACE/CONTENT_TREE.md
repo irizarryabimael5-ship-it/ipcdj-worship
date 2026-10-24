@@ -98,3 +98,6 @@ The request Worker / D1 are separate Cloudflare resources from the website and o
 
 ## 2026-10-22 additional deferred documentation
 `PROJECT_WORKSPACE/SIDE_LANES/WORSHIP_SONG_CARDS_ARTWORK_PREVIEWS_SPEC.md` — user-referenced screenshot-derived specification for compact weekly song-row authentic artwork, song-specific gradients and right-side previews; no code or independent song catalog. Indexed from Worship Semanal and Additional Features.
+
+## 2026-10-24 migration archive
+`PROJECT_WORKSPACE/HANDOFF_ARCHIVE/IPCDJ_WORSHIP_HANDOFF_2026-10-24.md` — new self-contained verified migration record: exact Oct24 main/staging refs, three curated Staging Solicitudes cards, six safety flags, Friday Oct23/Sunday Oct25 sets, Live issue #36, CI links, future work and explicit exclusions. This supersedes old current-status portions of the Oct17 handoff while retaining its full history. No runtime source changed in this archive operation.
