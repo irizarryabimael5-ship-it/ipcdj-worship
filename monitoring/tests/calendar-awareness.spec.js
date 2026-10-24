@@ -65,7 +65,11 @@ test.describe('Intelligent Eastern-time calendar (v200)',()=>{
     const archive=page.locator('[data-weekly-history-body][data-weekly-history-cycle="2026-10-25"]');
     await expect(archive).toBeAttached();
     await expect(archive.locator('.weekly-history-service')).toHaveCount(2);
-    await expect(archive.locator('.weekly-song')).toHaveCount(4);
+    // Oct23 Friday (4) and Oct25 Sunday (5) must both survive the rollover.
+    await expect(archive.locator('.weekly-song')).toHaveCount(9);
+    expect(await archive.locator('.weekly-history-service').evaluateAll(
+      nodes=>nodes.map(node=>node.querySelectorAll('.weekly-song').length).sort((a,b)=>a-b)
+    )).toEqual([4,5]);
     await expect(archive.locator('iframe')).toHaveCount(0);
     await expect(archive.locator('a[href*="youtube.com/playlist"]')).toHaveCount(0);
     await expect(page.locator('#weekly-panel-viernes .weekly-song')).toHaveCount(0);
