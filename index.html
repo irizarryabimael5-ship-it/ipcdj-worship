@@ -7466,6 +7466,7 @@
     const REQUESTED_SONGS_SOURCE=Object.freeze([
       Object.freeze({
         id:"request-hablame-de-cerca-grupo-grace",
+        curatedOrder:0,
         title:"Háblame de Cerca",
         artist:"Grupo Grace & Kairo Worship",
         requestedAt:"2026-10-16T17:26:38Z",
@@ -7480,13 +7481,57 @@
         previewUseFullAsset:true,
         previewFadeIn:.70,
         previewFadeOut:1.60
+      }),
+      Object.freeze({
+        id:"request-el-nombre-de-jesus-elevation-espanol",
+        curatedOrder:1,
+        title:"El Nombre De Jesús",
+        artist:"Elevation Español",
+        requestedAt:"2026-10-24T19:59:47Z",
+        status:"Solicitada",
+        trackUrl:"https://music.apple.com/us/song/1873032536",
+        artworkUrl:"https://i.scdn.co/image/ab67616d0000b273d7c8b84611edb2ba8378ac91",
+        artworkSource:"spotify-elevation-espanol-2026-ep",
+        futurePalette:[[27,27,30],[133,39,43],[223,91,79]],
+        itunesTrackId:"1873032536",
+        previewAudioProvider:"itunes",
+        previewClipDuration:30,
+        previewUseFullAsset:true,
+        previewFadeIn:.70,
+        previewFadeOut:1.60
+      }),
+      Object.freeze({
+        id:"request-agradecido-estoy-elevation-espanol",
+        curatedOrder:2,
+        title:"Agradecido Estoy",
+        artist:"Elevation Español",
+        requestedAt:"2026-10-24T19:59:47Z",
+        status:"Solicitada",
+        trackUrl:"https://open.spotify.com/track/2U0hjj15vz4GKPGwjaeRt7",
+        artworkUrl:"https://i.scdn.co/image/ab67616d0000b273d7c8b84611edb2ba8378ac91",
+        artworkSource:"spotify-elevation-espanol-2026-ep",
+        futurePalette:[[26,26,30],[171,47,48],[215,93,80]],
+        itunesTrackId:"1873032528",
+        previewAudioProvider:"itunes",
+        previewClipDuration:30,
+        previewUseFullAsset:true,
+        previewFadeIn:.70,
+        previewFadeOut:1.60
       })
     ]);
+    // The owner curates these pilot cards in a fixed order. Separate verified
+    // community feed entries continue newest-first after the curated cards.
+    const sortRequestedSongs=(a,b)=>{
+      const rankA=Number.isSafeInteger(a.curatedOrder)&&a.curatedOrder>=0?a.curatedOrder:Infinity;
+      const rankB=Number.isSafeInteger(b.curatedOrder)&&b.curatedOrder>=0?b.curatedOrder:Infinity;
+      if(rankA!==rankB)return rankA-rankB;
+      return Date.parse(b.requestedAt)-Date.parse(a.requestedAt)||a.id.localeCompare(b.id);
+    };
     let requestedSongs=Object.freeze(REQUESTED_SONGS_SOURCE
       .filter(song=>/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(song.id) &&
         song.status==="Solicitada" &&
         !songPipelineById.has(song.id) && !futureSongById.has(song.id))
-      .slice().sort((a,b)=>Date.parse(b.requestedAt)-Date.parse(a.requestedAt)||a.id.localeCompare(b.id)));
+      .slice().sort(sortRequestedSongs));
 
     const catalogErrors=Object.freeze(SONG_CATALOG_VALIDATION.issues.filter(issue=>issue.level==="error"));
     const catalogWarnings=Object.freeze(SONG_CATALOG_VALIDATION.issues.filter(issue=>issue.level==="warning"));
@@ -11418,7 +11463,11 @@
           ?String(metadata.itunesTrackId):"";
         const count=Number.isSafeInteger(item.requestCount)&&item.requestCount>0
           ?Math.min(item.requestCount,999999):1;
+        // A later verified D1 publication keeps an existing curated position.
+        const curatedOrder=REQUESTED_SONGS_SOURCE.findIndex(source=>
+          requestedCanonical(source.title,source.artist)===requestedCanonical(title,artist));
         const song={id:"community-"+id.toLowerCase(),title,artist,status:"Solicitada",
+          ...(curatedOrder>=0?{curatedOrder}:{}),
           requestedAt:new Date(stamp).toISOString(),artworkUrl,
           artworkSource:artworkUrl?"published-provider":"",futurePalette:palette,
           previewAudioUrl,itunesTrackId,previewClipDuration:30,
@@ -11431,8 +11480,7 @@
         const key=requestedCanonical(song.title,song.artist);
         if(!songs.has(key))songs.set(key,song);
       });
-      requestedSongs=Object.freeze([...songs.values()].sort((a,b)=>
-        Date.parse(b.requestedAt)-Date.parse(a.requestedAt)||a.id.localeCompare(b.id)));
+      requestedSongs=Object.freeze([...songs.values()].sort(sortRequestedSongs));
       renderRequestedSongs();
       if(!$("panel-solicitudes")?.hidden)hydrateVisibleRequests();
     });
