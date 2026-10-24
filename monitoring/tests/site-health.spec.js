@@ -1140,65 +1140,45 @@ test('desktop Chrome tab switching cannot replay the launch intro', async ({ pag
 
 
 
-test('TBD song stays in Después without synthetic learning or release dates', async ({ page }) => {
+test('Reinas is scheduled on Jan 24 with official art, preview and automatic lifecycle',async({page})=>{
   await openHealthyPage(page);
-  const pending=await page.evaluate(() => ({
-    tbd:window.IPCDJ_CATALOG.tbd,
-    scheduled:window.IPCDJ_CATALOG.songs.map(song=>song.id),
-    health:window.IPCDJ_CATALOG.health,
-    current:window.IPCDJ_CATALOG.snapshot(Date.now()).current,
-    introduced:window.IPCDJ_CATALOG.snapshot(Date.now()).introduced
+  const audit=await page.evaluate(()=>({
+    tbd:window.IPCDJ_CATALOG.tbd,songs:window.IPCDJ_CATALOG.songs,health:window.IPCDJ_CATALOG.health,
+    upcoming:window.IPCDJ_CATALOG.snapshot(Date.parse('2026-10-24T19:00:00-04:00')).upcoming
   }));
-  expect(pending.health.valid).toBe(true);
-  expect(pending.tbd).toEqual([{
-    id:'reinas-por-la-eternidad',
-    title:'Reinas Por La Eternidad',
-    artist:'Hillsong en Español',
-    scheduleTbd:true,
-    dateLabel:'Por definir',
-    hasPreview:true,
-    previewProvider:'itunes',
-    itunesTrackId:'1785402419'
-  }]);
-  expect(pending.scheduled).not.toContain('reinas-por-la-eternidad');
-  expect(pending.current).not.toContain('reinas-por-la-eternidad');
-  expect(pending.introduced).not.toContain('reinas-por-la-eternidad');
-  const card=page.locator('#upcoming-songs [data-song-id="reinas-por-la-eternidad"]');
-  await expect(card).toHaveCount(1);
-  await expect(card).toHaveAttribute('data-schedule-status','tbd');
-  await expect(card.locator('h3')).toHaveText('Reinas Por La Eternidad');
-  await expect(card.locator('.song-top p')).toHaveText('Hillsong en Español');
-  await expect(card.locator('.song-date')).toHaveText('Estreno: Por definir');
-  await expect(card.locator('.song-meta .meta-line').first()).toContainText('Aprendizaje:');
-  await expect(card.locator('.song-meta .meta-line').first()).toContainText('Por definir');
-  await expect(card.locator('.song-meta .meta-line').last()).toContainText('Preparación final:');
-  await expect(card.locator('.song-meta .meta-line').last()).toContainText('Por definir');
-  const upcoming=page.locator('#upcoming-songs .song-row[data-song-id]');
-  const everyFutureHasPreview=await upcoming.evaluateAll(cards=>
-    cards.length>0&&cards.every(node=>!!node.querySelector('.preview-row-future .preview-button'))
-  );
-  expect(everyFutureHasPreview).toBe(true);
-  await expect(card.locator('.preview-row-future[data-preview-song-id="reinas-por-la-eternidad"]')).toHaveCount(1);
-  await expect(card.locator('.future-preview-ring-progress')).toHaveCount(1);
-  await expect(card.locator('.future-preview-countdown')).toHaveCount(1);
-  await expect(card.locator('.preview-button')).toBeEnabled();
-  // A TBD entry must not accidentally turn into Current or a past premiere.
-  try {
-    await page.evaluate(() =>
-      window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-12-15T12:00:00-05:00'))
-    );
-    await expect(card).toHaveCount(1);
-    await expect(card.locator('.song-date')).toHaveText('Estreno: Por definir');
-    expect(await page.evaluate(() =>
-      window.IPCDJ_CATALOG.snapshot(Date.parse('2026-12-15T12:00:00-05:00'))
-        .introduced.includes('reinas-por-la-eternidad')
-    )).toBe(false);
-  }finally{
-    await page.evaluate(() => window.IPCDJ_CATALOG_TEST.resume());
-  }
+  expect(audit.health.valid).toBe(true);
+  expect(audit.tbd).toEqual([]);
+  expect(audit.songs.filter(song=>song.id==='reinas-por-la-eternidad')).toHaveLength(1);
+  expect(audit.songs.find(song=>song.id==='reinas-por-la-eternidad')).toMatchObject({
+    title:'Reinas Por La Eternidad',artist:'Hillsong en Español',
+    learningStart:'2027-01-11T00:00:00-05:00',
+    finalStart:'2027-01-18T00:00:00-05:00',
+    releaseAt:'2027-01-24T11:00:00-05:00',rolloverAt:'2027-01-25T06:00:00-05:00'
+  });
+  expect(audit.upcoming).toContain('reinas-por-la-eternidad');
+  const row=page.locator('#upcoming-songs [data-song-id="reinas-por-la-eternidad"]');
+  await expect(row).toHaveCount(1);
+  await expect(row).toHaveAttribute('data-schedule-status','scheduled');
+  await expect(row.locator('h3')).toHaveText('Reinas Por La Eternidad');
+  await expect(row.locator('.song-date')).toHaveText('Estreno: 24 Ene');
+  await expect(row.locator('.song-meta')).not.toContainText('Por definir');
+  await expect(row.locator('.preview-button')).toBeEnabled();
+  try{
+    for(const [date,phase] of [
+      ['2027-01-11T12:00:00-05:00','learning'],
+      ['2027-01-18T12:00:00-05:00','final'],
+      ['2027-01-24T11:00:00-05:00','release']
+    ]){
+      const snap=await page.evaluate(date=>window.IPCDJ_CATALOG_TEST.renderAt(Date.parse(date)),date);
+      expect(snap.phases['reinas-por-la-eternidad']).toBe(phase);
+    }
+    const snap=await page.evaluate(()=>window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2027-01-25T06:00:00-05:00')));
+    expect(snap.introduced).toContain('reinas-por-la-eternidad');
+    expect(snap.current).not.toContain('reinas-por-la-eternidad');
+  }finally{await page.evaluate(()=>window.IPCDJ_CATALOG_TEST.resume())}
 });
 
-test('TBD official preview resolves and plays through the standard Después player', async ({ page }, testInfo) => {
+test('Scheduled Reinas official preview resolves and plays through the standard Después player', async ({ page }, testInfo) => {
   await openHealthyPage(page);
   const row=page.locator('#upcoming-songs [data-song-id="reinas-por-la-eternidad"] .preview-row');
   const button=row.locator('.preview-button');
@@ -1206,7 +1186,7 @@ test('TBD official preview resolves and plays through the standard Después play
   await clickVerifiedTabletControl(page,button,testInfo);
   await expect.poll(
     () => row.evaluate(node=>node.classList.contains('is-playing')),
-    {timeout:20000,message:'official Apple preview should decode and play for TBD song'}
+    {timeout:20000,message:'official Apple preview should decode and play for scheduled Reinas'}
   ).toBe(true);
   const playing=await row.evaluate(node=>({
     state:node.dataset.previewState,
@@ -1351,12 +1331,12 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
     nov16Early: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-11-16T01:00:00-05:00')),
     nov16Active: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-11-16T06:01:00-05:00'))
   }));
-  expect(orderSnapshots.sep21.upcoming).toEqual(['glorioso-dia','no-fallaras']);
+  expect(orderSnapshots.sep21.upcoming).toEqual(['con-manos-vacias','glorioso-dia','no-fallaras','reinas-por-la-eternidad']);
   expect(orderSnapshots.oct5.upcoming).not.toContain('dios-no-esta-muerto');
-  expect(orderSnapshots.oct6.current).toEqual(['dios-no-esta-muerto','glorioso-dia']);
+  expect(orderSnapshots.oct6.current).toEqual(['dios-no-esta-muerto','con-manos-vacias']);
   expect(orderSnapshots.oct6.upcoming).not.toContain('dios-no-esta-muerto');
-  expect(orderSnapshots.nov16Early.upcoming).toEqual(['no-fallaras']);
-  expect(orderSnapshots.nov16Active.current).toContain('no-fallaras');
+  expect(orderSnapshots.nov16Early.upcoming).toEqual(['glorioso-dia','no-fallaras','reinas-por-la-eternidad']);
+  expect(orderSnapshots.nov16Active.current).toContain('glorioso-dia');
 
   const sourceResponse = await request.get('/?catalog-source-check=' + Date.now(), {
     headers: { 'cache-control': 'no-cache' }
@@ -1399,7 +1379,7 @@ test('Dios No Está Muerto enters Prep directly with its campaign countdown, reh
       window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-10-06T12:00:00-04:00'))
     );
 
-    expect(snapshot.current).toEqual(['dios-no-esta-muerto','glorioso-dia']);
+    expect(snapshot.current).toEqual(['dios-no-esta-muerto','con-manos-vacias']);
     expect(snapshot.upcoming).not.toContain('dios-no-esta-muerto');
     expect(snapshot.phases['dios-no-esta-muerto']).toBe('final');
 
@@ -1453,11 +1433,11 @@ test('multiple simultaneous Prep songs keep independent dates, countdowns, artwo
       window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-10-01T12:00:00-04:00'))
     );
 
-    const existingGlorioso=page.locator('[data-current-song-card][data-song-id="glorioso-dia"]');
-    await expect(existingGlorioso).toHaveCount(1);
-    await existingGlorioso.evaluate(card=>{
+    const existingConManos=page.locator('[data-current-song-card][data-song-id="con-manos-vacias"]');
+    await expect(existingConManos).toHaveCount(1);
+    await existingConManos.evaluate(card=>{
       card.dataset.watchdogPrepIdentity="preserve";
-      const row=card.querySelector('[data-preview-song-id="glorioso-dia"]');
+      const row=card.querySelector('[data-preview-song-id="con-manos-vacias"]');
       if(row)row.dataset.watchdogPreviewIdentity="preserve";
     });
 
@@ -1466,7 +1446,7 @@ test('multiple simultaneous Prep songs keep independent dates, countdowns, artwo
     );
 
     expect(synthetic).toHaveLength(2);
-    expect(synthetic.map(song=>song.id)).toEqual(['glorioso-dia','no-fallaras']);
+    expect(synthetic.map(song=>song.id)).toEqual(['con-manos-vacias','glorioso-dia']);
     expect(synthetic.every(song=>song.phase==='learning')).toBe(true);
 
     const cards=page.locator('[data-current-song-card]');
@@ -1502,10 +1482,10 @@ test('multiple simultaneous Prep songs keep independent dates, countdowns, artwo
       preservedPreview:card.querySelector('[data-preview-song-id]')?.dataset.watchdogPreviewIdentity||''
     })));
 
-    expect(states.map(state=>state.id)).toEqual(['glorioso-dia','no-fallaras']);
-    const preservedGlorioso=states.find(state=>state.id==='glorioso-dia');
-    expect(preservedGlorioso?.preservedCard).toBe('preserve');
-    expect(preservedGlorioso?.preservedPreview).toBe('preserve');
+    expect(states.map(state=>state.id)).toEqual(['con-manos-vacias','glorioso-dia']);
+    const preservedConManos=states.find(state=>state.id==='con-manos-vacias');
+    expect(preservedConManos?.preservedCard).toBe('preserve');
+    expect(preservedConManos?.preservedPreview).toBe('preserve');
     expect(states.every(state=>state.phase==='learning')).toBe(true);
     expect(states.every(state=>state.previewBound)).toBe(true);
     expect(states.map(state=>state.previewSongId)).toEqual(states.map(state=>state.id));
@@ -1663,7 +1643,7 @@ test('rotation preserves the verified Glorioso Día cover from Después into Cur
   const expected='https://i.scdn.co/image/ab67616d0000b27372bba4048e09a242595e4a2c';
 
   try{
-    await page.evaluate(() => window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-09-28T05:59:59-04:00')));
+    await page.evaluate(() => window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-11-16T05:59:59-05:00')));
 
     const future=page.locator('#upcoming-songs [data-song-id="glorioso-dia"]');
     await expect(future).toHaveCount(1);
@@ -1678,7 +1658,7 @@ test('rotation preserves the verified Glorioso Día cover from Después into Cur
       source:node.dataset.futureArtworkSource||''
     }));
 
-    await page.evaluate(() => window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-09-28T06:00:00-04:00')));
+    await page.evaluate(() => window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-11-16T06:00:00-05:00')));
 
     const current=page.locator('[data-current-song-card][data-song-id="glorioso-dia"]');
     await expect(current).toHaveCount(1);
@@ -2397,10 +2377,13 @@ test('v176 lifecycle UI transitions cleanly through Después, prep, release, Est
         releaseStart:await renderAt('2026-11-15T00:00:01-05:00'),
         justBeforeSettled:await renderAt('2026-11-15T11:29:59-05:00'),
         settled:await renderAt('2026-11-15T11:30:00-05:00'),
-        gloriosoBeforeRollover:await renderAt('2026-11-16T05:59:59-05:00'),
-        gloriosoRollover:await renderAt('2026-11-16T06:00:00-05:00'),
+        conManosBeforeRollover:await renderAt('2026-11-16T05:59:59-05:00'),
+        conManosRollover:await renderAt('2026-11-16T06:00:00-05:00'),
         introduced:await renderAt('2026-11-17T00:00:01-05:00'),
-        noFallarasReleased:await renderAt('2026-12-06T11:30:00-05:00')
+        gloriosoReleased:await renderAt('2026-12-06T11:30:00-05:00'),
+        noFallarasReleased:await renderAt('2027-01-03T11:30:00-05:00'),
+        reinasReleased:await renderAt('2027-01-24T11:30:00-05:00'),
+        reinasRollover:await renderAt('2027-01-25T06:00:00-05:00')
       };
 
       const stressTimes=[
@@ -2445,80 +2428,50 @@ test('v176 lifecycle UI transitions cleanly through Después, prep, release, Est
     }
   });
 
-  expect(result.checkpoints.beforeActive.upcoming).toContain('glorioso-dia');
-  expect(result.checkpoints.beforeActive.current.map(x=>x.id)).not.toContain('glorioso-dia');
-  expect(result.checkpoints.beforeActive.current.map(x=>x.id)).toContain('dios-de-milagros');
-  expect(result.checkpoints.beforeActive.snapshot.upcoming).toContain('glorioso-dia');
-
-  expect(result.checkpoints.afterActive.upcoming).not.toContain('glorioso-dia');
-  expect(result.checkpoints.afterActive.current.map(x=>x.id)).toContain('glorioso-dia');
+  expect(result.checkpoints.beforeActive.upcoming).toContain('con-manos-vacias');
+  expect(result.checkpoints.beforeActive.current.map(x=>x.id)).not.toContain('con-manos-vacias');
+  expect(result.checkpoints.afterActive.current.map(x=>x.id)).toContain('con-manos-vacias');
   expect(result.checkpoints.afterActive.current.map(x=>x.id)).not.toContain('dios-de-milagros');
-  expect(result.checkpoints.beforeActive.introduced).not.toContain('Dios De Milagros');
-  expect(result.checkpoints.afterActive.introduced).toContain('Dios De Milagros');
-  expect(result.checkpoints.afterActive.snapshot.current).toContain('glorioso-dia');
-  expect(result.checkpoints.afterActive.snapshot.current).not.toContain('dios-de-milagros');
-  expect(result.checkpoints.afterActive.snapshot.introduced).toContain('dios-de-milagros');
   const diosHistoryRow=result.checkpoints.afterActive.introducedRows.find(x=>x.title==='Dios De Milagros');
-  expect(diosHistoryRow).toBeTruthy();
-  expect(diosHistoryRow.date).toBe('Estrenada · 27 de septiembre');
-
-  expect(result.checkpoints.diosIntroduced.introduced).toContain('Dios De Milagros');
-  expect(result.checkpoints.diosIntroduced.snapshot.introduced).toContain('dios-de-milagros');
-  const afterActiveCard=result.checkpoints.afterActive.current.find(x=>x.id==='glorioso-dia');
-  expect(afterActiveCard).toBeTruthy();
-  expect(afterActiveCard.phase).toBe('upcoming');
-
-  const learningCard=result.checkpoints.learning.current.find(x=>x.id==='glorioso-dia');
-  expect(learningCard).toBeTruthy();
-  expect(learningCard.phase).toBe('learning');
-  expect(result.checkpoints.learning.snapshot.phases['glorioso-dia']).toBe('learning');
-
-  const finalCard=result.checkpoints.finalPrep.current.find(x=>x.id==='glorioso-dia');
-  expect(finalCard).toBeTruthy();
-  expect(finalCard.phase).toBe('final');
-  expect(result.checkpoints.finalPrep.snapshot.phases['glorioso-dia']).toBe('final');
-
-  const releaseCard=result.checkpoints.releaseStart.current.find(x=>x.id==='glorioso-dia');
-  expect(releaseCard).toBeTruthy();
-  expect(releaseCard.phase).toBe('release');
-  expect(releaseCard.status).toBe('HOY · ESTRENO');
-  expect(result.checkpoints.releaseStart.snapshot.phases['glorioso-dia']).toBe('release');
-
-  const preSettled=result.checkpoints.justBeforeSettled.current.find(x=>x.id==='glorioso-dia');
-  expect(preSettled).toBeTruthy();
-  expect(preSettled.phase).toBe('release');
-
-  const settled=result.checkpoints.settled.current.find(x=>x.id==='glorioso-dia');
-  expect(settled).toBeTruthy();
-  expect(settled.phase).toBe('released');
+  expect(diosHistoryRow?.date).toBe('Estrenada · 27 de septiembre');
+  for(const [checkpoint,phase] of [
+    ['afterActive','upcoming'],['learning','learning'],['finalPrep','final'],
+    ['releaseStart','release'],['justBeforeSettled','release'],['settled','released']
+  ]){
+    const song=result.checkpoints[checkpoint].current.find(x=>x.id==='con-manos-vacias');
+    expect(song,checkpoint).toBeTruthy();
+    expect(song.phase).toBe(phase);
+    expect(result.checkpoints[checkpoint].snapshot.phases['con-manos-vacias']).toBe(phase);
+  }
+  expect(result.checkpoints.releaseStart.current.find(x=>x.id==='con-manos-vacias')?.status).toBe('HOY · ESTRENO');
+  const settled=result.checkpoints.settled.current.find(x=>x.id==='con-manos-vacias');
   expect(settled.status).toBe('ESTRENADO');
   expect(settled.title).toBe('ESTRENO COMPLETADO');
-  expect(result.checkpoints.settled.snapshot.phases['glorioso-dia']).toBe('released');
-
-  expect(result.checkpoints.gloriosoBeforeRollover.current.map(x=>x.id)).toContain('glorioso-dia');
-  expect(result.checkpoints.gloriosoBeforeRollover.upcoming).toContain('no-fallaras');
-  expect(result.checkpoints.gloriosoBeforeRollover.introduced).not.toContain('Glorioso Día');
-
-  expect(result.checkpoints.gloriosoRollover.current.map(x=>x.id)).not.toContain('glorioso-dia');
-  expect(result.checkpoints.gloriosoRollover.current.map(x=>x.id)).toContain('no-fallaras');
-  expect(result.checkpoints.gloriosoRollover.upcoming).not.toContain('no-fallaras');
-  expect(result.checkpoints.gloriosoRollover.introduced).toContain('Glorioso Día');
-  expect(result.checkpoints.gloriosoRollover.snapshot.introduced).toContain('glorioso-dia');
-  const gloriosoHistoryRow=result.checkpoints.gloriosoRollover.introducedRows.find(x=>x.title==='Glorioso Día');
-  expect(gloriosoHistoryRow).toBeTruthy();
-  expect(gloriosoHistoryRow.date).toBe('Estrenada · 15 de noviembre');
-
-  expect(result.checkpoints.introduced.current.map(x=>x.id)).not.toContain('glorioso-dia');
-  expect(result.checkpoints.introduced.introduced).toContain('Glorioso Día');
-  expect(result.checkpoints.introduced.snapshot.introduced).toContain('glorioso-dia');
-
-  const noFallarasReleased=result.checkpoints.noFallarasReleased.current.find(x=>x.id==='no-fallaras');
-  expect(noFallarasReleased).toBeTruthy();
-  expect(noFallarasReleased.phase).toBe('released');
-  expect(noFallarasReleased.status).toBe('ESTRENADO');
-  expect(noFallarasReleased.title).toBe('ESTRENO COMPLETADO');
-  expect(result.checkpoints.noFallarasReleased.snapshot.phases['no-fallaras']).toBe('released');
-
+  expect(result.checkpoints.conManosBeforeRollover.current.map(x=>x.id)).toContain('con-manos-vacias');
+  expect(result.checkpoints.conManosBeforeRollover.upcoming).toContain('glorioso-dia');
+  expect(result.checkpoints.conManosRollover.current.map(x=>x.id)).not.toContain('con-manos-vacias');
+  expect(result.checkpoints.conManosRollover.current.map(x=>x.id)).toContain('glorioso-dia');
+  expect(result.checkpoints.conManosRollover.introduced).toContain('Con Manos Vacías');
+  expect(result.checkpoints.conManosRollover.snapshot.introduced).toContain('con-manos-vacias');
+  const firstHistoryRow=result.checkpoints.conManosRollover.introducedRows.find(x=>x.title==='Con Manos Vacías');
+  expect(firstHistoryRow?.date).toBe('Estrenada · 15 de noviembre');
+  expect(result.checkpoints.introduced.snapshot.current).toContain('glorioso-dia');
+  for(const [checkpoint,id] of [
+    ['gloriosoReleased','glorioso-dia'],
+    ['noFallarasReleased','no-fallaras'],
+    ['reinasReleased','reinas-por-la-eternidad']
+  ]){
+    const song=result.checkpoints[checkpoint].current.find(x=>x.id===id);
+    expect(song,checkpoint).toBeTruthy();
+    expect(song.phase).toBe('released');
+    expect(song.status).toBe('ESTRENADO');
+    expect(song.title).toBe('ESTRENO COMPLETADO');
+    expect(result.checkpoints[checkpoint].snapshot.phases[id]).toBe('released');
+  }
+  expect(result.checkpoints.reinasRollover.snapshot.introduced).toEqual(expect.arrayContaining([
+    'con-manos-vacias','glorioso-dia','no-fallaras','reinas-por-la-eternidad'
+  ]));
+  expect(result.checkpoints.reinasRollover.snapshot.current).not.toContain('reinas-por-la-eternidad');
   for(const state of Object.values(result.checkpoints)){
     expect(state.duplicateIds).toEqual([]);
     expect(state.width).toBeLessThanOrEqual(state.viewport+2);
@@ -2624,7 +2577,7 @@ test('v180 social preview is the approved WhatsApp screenshot', async ({ request
 });
 
 
-test('progress tracks Glorioso Día formal Nov 2–15 preparation, not Sept 28 announcement',async({page})=>{
+test('Con Manos Vacías Nov 15 progress and Glorioso Día Dec 6 preparation',async({page})=>{
   await page.clock.setFixedTime(new Date('2026-10-22T22:29:00-04:00'));
   await page.goto('/',{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>!!window.IPCDJ_CATALOG_TEST);
@@ -2639,19 +2592,19 @@ test('progress tracks Glorioso Día formal Nov 2–15 preparation, not Sept 28 a
       phase:card.dataset.phase
     };
   },{id,time});
-  const early=await inspect('glorioso-dia','2026-10-22T22:29:00-04:00');
+  const early=await inspect('con-manos-vacias','2026-10-22T22:29:00-04:00');
   expect(early).toMatchObject({percentage:0,aria:0,days:'23',phase:'upcoming'});
-  const learning=await inspect('glorioso-dia','2026-11-02T00:00:00-05:00');
+  const learning=await inspect('con-manos-vacias','2026-11-02T00:00:00-05:00');
   expect(learning.percentage).toBe(0);
   expect(learning.phase).toBe('learning');
-  const mid=await inspect('glorioso-dia','2026-11-05T12:00:00-05:00');
+  const mid=await inspect('con-manos-vacias','2026-11-05T12:00:00-05:00');
   expect(mid.percentage).toBeGreaterThan(20);
   expect(mid.percentage).toBeLessThan(35);
-  const final=await inspect('glorioso-dia','2026-11-09T12:00:00-05:00');
+  const final=await inspect('con-manos-vacias','2026-11-09T12:00:00-05:00');
   expect(final.phase).toBe('final');
   expect(final.percentage).toBeGreaterThan(mid.percentage);
   expect(final.percentage).toBeLessThan(60);
-  const near=await inspect('glorioso-dia','2026-11-15T10:59:59-05:00');
+  const near=await inspect('con-manos-vacias','2026-11-15T10:59:59-05:00');
   expect(near.percentage).toBeGreaterThan(99);
   // CSS rounds to three decimals; ARIA rounds to an integer. Both can
   // DISPLAY 100 when the exact preparation percentage is still below 100.
@@ -2661,13 +2614,13 @@ test('progress tracks Glorioso Día formal Nov 2–15 preparation, not Sept 28 a
   expect(unroundedNear).toBeLessThan(100);
   expect(near.percentage).toBe(Number(unroundedNear.toFixed(3)));
   expect(near.aria).toBe(Math.round(unroundedNear));
-  const release=await inspect('glorioso-dia','2026-11-15T11:00:00-05:00');
+  const release=await inspect('con-manos-vacias','2026-11-15T11:00:00-05:00');
   expect(release.percentage).toBe(100);
   expect(release.aria).toBe(100);
-  const future=await inspect('no-fallaras','2026-11-18T12:00:00-05:00');
+  const future=await inspect('glorioso-dia','2026-11-18T12:00:00-05:00');
   expect(future.phase).toBe('upcoming');
   expect(future.percentage).toBe(0);
-  const futureLearning=await inspect('no-fallaras','2026-11-26T12:00:00-05:00');
+  const futureLearning=await inspect('glorioso-dia','2026-11-26T12:00:00-05:00');
   expect(futureLearning.percentage).toBeGreaterThan(20);
   expect(futureLearning.percentage).toBeLessThan(35);
 });
