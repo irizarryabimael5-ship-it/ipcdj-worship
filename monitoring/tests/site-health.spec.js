@@ -2582,7 +2582,14 @@ test('progress tracks Glorioso Día formal Nov 2–15 preparation, not Sept 28 a
   expect(final.percentage).toBeLessThan(60);
   const near=await inspect('glorioso-dia','2026-11-15T10:59:59-05:00');
   expect(near.percentage).toBeGreaterThan(99);
-  expect(near.percentage).toBeLessThan(100);
+  // CSS rounds to three decimals; ARIA rounds to an integer. Both can
+  // DISPLAY 100 when the exact preparation percentage is still below 100.
+  const formalStart=Date.parse('2026-11-02T00:00:00-05:00');
+  const estrenoAt=Date.parse('2026-11-15T11:00:00-05:00');
+  const unroundedNear=((estrenoAt-1000-formalStart)/(estrenoAt-formalStart))*100;
+  expect(unroundedNear).toBeLessThan(100);
+  expect(near.percentage).toBe(Number(unroundedNear.toFixed(3)));
+  expect(near.aria).toBe(Math.round(unroundedNear));
   const release=await inspect('glorioso-dia','2026-11-15T11:00:00-05:00');
   expect(release.percentage).toBe(100);
   expect(release.aria).toBe(100);
