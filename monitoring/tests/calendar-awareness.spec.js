@@ -27,7 +27,7 @@ test.describe('Intelligent Eastern-time calendar (v200)',()=>{
     expect(contexts.every(x=>x.cycle==='2026-10-25'&&x.timeZone==='America/New_York')).toBe(true);
     expect(contexts[1].phase).toBe('preparacion');
     await expect(page.locator('#weekly-panel-viernes .weekly-song')).toHaveCount(4);
-    await expect(page.locator('#weekly-panel-domingo .weekly-song')).toHaveCount(0);
+    await expect(page.locator('#weekly-panel-domingo .weekly-song')).toHaveCount(5);
   });
 
   test('wakes across midnight and reports only meaningful changes',async({page})=>{
@@ -48,7 +48,7 @@ test.describe('Intelligent Eastern-time calendar (v200)',()=>{
     await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
     expect(await page.evaluate(()=>window.__calendarEvents.length)).toBe(1);
     await expect(page.locator('#weekly-panel-viernes .weekly-song')).toHaveCount(4);
-    await expect(page.locator('#weekly-panel-domingo .weekly-song')).toHaveCount(0);
+    await expect(page.locator('#weekly-panel-domingo .weekly-song')).toHaveCount(5);
   });
 
   test('archives once at the configured Sunday cutoff, not before, with playlists removed',async({page})=>{

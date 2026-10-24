@@ -59,7 +59,7 @@ test.describe('First-paint Reinas art, scrolling glass, essential navigation',()
     expect(legacy.motion).toContain('running');
   });
 
-  test('Inicio and Worship semanal work and the October 23 Friday set and Sunday pending remain intact',async({page})=>{
+  test('Inicio and Worship semanal work and the October 23 Friday and October 25 Sunday sets remain intact',async({page})=>{
     await page.clock.setFixedTime(new Date('2026-10-15T12:00:00-04:00'));
     await page.goto('/',{waitUntil:'domcontentloaded'});
     await expect(page.locator('[data-song-id="reinas-por-la-eternidad"]')).toBeAttached();
@@ -73,8 +73,8 @@ test.describe('First-paint Reinas art, scrolling glass, essential navigation',()
     await page.locator('#weekly-tab-domingo').click();
     const sunday=page.locator('#weekly-panel-domingo');
     await expect(sunday).toBeVisible();
-    await expect(sunday.locator('.weekly-song')).toHaveCount(0);
-    await expect(sunday).toContainText('Set pendiente');
+    await expect(sunday.locator('.weekly-song')).toHaveCount(5);
+    await expect(sunday).toContainText('Domingo, 25 de octubre');
     await expect(page.locator('.weekly-history[data-weekly-archive-cycle="2026-10-18"] .weekly-song')).toHaveCount(9);
     await page.locator('#tab-inicio').click();
     await expect(page.locator('[data-song-id="reinas-por-la-eternidad"]')).toBeAttached();
