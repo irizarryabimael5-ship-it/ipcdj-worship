@@ -7514,6 +7514,7 @@
         trackUrl:"https://open.spotify.com/track/4DYvC8ozC0SF3SoyIpkuiY",
         artworkUrl:"https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/f5/67/f5/f567f59e-abdd-6ea5-fdd2-ea84ec36b657/820200377111.jpg/800x800cc.jpg",
         artworkSource:"apple-music-official-2026-single",
+        artworkContainsPeople:true,
         artworkFocalSubject:"people",
         futurePalette:[[29,59,80],[56,88,106],[157,113,72]],
         itunesTrackId:"1884087646",
@@ -7533,6 +7534,7 @@
         trackUrl:"https://music.apple.com/us/song/1873032536",
         artworkUrl:"https://i.scdn.co/image/ab67616d0000b273d7c8b84611edb2ba8378ac91",
         artworkSource:"spotify-elevation-espanol-2026-ep",
+        artworkContainsPeople:true,
         artworkFocalSubject:"people",
         futurePalette:[[27,27,30],[133,39,43],[223,91,79]],
         itunesTrackId:"1873032536",
@@ -7552,6 +7554,7 @@
         trackUrl:"https://open.spotify.com/track/2U0hjj15vz4GKPGwjaeRt7",
         artworkUrl:"https://i.scdn.co/image/ab67616d0000b273d7c8b84611edb2ba8378ac91",
         artworkSource:"spotify-elevation-espanol-2026-ep",
+        artworkContainsPeople:true,
         artworkFocalSubject:"people",
         futurePalette:[[26,26,30],[171,47,48],[215,93,80]],
         itunesTrackId:"1873032528",
@@ -7572,8 +7575,11 @@
         // Official Gateway Music March 2022 single cover.
         artworkUrl:"https://images.squarespace-cdn.com/content/v1/639a2596d4e75765c87e82ed/3e0030ce-93b4-48b9-b2ce-f22929d8e3d7/GWE-PoderosoDios-SingleCover-RGB-300dpi-3000x3000.jpeg",
         artworkSource:"gateway-music-official-2022-single",
-        artworkFocalSubject:"people",
-        artworkFocalY:"18%",
+        artworkContainsPeople:true,
+        // Owner-approved exception: center the printed title, not the performers.
+        artworkFocalSubject:"text",
+        artworkFocalExceptionApproved:true,
+        artworkFocalY:"50%",
         futurePalette:[[54,46,45],[137,83,71],[192,139,117]],
         itunesCollectionId:"1699411311",
         itunesTrackId:"1699411330",
@@ -7818,16 +7824,30 @@
       const value='url("'+safe+'")';
       blur.style.backgroundImage=value;
       ghost.style.backgroundImage=value;
-      // Artwork art direction is curated per release. When people are shown,
-      // their faces/bodies take precedence; otherwise center printed lettering.
-      // Uncurated sources keep the original visual framing.
-      const focalSubject=String(song.artworkFocalSubject||"").toLowerCase();
-      if(focalSubject==="people"||focalSubject==="text"){
+      // Default: center performers whenever an approved cover contains people.
+      // Printed lettering takes priority over people ONLY with explicit owner
+      // approval recorded in the curated song metadata.
+      const hasPeople=song.artworkContainsPeople===true;
+      const exceptionApproved=song.artworkFocalExceptionApproved===true;
+      const requestedFocus=String(song.artworkFocalSubject||"").toLowerCase();
+      const focalSubject=(hasPeople&&!exceptionApproved)
+        ? "people"
+        : (requestedFocus==="people"||requestedFocus==="text"
+          ? requestedFocus
+          : (song.artworkContainsPeople===false?"text":""));
+      if(focalSubject){
         card.dataset.artworkFocalSubject=focalSubject;
       }else{
         delete card.dataset.artworkFocalSubject;
       }
-      const verticalFocus=String(song.artworkFocalY||"").trim();
+      if(hasPeople&&exceptionApproved&&focalSubject==="text"){
+        card.dataset.artworkFocalException="owner-approved";
+      }else{
+        delete card.dataset.artworkFocalException;
+      }
+      // 50% centers the cover text vertically unless owner-approved art
+      // direction supplies a specifically calibrated text/people focal point.
+      const verticalFocus=String(song.artworkFocalY||(focalSubject==="text"?"50%":"")).trim();
       if(/^(?:100|[1-9]?[0-9])%$/.test(verticalFocus)){
         ghost.style.backgroundPosition="right "+verticalFocus;
         card.dataset.artworkFocalY=verticalFocus;

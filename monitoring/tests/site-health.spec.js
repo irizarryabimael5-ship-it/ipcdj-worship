@@ -2651,7 +2651,7 @@ test('Próximas Canciones Apple Music button uses the approved library playlist 
   expect((html.match(/href="https:\/\/music\.apple\.com\/(?:library|us)\/playlist\/[^"]+"/g)||[])).toHaveLength(1);
 });
 
-test('artwork focus prefers performers when people exist; Poderoso right-side crop preserved',async({page})=>{
+test('artwork focus prioritizes owner-approved Poderoso text exception; other performer covers unchanged',async({page})=>{
   await openHealthyPage(page);
   await page.locator('#tab-solicitudes').click();
   const cards=page.locator('#requested-songs [data-request-song-id]');
@@ -2667,6 +2667,7 @@ test('artwork focus prefers performers when people exist; Poderoso right-side cr
       position:style.backgroundPosition,
       focalSubject:card.dataset.artworkFocalSubject,
       focalY:card.dataset.artworkFocalY,
+      exception:card.dataset.artworkFocalException,
       transform:style.transform,
       origin:style.transformOrigin,
       ghostWidth:art.offsetWidth,
@@ -2688,15 +2689,18 @@ test('artwork focus prefers performers when people exist; Poderoso right-side cr
     expect(card.size,card.id).toBe('cover');
     expect(card.blurSize,card.id).toBe('cover');
     expect(card.overflow,card.id).toBe('hidden');
-    expect(card.focalSubject,card.id).toBe('people');
     if(i<3){
+      expect(card.focalSubject,card.id).toBe('people');
+      expect(card.exception,card.id).toBeUndefined();
       expect(card.focalY,card.id).toBeUndefined();
       expect(card.transform,card.id).toBe('none');
       expect(card.position,card.id).toMatch(/^50% 50%$|^center center$/);
     }else{
       expect(card.transform,card.id).not.toBe('none');
-      expect(card.focalY,card.id).toBe('18%');
-      expect(card.position,card.id).toMatch(/(?:right|100%).*18%/);
+      expect(card.focalSubject,card.id).toBe('text');
+      expect(card.exception,card.id).toBe('owner-approved');
+      expect(card.focalY,card.id).toBe('50%');
+      expect(card.position,card.id).toMatch(/(?:right|100%).*50%/);
       expect(card.originX,card.id).toBeGreaterThanOrEqual(card.ghostWidth*.94);
       expect(card.renderedWidth/card.ghostWidth,card.id).toBeGreaterThan(1.14);
       // The real cover's outer printed border must be overscanned past
