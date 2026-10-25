@@ -2785,3 +2785,12 @@ test('Staging streamed previews use the established fade-in out and crossfade co
   expect(html).toContain('Adelanto cortesía de iTunes');
   expect(html).toContain('artworkFocalY:"47%"');
 });
+
+test('mobile background immediately disposes crossfade outgoing voices',async({request})=>{
+  const response=await request.get('/?preview-mobile-lock='+Date.now(),{headers:{'cache-control':'no-cache'}});
+  expect(response.ok()).toBeTruthy();
+  const html=await response.text();
+  expect(html).toContain('webPreviewOutgoingVoices.add(outgoing)');
+  expect(html).toContain('for(const voice of [...streamedItunesOutgoing])disposeStreamVoice(voice)');
+  expect(html).toContain('for(const voice of [...webPreviewOutgoingVoices])disposeWebPreviewVoice(voice)');
+});

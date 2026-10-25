@@ -9753,6 +9753,7 @@
       }
       if(streamedItunesAudio)stopStreamedItunesPreview();
       for(const voice of [...streamedItunesOutgoing])disposeStreamVoice(voice);
+      for(const voice of [...webPreviewOutgoingVoices])disposeWebPreviewVoice(voice);
       if(youtubePreviewPlaying&&youtubePreviewPlayerSongId){
         try{youtubePreviewPlayer.pauseVideo()}catch(_){}
         youtubePreviewPlaying=false;
@@ -10471,6 +10472,8 @@
       const old=webPreviewSongId;
       const outgoing={songId:old,source:webPreviewSource,
         normalizeGain:webPreviewNormalizeGain,gain:webPreviewGain};
+      // Register the fading buffered voice for immediate mobile lock cleanup.
+      webPreviewOutgoingVoices.add(outgoing);
       const level=Math.max(0,Math.min(1,
         webPreviewGainAt(Math.max(0,(performance.now()-webPreviewStartedAt)/1000))));
       const at=webPreviewContext.currentTime+.005;
