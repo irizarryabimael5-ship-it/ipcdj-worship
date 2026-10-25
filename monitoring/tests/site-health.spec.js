@@ -505,9 +505,10 @@ test('FEATURES song request pilot is isolated, themed, accessible and preview-re
     'Háblame de Cerca','El Nombre De Jesús','Agradecido Estoy','Poderoso Dios (Grande y Fiel)',
     'Bienvenido Espíritu Santo'
   ]);
-  await expect(panel.locator('[data-preview-song-id]')).toHaveCount(4);
-  await expect(cards.nth(4).locator('.requests-no-preview')).toHaveText('Adelanto no disponible');
-  await expect(cards.nth(4).locator('.requests-official-link')).toHaveAttribute('href','https://www.youtube.com/watch?v=x7UjLhIPk3E');
+  await expect(panel.locator('[data-preview-song-id]')).toHaveCount(5);
+  await expect(cards.nth(4).locator('.future-preview-button')).toBeVisible();
+  await expect(cards.nth(4).locator('.catalog-preview-attribution')).toContainText('iTunes');
+  await expect(cards.nth(4)).toHaveAttribute('data-future-artwork-source','verified-spotify-barak-fuego-poder-live-2022');
   const card=cards.first();
   await expect(card).toHaveAttribute('data-request-song-id','request-hablame-de-cerca-grupo-grace');
   await expect(card.locator('.song-top h3')).toHaveText('Háblame de Cerca');
@@ -2735,9 +2736,34 @@ test('Vuelven a Sonar tab separates two confirmed selections from real service s
   expect(await rows.locator('.song-top p').allTextContents()).toEqual(['Montesanto','Barak']);
   await expect(rows.locator('.song-date')).toHaveText(['Por retomar','Por retomar']);
   for(const row of await rows.all())await expect(row).toHaveAttribute('data-return-proof','pending');
-  expect(await rows.locator('.returning-track-link').evaluateAll(all=>all.map(a=>a.getAttribute('href')))).toEqual(['https://music.apple.com/us/song/1799832312','https://music.apple.com/us/song/1777898241']);
+  await expect(rows.locator('.future-artwork-ghost')).toHaveCount(2);
+  await expect(rows.locator('.future-artwork-blur')).toHaveCount(2);
+  await expect(rows.locator('.future-preview-button')).toHaveCount(2);
+  await expect(rows.locator('.future-preview-ring-progress')).toHaveCount(2);
+  await expect(rows.locator('.catalog-preview-attribution')).toHaveCount(2);
+  expect(await rows.locator('.catalog-preview-attribution a').evaluateAll(all=>all.map(a=>a.getAttribute('href')))).toEqual(['https://music.apple.com/us/song/1799832312','https://music.apple.com/us/song/1777898241']);
+  for(const row of await rows.all()){
+    await expect(row).toHaveClass(/future-themed/);
+    const computed=await row.locator('.future-artwork-ghost').evaluate(el=>getComputedStyle(el).backgroundImage);
+    expect(computed).not.toBe('none');
+  }
   await expect(panel).toContainText('aún están por verificarse');
   await expect(page.locator('#panel-worship-semanal')).toBeHidden();
   await expect(page.locator('#upcoming-songs [data-return-song-id]')).toHaveCount(0);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)).toBeLessThanOrEqual(4);
+});
+
+test('new owner-curated previews are exact provider references, stream-only and preserve old cover exception',async({request})=>{
+  const response=await request.get('/?curated-streaming-regression='+Date.now(),{headers:{'cache-control':'no-cache'}});
+  expect(response.ok()).toBeTruthy();
+  const html=await response.text();
+  expect(html).toContain('itunesTrackId:"1799832312"');
+  expect(html).toContain('itunesTrackId:"1777898241"');
+  expect(html).toContain('itunesCollectionId:"1783806472"');
+  expect(html).toContain('previewSourceVerifiedCollection:true');
+  expect(html).toContain('source:"streamed-itunes"');
+  expect(html).toContain('if(song.previewStreamingOnly===true)');
+  expect(html).toContain('canonicalPreviewTitle(result.trackName)===canonicalPreviewTitle(song.title)');
+  expect(html).toContain('artworkFocalY:"47%"');
+  expect(html).toContain('data-return-proof="pending"');
 });

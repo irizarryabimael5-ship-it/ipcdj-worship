@@ -6,7 +6,7 @@
   <meta name="ipcdj-environment" content="staging" />
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="campana-weekend-v204" />
+  <meta name="ipcdj-build" content="campana-weekend-v205" />
   <script id="ipcdj-original-visual-preview-init">
     // Explicit staging-only opt-in; default users keep accessibility preferences.
     (()=>{try{
@@ -4246,18 +4246,14 @@
       margin:17px 2px 0;color:var(--muted);font-size:.82rem;
       line-height:1.5;text-align:center;
     }
-    /* Isolated return candidates; no service dates or automatic comeback badges. */
+    /* Both curated tabs use the SAME future-card renderer and preview ring. */
     #panel-vuelven-a-sonar .returning-list-card{padding-bottom:23px}
     #panel-vuelven-a-sonar .returning-history-note{color:var(--muted);font-size:.79rem;line-height:1.5;margin:0 0 16px}
-    #returning-songs .returning-song{padding-right:16px;min-width:0}
-    #returning-songs .returning-song .song-top{align-items:center;gap:18px;flex-wrap:wrap}
-    #returning-songs .returning-song-copy{min-width:0;flex:1 1 170px}
-    #returning-songs .returning-track-link{display:inline-flex;align-items:center;justify-content:center;min-height:44px;max-width:100%;flex:0 1 auto;padding:8px 13px;border-radius:11px;border:1px solid rgba(255,255,255,.28);color:#eef3ff;background:rgba(8,15,28,.52);text-decoration:none;text-align:center;font-size:.78rem;font-weight:700;line-height:1.2;white-space:normal}
-    #returning-songs .returning-track-link:hover{background:rgba(31,54,89,.67);border-color:rgba(255,255,255,.46)}
-    #returning-songs .returning-track-link:focus-visible{outline:2px solid #b3c7ff;outline-offset:3px}
-    #panel-solicitudes .requests-official-link{display:inline-block;margin-top:10px;color:#cce0ff;text-decoration:underline;text-underline-offset:3px;font-size:.8rem}
-    #panel-solicitudes .requests-official-link:focus-visible{outline:2px solid #b3c7ff;outline-offset:3px}
-    @media(max-width:520px){#returning-songs .returning-song .song-top{align-items:flex-start;gap:12px}}
+    #returning-songs .song-row{isolation:isolate}
+    #returning-songs .song-date{margin-top:12px}
+    .catalog-preview-attribution{display:inline-flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:9px;max-width:100%;color:rgba(241,244,250,.76);font-size:.67rem;line-height:1.3}
+    .catalog-preview-attribution a{color:#dbe8ff;text-decoration:underline;text-underline-offset:2px}
+    .catalog-preview-attribution a:focus-visible{outline:2px solid #b3c7ff;outline-offset:3px}
     #requested-songs .song-row{isolation:isolate}
     /* Preserve the original shared Solicitudes composition. This cover
        alone needs 15% overscan to eliminate its printed artwork frame.
@@ -5162,28 +5158,7 @@
           <h2 class="section-title" id="returning-title">Vuelven a Sonar</h2>
           <p class="section-note">Canciones seleccionadas para retomar en nuestro repertorio. Aún no están asignadas a ningún culto ni tienen estreno programado.</p>
           <p class="returning-history-note">Las fechas de sus últimas participaciones en los repertorios aún están por verificarse.</p>
-          <div class="songs" id="returning-songs">
-            <div class="song-row future-themed returning-song" data-return-song-id="retorno-santo-es-el-que-vive-montesanto" data-return-proof="pending" style="--future-c1:30,71,80;--future-c2:176,62,61;--future-c3:115,65,65;--future-c4:85,44,60;--future-accent:233,144,125;">
-              <div class="song-top">
-                <div class="returning-song-copy">
-                  <h3 class="notranslate" translate="no">Santo Es El Que Vive</h3>
-                  <p class="notranslate" translate="no">Montesanto</p>
-                  <div class="song-date">Por retomar</div>
-                </div>
-                <a class="returning-track-link" href="https://music.apple.com/us/song/1799832312" target="_blank" rel="noopener noreferrer" aria-label="Escuchar Santo Es El Que Vive de Montesanto en Apple Music">Escuchar versión oficial</a>
-              </div>
-            </div>
-            <div class="song-row future-themed returning-song" data-return-song-id="retorno-con-poder-barak" data-return-proof="pending" style="--future-c1:42,68,111;--future-c2:126,84,116;--future-c3:151,111,68;--future-c4:60,55,91;--future-accent:163,182,249;">
-              <div class="song-top">
-                <div class="returning-song-copy">
-                  <h3 class="notranslate" translate="no">Con Poder</h3>
-                  <p class="notranslate" translate="no">Barak</p>
-                  <div class="song-date">Por retomar</div>
-                </div>
-                <a class="returning-track-link" href="https://music.apple.com/us/song/1777898241" target="_blank" rel="noopener noreferrer" aria-label="Escuchar Con Poder en Vivo de Barak en Apple Music">Escuchar versión oficial</a>
-              </div>
-            </div>
-          </div>
+          <div class="songs" id="returning-songs" aria-live="polite"></div>
         </section>
       </section>
       <!-- WORSHIP_RETURNING_SONGS_END -->
@@ -6047,6 +6022,7 @@
 
       activeSiteTabKey=key;
       if(key==="solicitudes")window.dispatchEvent(new Event("ipcdj:requests-visible"));
+      if(key==="vuelven-a-sonar")window.dispatchEvent(new Event("ipcdj:returning-visible"));
       if(focus)button.focus({preventScroll:true});
       return true;
     }
@@ -7369,7 +7345,9 @@
     function hasSongPreviewSource(song){
       return !!song&&(
         isHttpsCatalogUrl(song.previewAudioUrl)||
-        /^[1-9]\d*$/.test(String(song.itunesTrackId||""))
+        /^[1-9]\d*$/.test(String(song.itunesTrackId||""))||
+        (song.previewStreamingOnly===true&&song.previewSourceVerifiedCollection===true&&
+          /^[1-9]\d*$/.test(String(song.itunesCollectionId||"")))
       );
     }
 
@@ -7550,6 +7528,44 @@
     const futureSongById=new Map([...songPipeline,...tbdSongs].map(song=>[song.id,song]));
     // FEATURES sidebar: accepted community requests have no release dates,
     // no managed pipeline membership and no automation or notification side effects.
+    // Owner-selected return candidates are NOT proof of a 6-12 month hiatus.
+    // Same verified art + preview pipeline as Solicitudes, no managed release dates.
+    const RETURNING_SONGS_SOURCE=Object.freeze([
+      Object.freeze({
+        id:"retorno-santo-es-el-que-vive-montesanto",
+        title:"Santo Es El Que Vive",
+        artist:"Montesanto",
+        status:"Por retomar",
+        trackUrl:"https://music.apple.com/us/song/1799832312",
+        artworkUrl:"https://i1.sndcdn.com/artworks-74YovHePKyp8JlGh-mFnPMA-t1080x1080.jpg",
+        artworkSource:"montesanto-2023-single-artwork-reference",
+        artworkContainsPeople:true,
+        artworkFocalSubject:"people",
+        futurePalette:[[31,68,67],[160,56,57],[134,92,75]],
+        itunesTrackId:"1799832312",
+        previewAudioProvider:"itunes",
+        previewStreamingOnly:true,
+        previewClipDuration:30,
+        previewUseFullAsset:true
+      }),
+      Object.freeze({
+        id:"retorno-con-poder-barak",
+        title:"Con Poder",
+        artist:"Barak",
+        status:"Por retomar",
+        trackUrl:"https://music.apple.com/us/song/1777898241",
+        artworkUrl:"https://i.scdn.co/image/ab67616d0000b273dfe14d6507d194fb6fc13b3c",
+        artworkSource:"barak-generacion-radical-live-album",
+        artworkContainsPeople:true,
+        artworkFocalSubject:"people",
+        futurePalette:[[42,44,47],[166,119,54],[115,100,77]],
+        itunesTrackId:"1777898241",
+        previewAudioProvider:"itunes",
+        previewStreamingOnly:true,
+        previewClipDuration:30,
+        previewUseFullAsset:true
+      })
+    ]);
     const REQUESTED_SONGS_SOURCE=Object.freeze([
       Object.freeze({
         id:"request-hablame-de-cerca-grupo-grace",
@@ -7652,8 +7668,14 @@
         artworkSource:"spotify-barak-fuego-poder-live-2022",
         artworkContainsPeople:true,
         artworkFocalSubject:"people",
-        futurePalette:[[45,62,80],[137,95,97],[82,110,132]]
-        // Exact-track preview unverified: deliberately no playback control.
+        futurePalette:[[45,62,80],[137,95,97],[82,110,132]],
+        // Apple Fuego & Poder (Live), verified album / exact-title-only lookup.
+        itunesCollectionId:"1783806472",
+        previewSourceVerifiedCollection:true,
+        previewAudioProvider:"itunes",
+        previewStreamingOnly:true,
+        previewClipDuration:30,
+        previewUseFullAsset:true
       })
     ]);
     // The owner curates these pilot cards in a fixed order. Separate verified
@@ -8553,6 +8575,17 @@
         }catch(_){}
       }
 
+      // Album-only streaming previews must prove exact song + artist identity,
+      // never accidentally play Ven Espíritu Santo or a different Barak track.
+      if(song.previewStreamingOnly===true&&song.previewSourceVerifiedCollection===true){
+        const canonicalPreviewTitle=value=>normalizeCatalogText(value)
+          .replace(/ (?:live|en vivo)$/,"").trim();
+        candidates=candidates.filter(result=>
+          String(result.collectionId||"")===String(song.itunesCollectionId||"")&&
+          canonicalPreviewTitle(result.trackName)===canonicalPreviewTitle(song.title)&&
+          normalizeCatalogText(result.artistName)===normalizeCatalogText(song.artist)
+        );
+      }
       const candidate=candidates.sort((a,b)=>scoreCatalogResult(song,b)-scoreCatalogResult(song,a))[0];
       if(
         !candidate||scoreCatalogResult(song,candidate)<4||!candidate.previewUrl||
@@ -9161,6 +9194,16 @@
           }
         : await resolveItunesPreviewData(song);
 
+      // Apple promotional clips for these new cards are played natively as
+      // streaming media: NEVER fetch, arrayBuffer, decode or cache audio bytes.
+      if(song.previewStreamingOnly===true){
+        const host=(()=>{try{return new URL(data.previewUrl).hostname.toLowerCase()}catch(_){return ""}})();
+        if(!["audio-ssl.itunes.apple.com","audio.itunes.apple.com"].includes(host))
+          throw new Error("Unverified Apple preview host");
+        return {source:"streamed-itunes",previewUrl:data.previewUrl,
+          clipDuration:Math.max(1,Math.min(30,Number(song.previewClipDuration)||30)),
+          trackName:data.trackName,artistName:data.artistName};
+      }
       const key=song.id+"|"+data.previewUrl;
       if(!webPreviewBufferPromises.has(key)){
         webPreviewBufferPromises.set(key,(async()=>{
@@ -10345,7 +10388,86 @@
       },Math.ceil((clip.duration+1)*1000));
     }
 
+    // New Staging curated cards: provider-streamed promotional audio only.
+    // Reuse the established Play ring, countdown, and single-owner interaction.
+    // Existing managed-song preview behavior is deliberately untouched.
+    let streamedItunesAudio=null;
+    let streamedItunesSongId="";
+    let streamedItunesFrame=0;
+    let streamedItunesStartedAt=0;
+    let streamedItunesDuration=30;
+    let streamedItunesToken=0;
+    function stopStreamedItunesPreview(){
+      ++streamedItunesToken;
+      if(streamedItunesFrame)cancelAnimationFrame(streamedItunesFrame);
+      streamedItunesFrame=0;
+      if(streamedItunesAudio){
+        streamedItunesAudio.onended=null;
+        try{streamedItunesAudio.pause();streamedItunesAudio.removeAttribute("src");streamedItunesAudio.load()}catch(_){}
+        streamedItunesAudio=null;
+      }
+      const old=streamedItunesSongId;
+      streamedItunesSongId="";
+      streamedItunesStartedAt=0;
+      if(old){
+        setPreviewButtonState(old,"play");
+        setPreviewRemaining(old,streamedItunesDuration,0);
+        if(activePreviewSongId===old)activePreviewSongId="";
+      }
+    }
+    async function toggleStreamedItunesPreview(song,data){
+      if(streamedItunesSongId===song.id){
+        stopStreamedItunesPreview();
+        return;
+      }
+      stopStreamedItunesPreview();
+      if(webPreviewSongId&&webPreviewPlaying)resetWebAudioPreview(webPreviewSongId,true);
+      if(activePreviewSongId&&activePreviewSongId!==song.id)
+        stopYouTubePreview(activePreviewSongId,{reset:true});
+      stopPreviewTracking();
+      const token=streamedItunesToken;
+      const media=new Audio();
+      media.preload="none";
+      media.playsInline=true;
+      media.src=data.previewUrl;
+      streamedItunesAudio=media;
+      streamedItunesSongId=song.id;
+      streamedItunesDuration=data.clipDuration;
+      media.onended=()=>{if(streamedItunesAudio===media)stopStreamedItunesPreview()};
+      try{
+        await media.play();
+        if(token!==streamedItunesToken||streamedItunesAudio!==media)return;
+        activePreviewSongId=song.id;
+        streamedItunesStartedAt=performance.now();
+        setPreviewButtonState(song.id,"pause");
+        setPreviewRemaining(song.id,data.clipDuration,0);
+        const tick=()=>{
+          if(streamedItunesAudio!==media||token!==streamedItunesToken)return;
+          const elapsed=Math.max(0,Math.min(data.clipDuration,
+            Number.isFinite(media.currentTime)?media.currentTime:0));
+          if(elapsed>=data.clipDuration-.07){stopStreamedItunesPreview();return}
+          setPreviewRemaining(song.id,Math.max(0,data.clipDuration-elapsed),
+            elapsed/data.clipDuration*100);
+          streamedItunesFrame=requestAnimationFrame(tick);
+        };
+        streamedItunesFrame=requestAnimationFrame(tick);
+      }catch(error){
+        if(streamedItunesAudio===media)stopStreamedItunesPreview();
+        throw error;
+      }
+    }
+
     async function playPreviewSong(song,previewData){
+      if(previewData&&previewData.source==="streamed-itunes"){
+        try{await toggleStreamedItunesPreview(song,previewData)}catch(error){
+          try{window.dispatchEvent(new CustomEvent("ipcdj:preview-error",{
+            detail:{songId:song.id,stage:"itunes-stream",message:String(error?.message||error)}
+          }))}catch(_){}
+          setPreviewButtonState(song.id,"play");
+        }
+        return;
+      }
+      if(streamedItunesAudio)stopStreamedItunesPreview();
       if(previewData&&previewData.source==="webaudio"){
         stopPreviewTracking();
         cancelAnimationFrame(previewManualFadeFrame);
@@ -11562,6 +11684,46 @@
     // FEATURES pilot: requests are independent of Después/release scheduling.
     // The same validated card themes, lazy-preview controls and provider lookup
     // are reused; the existing preview engine retains exclusive audio ownership.
+    // Vuelven a Sonar uses exactly the SAME song-row shell as Solicitudes.
+    // Metadata differs, but layout/artwork/player are deliberately shared.
+    function renderReturningSongs(){
+      const container=$("returning-songs");
+      if(!container)return;
+      container.innerHTML=RETURNING_SONGS_SOURCE.map(song=>{
+        const preview=previewRowMarkup(song,"future");
+        return `
+        <div class="song-row" data-return-song-id="${escapeHtml(song.id)}" data-song-id="${escapeHtml(song.id)}" data-return-proof="pending">
+          <span class="future-artwork-blur" aria-hidden="true"></span>
+          <span class="future-artwork-ghost" aria-hidden="true"></span>
+          ${preview?'<div class="future-preview-corner">'+preview+'</div>':""}
+          <div class="song-top"><div>
+            <h3 class="notranslate" translate="no">${escapeHtml(song.title)}</h3>
+            <p class="notranslate" translate="no">${escapeHtml(song.artist)}</p>
+            <div class="song-date">Por retomar</div>
+            <div class="catalog-preview-attribution">
+              <a href="${escapeHtml(song.trackUrl)}" target="_blank" rel="noopener noreferrer">Apple Music</a>
+              <span>Adelanto cortesía de iTunes</span>
+            </div>
+          </div></div>
+        </div>`;
+      }).join("");
+      RETURNING_SONGS_SOURCE.forEach(song=>{
+        const card=container.querySelector('[data-return-song-id="'+CSS.escape(song.id)+'"]');
+        if(!card)return;
+        primeFutureCardTheme(song,card);
+        applyFutureArtwork(song,song.artworkUrl,card);
+      });
+    }
+    function hydrateVisibleReturningSongs(){
+      const container=$("returning-songs");
+      if(!container)return;
+      RETURNING_SONGS_SOURCE.forEach(song=>{
+        const card=container.querySelector('[data-return-song-id="'+CSS.escape(song.id)+'"]');
+        if(card)hydrateFutureSongCard(song,card);
+      });
+    }
+    window.addEventListener("ipcdj:returning-visible",hydrateVisibleReturningSongs);
+
     function renderRequestedSongs(){
       const container=$("requested-songs");
       const panel=$("panel-solicitudes");
@@ -11580,7 +11742,8 @@
               <p class="notranslate" translate="no">${escapeHtml(song.artist)}</p>
               <div class="song-date">Solicitada${Number(song.requestCount)>1?" · "+Math.min(Number(song.requestCount),999999)+" solicitudes":""}</div>
               ${!preview?'<p class="requests-no-preview">Adelanto no disponible</p>':""}
-              ${song.officialVideoUrl?'<a class="requests-official-link" href="'+escapeHtml(song.officialVideoUrl)+'" target="_blank" rel="noopener noreferrer">Video oficial</a>':""}
+              ${song.previewStreamingOnly&&song.itunesCollectionId?'<div class="catalog-preview-attribution"><a href="https://music.apple.com/us/album/fuego-poder-live/1783806472" target="_blank" rel="noopener noreferrer">Apple Music</a><span>Adelanto cortesía de iTunes</span></div>':""}
+              ${!preview&&song.officialVideoUrl?'<a class="requests-official-link" href="'+escapeHtml(song.officialVideoUrl)+'" target="_blank" rel="noopener noreferrer">Video oficial</a>':""}
             </div>
           </div>
         </div>`;
@@ -11784,6 +11947,7 @@
 
     renderCurrent(calibratedNow());
     renderRequestedSongs();
+    renderReturningSongs();
 
     let liveClockTimer=null;
     let catalogHealthRenderLocked=false;
