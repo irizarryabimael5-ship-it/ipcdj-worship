@@ -2651,7 +2651,7 @@ test('Próximas Canciones Apple Music button uses the approved library playlist 
   expect((html.match(/href="https:\/\/music\.apple\.com\/(?:library|us)\/playlist\/[^"]+"/g)||[])).toHaveLength(1);
 });
 
-test('Staging Solicitudes album covers fit without stretched or cropped wide-banner artwork on all profiles',async({page})=>{
+test('only Poderoso Dios gets tiny overscan; other Solicitudes covers keep exact original rendering',async({page})=>{
   await openHealthyPage(page);
   await page.locator('#tab-solicitudes').click();
   const cards=page.locator('#requested-songs [data-request-song-id]');
@@ -2659,46 +2659,41 @@ test('Staging Solicitudes album covers fit without stretched or cropped wide-ban
   const metrics=await cards.evaluateAll(nodes=>nodes.map(card=>{
     const art=card.querySelector('.future-artwork-ghost');
     const blur=card.querySelector('.future-artwork-blur');
-    const artCss=art?getComputedStyle(art):null;
-    const cardCss=getComputedStyle(card);
-    const r=card.getBoundingClientRect();
-    const a=art?.getBoundingClientRect();
+    const style=getComputedStyle(art);
+    const rowStyle=getComputedStyle(card);
     return {
       id:card.dataset.requestSongId,
-      cardWidth:r.width,
-      imageZoneWidth:a?.width,
-      imageZoneRight:a?.right,
-      cardRight:r.right,
-      imageZoneLeft:a?.left,
-      cardLeft:r.left,
-      backgroundSize:artCss?.backgroundSize,
-      backgroundPosition:artCss?.backgroundPosition,
-      backgroundRepeat:artCss?.backgroundRepeat,
-      backgroundImage:artCss?.backgroundImage,
-      blurSize:blur?getComputedStyle(blur).backgroundSize:null,
-      overflowX:cardCss.overflowX,
-      borderRadius:cardCss.borderTopLeftRadius
+      size:style.backgroundSize,
+      position:style.backgroundPosition,
+      transform:style.transform,
+      origin:style.transformOrigin,
+      ghostWidth:art.offsetWidth,
+      originX:Number.parseFloat(style.transformOrigin),
+      ghostMask:style.maskImage||style.webkitMaskImage,
+      blurSize:getComputedStyle(blur).backgroundSize,
+      overflow:rowStyle.overflowX
     };
   }));
-  expect(metrics.map(row=>row.id)).toEqual([
+  expect(metrics.map(x=>x.id)).toEqual([
     'request-hablame-de-cerca-grupo-grace',
     'request-el-nombre-de-jesus-elevation-espanol',
     'request-agradecido-estoy-elevation-espanol',
     'request-poderoso-dios-gateway-worship-miel-san-marcos'
   ]);
-  for(const row of metrics){
-    expect(row.backgroundSize,row.id).toBe('contain');
-    expect(row.backgroundPosition,row.id).toMatch(/right|100%/);
-    expect(row.backgroundRepeat,row.id).toBe('no-repeat');
-    expect(row.overflowX,row.id).toBe('hidden');
-    expect(row.cardWidth,row.id).toBeGreaterThan(150);
-    expect(row.imageZoneWidth,row.id).toBeGreaterThan(0);
-    expect(row.imageZoneWidth,row.id).toBeLessThanOrEqual(row.cardWidth*.53+2);
-    expect(Math.abs(row.imageZoneRight-row.cardRight),row.id).toBeLessThanOrEqual(2);
-    expect(row.imageZoneLeft,row.id).toBeGreaterThanOrEqual(row.cardLeft+row.cardWidth*.45-2);
-    expect(row.blurSize,row.id).toBe('cover');
-    expect(row.borderRadius,row.id).not.toBe('0px');
+  for(const [i,card] of metrics.entries()){
+    expect(card.size,card.id).toBe('cover');
+    expect(card.blurSize,card.id).toBe('cover');
+    expect(card.overflow,card.id).toBe('hidden');
+    if(i<3){
+      expect(card.transform,card.id).toBe('none');
+      expect(card.position,card.id).toMatch(/^50% 50%$|^center center$/);
+    }else{
+      expect(card.transform,card.id).not.toBe('none');
+      expect(card.position,card.id).toMatch(/right|100%/);
+      expect(card.originX,card.id).toBeGreaterThanOrEqual(card.ghostWidth*.94);
+    }
   }
   await expect(cards.last().locator('.song-top h3')).toHaveText('Poderoso Dios (Grande y Fiel)');
+  await expect(cards.last().locator('.song-top p')).toHaveText('Gateway Worship Español & Miel San Marcos');
   await expect(page.locator('#upcoming-songs [data-request-song-id]')).toHaveCount(0);
 });
