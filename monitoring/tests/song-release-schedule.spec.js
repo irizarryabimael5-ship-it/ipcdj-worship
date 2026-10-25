@@ -58,6 +58,11 @@ test('full four-song date, media and branch-isolation contract',async({page,requ
     expect(song.introducedAt).toBe(expected.rollover);
     expect(song.hasPreview).toBe(true);
     expect(song.artworkUrl).toMatch(/^https:\/\//);
+    if(expected.id==='con-manos-vacias'){
+      expect(song.artworkUrl).toBe('https://i.scdn.co/image/ab67616d0000b273318e79e589ae23303377e69e');
+      expect(song.artworkSource).toBe('spotify-coleccion-adoracion');
+      expect(song.futurePalette).toEqual([[33,96,162],[109,176,223],[24,59,110]]);
+    }
     expect(song.futurePalette).toHaveLength(3);
     expect(song.fullVisualReady).toBe(true);
     expect(Date.parse(song.learningStart)).toBeGreaterThan(Date.parse(song.activeFrom));
@@ -127,4 +132,31 @@ test('new Jesús Adrián Romero card has its verified Apple media identity and p
   expect(audio.url).toMatch(/^https:\/\//);
   await button.click();
   await expect(row).not.toHaveClass(/is-playing/);
+});
+
+test('Colección Adoración artwork wins over a stale saved cover and theme',async({page})=>{
+  const art='https://i.scdn.co/image/ab67616d0000b273318e79e589ae23303377e69e';
+  // Simulate a browser which visited the former original-album version.
+  await page.evaluate(()=>{
+    localStorage.setItem('ipcdj-cover-boot-v1',JSON.stringify([{
+      songId:'con-manos-vacias',
+      url:'https://i.scdn.co/image/ab67616d0000b273fa9615e633aae10e815be801',
+      savedAt:Date.now()
+    }]));
+    localStorage.setItem('ipcdj-cover-theme-v2:con-manos-vacias',JSON.stringify([
+      [250,4,4],[250,4,4],[250,4,4]
+    ]));
+  });
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.waitForFunction(()=>!!window.IPCDJ_CATALOG);
+  const card=page.locator('#current-song-cards [data-current-song-card][data-song-id="con-manos-vacias"]');
+  await expect(card).toHaveCount(1);
+  await expect(card).toHaveAttribute('data-cover-artwork-url',art);
+  await expect(card).toHaveAttribute('data-cover-artwork-source','verified-spotify-coleccion-adoracion');
+  await expect(card.locator('.cover-native-fallback')).toHaveAttribute('src',art);
+  const theme=await card.evaluate(node=>getComputedStyle(node).getPropertyValue('--cover-c1').trim());
+  expect(theme).not.toBe('250,4,4');
+  const song=await page.evaluate(()=>window.IPCDJ_CATALOG.songs.find(x=>x.id==='con-manos-vacias'));
+  expect(song.releaseAt).toBe('2026-11-15T11:00:00-05:00');
+  expect(song.hasPreview).toBe(true);
 });

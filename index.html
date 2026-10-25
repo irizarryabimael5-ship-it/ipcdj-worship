@@ -7096,11 +7096,11 @@
         id:"con-manos-vacias",
         title:"Con Manos Vacías",
         artist:"Jesús Adrián Romero",
-        artworkQuery:"Con Manos Vacías Jesús Adrián Romero Vástago 2000",
-        // Authentic original Vástago album cover; official 2003 collection preview.
-        artworkUrl:"https://i.scdn.co/image/ab67616d0000b273fa9615e633aae10e815be801",
-        artworkSource:"spotify-original-album",
-        futurePalette:[[91,108,128],[171,166,181],[100,123,110]],
+        artworkQuery:"Colección Adoración Jesús Adrián Romero 2003",
+        // Official Colección Adoración (2003) album cover; exact Apple track preview retained.
+        artworkUrl:"https://i.scdn.co/image/ab67616d0000b273318e79e589ae23303377e69e",
+        artworkSource:"spotify-coleccion-adoracion",
+        futurePalette:[[33,96,162],[109,176,223],[24,59,110]],
         itunesCollectionId:"1603315377",
         itunesTrackId:"1603316057",
         previewAudioProvider:"itunes",
@@ -7978,7 +7978,9 @@
         const record=records
           .filter(item=>item&&item.songId===song.id&&item.url)
           .sort((a,b)=>(b.savedAt||0)-(a.savedAt||0))[0];
-        return record ? highResolutionArtworkUrl(record.url) : "";
+        const cached=record ? highResolutionArtworkUrl(record.url) : "";
+        // When a curated cover is updated, do not briefly flash the previous art.
+        return song.artworkUrl&&cached!==highResolutionArtworkUrl(song.artworkUrl) ? "" : cached;
       }catch(_){
         return "";
       }
@@ -10671,9 +10673,12 @@
         applyCurrentSongSubjectArt(song,bootArtwork,card);
       }
 
+      // Scope the persistent theme cache to the actual cover image, not just
+      // the song ID, so an artwork swap never restores the previous gradient.
+      const themeCacheKey=COVER_THEME_CACHE_PREFIX+song.id+"|"+highResolutionArtworkUrl(song.artworkUrl||"");
       let cachedPalette=null;
       try{
-        const cached=localStorage.getItem(COVER_THEME_CACHE_PREFIX+song.id);
+        const cached=localStorage.getItem(themeCacheKey);
         if(cached){
           const parsed=JSON.parse(cached);
           if(Array.isArray(parsed)&&parsed.length>=3){
@@ -10722,7 +10727,7 @@
         const palette=await loadPaletteFromArtwork(artworkUrl);
         if(coverThemeRequestTokens.get(song.id)!==token)return;
         applyCoverTheme(song,palette,card);
-        try{localStorage.setItem(COVER_THEME_CACHE_PREFIX+song.id,JSON.stringify(palette))}catch(_){}
+        try{localStorage.setItem(themeCacheKey,JSON.stringify(palette))}catch(_){}
       }catch(_){
         // The curated fallback palette remains active. Cover-provider, CORS, image,
         // or detection failures never affect the countdown, stage logic, or rollover.
