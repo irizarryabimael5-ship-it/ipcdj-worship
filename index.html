@@ -4247,6 +4247,29 @@
       line-height:1.5;text-align:center;
     }
     #requested-songs .song-row{isolation:isolate}
+    /* All Solicitudes covers preserve their native aspect ratio inside a
+       right-aligned, clipped artwork zone. Keep the intentionally diffuse
+       full-card color blur separate from this detailed cover image. */
+    #requested-songs .song-row .future-artwork-ghost{
+      top:0;
+      bottom:0;
+      right:0;
+      width:min(46%,460px);
+      background-size:contain;
+      background-position:right center;
+      background-repeat:no-repeat;
+      -webkit-mask-image:linear-gradient(90deg,transparent 0%,rgba(0,0,0,.55) 32%,#000 62%);
+      mask-image:linear-gradient(90deg,transparent 0%,rgba(0,0,0,.55) 32%,#000 62%);
+    }
+    /* On narrow cards fit the whole square cover within available right space,
+       never enlarge/crop the cover as a wide banner. */
+    @media(max-width:640px){
+      #requested-songs .song-row .future-artwork-ghost{
+        width:min(52%,280px);
+        background-size:contain;
+        background-position:right center;
+      }
+    }
     #requested-songs .song-date{margin-top:12px}
     #panel-solicitudes .requests-feed-status{color:var(--muted);font-size:.79rem;line-height:1.5;margin:0 0 13px}
     #panel-solicitudes .requests-form-card{margin-top:16px}
