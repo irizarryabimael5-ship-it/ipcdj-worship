@@ -492,18 +492,22 @@ test('FEATURES song request pilot is isolated, themed, accessible and preview-re
   await expect(page.locator('#panel-inicio')).toBeHidden();
   await expect(page.locator('#panel-worship-semanal')).toBeHidden();
   const cards=panel.locator('[data-request-song-id]');
-  // Owner approved exactly four Staging pinned requests (not estrenos).
-  await expect(cards).toHaveCount(4);
+  // Five owner-curated requests (none a managed estreno).
+  await expect(cards).toHaveCount(5);
   expect(await cards.evaluateAll(nodes=>nodes.map(node=>node.dataset.requestSongId))).toEqual([
     'request-hablame-de-cerca-grupo-grace',
     'request-el-nombre-de-jesus-elevation-espanol',
     'request-agradecido-estoy-elevation-espanol',
-    'request-poderoso-dios-gateway-worship-miel-san-marcos'
+    'request-poderoso-dios-gateway-worship-miel-san-marcos',
+    'request-bienvenido-espiritu-santo-barak'
   ]);
   expect(await cards.locator('.song-top h3').allTextContents()).toEqual([
-    'Háblame de Cerca','El Nombre De Jesús','Agradecido Estoy','Poderoso Dios (Grande y Fiel)'
+    'Háblame de Cerca','El Nombre De Jesús','Agradecido Estoy','Poderoso Dios (Grande y Fiel)',
+    'Bienvenido Espíritu Santo'
   ]);
   await expect(panel.locator('[data-preview-song-id]')).toHaveCount(4);
+  await expect(cards.nth(4).locator('.requests-no-preview')).toHaveText('Adelanto no disponible');
+  await expect(cards.nth(4).locator('.requests-official-link')).toHaveAttribute('href','https://www.youtube.com/watch?v=x7UjLhIPk3E');
   const card=cards.first();
   await expect(card).toHaveAttribute('data-request-song-id','request-hablame-de-cerca-grupo-grace');
   await expect(card.locator('.song-top h3')).toHaveText('Háblame de Cerca');
@@ -530,6 +534,8 @@ test('FEATURES song request pilot is isolated, themed, accessible and preview-re
   expect(computed.palette.every(s=>s.length>4)).toBe(true);
   expect(computed.noOverflow).toBe(true);
   await page.locator('#tab-solicitudes').focus();
+  await page.keyboard.press('ArrowLeft');
+  await expect(page.locator('#tab-vuelven-a-sonar')).toHaveAttribute('aria-selected','true');
   await page.keyboard.press('ArrowLeft');
   await expect(page.locator('#tab-worship-semanal')).toHaveAttribute('aria-selected','true');
   await expect(panel).toBeHidden();
@@ -640,7 +646,7 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   const initialCampaign=navLayout.tabStyles.find(tab=>tab.key==='campana-gu-2026');
   const initialWeekly=navLayout.tabStyles.find(tab=>tab.key==='worship-semanal');
   const initialTabOrder=await page.evaluate(()=>window.IPCDJ_NAV.getVisibleTabs());
-  expect(initialTabOrder).toEqual(['inicio','campana-gu-2026','worship-semanal','solicitudes']);
+  expect(initialTabOrder).toEqual(['inicio','campana-gu-2026','worship-semanal','vuelven-a-sonar','solicitudes']);
   expect(initialSelected?.selected).toBe(true);
   expect(initialSelected?.accentHeight).toBeGreaterThanOrEqual(3);
   expect(initialSelected?.accentOpacity).toBeGreaterThan(.9);
@@ -2683,13 +2689,14 @@ test('artwork focus prioritizes owner-approved Poderoso text exception; other pe
     'request-hablame-de-cerca-grupo-grace',
     'request-el-nombre-de-jesus-elevation-espanol',
     'request-agradecido-estoy-elevation-espanol',
-    'request-poderoso-dios-gateway-worship-miel-san-marcos'
+    'request-poderoso-dios-gateway-worship-miel-san-marcos',
+    'request-bienvenido-espiritu-santo-barak'
   ]);
   for(const [i,card] of metrics.entries()){
     expect(card.size,card.id).toBe('cover');
     expect(card.blurSize,card.id).toBe('cover');
     expect(card.overflow,card.id).toBe('hidden');
-    if(i<3){
+    if(i<3||i===4){
       expect(card.focalSubject,card.id).toBe('people');
       expect(card.exception,card.id).toBeUndefined();
       expect(card.focalY,card.id).toBeUndefined();
@@ -2709,7 +2716,28 @@ test('artwork focus prioritizes owner-approved Poderoso text exception; other pe
       expect(card.cropPastRight,card.id).toBeGreaterThan(card.ghostWidth*.045);
     }
   }
-  await expect(cards.last().locator('.song-top h3')).toHaveText('Poderoso Dios (Grande y Fiel)');
-  await expect(cards.last().locator('.song-top p')).toHaveText('Gateway Worship Español & Miel San Marcos');
+  await expect(cards.nth(3).locator('.song-top h3')).toHaveText('Poderoso Dios (Grande y Fiel)');
+  await expect(cards.nth(3).locator('.song-top p')).toHaveText('Gateway Worship Español & Miel San Marcos');
   await expect(page.locator('#upcoming-songs [data-request-song-id]')).toHaveCount(0);
+});
+
+test('Vuelven a Sonar tab separates two confirmed selections from real service sets',async({page})=>{
+  await openHealthyPage(page);
+  const tab=page.locator('#tab-vuelven-a-sonar'),panel=page.locator('#panel-vuelven-a-sonar');
+  await expect(tab).toHaveCount(1);
+  await expect(panel).toBeHidden();
+  await tab.click();
+  await expect(panel).toBeVisible();
+  await expect(tab).toHaveAttribute('aria-selected','true');
+  const rows=panel.locator('[data-return-song-id]');
+  await expect(rows).toHaveCount(2);
+  expect(await rows.locator('.song-top h3').allTextContents()).toEqual(['Santo Es El Que Vive','Con Poder']);
+  expect(await rows.locator('.song-top p').allTextContents()).toEqual(['Montesanto','Barak']);
+  await expect(rows.locator('.song-date')).toHaveText(['Por retomar','Por retomar']);
+  for(const row of await rows.all())await expect(row).toHaveAttribute('data-return-proof','pending');
+  expect(await rows.locator('.returning-track-link').evaluateAll(all=>all.map(a=>a.getAttribute('href')))).toEqual(['https://music.apple.com/us/song/1799832312','https://music.apple.com/us/song/1777898241']);
+  await expect(panel).toContainText('aún están por verificarse');
+  await expect(page.locator('#panel-worship-semanal')).toBeHidden();
+  await expect(page.locator('#upcoming-songs [data-return-song-id]')).toHaveCount(0);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)).toBeLessThanOrEqual(4);
 });

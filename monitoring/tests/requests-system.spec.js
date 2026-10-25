@@ -56,8 +56,8 @@ async function openRequests(page){
 test("requests form appears without enabling unfinished public intake",async({page})=>{
   await installApiMock(page,{songs:[]});
   await openRequests(page);
-  await expect(page.locator("#requested-songs [data-request-song-id]")).toHaveCount(4);
-  expect(await page.locator("#requested-songs .song-top h3").allTextContents()).toEqual(["Háblame de Cerca","El Nombre De Jesús","Agradecido Estoy","Poderoso Dios (Grande y Fiel)"]);
+  await expect(page.locator("#requested-songs [data-request-song-id]")).toHaveCount(5);
+  expect(await page.locator("#requested-songs .song-top h3").allTextContents()).toEqual(["Háblame de Cerca","El Nombre De Jesús","Agradecido Estoy","Poderoso Dios (Grande y Fiel)","Bienvenido Espíritu Santo"]);
   await expect(page.locator("#requested-songs [data-preview-song-id]")).toHaveCount(4);
   await expect(page.locator("#requested-songs")).toContainText("Háblame de Cerca");
   await expect(page.locator("#song-request-form input[name=title]")).toBeVisible();
@@ -85,10 +85,10 @@ test("published feed preserves the curated sequence, escapes markup and deduplic
   ];
   await installApiMock(page,{songs:published});
   await openRequests(page);
-  await expect(page.locator("#requested-songs [data-request-song-id]")).toHaveCount(5);
+  await expect(page.locator("#requested-songs [data-request-song-id]")).toHaveCount(6);
   expect(await page.locator("#requested-songs .song-top h3").allTextContents()).toEqual([
     "Háblame de Cerca","El Nombre De Jesús","Agradecido Estoy","Poderoso Dios (Grande y Fiel)",
-    "Vida Nueva <img src=x onerror=alert(1)>"
+    "Bienvenido Espíritu Santo","Vida Nueva <img src=x onerror=alert(1)>"
   ]);
   await expect(page.locator("#requested-songs .song-row").first()).toContainText("2 solicitudes");
   await expect(page.locator("#requested-songs .song-row").last()).toContainText("4 solicitudes");
@@ -101,7 +101,7 @@ test("published feed preserves the curated sequence, escapes markup and deduplic
 test("unavailable provider leaves the approved Staging request card intact",async({page})=>{
   await installApiMock(page,{offline:true});
   await openRequests(page);
-  expect(await page.locator("#requested-songs .song-top h3").allTextContents()).toEqual(["Háblame de Cerca","El Nombre De Jesús","Agradecido Estoy","Poderoso Dios (Grande y Fiel)"]);
+  expect(await page.locator("#requested-songs .song-top h3").allTextContents()).toEqual(["Háblame de Cerca","El Nombre De Jesús","Agradecido Estoy","Poderoso Dios (Grande y Fiel)","Bienvenido Espíritu Santo"]);
   await expect(page.locator("#requests-submit")).toBeDisabled();
   await expect(page.locator("#requested-feed-status")).toContainText("Sin conexión");
 });

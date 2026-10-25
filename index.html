@@ -6,7 +6,7 @@
   <meta name="ipcdj-environment" content="staging" />
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="campana-weekend-v203" />
+  <meta name="ipcdj-build" content="campana-weekend-v204" />
   <script id="ipcdj-original-visual-preview-init">
     // Explicit staging-only opt-in; default users keep accessibility preferences.
     (()=>{try{
@@ -4246,6 +4246,18 @@
       margin:17px 2px 0;color:var(--muted);font-size:.82rem;
       line-height:1.5;text-align:center;
     }
+    /* Isolated return candidates; no service dates or automatic comeback badges. */
+    #panel-vuelven-a-sonar .returning-list-card{padding-bottom:23px}
+    #panel-vuelven-a-sonar .returning-history-note{color:var(--muted);font-size:.79rem;line-height:1.5;margin:0 0 16px}
+    #returning-songs .returning-song{padding-right:16px;min-width:0}
+    #returning-songs .returning-song .song-top{align-items:center;gap:18px;flex-wrap:wrap}
+    #returning-songs .returning-song-copy{min-width:0;flex:1 1 170px}
+    #returning-songs .returning-track-link{display:inline-flex;align-items:center;justify-content:center;min-height:44px;max-width:100%;flex:0 1 auto;padding:8px 13px;border-radius:11px;border:1px solid rgba(255,255,255,.28);color:#eef3ff;background:rgba(8,15,28,.52);text-decoration:none;text-align:center;font-size:.78rem;font-weight:700;line-height:1.2;white-space:normal}
+    #returning-songs .returning-track-link:hover{background:rgba(31,54,89,.67);border-color:rgba(255,255,255,.46)}
+    #returning-songs .returning-track-link:focus-visible{outline:2px solid #b3c7ff;outline-offset:3px}
+    #panel-solicitudes .requests-official-link{display:inline-block;margin-top:10px;color:#cce0ff;text-decoration:underline;text-underline-offset:3px;font-size:.8rem}
+    #panel-solicitudes .requests-official-link:focus-visible{outline:2px solid #b3c7ff;outline-offset:3px}
+    @media(max-width:520px){#returning-songs .returning-song .song-top{align-items:flex-start;gap:12px}}
     #requested-songs .song-row{isolation:isolate}
     /* Preserve the original shared Solicitudes composition. This cover
        alone needs 15% overscan to eliminate its printed artwork frame.
@@ -4670,6 +4682,9 @@
         </button>
         <button class="site-tab" id="tab-worship-semanal" type="button" role="tab" aria-selected="false" aria-controls="panel-worship-semanal" tabindex="-1" data-site-tab="worship-semanal">
           <span class="site-tab-label">Worship semanal</span>
+        </button>
+        <button class="site-tab" id="tab-vuelven-a-sonar" type="button" role="tab" aria-selected="false" aria-controls="panel-vuelven-a-sonar" tabindex="-1" data-site-tab="vuelven-a-sonar">
+          <span class="site-tab-label">Vuelven a Sonar</span>
         </button>
         <button class="site-tab" id="tab-solicitudes" type="button" role="tab" aria-selected="false" aria-controls="panel-solicitudes" tabindex="-1" data-site-tab="solicitudes">
           <span class="site-tab-label">Solicitudes</span>
@@ -5140,6 +5155,38 @@
     </footer>
 
       </section>
+
+      <!-- WORSHIP_RETURNING_SONGS_START: owner-curated, history gap not yet certified -->
+      <section class="site-tab-panel" id="panel-vuelven-a-sonar" role="tabpanel" aria-labelledby="tab-vuelven-a-sonar" tabindex="0" hidden>
+        <section class="card returning-list-card" aria-labelledby="returning-title">
+          <h2 class="section-title" id="returning-title">Vuelven a Sonar</h2>
+          <p class="section-note">Canciones seleccionadas para retomar en nuestro repertorio. Aún no están asignadas a ningún culto ni tienen estreno programado.</p>
+          <p class="returning-history-note">Las fechas de sus últimas participaciones en los repertorios aún están por verificarse.</p>
+          <div class="songs" id="returning-songs">
+            <div class="song-row future-themed returning-song" data-return-song-id="retorno-santo-es-el-que-vive-montesanto" data-return-proof="pending" style="--future-c1:30,71,80;--future-c2:176,62,61;--future-c3:115,65,65;--future-c4:85,44,60;--future-accent:233,144,125;">
+              <div class="song-top">
+                <div class="returning-song-copy">
+                  <h3 class="notranslate" translate="no">Santo Es El Que Vive</h3>
+                  <p class="notranslate" translate="no">Montesanto</p>
+                  <div class="song-date">Por retomar</div>
+                </div>
+                <a class="returning-track-link" href="https://music.apple.com/us/song/1799832312" target="_blank" rel="noopener noreferrer" aria-label="Escuchar Santo Es El Que Vive de Montesanto en Apple Music">Escuchar versión oficial</a>
+              </div>
+            </div>
+            <div class="song-row future-themed returning-song" data-return-song-id="retorno-con-poder-barak" data-return-proof="pending" style="--future-c1:42,68,111;--future-c2:126,84,116;--future-c3:151,111,68;--future-c4:60,55,91;--future-accent:163,182,249;">
+              <div class="song-top">
+                <div class="returning-song-copy">
+                  <h3 class="notranslate" translate="no">Con Poder</h3>
+                  <p class="notranslate" translate="no">Barak</p>
+                  <div class="song-date">Por retomar</div>
+                </div>
+                <a class="returning-track-link" href="https://music.apple.com/us/song/1777898241" target="_blank" rel="noopener noreferrer" aria-label="Escuchar Con Poder en Vivo de Barak en Apple Music">Escuchar versión oficial</a>
+              </div>
+            </div>
+          </div>
+        </section>
+      </section>
+      <!-- WORSHIP_RETURNING_SONGS_END -->
 
       <!-- REQUEST_SONGS_PANEL_START -->
       <section class="site-tab-panel" id="panel-solicitudes" role="tabpanel" aria-labelledby="tab-solicitudes" tabindex="0" hidden>
@@ -7590,6 +7637,23 @@
         previewUseFullAsset:true,
         previewFadeIn:.70,
         previewFadeOut:1.60
+      }),
+      Object.freeze({
+        id:"request-bienvenido-espiritu-santo-barak",
+        curatedOrder:4,
+        title:"Bienvenido Espíritu Santo",
+        artist:"Barak",
+        requestedAt:"2026-10-25T02:31:40Z",
+        status:"Solicitada",
+        // Verified official Barak video and Fuego & Poder (Live) album cover.
+        officialVideoUrl:"https://www.youtube.com/watch?v=x7UjLhIPk3E",
+        trackUrl:"https://open.spotify.com/album/215PqEjnVY1cIvhmOzzaIW",
+        artworkUrl:"https://i.scdn.co/image/ab67616d0000b2730a45cc0e99318eda67b32111",
+        artworkSource:"spotify-barak-fuego-poder-live-2022",
+        artworkContainsPeople:true,
+        artworkFocalSubject:"people",
+        futurePalette:[[45,62,80],[137,95,97],[82,110,132]]
+        // Exact-track preview unverified: deliberately no playback control.
       })
     ]);
     // The owner curates these pilot cards in a fixed order. Separate verified
@@ -11516,6 +11580,7 @@
               <p class="notranslate" translate="no">${escapeHtml(song.artist)}</p>
               <div class="song-date">Solicitada${Number(song.requestCount)>1?" · "+Math.min(Number(song.requestCount),999999)+" solicitudes":""}</div>
               ${!preview?'<p class="requests-no-preview">Adelanto no disponible</p>':""}
+              ${song.officialVideoUrl?'<a class="requests-official-link" href="'+escapeHtml(song.officialVideoUrl)+'" target="_blank" rel="noopener noreferrer">Video oficial</a>':""}
             </div>
           </div>
         </div>`;
