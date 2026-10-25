@@ -507,7 +507,7 @@ test('FEATURES song request pilot is isolated, themed, accessible and preview-re
   ]);
   await expect(panel.locator('[data-preview-song-id]')).toHaveCount(5);
   await expect(cards.nth(4).locator('.future-preview-button')).toBeVisible();
-  await expect(cards.nth(4).locator('.catalog-preview-attribution')).toContainText('iTunes');
+  await expect(cards.nth(4).locator('.catalog-preview-attribution')).toHaveCount(0);
   await expect(cards.nth(4)).toHaveAttribute('data-future-artwork-source','verified-spotify-barak-fuego-poder-live-2022');
   const card=cards.first();
   await expect(card).toHaveAttribute('data-request-song-id','request-hablame-de-cerca-grupo-grace');
@@ -2740,8 +2740,7 @@ test('Vuelven a Sonar tab separates two confirmed selections from real service s
   await expect(rows.locator('.future-artwork-blur')).toHaveCount(2);
   await expect(rows.locator('.future-preview-button')).toHaveCount(2);
   await expect(rows.locator('.future-preview-ring-progress')).toHaveCount(2);
-  await expect(rows.locator('.catalog-preview-attribution')).toHaveCount(2);
-  expect(await rows.locator('.catalog-preview-attribution a').evaluateAll(all=>all.map(a=>a.getAttribute('href')))).toEqual(['https://music.apple.com/us/song/1799832312','https://music.apple.com/us/song/1777898241']);
+  await expect(rows.locator('.catalog-preview-attribution')).toHaveCount(0);
   for(const row of await rows.all()){
     await expect(row).toHaveClass(/future-themed/);
     const computed=await row.locator('.future-artwork-ghost').evaluate(el=>getComputedStyle(el).backgroundImage);
@@ -2778,13 +2777,13 @@ test('Staging streamed previews use the established fade-in out and crossfade co
   expect(html).toContain('nativeVolumeFadeSupported=!isMobilePreviewEnvironment()');
   expect(html).not.toContain('ctx.createMediaElementSource(media)');
   expect(html).not.toContain('media.crossOrigin="anonymous"');
-  expect(html).toContain('webPreviewEqualPowerCurve("in",1)');
-  expect(html).toContain('webPreviewEqualPowerCurve("out",level)');
+  expect(html).toContain('streamedEnvelopeGain(elapsed,duration,intro,outro)');
+  expect(html).toContain('Math.sin(outOf*Math.PI/2)');
   expect(html).toContain('fadeBufferedPreviewIntoStream()');
   expect(html).toContain('crossfade:!isMobilePreviewEnvironment()');
   expect(html).toContain('streamedItunesAudio)stopStreamedItunesPreview()');
   expect(html).toContain('source:"streamed-itunes"');
-  expect(html).toContain('Adelanto cortesía de iTunes');
+  expect(html).not.toContain('Adelanto cortesía de iTunes');
   expect(html).toContain('artworkFocalY:"47%"');
 });
 
@@ -2806,4 +2805,25 @@ test('Apple streaming audio avoids CORS-silencing and does not force iOS native-
   expect(html).toContain('if(nativeVolumeFadeSupported)fadeBufferedPreviewIntoStream()');
   expect(html).not.toContain('media.crossOrigin="anonymous"');
   expect(html).not.toContain('ctx.createMediaElementSource(media)');
+});
+
+test('streaming preview fade uses actual provider file duration and clean card layout',async({page,request})=>{
+  const response=await request.get('/?preview-actual-duration='+Date.now(),{headers:{'cache-control':'no-cache'}});
+  expect(response.ok()).toBeTruthy();
+  const html=await response.text();
+  expect(html).toContain('function streamedClipDuration(media,limit)');
+  expect(html).toContain('function streamedEnvelopeGain(elapsed,duration,fadeIn,fadeOut)');
+  expect(html).toContain('const actual=Number(media.duration)');
+  expect(html).toContain('media.addEventListener("timeupdate",update)');
+  expect(html).toContain('media.addEventListener("loadedmetadata",update)');
+  expect(html).toContain('const actual=streamedClipDuration(media,data.clipDuration)');
+  expect(html).not.toContain('if(elapsed>=data.clipDuration-.07)');
+  expect(html).not.toContain('catalog-preview-attribution');
+  await openHealthyPage(page);
+  await page.locator('#tab-vuelven-a-sonar').click();
+  await expect(page.locator('#returning-songs [data-return-song-id]')).toHaveCount(2);
+  await expect(page.locator('#returning-songs .catalog-preview-attribution')).toHaveCount(0);
+  await page.locator('#tab-solicitudes').click();
+  await expect(page.locator('#requested-songs [data-request-song-id]')).toHaveCount(5);
+  await expect(page.locator('#requested-songs .catalog-preview-attribution')).toHaveCount(0);
 });
