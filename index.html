@@ -6,7 +6,7 @@
   <meta name="ipcdj-environment" content="staging" />
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="campana-weekend-v205" />
+  <meta name="ipcdj-build" content="campana-weekend-v206" />
   <script id="ipcdj-original-visual-preview-init">
     // Explicit staging-only opt-in; default users keep accessibility preferences.
     (()=>{try{
@@ -7546,6 +7546,8 @@
         previewAudioProvider:"itunes",
         previewStreamingOnly:true,
         previewClipDuration:30,
+        previewFadeIn:.70,
+        previewFadeOut:1.60,
         previewUseFullAsset:true
       }),
       Object.freeze({
@@ -7563,6 +7565,8 @@
         previewAudioProvider:"itunes",
         previewStreamingOnly:true,
         previewClipDuration:30,
+        previewFadeIn:.70,
+        previewFadeOut:1.60,
         previewUseFullAsset:true
       })
     ]);
@@ -7675,6 +7679,8 @@
         previewAudioProvider:"itunes",
         previewStreamingOnly:true,
         previewClipDuration:30,
+        previewFadeIn:.70,
+        previewFadeOut:1.60,
         previewUseFullAsset:true
       })
     ]);
@@ -9745,6 +9751,8 @@
       if(webPreviewPlaying&&webPreviewSongId){
         silenceWebAudioPreviewForBackground(webPreviewSongId);
       }
+      if(streamedItunesAudio)stopStreamedItunesPreview();
+      for(const voice of [...streamedItunesOutgoing])disposeStreamVoice(voice);
       if(youtubePreviewPlaying&&youtubePreviewPlayerSongId){
         try{youtubePreviewPlayer.pauseVideo()}catch(_){}
         youtubePreviewPlaying=false;
@@ -10388,71 +10396,195 @@
       },Math.ceil((clip.duration+1)*1000));
     }
 
-    // New Staging curated cards: provider-streamed promotional audio only.
-    // Reuse the established Play ring, countdown, and single-owner interaction.
-    // Existing managed-song preview behavior is deliberately untouched.
-    let streamedItunesAudio=null;
-    let streamedItunesSongId="";
-    let streamedItunesFrame=0;
-    let streamedItunesStartedAt=0;
-    let streamedItunesDuration=30;
-    let streamedItunesToken=0;
-    function stopStreamedItunesPreview(){
+    // Owner-approved preview envelope shared by WebAudio buffers and streams.
+    // Native media streams are never fetched, decoded or cached in JavaScript.
+    const STREAMED_CROSSFADE_SECONDS=.68;
+    let streamedItunesAudio=null,streamedItunesSongId="";
+    let streamedItunesFrame=0,streamedItunesDuration=30,streamedItunesToken=0;
+    let streamedItunesGain=null,streamedItunesSource=null;
+    let streamedItunesSelectionToken=0;
+    const streamedItunesOutgoing=new Set();
+
+    function disposeStreamVoice(voice){
+      if(!voice)return;
+      if(voice.timer)clearTimeout(voice.timer);
+      if(voice.frame)cancelAnimationFrame(voice.frame);
+      try{voice.media.onended=null;voice.media.pause()}catch(_){}
+      try{voice.source?.disconnect();voice.gain?.disconnect()}catch(_){}
+      try{voice.media.removeAttribute("src");voice.media.load()}catch(_){}
+      streamedItunesOutgoing.delete(voice);
+    }
+
+    function rampNativeStreamVolume(voice,from,to,seconds,finished){
+      const start=performance.now(),duration=Math.max(.05,seconds)*1000;
+      const step=now=>{
+        const p=Math.max(0,Math.min(1,(now-start)/duration));
+        const power=(to>from)?Math.sin(Math.PI*p/2):Math.cos(Math.PI*p/2);
+        const value=to>from?from+(to-from)*power:to+(from-to)*power;
+        try{voice.media.volume=Math.max(0,Math.min(1,value))}catch(_){}
+        if(p<1)voice.frame=requestAnimationFrame(step);
+        else{voice.frame=0;if(finished)finished()}
+      };
+      step(start);
+    }
+
+    function fadeOutStreamVoice(voice,seconds,onFinished){
+      if(voice.gain&&webPreviewContext&&webPreviewContext.state!=="closed"){
+        try{
+          const at=webPreviewContext.currentTime+.005,param=voice.gain.gain;
+          const level=Math.max(0,Math.min(1,param.value));
+          param.cancelScheduledValues(at);
+          param.setValueAtTime(level,at);
+          param.setValueCurveAtTime(webPreviewEqualPowerCurve("out",level),at,seconds);
+          voice.timer=setTimeout(onFinished,Math.ceil(seconds*1000)+55);
+          return;
+        }catch(_){}
+      }
+      rampNativeStreamVolume(voice,Number(voice.media.volume)||1,0,seconds,onFinished);
+    }
+
+    function stopStreamedItunesPreview({crossfade=false}={}){
       ++streamedItunesToken;
       if(streamedItunesFrame)cancelAnimationFrame(streamedItunesFrame);
       streamedItunesFrame=0;
-      if(streamedItunesAudio){
-        streamedItunesAudio.onended=null;
-        try{streamedItunesAudio.pause();streamedItunesAudio.removeAttribute("src");streamedItunesAudio.load()}catch(_){}
-        streamedItunesAudio=null;
-      }
+      const voice=streamedItunesAudio
+        ?{media:streamedItunesAudio,source:streamedItunesSource,
+          gain:streamedItunesGain,frame:0,timer:0}:null;
       const old=streamedItunesSongId;
+      streamedItunesAudio=null;streamedItunesSource=null;streamedItunesGain=null;
       streamedItunesSongId="";
-      streamedItunesStartedAt=0;
       if(old){
         setPreviewButtonState(old,"play");
         setPreviewRemaining(old,streamedItunesDuration,0);
+        resetPreviewMeter(old);
         if(activePreviewSongId===old)activePreviewSongId="";
       }
+      if(!voice)return;
+      if(crossfade&&!voice.media.paused){
+        streamedItunesOutgoing.add(voice);
+        fadeOutStreamVoice(voice,STREAMED_CROSSFADE_SECONDS,()=>disposeStreamVoice(voice));
+      }else disposeStreamVoice(voice);
     }
-    async function toggleStreamedItunesPreview(song,data){
-      if(streamedItunesSongId===song.id){
-        stopStreamedItunesPreview();
-        return;
+
+    function fadeBufferedPreviewIntoStream(){
+      if(!webPreviewPlaying||!webPreviewSource||!webPreviewGain||!webPreviewSongId)return false;
+      const old=webPreviewSongId;
+      const outgoing={songId:old,source:webPreviewSource,
+        normalizeGain:webPreviewNormalizeGain,gain:webPreviewGain};
+      const level=Math.max(0,Math.min(1,
+        webPreviewGainAt(Math.max(0,(performance.now()-webPreviewStartedAt)/1000))));
+      const at=webPreviewContext.currentTime+.005;
+      ++webPreviewRunToken;
+      webPreviewSource=null;webPreviewNormalizeGain=null;webPreviewGain=null;
+      webPreviewPlaying=false;webPreviewSongId="";
+      stopPreviewVisualTracking();
+      setPreviewButtonState(old,"play");
+      resetPreviewMeter(old);
+      try{
+        const g=outgoing.gain.gain;
+        g.cancelScheduledValues(at);g.setValueAtTime(level,at);
+        g.setValueCurveAtTime(webPreviewEqualPowerCurve("out",level),
+          at,STREAMED_CROSSFADE_SECONDS);
+      }catch(_){
+        try{
+          const g=outgoing.gain.gain;
+          g.cancelScheduledValues(at);g.setValueAtTime(level,at);
+          g.linearRampToValueAtTime(0,at+STREAMED_CROSSFADE_SECONDS);
+        }catch(__){}
       }
-      stopStreamedItunesPreview();
-      if(webPreviewSongId&&webPreviewPlaying)resetWebAudioPreview(webPreviewSongId,true);
-      if(activePreviewSongId&&activePreviewSongId!==song.id)
-        stopYouTubePreview(activePreviewSongId,{reset:true});
-      stopPreviewTracking();
-      const token=streamedItunesToken;
+      setTimeout(()=>disposeWebPreviewVoice(outgoing),
+        Math.ceil(STREAMED_CROSSFADE_SECONDS*1000)+55);
+      return true;
+    }
+
+    function scheduleStreamEnvelope(song,voice,crossfade){
+      const inSec=Math.max(.05,Number(song.previewFadeIn)||.70);
+      const outSec=Math.max(.15,Number(song.previewFadeOut)||1.60);
+      const duration=streamedItunesDuration;
+      const initial=Math.min(crossfade?STREAMED_CROSSFADE_SECONDS:inSec,
+        Math.max(.05,duration/2));
+      if(voice.gain&&webPreviewContext&&webPreviewContext.state!=="closed"){
+        try{
+          const at=webPreviewContext.currentTime+.012,g=voice.gain.gain;
+          g.cancelScheduledValues(at);g.setValueAtTime(0,at);
+          g.setValueCurveAtTime(
+            crossfade?webPreviewEqualPowerCurve("in",1):webPreviewCurve(0,1,false),
+            at,initial);
+          const outAt=Math.max(initial+.02,duration-outSec);
+          g.setValueAtTime(1,at+outAt-.001);
+          g.setValueCurveAtTime(webPreviewCurve(0,1,true),
+            at+outAt,Math.max(.05,duration-outAt));
+          return;
+        }catch(_){}
+      }
+      rampNativeStreamVolume(voice,0,1,initial);
+    }
+
+    async function toggleStreamedItunesPreview(song,data){
+      if(streamedItunesSongId===song.id){stopStreamedItunesPreview();return}
+      const intent=++streamedItunesSelectionToken;
+      const globalIntent=previewSwitchToken;
       const media=new Audio();
       media.preload="none";
       media.playsInline=true;
+      media.crossOrigin="anonymous";
       media.src=data.previewUrl;
-      streamedItunesAudio=media;
-      streamedItunesSongId=song.id;
-      streamedItunesDuration=data.clipDuration;
+      media.volume=0;
+      const voice={media,source:null,gain:null,frame:0,timer:0};
+      configurePreviewAudioSessionForPlayback();
+      try{
+        const ctx=ensureWebPreviewContext();
+        await ctx.resume().catch(()=>{});
+        const source=ctx.createMediaElementSource(media);
+        const gain=ctx.createGain();
+        gain.gain.setValueAtTime(0,ctx.currentTime);
+        source.connect(gain);gain.connect(webPreviewAnalyser||ctx.destination);
+        voice.source=source;voice.gain=gain;
+        media.volume=1;
+      }catch(_){
+        try{voice.source?.disconnect();voice.gain?.disconnect()}catch(__){}
+        voice.source=null;voice.gain=null;media.volume=0;
+      }
       media.onended=()=>{if(streamedItunesAudio===media)stopStreamedItunesPreview()};
       try{
         await media.play();
-        if(token!==streamedItunesToken||streamedItunesAudio!==media)return;
+        if(intent!==streamedItunesSelectionToken||globalIntent!==previewSwitchToken){
+          disposeStreamVoice(voice);return;
+        }
+        const oldStream=!!streamedItunesAudio&&!streamedItunesAudio.paused;
+        const oldBuffer=!!webPreviewPlaying&&!!webPreviewSource;
+        if(oldStream)stopStreamedItunesPreview({crossfade:true});
+        if(oldBuffer)fadeBufferedPreviewIntoStream();
+        if(activePreviewSongId&&activePreviewSongId!==song.id)
+          stopYouTubePreview(activePreviewSongId,{reset:true});
+        stopPreviewTracking();
+        const token=++streamedItunesToken;
+        streamedItunesAudio=media;streamedItunesSource=voice.source;
+        streamedItunesGain=voice.gain;streamedItunesSongId=song.id;
+        streamedItunesDuration=data.clipDuration;
         activePreviewSongId=song.id;
-        streamedItunesStartedAt=performance.now();
+        setPreviewDuration(song.id,data.clipDuration);
         setPreviewButtonState(song.id,"pause");
-        setPreviewRemaining(song.id,data.clipDuration,0);
-        const tick=()=>{
+        scheduleStreamEnvelope(song,voice,oldStream||oldBuffer);
+        const frame=()=>{
           if(streamedItunesAudio!==media||token!==streamedItunesToken)return;
-          const elapsed=Math.max(0,Math.min(data.clipDuration,
-            Number.isFinite(media.currentTime)?media.currentTime:0));
+          const elapsed=Math.max(0,Math.min(data.clipDuration,Number(media.currentTime)||0));
           if(elapsed>=data.clipDuration-.07){stopStreamedItunesPreview();return}
           setPreviewRemaining(song.id,Math.max(0,data.clipDuration-elapsed),
             elapsed/data.clipDuration*100);
-          streamedItunesFrame=requestAnimationFrame(tick);
+          if(!voice.gain){
+            const end=Math.max(.15,Number(song.previewFadeOut)||1.60);
+            const remain=data.clipDuration-elapsed;
+            if(remain<end){
+              try{media.volume=Math.max(0,Math.min(1,
+                Math.sin(remain/end*Math.PI/2)))}catch(_){}
+            }
+          }
+          streamedItunesFrame=requestAnimationFrame(frame);
         };
-        streamedItunesFrame=requestAnimationFrame(tick);
+        streamedItunesFrame=requestAnimationFrame(frame);
       }catch(error){
-        if(streamedItunesAudio===media)stopStreamedItunesPreview();
+        disposeStreamVoice(voice);
         throw error;
       }
     }
@@ -10467,7 +10599,7 @@
         }
         return;
       }
-      if(streamedItunesAudio)stopStreamedItunesPreview();
+      if(streamedItunesAudio)stopStreamedItunesPreview({crossfade:true});
       if(previewData&&previewData.source==="webaudio"){
         stopPreviewTracking();
         cancelAnimationFrame(previewManualFadeFrame);

@@ -2767,3 +2767,21 @@ test('new owner-curated previews are exact provider references, stream-only and 
   expect(html).toContain('artworkFocalY:"47%"');
   expect(html).toContain('data-return-proof="pending"');
 });
+
+test('Staging streamed previews use the established fade-in out and crossfade contract',async({request})=>{
+  const result=await request.get('/?preview-fades='+Date.now(),{headers:{'cache-control':'no-cache'}});
+  expect(result.ok()).toBeTruthy();
+  const html=await result.text();
+  expect(html).toContain('const STREAMED_CROSSFADE_SECONDS=.68');
+  expect(html).toContain('previewFadeIn:.70');
+  expect(html).toContain('previewFadeOut:1.60');
+  expect(html).toContain('ctx.createMediaElementSource(media)');
+  expect(html).toContain('webPreviewEqualPowerCurve("in",1)');
+  expect(html).toContain('webPreviewEqualPowerCurve("out",level)');
+  expect(html).toContain('fadeBufferedPreviewIntoStream()');
+  expect(html).toContain('stopStreamedItunesPreview({crossfade:true})');
+  expect(html).toContain('streamedItunesAudio)stopStreamedItunesPreview()');
+  expect(html).toContain('source:"streamed-itunes"');
+  expect(html).toContain('Adelanto cortesía de iTunes');
+  expect(html).toContain('artworkFocalY:"47%"');
+});
