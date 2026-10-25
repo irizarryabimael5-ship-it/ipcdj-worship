@@ -1,6 +1,13 @@
 # IPCDJ Worship — current always-updated handoff source
 Snapshot date: 2026-10-15. **Not yet a final migration file**; compile at next room change per [HANDOFF_PROTOCOL.md](./HANDOFF_PROTOCOL.md).
 
+## Permanent owner interaction rule — GitHub access unavailable (2026-10-24)
+- The owner does **not** work in GitHub and will **never** manually run repository commands, scripts, patches, copy/paste code, or developer-console steps on behalf of this project. ChatGPT is the responsible GitHub operator when its connected tools are available.
+- If the GitHub connector, authorization, write access, or required repository tool is unavailable or fails, **do not claim an edit, commit, deployment, or QA was performed**. Give one brief, direct status: **"GitHub access is unavailable right now, so I couldn't make this change. Ask me to try again when you're ready."**
+- **Stop there and await a new explicit user request to retry.** Do not send command blocks, patches, scripts, setup instructions, manual workarounds, repeated connection attempts, or offers to have the user perform the work. Do not fill the conversation with proposed implementation when blocked.
+- After a user explicitly requests a retry, check current connector access and current branch HEAD before resuming the original change. Never assume an earlier failed attempt executed. Preserve staging-first and separately approved Live promotion boundaries.
+- Carry this owner preference verbatim in future handoff/continuity packages so it survives chat migration. It is a conversational/operational rule and does not require any browser, website, or production runtime modification.
+
 ## One-minute restart
 - Project: IPCDJ Worship for Iglesia Pentecostal Ciudad de Jehová.
 - Repo: `irizarryabimael5-ship-it/ipcdj-worship`.
