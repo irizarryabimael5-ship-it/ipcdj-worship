@@ -2781,7 +2781,7 @@ test('Staging streamed previews use the established fade-in out and crossfade co
   expect(html).toContain('webPreviewEqualPowerCurve("in",1)');
   expect(html).toContain('webPreviewEqualPowerCurve("out",level)');
   expect(html).toContain('fadeBufferedPreviewIntoStream()');
-  expect(html).toContain('stopStreamedItunesPreview({crossfade:true})');
+  expect(html).toContain('crossfade:!isMobilePreviewEnvironment()');
   expect(html).toContain('streamedItunesAudio)stopStreamedItunesPreview()');
   expect(html).toContain('source:"streamed-itunes"');
   expect(html).toContain('Adelanto cortesía de iTunes');
