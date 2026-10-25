@@ -2752,186 +2752,50 @@ test('Vuelven a Sonar tab separates two confirmed selections from real service s
   expect(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)).toBeLessThanOrEqual(4);
 });
 
-test('new owner-curated previews are exact provider references, stream-only and preserve old cover exception',async({request})=>{
-  const response=await request.get('/?curated-streaming-regression='+Date.now(),{headers:{'cache-control':'no-cache'}});
-  expect(response.ok()).toBeTruthy();
-  const html=await response.text();
-  expect(html).toContain('itunesTrackId:"1799832312"');
-  expect(html).toContain('itunesTrackId:"1777898241"');
-  expect(html).toContain('itunesCollectionId:"1783806472"');
-  expect(html).toContain('previewSourceVerifiedCollection:true');
-  expect(html).toContain('source:"streamed-itunes"');
-  expect(html).toContain('if(song.previewStreamingOnly===true)');
-  expect(html).toContain('canonicalPreviewTitle(result.trackName)===canonicalPreviewTitle(song.title)');
-  expect(html).toContain('artworkFocalY:"47%"');
-  expect(html).toContain('data-return-proof="pending"');
-});
-
-test('Staging streamed previews use the established fade-in out and crossfade contract',async({request})=>{
-  const result=await request.get('/?preview-fades='+Date.now(),{headers:{'cache-control':'no-cache'}});
-  expect(result.ok()).toBeTruthy();
-  const html=await result.text();
-  expect(html).toContain('const STREAMED_CROSSFADE_SECONDS=.68');
-  expect(html).toContain('previewFadeIn:.70');
-  expect(html).toContain('previewFadeOut:1.60');
-  expect(html).toContain('nativeVolumeFadeSupported=supportsNativePreviewVolume(media)');
-  expect(html).not.toContain('ctx.createMediaElementSource(media)');
-  expect(html).not.toContain('media.crossOrigin="anonymous"');
-  expect(html).toContain('streamedEnvelopeGain(elapsed,duration,intro,outro)');
-  expect(html).toContain('Math.sin(outOf*Math.PI/2)');
-  expect(html).toContain('fadeBufferedPreviewIntoStream()');
-  expect(html).toContain('crossfade:supportsNativePreviewVolume(streamedItunesAudio)');
-  expect(html).toContain('streamedItunesAudio)stopStreamedItunesPreview()');
-  expect(html).toContain('source:"streamed-itunes"');
-  expect(html).not.toContain('Adelanto cortesía de iTunes');
-  expect(html).toContain('artworkFocalY:"47%"');
-});
-
-test('mobile background immediately disposes crossfade outgoing voices',async({request})=>{
-  const response=await request.get('/?preview-mobile-lock='+Date.now(),{headers:{'cache-control':'no-cache'}});
-  expect(response.ok()).toBeTruthy();
-  const html=await response.text();
-  expect(html).toContain('webPreviewOutgoingVoices.add(outgoing)');
-  expect(html).toContain('for(const voice of [...streamedItunesOutgoing])disposeStreamVoice(voice)');
-  expect(html).toContain('for(const voice of [...webPreviewOutgoingVoices])disposeWebPreviewVoice(voice)');
-});
-
-test('Apple streaming audio avoids CORS-silencing and does not force iOS native-volume fades',async({request})=>{
-  const res=await request.get('/?itunes-cors-safety='+Date.now(),{headers:{'cache-control':'no-cache'}});
-  expect(res.ok()).toBeTruthy();
-  const html=await res.text();
-  expect(html).toContain('media.volume=nativeVolumeFadeSupported?0:1');
-  expect(html).toContain('crossfade:nativeVolumeFadeSupported');
-  expect(html).toContain('if(nativeVolumeFadeSupported)fadeBufferedPreviewIntoStream()');
-  expect(html).not.toContain('media.crossOrigin="anonymous"');
-  expect(html).not.toContain('ctx.createMediaElementSource(media)');
-});
-
-test('streaming preview fade uses actual provider file duration and clean card layout',async({page,request})=>{
-  const response=await request.get('/?preview-actual-duration='+Date.now(),{headers:{'cache-control':'no-cache'}});
-  expect(response.ok()).toBeTruthy();
-  const html=await response.text();
-  expect(html).toContain('function streamedClipDuration(media,limit)');
-  expect(html).toContain('function streamedEnvelopeGain(elapsed,duration,fadeIn,fadeOut)');
-  expect(html).toContain('const actual=Number(media.duration)');
-  expect(html).toContain('media.addEventListener("timeupdate",update)');
-  expect(html).toContain('media.addEventListener("loadedmetadata",update)');
-  expect(html).toContain('const actual=streamedClipDuration(media,data.clipDuration)');
-  expect(html).not.toContain('if(elapsed>=data.clipDuration-.07)');
-  expect(html).not.toContain('catalog-preview-attribution');
+test('every curated song uses only the owner-approved original Web Audio engine',async({page,request})=>{
   await openHealthyPage(page);
-  await page.locator('#tab-vuelven-a-sonar').click();
-  await expect(page.locator('#returning-songs [data-return-song-id]')).toHaveCount(2);
-  await expect(page.locator('#returning-songs .catalog-preview-attribution')).toHaveCount(0);
+  const contract=await page.evaluate(()=>({
+    engine:window.IPCDJ_PREVIEW_ENGINE?.name,
+    modes:window.IPCDJ_PREVIEW_ENGINE?.permittedModes,
+    source:window.IPCDJ_PREVIEW_ENGINE?.source,
+    fade:window.IPCDJ_PREVIEW_ENGINE?.fade(),
+    songs:window.IPCDJ_PREVIEW_ENGINE?.supportedSongIds(),
+    active:window.IPCDJ_PREVIEW_ENGINE?.active()
+  }));
+  expect(contract.engine).toBe('webaudio');
+  expect(contract.modes).toEqual(['webaudio']);
+  expect(contract.source).toBe('AudioBufferSourceNode');
+  expect(contract.fade).toEqual({fadeIn:.70,fadeOut:1.60,crossfade:.68});
+  expect(contract.songs).toEqual([
+    'request-hablame-de-cerca-grupo-grace',
+    'request-el-nombre-de-jesus-elevation-espanol',
+    'request-agradecido-estoy-elevation-espanol',
+    'request-poderoso-dios-gateway-worship-miel-san-marcos',
+    'request-bienvenido-espiritu-santo-barak',
+    'retorno-santo-es-el-que-vive-montesanto',
+    'retorno-con-poder-barak'
+  ]);
+  expect(contract.active.playing).toBe(false);
+  expect(contract.active.outgoingVoices).toBe(0);
   await page.locator('#tab-solicitudes').click();
-  await expect(page.locator('#requested-songs [data-request-song-id]')).toHaveCount(5);
-  await expect(page.locator('#requested-songs .catalog-preview-attribution')).toHaveCount(0);
-});
-
-test('all seven staging browser profiles honor provider-aware preview platform contract',async({page},testInfo)=>{
-  await openHealthyPage(page);
-  const info=await page.evaluate(()=>{
-    const tester=window.IPCDJ_PREVIEW_PLATFORM;
-    if(!tester)return null;
-    return {policy:tester.policy(),active:tester.active(),
-      gainAtStart:tester.envelope(0,30),
-      gainAtHalfIntro:tester.envelope(.35,30),
-      gainAtPlateau:tester.envelope(15,30),
-      gainAtHalfOutro:tester.envelope(29.2,30),
-      gainAtEnd:tester.envelope(30,30),
-      gainAtShortEnd:tester.envelope(11.7,11.7)};
+  await expect(page.locator('#requested-songs [data-preview-song-id]')).toHaveCount(5);
+  await page.locator('#tab-vuelven-a-sonar').click();
+  await expect(page.locator('#returning-songs [data-preview-song-id]')).toHaveCount(2);
+  const r=await request.get('/?one-locked-audio-engine='+Date.now(),{
+    headers:{'cache-control':'no-cache'}
   });
-  expect(info).not.toBeNull();
-  expect(info.policy.fadeIn).toBe(.70);
-  expect(info.policy.fadeOut).toBe(1.60);
-  expect(info.policy.crossfade).toBe(.68);
-  expect(info.gainAtStart).toBe(0);
-  expect(info.gainAtHalfIntro).toBeGreaterThan(.4);
-  expect(info.gainAtHalfIntro).toBeLessThan(1);
-  expect(info.gainAtPlateau).toBe(1);
-  expect(info.gainAtHalfOutro).toBeGreaterThan(.35);
-  expect(info.gainAtHalfOutro).toBeLessThan(1);
-  expect(info.gainAtEnd).toBe(0);
-  expect(info.gainAtShortEnd).toBe(0);
-  expect(info.active.currentSongId).toBe('');
-  expect(info.active.outgoingStreamCount).toBe(0);
-  expect(info.active.outgoingBufferCount).toBe(0);
-  const project=testInfo.project.name;
-  if(project==='webkit-mobile'||project==='webkit-compact-mobile'||project==='webkit-tablet'){
-    expect(info.policy.ios,project).toBe(true);
-    expect(info.policy.nativeVolumeFades,project).toBe(false);
-    expect(info.policy.nativeSingleStream,project).toBe(true);
-  }else{
-    expect(info.policy.ios,project).toBe(false);
-    expect(info.policy.nativeSingleStream,project).toBe(false);
-    expect(info.policy.nativeVolumeFades,project).toBe(true);
-  }
-  await page.locator('#tab-vuelven-a-sonar').click();
-  await expect(page.locator('#returning-songs .future-preview-button')).toHaveCount(2);
-  await page.locator('#tab-solicitudes').click();
-  await expect(page.locator('#requested-songs .future-preview-button')).toHaveCount(5);
-});
-test('preview cross-platform source preserves single-stream iOS and Android fade capabilities',async({request})=>{
-  const r=await request.get('/?preview-mobile-parity='+Date.now(),{headers:{'cache-control':'no-cache'}});
   expect(r.ok()).toBeTruthy();
   const html=await r.text();
-  expect(html).toContain('function isIOSPreviewEnvironment()');
-  expect(html).toContain('function supportsNativePreviewVolume(media)');
-  expect(html).toContain('if(isIOSPreviewEnvironment())return false');
-  expect(html).toContain('if(isIOSPreviewEnvironment()){');
-  expect(html).toContain('detachStreamVoiceEnvelope(voice)');
-  expect(html).toContain('streamedItunesVoice=voice');
-  expect(html).toContain('window.IPCDJ_PREVIEW_PLATFORM=Object.freeze({');
-  expect(html).toContain('previewStreamingOnly!==true)unlockWebPreviewContextFromGesture()');
-  expect(html).toContain('crossfade:supportsNativePreviewVolume(streamedItunesAudio)');
-  expect(html).toContain('for(const old of [...streamedItunesOutgoing])disposeStreamVoice(old)');
-  expect(html).toContain('for(const voice of [...webPreviewOutgoingVoices])disposeWebPreviewVoice(voice)');
-});
-
-test('all current and future streamed previews fade completely before file ending',async({page},testInfo)=>{
-  await openHealthyPage(page);
-  const probe=await page.evaluate(()=>{
-    const api=window.IPCDJ_PREVIEW_PLATFORM;
-    if(!api)return null;
-    const long=api.tail(30,true);
-    const medium=api.tail(11.7,true);
-    const short=api.tail(2,true);
-    const native=api.tail(30,false);
-    return {long,medium,short,native,
-      endGain:api.envelope(long.audibleEnd,long.audibleEnd,.70,long.fadeOut),
-      guardGain:api.envelope(30-.1,long.audibleEnd,.70,long.fadeOut),
-      beforeEndGain:api.envelope(long.audibleEnd-1.1,
-        long.audibleEnd,.70,long.fadeOut),
-      atPlateau:api.envelope(12,long.audibleEnd,.70,long.fadeOut),
-      actualPolicy:api.policy()};
-  });
-  expect(probe).not.toBeNull();
-  expect(probe.long.audibleEnd).toBeCloseTo(29.15,3);
-  expect(probe.long.silence).toBeCloseTo(.85,3);
-  expect(probe.medium.audibleEnd).toBeCloseTo(10.85,3);
-  expect(probe.short.audibleEnd).toBeCloseTo(1.64,3);
-  expect(probe.native.audibleEnd).toBe(30);
-  expect(probe.native.silence).toBe(0);
-  expect(probe.long.fadeOut).toBe(2.30);
-  expect(probe.endGain).toBe(0);
-  expect(probe.guardGain).toBe(0);
-  expect(probe.beforeEndGain).toBeGreaterThan(0);
-  expect(probe.beforeEndGain).toBeLessThan(.75);
-  expect(probe.atPlateau).toBe(1);
-  if(probe.actualPolicy.ios)expect(probe.actualPolicy.nativeVolumeFades).toBe(false);
-});
-test('Staging stream tail guard is shared and never trims unsupported iPhone native streams',async({request})=>{
-  const response=await request.get('/?stream-tail-guard='+Date.now(),{headers:{'cache-control':'no-cache'}});
-  expect(response.ok()).toBeTruthy();
-  const html=await response.text();
-  expect(html).toContain('const STREAMED_END_SAFETY_SECONDS=.85');
-  expect(html).toContain('const STREAMED_AUDIBLE_FADE_OUT_SECONDS=2.30');
-  expect(html).toContain('function streamedAudibleEnd(duration,volumeFadesSupported)');
-  expect(html).toContain('const audibleEnd=streamedAudibleEnd(actual,nativeVolumeFadeSupported)');
-  expect(html).toContain('if(nativeVolumeFadeSupported&&elapsed>=audibleEnd-.012)');
-  expect(html).toContain('media.volume=streamedEnvelopeGain(elapsed,safeEnd,intro,outro)');
-  expect(html).toContain('if(!volumeFadesSupported)return seconds');
-  expect(html).toContain('previewStreamingOnly:true');
+  expect(html).toContain('window.IPCDJ_PREVIEW_ENGINE=Object.freeze({');
+  expect(html).toContain('source:"webaudio"');
+  expect(html).toContain('return webPreviewBufferPromises.get(key)');
+  expect(html).toContain('webPreviewBufferPromises.delete(key)');
+  expect(html).toContain('if(song.previewSourceVerifiedCollection===true)');
+  expect(html).toContain('itunesCollectionId:"1783806472"');
   expect(html).toContain('artworkFocalY:"47%"');
+  expect(html).not.toContain('previewStreamingOnly:true');
+  expect(html).not.toContain('source:"streamed-itunes"');
+  expect(html).not.toContain('toggleStreamedItunesPreview');
+  expect(html).not.toContain('createMediaElementSource');
   expect(html).not.toContain('catalog-preview-attribution');
 });

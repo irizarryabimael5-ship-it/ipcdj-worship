@@ -6,7 +6,7 @@
   <meta name="ipcdj-environment" content="staging" />
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="campana-weekend-v209" />
+  <meta name="ipcdj-build" content="campana-weekend-v210" />
   <script id="ipcdj-original-visual-preview-init">
     // Explicit staging-only opt-in; default users keep accessibility preferences.
     (()=>{try{
@@ -7343,7 +7343,7 @@
       return !!song&&(
         isHttpsCatalogUrl(song.previewAudioUrl)||
         /^[1-9]\d*$/.test(String(song.itunesTrackId||""))||
-        (song.previewStreamingOnly===true&&song.previewSourceVerifiedCollection===true&&
+        (song.previewSourceVerifiedCollection===true&&
           /^[1-9]\d*$/.test(String(song.itunesCollectionId||"")))
       );
     }
@@ -7541,7 +7541,6 @@
         futurePalette:[[31,68,67],[160,56,57],[134,92,75]],
         itunesTrackId:"1799832312",
         previewAudioProvider:"itunes",
-        previewStreamingOnly:true,
         previewClipDuration:30,
         previewFadeIn:.70,
         previewFadeOut:1.60,
@@ -7560,7 +7559,6 @@
         futurePalette:[[42,44,47],[166,119,54],[115,100,77]],
         itunesTrackId:"1777898241",
         previewAudioProvider:"itunes",
-        previewStreamingOnly:true,
         previewClipDuration:30,
         previewFadeIn:.70,
         previewFadeOut:1.60,
@@ -7674,7 +7672,6 @@
         itunesCollectionId:"1783806472",
         previewSourceVerifiedCollection:true,
         previewAudioProvider:"itunes",
-        previewStreamingOnly:true,
         previewClipDuration:30,
         previewFadeIn:.70,
         previewFadeOut:1.60,
@@ -8531,7 +8528,13 @@
       const cacheKey=PREVIEW_CACHE_PREFIX+song.id;
       try{
         const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");
-        if(cached&&cached.previewUrl&&Date.now()-(cached.savedAt||0)<30*24*60*60*1000)return cached;
+        if(cached&&cached.previewUrl&&Date.now()-(cached.savedAt||0)<30*24*60*60*1000&&
+          (!song.previewSourceVerifiedCollection||(
+            cached.collectionId===String(song.itunesCollectionId)&&
+            normalizeCatalogText(cached.artistName)===normalizeCatalogText(song.artist)&&
+            normalizeCatalogText(cached.trackName).replace(/ (?:live|en vivo)$/,"")===
+              normalizeCatalogText(song.title).replace(/ (?:live|en vivo)$/,"")
+          )))return cached;
       }catch(_){}
 
       let candidates=[];
@@ -8580,7 +8583,7 @@
 
       // Album-only streaming previews must prove exact song + artist identity,
       // never accidentally play Ven Espíritu Santo or a different Barak track.
-      if(song.previewStreamingOnly===true&&song.previewSourceVerifiedCollection===true){
+      if(song.previewSourceVerifiedCollection===true){
         const canonicalPreviewTitle=value=>normalizeCatalogText(value)
           .replace(/ (?:live|en vivo)$/,"").trim();
         candidates=candidates.filter(result=>
@@ -8600,7 +8603,8 @@
         artworkUrl:candidate.artworkUrl100?highResolutionArtworkUrl(candidate.artworkUrl100):"",
         trackName:candidate.trackName||song.title,
         artistName:candidate.artistName||song.artist,
-        savedAt:Date.now()
+        savedAt:Date.now(),
+        collectionId:String(candidate.collectionId||"")
       };
       try{localStorage.setItem(cacheKey,JSON.stringify(result))}catch(_){}
       return result;
@@ -9197,15 +9201,12 @@
           }
         : await resolveItunesPreviewData(song);
 
-      // Apple promotional clips for these new cards are played natively as
-      // streaming media: NEVER fetch, arrayBuffer, decode or cache audio bytes.
-      if(song.previewStreamingOnly===true){
-        const host=(()=>{try{return new URL(data.previewUrl).hostname.toLowerCase()}catch(_){return ""}})();
-        if(!["audio-ssl.itunes.apple.com","audio.itunes.apple.com"].includes(host))
-          throw new Error("Unverified Apple preview host");
-        return {source:"streamed-itunes",previewUrl:data.previewUrl,
-          clipDuration:Math.max(1,Math.min(30,Number(song.previewClipDuration)||30)),
-          trackName:data.trackName,artistName:data.artistName};
+      // LOCKED BY OWNER: the original Web Audio preview engine is the only
+      // permitted engine. Do not introduce native streaming or song-level
+      // playback bypasses without a new explicit owner authorization.
+      if(song.previewStreamingOnly===true||
+        (song.previewEngine&&song.previewEngine!=="webaudio")){
+        throw new Error("Unapproved audio engine for "+song.id);
       }
       const key=song.id+"|"+data.previewUrl;
       if(!webPreviewBufferPromises.has(key)){
@@ -9264,7 +9265,11 @@
             normalizationAdjustmentDb:normalization.adjustmentDb,
             normalizationPeak:normalization.peak
           };
-        })());
+        })().catch(error=>{
+          // An offline request must not poison retries for this exact song.
+          webPreviewBufferPromises.delete(key);
+          throw error;
+        }));
       }
       return webPreviewBufferPromises.get(key);
     }
@@ -9707,29 +9712,6 @@
       return false;
     }
 
-    function isIOSPreviewEnvironment(){
-      const ua=String(navigator.userAgent||"");
-      if(/iPad|iPhone|iPod/i.test(ua))return true;
-      // iPadOS sometimes reports desktop Macintosh UA, including Safari PWAs.
-      const touch=Number(navigator.maxTouchPoints||0)>0||
-        !!window.matchMedia?.("(pointer:coarse)").matches;
-      return /Macintosh/i.test(ua)&&/AppleWebKit/i.test(ua)&&touch;
-    }
-
-    function supportsNativePreviewVolume(media){
-      // Safari/iOS does not expose script-writable HTMLMediaElement volume.
-      // Android is NOT an iOS equivalent: retain its fade support.
-      if(isIOSPreviewEnvironment())return false;
-      if(!media)return false;
-      try{
-        const original=Number(media.volume);
-        media.volume=.37;
-        const writable=Math.abs(Number(media.volume)-.37)<.05;
-        media.volume=Number.isFinite(original)?original:1;
-        return writable;
-      }catch(_){return false}
-    }
-
     function desktopPreviewMayContinueInBackground(){
       return !isMobilePreviewEnvironment();
     }
@@ -9771,8 +9753,7 @@
       if(webPreviewPlaying&&webPreviewSongId){
         silenceWebAudioPreviewForBackground(webPreviewSongId);
       }
-      if(streamedItunesAudio)stopStreamedItunesPreview();
-      for(const voice of [...streamedItunesOutgoing])disposeStreamVoice(voice);
+      // The original Web Audio engine owns all current and future songs.
       for(const voice of [...webPreviewOutgoingVoices])disposeWebPreviewVoice(voice);
       if(youtubePreviewPlaying&&youtubePreviewPlayerSongId){
         try{youtubePreviewPlayer.pauseVideo()}catch(_){}
@@ -10417,342 +10398,29 @@
       },Math.ceil((clip.duration+1)*1000));
     }
 
-    // Owner-approved preview envelope shared by WebAudio buffers and streams.
-    // Native media streams are never fetched, decoded or cached in JavaScript.
-    const STREAMED_CROSSFADE_SECONDS=.68;
-    // Standard for ALL current and future previewStreamingOnly records.
-    // The gain must reach absolute zero before a provider can naturally end.
-    const STREAMED_END_SAFETY_SECONDS=.85;
-    const STREAMED_AUDIBLE_FADE_OUT_SECONDS=2.30;
-    let streamedItunesAudio=null,streamedItunesSongId="";
-    let streamedItunesFrame=0,streamedItunesDuration=30,streamedItunesToken=0;
-    let streamedItunesGain=null,streamedItunesSource=null;
-    let streamedItunesVoice=null;
-    let streamedItunesSelectionToken=0;
-    const streamedItunesOutgoing=new Set();
-
-    function disposeStreamVoice(voice){
-      if(!voice)return;
-      if(voice.timer)clearTimeout(voice.timer);
-      if(voice.frame)cancelAnimationFrame(voice.frame);
-      try{
-        voice.media.onended=null;
-        if(voice.updateEnvelope){
-          voice.media.removeEventListener("timeupdate",voice.updateEnvelope);
-          voice.media.removeEventListener("loadedmetadata",voice.updateEnvelope);
-        }
-        voice.media.pause();
-      }catch(_){}
-      try{voice.source?.disconnect();voice.gain?.disconnect()}catch(_){}
-      try{voice.media.removeAttribute("src");voice.media.load()}catch(_){}
-      streamedItunesOutgoing.delete(voice);
-    }
-
-    function detachStreamVoiceEnvelope(voice){
-      if(!voice)return;
-      if(voice.updateEnvelope){
-        try{voice.media.removeEventListener("timeupdate",voice.updateEnvelope)}catch(_){}
-        try{voice.media.removeEventListener("loadedmetadata",voice.updateEnvelope)}catch(_){}
-        voice.updateEnvelope=null;
-      }
-      // A previous intro ramp must not overwrite the new outgoing fade.
-      if(voice.frame){cancelAnimationFrame(voice.frame);voice.frame=0}
-    }
-
-    function rampNativeStreamVolume(voice,from,to,seconds,finished){
-      const start=performance.now(),duration=Math.max(.05,seconds)*1000;
-      const step=now=>{
-        const p=Math.max(0,Math.min(1,(now-start)/duration));
-        const power=(to>from)?Math.sin(Math.PI*p/2):Math.cos(Math.PI*p/2);
-        const value=to>from?from+(to-from)*power:to+(from-to)*power;
-        try{voice.media.volume=Math.max(0,Math.min(1,value))}catch(_){}
-        if(p<1)voice.frame=requestAnimationFrame(step);
-        else{voice.frame=0;if(finished)finished()}
-      };
-      step(start);
-    }
-
-    function fadeOutStreamVoice(voice,seconds,onFinished){
-      if(voice.gain&&webPreviewContext&&webPreviewContext.state!=="closed"){
-        try{
-          const at=webPreviewContext.currentTime+.005,param=voice.gain.gain;
-          const level=Math.max(0,Math.min(1,param.value));
-          param.cancelScheduledValues(at);
-          param.setValueAtTime(level,at);
-          param.setValueCurveAtTime(webPreviewEqualPowerCurve("out",level),at,seconds);
-          voice.timer=setTimeout(onFinished,Math.ceil(seconds*1000)+55);
-          return;
-        }catch(_){}
-      }
-      const present=Number(voice.media.volume);
-      rampNativeStreamVolume(voice,Number.isFinite(present)?present:1,0,
-        seconds,onFinished);
-    }
-
-    function stopStreamedItunesPreview({crossfade=false}={}){
-      ++streamedItunesToken;
-      if(streamedItunesFrame)cancelAnimationFrame(streamedItunesFrame);
-      streamedItunesFrame=0;
-      const voice=streamedItunesVoice;
-      const old=streamedItunesSongId;
-      streamedItunesAudio=null;streamedItunesSource=null;streamedItunesGain=null;
-      streamedItunesVoice=null;
-      detachStreamVoiceEnvelope(voice);
-      streamedItunesSongId="";
-      if(old){
-        setPreviewButtonState(old,"play");
-        setPreviewRemaining(old,streamedItunesDuration,0);
-        resetPreviewMeter(old);
-        if(activePreviewSongId===old)activePreviewSongId="";
-      }
-      if(!voice)return;
-      if(crossfade&&!voice.media.paused){
-        streamedItunesOutgoing.add(voice);
-        fadeOutStreamVoice(voice,STREAMED_CROSSFADE_SECONDS,()=>disposeStreamVoice(voice));
-      }else disposeStreamVoice(voice);
-    }
-
-    function fadeBufferedPreviewIntoStream(){
-      if(!webPreviewPlaying||!webPreviewSource||!webPreviewGain||!webPreviewSongId)return false;
-      const old=webPreviewSongId;
-      const outgoing={songId:old,source:webPreviewSource,
-        normalizeGain:webPreviewNormalizeGain,gain:webPreviewGain};
-      // Register the fading buffered voice for immediate mobile lock cleanup.
-      webPreviewOutgoingVoices.add(outgoing);
-      const level=Math.max(0,Math.min(1,
-        webPreviewGainAt(Math.max(0,(performance.now()-webPreviewStartedAt)/1000))));
-      const at=webPreviewContext.currentTime+.005;
-      ++webPreviewRunToken;
-      webPreviewSource=null;webPreviewNormalizeGain=null;webPreviewGain=null;
-      webPreviewPlaying=false;webPreviewSongId="";
-      stopPreviewVisualTracking();
-      setPreviewButtonState(old,"play");
-      resetPreviewMeter(old);
-      try{
-        const g=outgoing.gain.gain;
-        g.cancelScheduledValues(at);g.setValueAtTime(level,at);
-        g.setValueCurveAtTime(webPreviewEqualPowerCurve("out",level),
-          at,STREAMED_CROSSFADE_SECONDS);
-      }catch(_){
-        try{
-          const g=outgoing.gain.gain;
-          g.cancelScheduledValues(at);g.setValueAtTime(level,at);
-          g.linearRampToValueAtTime(0,at+STREAMED_CROSSFADE_SECONDS);
-        }catch(__){}
-      }
-      setTimeout(()=>disposeWebPreviewVoice(outgoing),
-        Math.ceil(STREAMED_CROSSFADE_SECONDS*1000)+55);
-      return true;
-    }
-
-    // Provider clips can be shorter than the advertised 30s. Determine the
-    // real media end after metadata and apply the tail fade BEFORE onended.
-    // Native volume automation is supported on desktop; mobile Safari keeps
-    // hardware-controlled audible playback, which cannot be faded through JS.
-    function streamedClipDuration(media,limit){
-      const requested=Math.max(1,Number(limit)||30);
-      const actual=Number(media.duration);
-      return Number.isFinite(actual)&&actual>.1?Math.min(requested,actual):requested;
-    }
-
-    function streamedAudibleEnd(duration,volumeFadesSupported){
-      const seconds=Math.max(.2,Number(duration)||.2);
-      if(!volumeFadesSupported)return seconds;
-      // Bound the safety tail on unusually short providers' previews.
-      const safety=Math.min(STREAMED_END_SAFETY_SECONDS,seconds*.18);
-      return Math.max(.15,seconds-safety);
-    }
-
-    function streamedEnvelopeGain(elapsed,duration,fadeIn,fadeOut){
-      const initial=Math.max(.05,Math.min(duration/2,fadeIn));
-      const final=Math.max(.05,Math.min(duration/2,fadeOut));
-      const into=Math.max(0,Math.min(1,elapsed/initial));
-      const remaining=Math.max(0,duration-elapsed);
-      const outOf=Math.max(0,Math.min(1,remaining/final));
-      return Math.max(0,Math.min(1,
-        Math.sin(into*Math.PI/2),Math.sin(outOf*Math.PI/2)));
-    }
-
-    function scheduleStreamEnvelope(song,voice,crossfade){
-      // The native track handler controls BOTH fades from the actual media
-      // time and duration; avoid simultaneous ramps fighting over volume.
-      const media=voice.media;
-      const fadingSupported=supportsNativePreviewVolume(media);
-      const intro=crossfade?STREAMED_CROSSFADE_SECONDS:
-        Math.max(.05,Number(song.previewFadeIn)||.70);
-      // The older fully processed previews have a 1.60s release; streamed
-      // provider audio needs a slightly earlier, longer curve to avoid an
-      // audible step when AAC/MP3 decoders reach the natural file boundary.
-      const outro=Math.max(STREAMED_AUDIBLE_FADE_OUT_SECONDS,
-        Number(song.previewFadeOut)||1.60);
-      const update=()=>{
-        if(!fadingSupported)return;
-        const duration=streamedClipDuration(media,streamedItunesDuration);
-        const safeEnd=streamedAudibleEnd(duration,true);
-        const elapsed=Math.max(0,Number(media.currentTime)||0);
-        try{
-          media.volume=streamedEnvelopeGain(elapsed,safeEnd,intro,outro);
-        }catch(_){}
-      };
-      media.addEventListener("timeupdate",update);
-      media.addEventListener("loadedmetadata",update);
-      voice.updateEnvelope=update;
-      update();
-    }
-
-    async function toggleStreamedItunesPreview(song,data){
-      if(streamedItunesSongId===song.id){stopStreamedItunesPreview();return}
-      const intent=++streamedItunesSelectionToken;
-      const globalIntent=previewSwitchToken;
-      const media=new Audio();
-      media.preload="none";
-      media.playsInline=true;
-      media.src=data.previewUrl;
-      // Apple's promotional CDN is not CORS-enabled for Web Audio mixing.
-      // Routing it through createMediaElementSource can output SILENCE. Use
-      // native streaming instead; never proxy/cache/decode Apple promo audio.
-      // On iOS, HTMLMediaElement.volume is hardware-controlled; preserve
-      // audible native playback rather than promising an impossible JS fade.
-      const nativeVolumeFadeSupported=supportsNativePreviewVolume(media);
-      media.volume=nativeVolumeFadeSupported?0:1;
-      const voice={media,source:null,gain:null,frame:0,timer:0};
-      configurePreviewAudioSessionForPlayback();
-      // A single native iOS stream may be audible at a time. Stop the prior
-      // voice BEFORE asking WebKit to start a different remote audio element.
-      // This avoids overlapping previews or Safari interrupting play().
-      if(isIOSPreviewEnvironment()){
-        if(streamedItunesAudio)stopStreamedItunesPreview();
-        if(webPreviewPlaying&&webPreviewSongId)
-          resetWebAudioPreview(webPreviewSongId,true);
-        if(previewAudio&&!previewAudio.paused){
-          previewAudio.pause();
-          stopPreviewTracking();
-        }
-        if(youtubePreviewPlaying&&youtubePreviewPlayerSongId){
-          stopYouTubePreview(youtubePreviewPlayerSongId,{reset:true});
-        }
-        for(const old of [...streamedItunesOutgoing])disposeStreamVoice(old);
-        for(const old of [...webPreviewOutgoingVoices])disposeWebPreviewVoice(old);
-      }
-      media.onended=()=>{
-        if(streamedItunesAudio!==media)return;
-        const duration=streamedClipDuration(media,data.clipDuration);
-        const audibleEnd=streamedAudibleEnd(duration,nativeVolumeFadeSupported);
-        stopStreamedItunesPreview();
-        finishPreviewVisual(song.id,audibleEnd);
-      };
-      media.addEventListener("loadedmetadata",()=>{
-        if(streamedItunesAudio===media){
-          streamedItunesDuration=streamedClipDuration(media,data.clipDuration);
-          setPreviewDuration(song.id,streamedAudibleEnd(streamedItunesDuration,
-            nativeVolumeFadeSupported));
-        }
-      });
-      try{
-        await media.play();
-        if(intent!==streamedItunesSelectionToken||globalIntent!==previewSwitchToken){
-          disposeStreamVoice(voice);return;
-        }
-        const oldStream=!!streamedItunesAudio&&!streamedItunesAudio.paused;
-        const oldBuffer=!!webPreviewPlaying&&!!webPreviewSource;
-        // On iOS native audio cannot crossfade two remote streams reliably.
-        // Preserve playback continuity on mobile without overlapping players.
-        if(oldStream)stopStreamedItunesPreview({
-          crossfade:nativeVolumeFadeSupported
-        });
-        if(oldBuffer){
-          if(nativeVolumeFadeSupported)fadeBufferedPreviewIntoStream();
-          else resetWebAudioPreview(webPreviewSongId,true);
-        }
-        if(activePreviewSongId&&activePreviewSongId!==song.id)
-          stopYouTubePreview(activePreviewSongId,{reset:true});
-        stopPreviewTracking();
-        const token=++streamedItunesToken;
-        streamedItunesAudio=media;streamedItunesSource=voice.source;
-        streamedItunesGain=voice.gain;streamedItunesVoice=voice;
-        streamedItunesSongId=song.id;
-        streamedItunesDuration=data.clipDuration;
-        activePreviewSongId=song.id;
-        setPreviewDuration(song.id,streamedAudibleEnd(data.clipDuration,
-          nativeVolumeFadeSupported));
-        setPreviewButtonState(song.id,"pause");
-        scheduleStreamEnvelope(song,voice,oldStream||oldBuffer);
-        const frame=()=>{
-          if(streamedItunesAudio!==media||token!==streamedItunesToken)return;
-          const actual=streamedClipDuration(media,data.clipDuration);
-          const audibleEnd=streamedAudibleEnd(actual,nativeVolumeFadeSupported);
-          if(actual!==streamedItunesDuration){
-            streamedItunesDuration=actual;
-            setPreviewDuration(song.id,audibleEnd);
-          }
-          const elapsed=Math.max(0,Math.min(actual,Number(media.currentTime)||0));
-          if(voice.updateEnvelope)voice.updateEnvelope();
-          setPreviewRemaining(song.id,Math.max(0,audibleEnd-elapsed),
-            Math.min(100,elapsed/Math.max(.01,audibleEnd)*100));
-          // When gain has already reached zero, dispose the remote stream.
-          // End is intentionally silent BEFORE Apple/AAC/MP3's file boundary.
-          if(nativeVolumeFadeSupported&&elapsed>=audibleEnd-.012){
-            try{media.volume=0}catch(_){}
-            stopStreamedItunesPreview();
-            finishPreviewVisual(song.id,audibleEnd);
-            return;
-          }
-          // On unsupported native-volume devices, preserve the full native
-          // clip; never shorten an iPhone stream without an audible fade.
-          const providerDuration=Number(media.duration);
-          if(!nativeVolumeFadeSupported&&elapsed>=actual-.015&&
-            Number.isFinite(providerDuration)&&providerDuration>actual+.1){
-            stopStreamedItunesPreview();
-            finishPreviewVisual(song.id,actual);
-            return;
-          }
-          streamedItunesFrame=requestAnimationFrame(frame);
-        };
-        streamedItunesFrame=requestAnimationFrame(frame);
-      }catch(error){
-        disposeStreamVoice(voice);
-        throw error;
-      }
-    }
-
-    window.IPCDJ_PREVIEW_PLATFORM=Object.freeze({
-      policy:()=>{
-        const media=new Audio();
-        return {ios:isIOSPreviewEnvironment(),mobile:isMobilePreviewEnvironment(),
-          nativeVolumeFades:supportsNativePreviewVolume(media),
-          fadeIn:.70,fadeOut:1.60,crossfade:STREAMED_CROSSFADE_SECONDS,
-          nativeSingleStream:isIOSPreviewEnvironment()};
-      },
-      envelope:(elapsed,duration,fadeIn=.70,fadeOut=1.60)=>
-        streamedEnvelopeGain(Number(elapsed),Number(duration),fadeIn,fadeOut),
-      tail:(duration,canFade=true)=>Object.freeze({
-        fileDuration:Number(duration),
-        audibleEnd:streamedAudibleEnd(duration,!!canFade),
-        silence:Math.max(0,Number(duration)-streamedAudibleEnd(duration,!!canFade)),
-        fadeOut:STREAMED_AUDIBLE_FADE_OUT_SECONDS
-      }),
+    // Owner-approved original audio engine only. This read-only QA contract
+    // documents the shared processor; it never creates or plays an audio stream.
+    window.IPCDJ_PREVIEW_ENGINE=Object.freeze({
+      name:"webaudio",
+      source:"AudioBufferSourceNode",
+      permittedModes:Object.freeze(["webaudio"]),
+      fade:()=>Object.freeze({fadeIn:.70,fadeOut:1.60,crossfade:.68}),
       active:()=>Object.freeze({
-        streamSongId:streamedItunesSongId,
-        bufferSongId:webPreviewPlaying?webPreviewSongId:"",
-        currentSongId:activePreviewSongId,
-        outgoingStreamCount:streamedItunesOutgoing.size,
-        outgoingBufferCount:webPreviewOutgoingVoices.size
-      })
+        playing:!!webPreviewPlaying,
+        songId:webPreviewPlaying?webPreviewSongId:"",
+        outgoingVoices:webPreviewOutgoingVoices.size,
+        usingAudioBuffer:!!webPreviewSource
+      }),
+      supportedSongIds:()=>Object.freeze([
+        ...REQUESTED_SONGS_SOURCE.map(song=>song.id),
+        ...RETURNING_SONGS_SOURCE.map(song=>song.id)
+      ])
     });
 
     async function playPreviewSong(song,previewData){
-      if(previewData&&previewData.source==="streamed-itunes"){
-        try{await toggleStreamedItunesPreview(song,previewData)}catch(error){
-          try{window.dispatchEvent(new CustomEvent("ipcdj:preview-error",{
-            detail:{songId:song.id,stage:"itunes-stream",message:String(error?.message||error)}
-          }))}catch(_){}
-          setPreviewButtonState(song.id,"play");
-        }
-        return;
-      }
-      if(streamedItunesAudio)stopStreamedItunesPreview({
-        crossfade:supportsNativePreviewVolume(streamedItunesAudio)
-      });
+      // Fail closed on an unapproved or unverified audio engine.
+      if(previewData&&previewData.source!=="webaudio"&&
+        song.previewSource!=="youtube")throw new Error("Unsupported preview engine");
       if(previewData&&previewData.source==="webaudio"){
         stopPreviewTracking();
         cancelAnimationFrame(previewManualFadeFrame);
@@ -10992,15 +10660,15 @@
         // Unlock on the earliest gesture, but never replace the Play icon with a
         // boot/loading glyph. Audio preparation continues invisibly underneath.
         button.addEventListener("pointerdown",()=>{
-          if(song.previewStreamingOnly!==true)unlockWebPreviewContextFromGesture();
+          unlockWebPreviewContextFromGesture();
         },{passive:true});
 
         button.addEventListener("touchstart",()=>{
-          if(song.previewStreamingOnly!==true)unlockWebPreviewContextFromGesture();
+          unlockWebPreviewContextFromGesture();
         },{passive:true});
 
         button.addEventListener("click",async()=>{
-          if(song.previewStreamingOnly!==true)unlockWebPreviewContextFromGesture();
+          unlockWebPreviewContextFromGesture();
 
           const selectionToken=++previewSwitchToken;
           const previousId=activePreviewSongId||webPreviewSongId;
