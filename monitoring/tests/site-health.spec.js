@@ -2651,7 +2651,7 @@ test('Próximas Canciones Apple Music button uses the approved library playlist 
   expect((html.match(/href="https:\/\/music\.apple\.com\/(?:library|us)\/playlist\/[^"]+"/g)||[])).toHaveLength(1);
 });
 
-test('only Poderoso Dios gets tiny overscan; other Solicitudes covers keep exact original rendering',async({page})=>{
+test('Poderoso Dios printed frame is clipped by targeted overscan; other covers retain original rendering',async({page})=>{
   await openHealthyPage(page);
   await page.locator('#tab-solicitudes').click();
   const cards=page.locator('#requested-songs [data-request-song-id]');
@@ -2668,6 +2668,8 @@ test('only Poderoso Dios gets tiny overscan; other Solicitudes covers keep exact
       transform:style.transform,
       origin:style.transformOrigin,
       ghostWidth:art.offsetWidth,
+      renderedWidth:art.getBoundingClientRect().width,
+      cropPastRight:art.getBoundingClientRect().right-card.getBoundingClientRect().right,
       originX:Number.parseFloat(style.transformOrigin),
       ghostMask:style.maskImage||style.webkitMaskImage,
       blurSize:getComputedStyle(blur).backgroundSize,
@@ -2691,6 +2693,10 @@ test('only Poderoso Dios gets tiny overscan; other Solicitudes covers keep exact
       expect(card.transform,card.id).not.toBe('none');
       expect(card.position,card.id).toMatch(/right|100%/);
       expect(card.originX,card.id).toBeGreaterThanOrEqual(card.ghostWidth*.94);
+      expect(card.renderedWidth/card.ghostWidth,card.id).toBeGreaterThan(1.14);
+      // The real cover's outer printed border must be overscanned past
+      // the rounded right card edge; only its darker interior remains visible.
+      expect(card.cropPastRight,card.id).toBeGreaterThan(card.ghostWidth*.045);
     }
   }
   await expect(cards.last().locator('.song-top h3')).toHaveText('Poderoso Dios (Grande y Fiel)');

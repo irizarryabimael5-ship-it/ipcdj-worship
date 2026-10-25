@@ -4248,11 +4248,12 @@
     }
     #requested-songs .song-row{isolation:isolate}
     /* Owner's original Solicitudes art composition remains unchanged.
-       Only Poderoso Dios needs a tiny rightward/scale overscan to hide
-       the visible cover edge; never change the shared artwork styles. */
+       Poderoso Dios original artwork contains a baked-in pale frame.
+       Crop past that printed border to the darker art without changing
+       the standard cover treatment or the other Solicitudes cards. */
     #requested-songs .song-row[data-request-song-id="request-poderoso-dios-gateway-worship-miel-san-marcos"] .future-artwork-ghost{
       background-position:right center;
-      transform:translateX(1.5%) scale(1.035);
+      transform:translateX(6%) scale(1.15);
       transform-origin:right center;
     }
     #requested-songs .song-date{margin-top:12px}
