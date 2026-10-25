@@ -2699,8 +2699,9 @@ test('artwork focus prioritizes owner-approved Poderoso text exception; other pe
       expect(card.transform,card.id).not.toBe('none');
       expect(card.focalSubject,card.id).toBe('text');
       expect(card.exception,card.id).toBe('owner-approved');
-      expect(card.focalY,card.id).toBe('50%');
-      expect(card.position,card.id).toMatch(/(?:right|100%).*50%/);
+      // The owner's text-first exception optically centers all official cover lettering.
+      expect(card.focalY,card.id).toBe('45%');
+      expect(card.position,card.id).toMatch(/(?:right|100%).*45%/);
       expect(card.originX,card.id).toBeGreaterThanOrEqual(card.ghostWidth*.94);
       expect(card.renderedWidth/card.ghostWidth,card.id).toBeGreaterThan(1.14);
       // The real cover's outer printed border must be overscanned past

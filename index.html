@@ -4249,7 +4249,7 @@
     #requested-songs .song-row{isolation:isolate}
     /* Preserve the original shared Solicitudes composition. This cover
        alone needs 15% overscan to eliminate its printed artwork frame.
-       Its vertical performer focus is an explicit source-owned override. */
+       Its owner-approved text-first focal calibration is source-owned. */
     #requested-songs .song-row[data-request-song-id="request-poderoso-dios-gateway-worship-miel-san-marcos"] .future-artwork-ghost{
       transform:translateX(6%) scale(1.15);
       transform-origin:right center;
@@ -7579,7 +7579,9 @@
         // Owner-approved exception: center the printed title, not the performers.
         artworkFocalSubject:"text",
         artworkFocalExceptionApproved:true,
-        artworkFocalY:"50%",
+        // Optically center the complete printed lettering (including the artist line).
+        // 45% places it slightly lower than the image midpoint inside the crop.
+        artworkFocalY:"45%",
         futurePalette:[[54,46,45],[137,83,71],[192,139,117]],
         itunesCollectionId:"1699411311",
         itunesTrackId:"1699411330",
