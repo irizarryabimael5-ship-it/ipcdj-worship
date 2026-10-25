@@ -10530,24 +10530,16 @@
       const media=new Audio();
       media.preload="none";
       media.playsInline=true;
-      media.crossOrigin="anonymous";
       media.src=data.previewUrl;
-      media.volume=0;
+      // Apple's promotional CDN is not CORS-enabled for Web Audio mixing.
+      // Routing it through createMediaElementSource can output SILENCE. Use
+      // native streaming instead; never proxy/cache/decode Apple promo audio.
+      // On iOS, HTMLMediaElement.volume is hardware-controlled; preserve
+      // audible native playback rather than promising an impossible JS fade.
+      const nativeVolumeFadeSupported=!isMobilePreviewEnvironment();
+      media.volume=nativeVolumeFadeSupported?0:1;
       const voice={media,source:null,gain:null,frame:0,timer:0};
       configurePreviewAudioSessionForPlayback();
-      try{
-        const ctx=ensureWebPreviewContext();
-        await ctx.resume().catch(()=>{});
-        const source=ctx.createMediaElementSource(media);
-        const gain=ctx.createGain();
-        gain.gain.setValueAtTime(0,ctx.currentTime);
-        source.connect(gain);gain.connect(webPreviewAnalyser||ctx.destination);
-        voice.source=source;voice.gain=gain;
-        media.volume=1;
-      }catch(_){
-        try{voice.source?.disconnect();voice.gain?.disconnect()}catch(__){}
-        voice.source=null;voice.gain=null;media.volume=0;
-      }
       media.onended=()=>{if(streamedItunesAudio===media)stopStreamedItunesPreview()};
       try{
         await media.play();
@@ -10556,8 +10548,15 @@
         }
         const oldStream=!!streamedItunesAudio&&!streamedItunesAudio.paused;
         const oldBuffer=!!webPreviewPlaying&&!!webPreviewSource;
-        if(oldStream)stopStreamedItunesPreview({crossfade:true});
-        if(oldBuffer)fadeBufferedPreviewIntoStream();
+        // On iOS native audio cannot crossfade two remote streams reliably.
+        // Preserve playback continuity on mobile without overlapping players.
+        if(oldStream)stopStreamedItunesPreview({
+          crossfade:nativeVolumeFadeSupported
+        });
+        if(oldBuffer){
+          if(nativeVolumeFadeSupported)fadeBufferedPreviewIntoStream();
+          else resetWebAudioPreview(webPreviewSongId,true);
+        }
         if(activePreviewSongId&&activePreviewSongId!==song.id)
           stopYouTubePreview(activePreviewSongId,{reset:true});
         stopPreviewTracking();
@@ -10602,7 +10601,9 @@
         }
         return;
       }
-      if(streamedItunesAudio)stopStreamedItunesPreview({crossfade:true});
+      if(streamedItunesAudio)stopStreamedItunesPreview({
+        crossfade:!isMobilePreviewEnvironment()
+      });
       if(previewData&&previewData.source==="webaudio"){
         stopPreviewTracking();
         cancelAnimationFrame(previewManualFadeFrame);

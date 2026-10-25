@@ -2775,7 +2775,9 @@ test('Staging streamed previews use the established fade-in out and crossfade co
   expect(html).toContain('const STREAMED_CROSSFADE_SECONDS=.68');
   expect(html).toContain('previewFadeIn:.70');
   expect(html).toContain('previewFadeOut:1.60');
-  expect(html).toContain('ctx.createMediaElementSource(media)');
+  expect(html).toContain('nativeVolumeFadeSupported=!isMobilePreviewEnvironment()');
+  expect(html).not.toContain('ctx.createMediaElementSource(media)');
+  expect(html).not.toContain('media.crossOrigin="anonymous"');
   expect(html).toContain('webPreviewEqualPowerCurve("in",1)');
   expect(html).toContain('webPreviewEqualPowerCurve("out",level)');
   expect(html).toContain('fadeBufferedPreviewIntoStream()');
@@ -2793,4 +2795,15 @@ test('mobile background immediately disposes crossfade outgoing voices',async({r
   expect(html).toContain('webPreviewOutgoingVoices.add(outgoing)');
   expect(html).toContain('for(const voice of [...streamedItunesOutgoing])disposeStreamVoice(voice)');
   expect(html).toContain('for(const voice of [...webPreviewOutgoingVoices])disposeWebPreviewVoice(voice)');
+});
+
+test('Apple streaming audio avoids CORS-silencing and does not force iOS native-volume fades',async({request})=>{
+  const res=await request.get('/?itunes-cors-safety='+Date.now(),{headers:{'cache-control':'no-cache'}});
+  expect(res.ok()).toBeTruthy();
+  const html=await res.text();
+  expect(html).toContain('media.volume=nativeVolumeFadeSupported?0:1');
+  expect(html).toContain('crossfade:nativeVolumeFadeSupported');
+  expect(html).toContain('if(nativeVolumeFadeSupported)fadeBufferedPreviewIntoStream()');
+  expect(html).not.toContain('media.crossOrigin="anonymous"');
+  expect(html).not.toContain('ctx.createMediaElementSource(media)');
 });
