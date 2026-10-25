@@ -2887,3 +2887,51 @@ test('preview cross-platform source preserves single-stream iOS and Android fade
   expect(html).toContain('for(const old of [...streamedItunesOutgoing])disposeStreamVoice(old)');
   expect(html).toContain('for(const voice of [...webPreviewOutgoingVoices])disposeWebPreviewVoice(voice)');
 });
+
+test('all current and future streamed previews fade completely before file ending',async({page},testInfo)=>{
+  await openHealthyPage(page);
+  const probe=await page.evaluate(()=>{
+    const api=window.IPCDJ_PREVIEW_PLATFORM;
+    if(!api)return null;
+    const long=api.tail(30,true);
+    const medium=api.tail(11.7,true);
+    const short=api.tail(2,true);
+    const native=api.tail(30,false);
+    return {long,medium,short,native,
+      endGain:api.envelope(long.audibleEnd,long.audibleEnd,.70,long.fadeOut),
+      guardGain:api.envelope(30-.1,long.audibleEnd,.70,long.fadeOut),
+      beforeEndGain:api.envelope(long.audibleEnd-1.1,
+        long.audibleEnd,.70,long.fadeOut),
+      atPlateau:api.envelope(12,long.audibleEnd,.70,long.fadeOut),
+      actualPolicy:api.policy()};
+  });
+  expect(probe).not.toBeNull();
+  expect(probe.long.audibleEnd).toBeCloseTo(29.15,3);
+  expect(probe.long.silence).toBeCloseTo(.85,3);
+  expect(probe.medium.audibleEnd).toBeCloseTo(10.85,3);
+  expect(probe.short.audibleEnd).toBeCloseTo(1.64,3);
+  expect(probe.native.audibleEnd).toBe(30);
+  expect(probe.native.silence).toBe(0);
+  expect(probe.long.fadeOut).toBe(2.30);
+  expect(probe.endGain).toBe(0);
+  expect(probe.guardGain).toBe(0);
+  expect(probe.beforeEndGain).toBeGreaterThan(0);
+  expect(probe.beforeEndGain).toBeLessThan(.75);
+  expect(probe.atPlateau).toBe(1);
+  if(probe.actualPolicy.ios)expect(probe.actualPolicy.nativeVolumeFades).toBe(false);
+});
+test('Staging stream tail guard is shared and never trims unsupported iPhone native streams',async({request})=>{
+  const response=await request.get('/?stream-tail-guard='+Date.now(),{headers:{'cache-control':'no-cache'}});
+  expect(response.ok()).toBeTruthy();
+  const html=await response.text();
+  expect(html).toContain('const STREAMED_END_SAFETY_SECONDS=.85');
+  expect(html).toContain('const STREAMED_AUDIBLE_FADE_OUT_SECONDS=2.30');
+  expect(html).toContain('function streamedAudibleEnd(duration,volumeFadesSupported)');
+  expect(html).toContain('const audibleEnd=streamedAudibleEnd(actual,nativeVolumeFadeSupported)');
+  expect(html).toContain('if(nativeVolumeFadeSupported&&elapsed>=audibleEnd-.012)');
+  expect(html).toContain('media.volume=streamedEnvelopeGain(elapsed,safeEnd,intro,outro)');
+  expect(html).toContain('if(!volumeFadesSupported)return seconds');
+  expect(html).toContain('previewStreamingOnly:true');
+  expect(html).toContain('artworkFocalY:"47%"');
+  expect(html).not.toContain('catalog-preview-attribution');
+});

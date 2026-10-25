@@ -6,7 +6,7 @@
   <meta name="ipcdj-environment" content="staging" />
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="campana-weekend-v208" />
+  <meta name="ipcdj-build" content="campana-weekend-v209" />
   <script id="ipcdj-original-visual-preview-init">
     // Explicit staging-only opt-in; default users keep accessibility preferences.
     (()=>{try{
@@ -10420,6 +10420,10 @@
     // Owner-approved preview envelope shared by WebAudio buffers and streams.
     // Native media streams are never fetched, decoded or cached in JavaScript.
     const STREAMED_CROSSFADE_SECONDS=.68;
+    // Standard for ALL current and future previewStreamingOnly records.
+    // The gain must reach absolute zero before a provider can naturally end.
+    const STREAMED_END_SAFETY_SECONDS=.85;
+    const STREAMED_AUDIBLE_FADE_OUT_SECONDS=2.30;
     let streamedItunesAudio=null,streamedItunesSongId="";
     let streamedItunesFrame=0,streamedItunesDuration=30,streamedItunesToken=0;
     let streamedItunesGain=null,streamedItunesSource=null;
@@ -10551,6 +10555,14 @@
       return Number.isFinite(actual)&&actual>.1?Math.min(requested,actual):requested;
     }
 
+    function streamedAudibleEnd(duration,volumeFadesSupported){
+      const seconds=Math.max(.2,Number(duration)||.2);
+      if(!volumeFadesSupported)return seconds;
+      // Bound the safety tail on unusually short providers' previews.
+      const safety=Math.min(STREAMED_END_SAFETY_SECONDS,seconds*.18);
+      return Math.max(.15,seconds-safety);
+    }
+
     function streamedEnvelopeGain(elapsed,duration,fadeIn,fadeOut){
       const initial=Math.max(.05,Math.min(duration/2,fadeIn));
       const final=Math.max(.05,Math.min(duration/2,fadeOut));
@@ -10568,13 +10580,18 @@
       const fadingSupported=supportsNativePreviewVolume(media);
       const intro=crossfade?STREAMED_CROSSFADE_SECONDS:
         Math.max(.05,Number(song.previewFadeIn)||.70);
-      const outro=Math.max(.15,Number(song.previewFadeOut)||1.60);
+      // The older fully processed previews have a 1.60s release; streamed
+      // provider audio needs a slightly earlier, longer curve to avoid an
+      // audible step when AAC/MP3 decoders reach the natural file boundary.
+      const outro=Math.max(STREAMED_AUDIBLE_FADE_OUT_SECONDS,
+        Number(song.previewFadeOut)||1.60);
       const update=()=>{
         if(!fadingSupported)return;
         const duration=streamedClipDuration(media,streamedItunesDuration);
+        const safeEnd=streamedAudibleEnd(duration,true);
         const elapsed=Math.max(0,Number(media.currentTime)||0);
         try{
-          media.volume=streamedEnvelopeGain(elapsed,duration,intro,outro);
+          media.volume=streamedEnvelopeGain(elapsed,safeEnd,intro,outro);
         }catch(_){}
       };
       media.addEventListener("timeupdate",update);
@@ -10620,13 +10637,15 @@
       media.onended=()=>{
         if(streamedItunesAudio!==media)return;
         const duration=streamedClipDuration(media,data.clipDuration);
+        const audibleEnd=streamedAudibleEnd(duration,nativeVolumeFadeSupported);
         stopStreamedItunesPreview();
-        finishPreviewVisual(song.id,duration);
+        finishPreviewVisual(song.id,audibleEnd);
       };
       media.addEventListener("loadedmetadata",()=>{
         if(streamedItunesAudio===media){
           streamedItunesDuration=streamedClipDuration(media,data.clipDuration);
-          setPreviewDuration(song.id,streamedItunesDuration);
+          setPreviewDuration(song.id,streamedAudibleEnd(streamedItunesDuration,
+            nativeVolumeFadeSupported));
         }
       });
       try{
@@ -10654,25 +10673,35 @@
         streamedItunesSongId=song.id;
         streamedItunesDuration=data.clipDuration;
         activePreviewSongId=song.id;
-        setPreviewDuration(song.id,data.clipDuration);
+        setPreviewDuration(song.id,streamedAudibleEnd(data.clipDuration,
+          nativeVolumeFadeSupported));
         setPreviewButtonState(song.id,"pause");
         scheduleStreamEnvelope(song,voice,oldStream||oldBuffer);
         const frame=()=>{
           if(streamedItunesAudio!==media||token!==streamedItunesToken)return;
           const actual=streamedClipDuration(media,data.clipDuration);
+          const audibleEnd=streamedAudibleEnd(actual,nativeVolumeFadeSupported);
           if(actual!==streamedItunesDuration){
             streamedItunesDuration=actual;
-            setPreviewDuration(song.id,actual);
+            setPreviewDuration(song.id,audibleEnd);
           }
           const elapsed=Math.max(0,Math.min(actual,Number(media.currentTime)||0));
           if(voice.updateEnvelope)voice.updateEnvelope();
-          setPreviewRemaining(song.id,Math.max(0,actual-elapsed),
-            Math.min(100,elapsed/Math.max(.01,actual)*100));
-          // Do not terminate the stream 70ms early: onended owns genuine ends.
-          // When a requested clip cap is shorter than the provider file, fade
-          // against that cap first, then end at the cap instead.
+          setPreviewRemaining(song.id,Math.max(0,audibleEnd-elapsed),
+            Math.min(100,elapsed/Math.max(.01,audibleEnd)*100));
+          // When gain has already reached zero, dispose the remote stream.
+          // End is intentionally silent BEFORE Apple/AAC/MP3's file boundary.
+          if(nativeVolumeFadeSupported&&elapsed>=audibleEnd-.012){
+            try{media.volume=0}catch(_){}
+            stopStreamedItunesPreview();
+            finishPreviewVisual(song.id,audibleEnd);
+            return;
+          }
+          // On unsupported native-volume devices, preserve the full native
+          // clip; never shorten an iPhone stream without an audible fade.
           const providerDuration=Number(media.duration);
-          if(elapsed>=actual-.015&&Number.isFinite(providerDuration)&&providerDuration>actual+.1){
+          if(!nativeVolumeFadeSupported&&elapsed>=actual-.015&&
+            Number.isFinite(providerDuration)&&providerDuration>actual+.1){
             stopStreamedItunesPreview();
             finishPreviewVisual(song.id,actual);
             return;
@@ -10696,6 +10725,12 @@
       },
       envelope:(elapsed,duration,fadeIn=.70,fadeOut=1.60)=>
         streamedEnvelopeGain(Number(elapsed),Number(duration),fadeIn,fadeOut),
+      tail:(duration,canFade=true)=>Object.freeze({
+        fileDuration:Number(duration),
+        audibleEnd:streamedAudibleEnd(duration,!!canFade),
+        silence:Math.max(0,Number(duration)-streamedAudibleEnd(duration,!!canFade)),
+        fadeOut:STREAMED_AUDIBLE_FADE_OUT_SECONDS
+      }),
       active:()=>Object.freeze({
         streamSongId:streamedItunesSongId,
         bufferSongId:webPreviewPlaying?webPreviewSongId:"",
