@@ -3400,3 +3400,9 @@ A single lightweight calendar reads the existing `America/New_York` service meta
 - To keep this artwork swap genuinely reflected after reload, reject a mismatched boot cover and namespace active cover-theme localStorage cache by curated art URL, rather than song ID alone. Preserve existing PWA and other artist/source artwork contracts.
 - Dedicated seven-profile browser regression verifies the exact artwork+source+curated sRGB values, the preserved audio and estreno dates, and the lack of stale boot artwork or old color-cache leakage after reload.
 - **Staging only.** Full exact-commit GitHub Actions browser matrix is mandatory before certification. **Do not touch Live** or release to production without the owner's explicit approval of these isolated image/palette changes; maintain the prior four-song schedule and Solicitudes safety shutdown.
+
+
+## 2026-10-24 — Apple Music playlist link (approved both environments)
+- Owner supplied exact new library playlist URL: https://music.apple.com/library/playlist/p.PkxVBgQu2O8zlvP.
+- Replaced only the former Próximas Canciones Apple Music button href (https://music.apple.com/us/playlist/cdj-proximas-canciones-2026/pl.u-d2b0kxBTMvWBb9L) in Staging; keep target=_blank, rel=noopener, and Spotify/YouTube Music links unchanged. No weekly playlists, setlist, Solicitudes, notification, content or song scheduling changes.
+- Added deployed HTML regression assertion verifying exactly one approved Apple Music playlist link and absence of the previous href. Full automated browser health run must complete before declaring green.

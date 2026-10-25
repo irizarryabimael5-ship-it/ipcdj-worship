@@ -2624,3 +2624,16 @@ test('Con Manos Vacías Nov 15 progress and Glorioso Día Dec 6 preparation',asy
   expect(futureLearning.percentage).toBeGreaterThan(20);
   expect(futureLearning.percentage).toBeLessThan(35);
 });
+
+test('Próximas Canciones Apple Music button uses the approved library playlist URL', async ({ request }) => {
+  const response=await request.get('/?apple-playlist-link='+Date.now(),{
+    headers:{'cache-control':'no-cache'}
+  });
+  expect(response.ok()).toBe(true);
+  const html=await response.text();
+  const approved='https://music.apple.com/library/playlist/p.PkxVBgQu2O8zlvP';
+  const old='https://music.apple.com/us/playlist/cdj-proximas-canciones-2026/pl.u-d2b0kxBTMvWBb9L';
+  expect(html).toContain('class="platform" href="'+approved+'"');
+  expect(html).not.toContain('href="'+old+'"');
+  expect((html.match(/href="https:\/\/music\.apple\.com\/(?:library|us)\/playlist\/[^"]+"/g)||[])).toHaveLength(1);
+});
