@@ -3376,3 +3376,9 @@ Watchdog:
 - Sunday 11 AM Eastern release schedule: Con Manos Vacías — Jesús Adrián Romero (Nov 15 2026); Glorioso Día — Passion Music (Dec 6 2026); No Fallarás — Saddleback Worship (Jan 3 2027); Reinas Por La Eternidad — Hillsong en Español (Jan 24 2027). Explicit learning and final preparation periods, Monday 6 AM next-song handoffs, and Reinas TBD migration match canonical Staging data.
 - Art: Con Manos Vacías official Colección Adoración album source `https://i.scdn.co/image/ab67616d0000b273318e79e589ae23303377e69e` with three-color palette `[[33,96,162],[109,176,223],[24,59,110]]`; original exact Apple iTunes audio 1603315377/1603316057 unchanged. Old boot cover ignored when differing from the approved image; cover theme cache namespaced by image URL.
 - Live scope strictly limited to managed song catalog, relevant image/cache logic, matching synthetic overlap fixture and QA, and this documentation. Preserve Live songs weekly and archives, Cloudflare Worker/gates and any feature not expressly authorized. Full exact-commit CI and deployed seven-profile certification required.
+
+
+## 2026-10-24 — Apple Music playlist link (approved both environments)
+- Owner supplied exact new library playlist URL: https://music.apple.com/library/playlist/p.PkxVBgQu2O8zlvP.
+- Replaced only the former Próximas Canciones Apple Music button href (https://music.apple.com/us/playlist/cdj-proximas-canciones-2026/pl.u-d2b0kxBTMvWBb9L) in Live; keep target=_blank, rel=noopener, and Spotify/YouTube Music links unchanged. No weekly playlists, setlist, Solicitudes, notification, content or song scheduling changes.
+- Added deployed HTML regression assertion verifying exactly one approved Apple Music playlist link and absence of the previous href. Full automated browser health run must complete before declaring green.
