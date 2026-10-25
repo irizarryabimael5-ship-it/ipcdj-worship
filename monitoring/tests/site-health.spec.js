@@ -476,6 +476,8 @@ test('FEATURES song request pilot is isolated, themed, accessible and preview-re
   expect(source.ok()).toBe(true);
   const html=await source.text();
   expect(html).toContain('itunesTrackId:"1884087646"');
+  expect(html).toContain('itunesTrackId:"1699411330"');
+  expect(html).toContain('https://open.spotify.com/track/7jFMPD9hQ0Tj3Zp0eNkw6Z');
   expect(html).toContain('https://open.spotify.com/track/4DYvC8ozC0SF3SoyIpkuiY');
   expect(html).toContain('REQUESTED_SONGS_SOURCE');
   await expect(page.locator('#tab-solicitudes')).toHaveCount(1);
@@ -490,17 +492,18 @@ test('FEATURES song request pilot is isolated, themed, accessible and preview-re
   await expect(page.locator('#panel-inicio')).toBeHidden();
   await expect(page.locator('#panel-worship-semanal')).toBeHidden();
   const cards=panel.locator('[data-request-song-id]');
-  // The user approved exactly three pinned Staging requests (not estrenos).
-  await expect(cards).toHaveCount(3);
+  // Owner approved exactly four Staging pinned requests (not estrenos).
+  await expect(cards).toHaveCount(4);
   expect(await cards.evaluateAll(nodes=>nodes.map(node=>node.dataset.requestSongId))).toEqual([
     'request-hablame-de-cerca-grupo-grace',
     'request-el-nombre-de-jesus-elevation-espanol',
-    'request-agradecido-estoy-elevation-espanol'
+    'request-agradecido-estoy-elevation-espanol',
+    'request-poderoso-dios-gateway-worship-miel-san-marcos'
   ]);
   expect(await cards.locator('.song-top h3').allTextContents()).toEqual([
-    'Háblame de Cerca','El Nombre De Jesús','Agradecido Estoy'
+    'Háblame de Cerca','El Nombre De Jesús','Agradecido Estoy','Poderoso Dios (Grande y Fiel)'
   ]);
-  await expect(panel.locator('[data-preview-song-id]')).toHaveCount(3);
+  await expect(panel.locator('[data-preview-song-id]')).toHaveCount(4);
   const card=cards.first();
   await expect(card).toHaveAttribute('data-request-song-id','request-hablame-de-cerca-grupo-grace');
   await expect(card.locator('.song-top h3')).toHaveText('Háblame de Cerca');
@@ -510,6 +513,16 @@ test('FEATURES song request pilot is isolated, themed, accessible and preview-re
   await expect(card.locator('.future-artwork-ghost')).toHaveCount(1);
   await expect(card.locator('.preview-row-future .preview-button')).toBeVisible();
   await expect(card).toHaveClass(/future-themed/);
+  const gateway=cards.nth(3);
+  await expect(gateway.locator('.song-top h3')).toHaveText('Poderoso Dios (Grande y Fiel)');
+  await expect(gateway.locator('.song-top p')).toHaveText('Gateway Worship Español & Miel San Marcos');
+  await expect(gateway.locator('.song-date')).toHaveText('Solicitada');
+  await expect(gateway).toHaveAttribute('data-future-artwork-url','https://images.squarespace-cdn.com/content/v1/639a2596d4e75765c87e82ed/3e0030ce-93b4-48b9-b2ce-f22929d8e3d7/GWE-PoderosoDios-SingleCover-RGB-300dpi-3000x3000.jpeg');
+  await expect(gateway).toHaveAttribute('data-future-artwork-source','verified-gateway-music-official-2022-single');
+  await expect(gateway.locator('.preview-row-future .preview-button')).toBeVisible();
+  for(const parent of ['#upcoming-songs','#current-song-cards','#introduced-songs']){
+    await expect(page.locator(parent+' [data-song-id="request-poderoso-dios-gateway-worship-miel-san-marcos"]')).toHaveCount(0);
+  }
   const computed=await card.evaluate(el=>({
     palette:[1,2,3].map(i=>getComputedStyle(el).getPropertyValue('--future-c'+i).trim()),
     noOverflow:document.documentElement.scrollWidth<=innerWidth+4
