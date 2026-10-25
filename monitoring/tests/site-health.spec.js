@@ -2774,13 +2774,13 @@ test('Staging streamed previews use the established fade-in out and crossfade co
   expect(html).toContain('const STREAMED_CROSSFADE_SECONDS=.68');
   expect(html).toContain('previewFadeIn:.70');
   expect(html).toContain('previewFadeOut:1.60');
-  expect(html).toContain('nativeVolumeFadeSupported=!isMobilePreviewEnvironment()');
+  expect(html).toContain('nativeVolumeFadeSupported=supportsNativePreviewVolume(media)');
   expect(html).not.toContain('ctx.createMediaElementSource(media)');
   expect(html).not.toContain('media.crossOrigin="anonymous"');
   expect(html).toContain('streamedEnvelopeGain(elapsed,duration,intro,outro)');
   expect(html).toContain('Math.sin(outOf*Math.PI/2)');
   expect(html).toContain('fadeBufferedPreviewIntoStream()');
-  expect(html).toContain('crossfade:!isMobilePreviewEnvironment()');
+  expect(html).toContain('crossfade:supportsNativePreviewVolume(streamedItunesAudio)');
   expect(html).toContain('streamedItunesAudio)stopStreamedItunesPreview()');
   expect(html).toContain('source:"streamed-itunes"');
   expect(html).not.toContain('Adelanto cortesía de iTunes');
@@ -2826,4 +2826,64 @@ test('streaming preview fade uses actual provider file duration and clean card l
   await page.locator('#tab-solicitudes').click();
   await expect(page.locator('#requested-songs [data-request-song-id]')).toHaveCount(5);
   await expect(page.locator('#requested-songs .catalog-preview-attribution')).toHaveCount(0);
+});
+
+test('all seven staging browser profiles honor provider-aware preview platform contract',async({page},testInfo)=>{
+  await openHealthyPage(page);
+  const info=await page.evaluate(()=>{
+    const tester=window.IPCDJ_PREVIEW_PLATFORM;
+    if(!tester)return null;
+    return {policy:tester.policy(),active:tester.active(),
+      gainAtStart:tester.envelope(0,30),
+      gainAtHalfIntro:tester.envelope(.35,30),
+      gainAtPlateau:tester.envelope(15,30),
+      gainAtHalfOutro:tester.envelope(29.2,30),
+      gainAtEnd:tester.envelope(30,30),
+      gainAtShortEnd:tester.envelope(11.7,11.7)};
+  });
+  expect(info).not.toBeNull();
+  expect(info.policy.fadeIn).toBe(.70);
+  expect(info.policy.fadeOut).toBe(1.60);
+  expect(info.policy.crossfade).toBe(.68);
+  expect(info.gainAtStart).toBe(0);
+  expect(info.gainAtHalfIntro).toBeGreaterThan(.4);
+  expect(info.gainAtHalfIntro).toBeLessThan(1);
+  expect(info.gainAtPlateau).toBe(1);
+  expect(info.gainAtHalfOutro).toBeGreaterThan(.35);
+  expect(info.gainAtHalfOutro).toBeLessThan(1);
+  expect(info.gainAtEnd).toBe(0);
+  expect(info.gainAtShortEnd).toBe(0);
+  expect(info.active.currentSongId).toBe('');
+  expect(info.active.outgoingStreamCount).toBe(0);
+  expect(info.active.outgoingBufferCount).toBe(0);
+  const project=testInfo.project.name;
+  if(project==='webkit-mobile'||project==='webkit-compact-mobile'||project==='webkit-tablet'){
+    expect(info.policy.ios,project).toBe(true);
+    expect(info.policy.nativeVolumeFades,project).toBe(false);
+    expect(info.policy.nativeSingleStream,project).toBe(true);
+  }else{
+    expect(info.policy.ios,project).toBe(false);
+    expect(info.policy.nativeSingleStream,project).toBe(false);
+    expect(info.policy.nativeVolumeFades,project).toBe(true);
+  }
+  await page.locator('#tab-vuelven-a-sonar').click();
+  await expect(page.locator('#returning-songs .future-preview-button')).toHaveCount(2);
+  await page.locator('#tab-solicitudes').click();
+  await expect(page.locator('#requested-songs .future-preview-button')).toHaveCount(5);
+});
+test('preview cross-platform source preserves single-stream iOS and Android fade capabilities',async({request})=>{
+  const r=await request.get('/?preview-mobile-parity='+Date.now(),{headers:{'cache-control':'no-cache'}});
+  expect(r.ok()).toBeTruthy();
+  const html=await r.text();
+  expect(html).toContain('function isIOSPreviewEnvironment()');
+  expect(html).toContain('function supportsNativePreviewVolume(media)');
+  expect(html).toContain('if(isIOSPreviewEnvironment())return false');
+  expect(html).toContain('if(isIOSPreviewEnvironment()){');
+  expect(html).toContain('detachStreamVoiceEnvelope(voice)');
+  expect(html).toContain('streamedItunesVoice=voice');
+  expect(html).toContain('window.IPCDJ_PREVIEW_PLATFORM=Object.freeze({');
+  expect(html).toContain('previewStreamingOnly!==true)unlockWebPreviewContextFromGesture()');
+  expect(html).toContain('crossfade:supportsNativePreviewVolume(streamedItunesAudio)');
+  expect(html).toContain('for(const old of [...streamedItunesOutgoing])disposeStreamVoice(old)');
+  expect(html).toContain('for(const voice of [...webPreviewOutgoingVoices])disposeWebPreviewVoice(voice)');
 });

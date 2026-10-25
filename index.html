@@ -6,7 +6,7 @@
   <meta name="ipcdj-environment" content="staging" />
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="campana-weekend-v207" />
+  <meta name="ipcdj-build" content="campana-weekend-v208" />
   <script id="ipcdj-original-visual-preview-init">
     // Explicit staging-only opt-in; default users keep accessibility preferences.
     (()=>{try{
@@ -9707,6 +9707,29 @@
       return false;
     }
 
+    function isIOSPreviewEnvironment(){
+      const ua=String(navigator.userAgent||"");
+      if(/iPad|iPhone|iPod/i.test(ua))return true;
+      // iPadOS sometimes reports desktop Macintosh UA, including Safari PWAs.
+      const touch=Number(navigator.maxTouchPoints||0)>0||
+        !!window.matchMedia?.("(pointer:coarse)").matches;
+      return /Macintosh/i.test(ua)&&/AppleWebKit/i.test(ua)&&touch;
+    }
+
+    function supportsNativePreviewVolume(media){
+      // Safari/iOS does not expose script-writable HTMLMediaElement volume.
+      // Android is NOT an iOS equivalent: retain its fade support.
+      if(isIOSPreviewEnvironment())return false;
+      if(!media)return false;
+      try{
+        const original=Number(media.volume);
+        media.volume=.37;
+        const writable=Math.abs(Number(media.volume)-.37)<.05;
+        media.volume=Number.isFinite(original)?original:1;
+        return writable;
+      }catch(_){return false}
+    }
+
     function desktopPreviewMayContinueInBackground(){
       return !isMobilePreviewEnvironment();
     }
@@ -10400,6 +10423,7 @@
     let streamedItunesAudio=null,streamedItunesSongId="";
     let streamedItunesFrame=0,streamedItunesDuration=30,streamedItunesToken=0;
     let streamedItunesGain=null,streamedItunesSource=null;
+    let streamedItunesVoice=null;
     let streamedItunesSelectionToken=0;
     const streamedItunesOutgoing=new Set();
 
@@ -10418,6 +10442,17 @@
       try{voice.source?.disconnect();voice.gain?.disconnect()}catch(_){}
       try{voice.media.removeAttribute("src");voice.media.load()}catch(_){}
       streamedItunesOutgoing.delete(voice);
+    }
+
+    function detachStreamVoiceEnvelope(voice){
+      if(!voice)return;
+      if(voice.updateEnvelope){
+        try{voice.media.removeEventListener("timeupdate",voice.updateEnvelope)}catch(_){}
+        try{voice.media.removeEventListener("loadedmetadata",voice.updateEnvelope)}catch(_){}
+        voice.updateEnvelope=null;
+      }
+      // A previous intro ramp must not overwrite the new outgoing fade.
+      if(voice.frame){cancelAnimationFrame(voice.frame);voice.frame=0}
     }
 
     function rampNativeStreamVolume(voice,from,to,seconds,finished){
@@ -10445,18 +10480,20 @@
           return;
         }catch(_){}
       }
-      rampNativeStreamVolume(voice,Number(voice.media.volume)||1,0,seconds,onFinished);
+      const present=Number(voice.media.volume);
+      rampNativeStreamVolume(voice,Number.isFinite(present)?present:1,0,
+        seconds,onFinished);
     }
 
     function stopStreamedItunesPreview({crossfade=false}={}){
       ++streamedItunesToken;
       if(streamedItunesFrame)cancelAnimationFrame(streamedItunesFrame);
       streamedItunesFrame=0;
-      const voice=streamedItunesAudio
-        ?{media:streamedItunesAudio,source:streamedItunesSource,
-          gain:streamedItunesGain,frame:0,timer:0}:null;
+      const voice=streamedItunesVoice;
       const old=streamedItunesSongId;
       streamedItunesAudio=null;streamedItunesSource=null;streamedItunesGain=null;
+      streamedItunesVoice=null;
+      detachStreamVoiceEnvelope(voice);
       streamedItunesSongId="";
       if(old){
         setPreviewButtonState(old,"play");
@@ -10528,7 +10565,7 @@
       // The native track handler controls BOTH fades from the actual media
       // time and duration; avoid simultaneous ramps fighting over volume.
       const media=voice.media;
-      const fadingSupported=!isMobilePreviewEnvironment();
+      const fadingSupported=supportsNativePreviewVolume(media);
       const intro=crossfade?STREAMED_CROSSFADE_SECONDS:
         Math.max(.05,Number(song.previewFadeIn)||.70);
       const outro=Math.max(.15,Number(song.previewFadeOut)||1.60);
@@ -10559,10 +10596,27 @@
       // native streaming instead; never proxy/cache/decode Apple promo audio.
       // On iOS, HTMLMediaElement.volume is hardware-controlled; preserve
       // audible native playback rather than promising an impossible JS fade.
-      const nativeVolumeFadeSupported=!isMobilePreviewEnvironment();
+      const nativeVolumeFadeSupported=supportsNativePreviewVolume(media);
       media.volume=nativeVolumeFadeSupported?0:1;
       const voice={media,source:null,gain:null,frame:0,timer:0};
       configurePreviewAudioSessionForPlayback();
+      // A single native iOS stream may be audible at a time. Stop the prior
+      // voice BEFORE asking WebKit to start a different remote audio element.
+      // This avoids overlapping previews or Safari interrupting play().
+      if(isIOSPreviewEnvironment()){
+        if(streamedItunesAudio)stopStreamedItunesPreview();
+        if(webPreviewPlaying&&webPreviewSongId)
+          resetWebAudioPreview(webPreviewSongId,true);
+        if(previewAudio&&!previewAudio.paused){
+          previewAudio.pause();
+          stopPreviewTracking();
+        }
+        if(youtubePreviewPlaying&&youtubePreviewPlayerSongId){
+          stopYouTubePreview(youtubePreviewPlayerSongId,{reset:true});
+        }
+        for(const old of [...streamedItunesOutgoing])disposeStreamVoice(old);
+        for(const old of [...webPreviewOutgoingVoices])disposeWebPreviewVoice(old);
+      }
       media.onended=()=>{
         if(streamedItunesAudio!==media)return;
         const duration=streamedClipDuration(media,data.clipDuration);
@@ -10596,7 +10650,8 @@
         stopPreviewTracking();
         const token=++streamedItunesToken;
         streamedItunesAudio=media;streamedItunesSource=voice.source;
-        streamedItunesGain=voice.gain;streamedItunesSongId=song.id;
+        streamedItunesGain=voice.gain;streamedItunesVoice=voice;
+        streamedItunesSongId=song.id;
         streamedItunesDuration=data.clipDuration;
         activePreviewSongId=song.id;
         setPreviewDuration(song.id,data.clipDuration);
@@ -10631,6 +10686,25 @@
       }
     }
 
+    window.IPCDJ_PREVIEW_PLATFORM=Object.freeze({
+      policy:()=>{
+        const media=new Audio();
+        return {ios:isIOSPreviewEnvironment(),mobile:isMobilePreviewEnvironment(),
+          nativeVolumeFades:supportsNativePreviewVolume(media),
+          fadeIn:.70,fadeOut:1.60,crossfade:STREAMED_CROSSFADE_SECONDS,
+          nativeSingleStream:isIOSPreviewEnvironment()};
+      },
+      envelope:(elapsed,duration,fadeIn=.70,fadeOut=1.60)=>
+        streamedEnvelopeGain(Number(elapsed),Number(duration),fadeIn,fadeOut),
+      active:()=>Object.freeze({
+        streamSongId:streamedItunesSongId,
+        bufferSongId:webPreviewPlaying?webPreviewSongId:"",
+        currentSongId:activePreviewSongId,
+        outgoingStreamCount:streamedItunesOutgoing.size,
+        outgoingBufferCount:webPreviewOutgoingVoices.size
+      })
+    });
+
     async function playPreviewSong(song,previewData){
       if(previewData&&previewData.source==="streamed-itunes"){
         try{await toggleStreamedItunesPreview(song,previewData)}catch(error){
@@ -10642,7 +10716,7 @@
         return;
       }
       if(streamedItunesAudio)stopStreamedItunesPreview({
-        crossfade:!isMobilePreviewEnvironment()
+        crossfade:supportsNativePreviewVolume(streamedItunesAudio)
       });
       if(previewData&&previewData.source==="webaudio"){
         stopPreviewTracking();
@@ -10883,15 +10957,15 @@
         // Unlock on the earliest gesture, but never replace the Play icon with a
         // boot/loading glyph. Audio preparation continues invisibly underneath.
         button.addEventListener("pointerdown",()=>{
-          unlockWebPreviewContextFromGesture();
+          if(song.previewStreamingOnly!==true)unlockWebPreviewContextFromGesture();
         },{passive:true});
 
         button.addEventListener("touchstart",()=>{
-          unlockWebPreviewContextFromGesture();
+          if(song.previewStreamingOnly!==true)unlockWebPreviewContextFromGesture();
         },{passive:true});
 
         button.addEventListener("click",async()=>{
-          unlockWebPreviewContextFromGesture();
+          if(song.previewStreamingOnly!==true)unlockWebPreviewContextFromGesture();
 
           const selectionToken=++previewSwitchToken;
           const previousId=activePreviewSongId||webPreviewSongId;
