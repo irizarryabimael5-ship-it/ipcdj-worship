@@ -88,6 +88,8 @@ function pendingPanel(key){
           </section>`;
 }
 
+const WEEKLY_REGULAR_HISTORY_TITLE="Historial · Worship semanal";
+
 function cycleLabel(cycle){
   if(!/^\d{4}-\d{2}-\d{2}$/.test(cycle||''))return 'Semana anterior';
   const [year,month,day]=cycle.split('-').map(Number);
@@ -120,8 +122,8 @@ export function rolloverHtml(source,now=Date.now()){
     throw new Error('active weekly panels missing');
   }
 
-  // On the next standard Sunday, demote existing Semana anterior to history
-  // rather than deleting Campaña GU (or any other prior special-event week).
+  // Demote an existing regular archive without touching special campaigns.
+  // All regular week titles stay identical; their dates remain distinct.
   const prior=between(source,START.history,END.history);
   const firstOpen=prior.indexOf('<details class="weekly-history"');
   const firstClose=prior.indexOf('</details>',firstOpen);
@@ -132,14 +134,14 @@ export function rolloverHtml(source,now=Date.now()){
     const older=oldCycle
       ? first.replace('class="weekly-history"','class="weekly-history weekly-history-older"')
         .replace('data-weekly-history-body','data-weekly-older-history-body')
-        .replace('<span>Semana anterior','<span>Historial')
+        .replace(/(<summary>\s*<span>)[^<]*/, '$1'+WEEKLY_REGULAR_HISTORY_TITLE)
         .replace(/data-weekly-archive-cycle="[^"]*"/,'data-weekly-archive-cycle="'+oldCycle+'"')
       : "";
     preserved=older+prior.slice(firstClose+'</details>'.length);
   }
   const history=`          <details class="weekly-history" data-weekly-archive-cycle="${cycle}">
             <summary>
-              <span>Semana anterior</span>
+              <span>${WEEKLY_REGULAR_HISTORY_TITLE}</span>
               <small>${cycleLabel(cycle)}</small>
             </summary>
             <div class="weekly-history-body" data-weekly-history-body data-weekly-history-cycle="${cycle}">
@@ -244,7 +246,7 @@ if(process.argv.includes('--self-test')){
   const result=rolloverHtml(source,now);
   if(result.changed){
     fs.writeFileSync(file,result.source);
-    console.log(`Rolled Worship semanal cycle ${result.cycle} into Semana anterior.`);
+    console.log(`Rolled Worship semanal cycle ${result.cycle} into the standard history label.`);
   }else{
     console.log(`No weekly rollover needed (${result.reason}).`);
   }

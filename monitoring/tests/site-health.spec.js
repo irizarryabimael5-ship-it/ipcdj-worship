@@ -2799,3 +2799,42 @@ test('every curated song uses only the owner-approved original Web Audio engine'
   expect(html).not.toContain('createMediaElementSource');
   expect(html).not.toContain('catalog-preview-attribution');
 });
+
+test('weekly history has one permanent regular title; campaign and real dates stay unique',async({page,request})=>{
+  await openHealthyPage(page);
+  await page.locator('#tab-worship-semanal').click();
+  const result=await page.evaluate(()=>{
+    const weekly=document.querySelector('#panel-worship-semanal');
+    return [...weekly.querySelectorAll('details.weekly-history')].map(node=>({
+      cycle:node.dataset.weeklyArchiveCycle,
+      title:node.querySelector(':scope > summary span')?.textContent.trim(),
+      date:node.querySelector(':scope > summary small')?.textContent.trim(),
+      campaign:!!node.querySelector('[data-weekly-special-archive-grid]'),
+      serviceCount:node.querySelectorAll('[data-weekly-history-service]').length,
+      pdfCount:node.querySelectorAll('a[href$=".pdf"]').length
+    }));
+  });
+  expect(result.length).toBeGreaterThanOrEqual(3);
+  const ordinary=result.filter(x=>!x.campaign),campaign=result.filter(x=>x.campaign);
+  expect(ordinary.length).toBeGreaterThanOrEqual(2);
+  for(const entry of ordinary){
+    expect(entry.title).toBe('Historial · Worship semanal');
+    expect(entry.date).toMatch(/^Semana terminada · \d{1,2} \S+ 2026$/);
+    expect(entry.serviceCount).toBe(2);
+  }
+  expect(new Set(ordinary.map(x=>x.cycle)).size).toBe(ordinary.length);
+  expect(ordinary.find(x=>x.cycle==='2026-10-18')?.date).toBe('Semana terminada · 18 oct 2026');
+  expect(ordinary.find(x=>x.cycle==='2026-10-04')?.date).toBe('Semana terminada · 4 oct 2026');
+  expect(campaign).toHaveLength(1);
+  expect(campaign[0].title).toBe('Historial · Campaña GU 2026');
+  expect(campaign[0].date).toBe('9–11 oct 2026 · 3 servicios');
+  expect(campaign[0].serviceCount).toBe(3);
+  const file=await request.get('/?history-title-contract='+Date.now(),{headers:{'cache-control':'no-cache'}});
+  expect(file.ok()).toBe(true);
+  const html=await file.text();
+  expect(html).toContain('const WEEKLY_REGULAR_HISTORY_TITLE="Historial · Worship semanal"');
+  expect(html).toContain('normalizeWeeklyHistoryTitle(previous)');
+  expect(html).toContain('normalizeWeeklyHistoryTitle(weeklyHistory)');
+  expect(html).not.toContain('<span>Historial anterior</span>');
+});
+

@@ -6,7 +6,7 @@
   <meta name="ipcdj-environment" content="staging" />
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="campana-weekend-v210" />
+  <meta name="ipcdj-build" content="campana-weekend-v211" />
   <script id="ipcdj-original-visual-preview-init">
     // Explicit staging-only opt-in; default users keep accessibility preferences.
     (()=>{try{
@@ -5476,7 +5476,7 @@
           <!-- WEEKLY_HISTORY_START -->
           <details class="weekly-history" data-weekly-archive-cycle="2026-10-18">
             <summary>
-              <span>Semana anterior</span>
+              <span>Historial · Worship semanal</span>
               <small>Semana terminada · 18 oct 2026</small>
             </summary>
             <div class="weekly-history-body" data-weekly-history-body data-weekly-history-cycle="2026-10-18">
@@ -5700,7 +5700,7 @@
 
           <details class="weekly-history weekly-history-older" data-weekly-archive-cycle="2026-10-04">
             <summary>
-              <span>Historial anterior</span>
+              <span>Historial · Worship semanal</span>
               <small>Semana terminada · 4 oct 2026</small>
             </summary>
             <div class="weekly-history-body" data-weekly-older-history-body data-weekly-history-cycle="2026-10-04">
@@ -6215,6 +6215,15 @@
     const weeklyOlderHistoryBody=document.querySelector('[data-weekly-older-history-body][data-weekly-history-cycle="2026-10-04"]');
     const weeklyStatus=document.querySelector('[data-weekly-status]');
 
+    // Permanent label for EVERY regular weekly history card. Display dates
+    // remain in each card's <small>; special campaign naming is untouched.
+    const WEEKLY_REGULAR_HISTORY_TITLE="Historial · Worship semanal";
+    function normalizeWeeklyHistoryTitle(card){
+      if(!card||card.querySelector('[data-weekly-special-archive-grid]'))return;
+      const title=card.querySelector('summary span');
+      if(title)title.textContent=WEEKLY_REGULAR_HISTORY_TITLE;
+    }
+
     // Archive display contract: preserve the actual songs, coritos, PDF resources,
     // dates and service metadata, but never display YouTube playlist embeds/links.
     // Keep the source material and active/current playlists untouched.
@@ -6258,7 +6267,10 @@
       return true;
     }
     // Sanitize pre-authored history too (including any older records added later).
-    document.querySelectorAll(".weekly-history").forEach(stripArchivedWeeklyPlaylists);
+    document.querySelectorAll(".weekly-history").forEach(card=>{
+      stripArchivedWeeklyPlaylists(card);
+      normalizeWeeklyHistoryTitle(card);
+    });
     hydrateCompletedCampaignArchive();
 
     const weeklyPendingMarkup=key=>`
@@ -6318,8 +6330,8 @@
         cloneWeeklyPanelForHistory(friday,"viernes"),
         cloneWeeklyPanelForHistory(sunday,"domingo")
       );
-      // Demote the entire previous history before the next Sunday replaces it.
-      // Special campaigns remain accessible permanently in Historial anterior.
+      // Demote the entire previous regular history to the older history list.
+      // Special campaign archives retain their individually authored labels.
       const previousCycle=weeklyHistoryBody.dataset.weeklyHistoryCycle||"";
       if(previousCycle&&weeklyHistoryBody.querySelector(".weekly-history-service")){
         const previous=stripArchivedWeeklyPlaylists(weeklyHistory.cloneNode(true));
@@ -6327,13 +6339,13 @@
         previous.dataset.weeklyArchiveCycle=previousCycle;
         const body=previous.querySelector("[data-weekly-history-body]");
         if(body){body.removeAttribute("data-weekly-history-body");body.dataset.weeklyOlderHistoryBody="";}
-        const summary=previous.querySelector("summary span");
-        if(summary)summary.textContent=summary.textContent.replace(/^Semana anterior/,"Historial");
+        normalizeWeeklyHistoryTitle(previous);
         weeklyHistory.after(previous);
       }
       weeklyHistoryBody.replaceChildren(grid);
       weeklyHistoryBody.dataset.weeklyHistoryCycle=cycle;
       weeklyHistory.dataset.weeklyArchiveCycle=cycle;
+      normalizeWeeklyHistoryTitle(weeklyHistory);
 
       const summarySmall=weeklyHistory?.querySelector("summary small");
       if(summarySmall)summarySmall.textContent=weeklyCycleLabel(cycle);
