@@ -61,8 +61,8 @@ test.describe('First-paint Reinas art, scrolling glass, essential navigation',()
     expect(legacy.motion).toContain('running');
   });
 
-  test('Inicio and Worship semanal work and the October 23 Friday and October 25 Sunday sets remain intact',async({page})=>{
-    await page.clock.setFixedTime(new Date('2026-10-15T12:00:00-04:00'));
+  test('Inicio and Worship semanal preserve Nov 1 Sunday and the October worship archives',async({page})=>{
+    await page.clock.setFixedTime(new Date('2026-10-27T09:00:00-04:00'));
     await page.goto('/',{waitUntil:'domcontentloaded'});
     await expect(page.locator('[data-song-id="reinas-por-la-eternidad"]')).toBeAttached();
     await expect(page.locator('[data-song-id="no-fallaras"]')).toBeAttached();
@@ -70,13 +70,15 @@ test.describe('First-paint Reinas art, scrolling glass, essential navigation',()
     await page.locator('#tab-worship-semanal').click();
     await expect(page.locator('#panel-worship-semanal')).toBeVisible();
     const friday=page.locator('#weekly-panel-viernes');
-    await expect(friday.locator('.weekly-song')).toHaveCount(4);
-    await expect(friday).toContainText('Viernes, 23 de octubre');
+    await expect(friday.locator('.weekly-song')).toHaveCount(0);
+    await expect(friday).toContainText('Set pendiente');
     await page.locator('#weekly-tab-domingo').click();
     const sunday=page.locator('#weekly-panel-domingo');
     await expect(sunday).toBeVisible();
     await expect(sunday.locator('.weekly-song')).toHaveCount(5);
-    await expect(sunday).toContainText('Domingo, 25 de octubre');
+    await expect(sunday).toContainText('Domingo, 1 de noviembre');
+    await expect(sunday).toContainText('Josselin');
+    await expect(page.locator('.weekly-history[data-weekly-archive-cycle="2026-10-25"] .weekly-song')).toHaveCount(9);
     await expect(page.locator('.weekly-history[data-weekly-archive-cycle="2026-10-18"] .weekly-song')).toHaveCount(9);
     await page.locator('#tab-inicio').click();
     await expect(page.locator('[data-song-id="reinas-por-la-eternidad"]')).toBeAttached();
