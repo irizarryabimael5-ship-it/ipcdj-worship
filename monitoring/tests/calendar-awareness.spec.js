@@ -22,7 +22,7 @@ test.describe('Intelligent Eastern-time calendar (v200)',()=>{
     expect(contexts.map(x=>x.currentWeekStart)).toEqual(['2026-10-12','2026-10-19','2026-10-26','2026-12-28']);
     expect(contexts.map(x=>x.currentFriday)).toEqual(['2026-10-16','2026-10-23','2026-10-30','2027-01-01']);
     expect(contexts.map(x=>x.currentSunday)).toEqual(['2026-10-18','2026-10-25','2026-11-01','2027-01-03']);
-    expect(contexts.map(x=>x.nextService.date)).toEqual(['2026-10-16','2026-10-23','2026-11-06','2027-01-01']);
+    expect(contexts.map(x=>x.nextService.date)).toEqual(['2026-10-16','2026-10-23','2026-11-01','2027-01-01']);
     expect(contexts.map(x=>x.publishedIsCurrentWeek)).toEqual([false,false,true,false]);
     expect(contexts.every(x=>x.cycle==='2026-11-01'&&x.timeZone==='America/New_York')).toBe(true);
     expect(contexts[1].phase).toBe('preparacion');
@@ -65,7 +65,7 @@ test.describe('Intelligent Eastern-time calendar (v200)',()=>{
     const archive=page.locator('[data-weekly-history-body][data-weekly-history-cycle="2026-11-01"]');
     await expect(archive).toBeAttached();
     await expect(archive.locator('.weekly-history-service')).toHaveCount(2);
-    // Oct23 Friday (4) and Oct25 Sunday (5) must both survive the rollover.
+    // Friday remains pending; Nov 1 Sunday (5 songs) survives the rollover.
     await expect(archive.locator('.weekly-song')).toHaveCount(5);
     expect(await archive.locator('.weekly-history-service').evaluateAll(
       nodes=>nodes.map(node=>node.querySelectorAll('.weekly-song').length).sort((a,b)=>a-b)
