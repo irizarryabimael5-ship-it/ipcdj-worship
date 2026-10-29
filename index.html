@@ -1198,6 +1198,17 @@
 
     .weekly-set-card,
     .weekly-coritos-card,
+    .weekly-flow-note{
+      margin:10px 0 0;
+      padding:10px 10px 0;
+      border-top:1px solid rgba(255,255,255,.06);
+      color:#aab6c8;
+      font-size:.78rem;
+      line-height:1.35;
+      font-weight:750;
+      letter-spacing:.06em;
+    }
+
     .weekly-note-card{
       min-width:0;
       padding:20px;
@@ -5204,13 +5215,13 @@
                 <h2>Esta semana</h2>
                 <p>Sets, ensayo y recursos del equipo de adoración en un solo lugar.</p>
               </div>
-              <span class="weekly-status" data-weekly-status>Domingo actualizado · Viernes pendiente</span>
+              <span class="weekly-status" data-weekly-status>Viernes + Domingo actualizados</span>
             </div>
 
             <div class="weekly-service-tabs" role="tablist" aria-label="Servicios de Worship semanal">
               <button class="weekly-service-tab" id="weekly-tab-viernes" type="button" role="tab" aria-selected="true" aria-controls="weekly-panel-viernes" tabindex="0" data-weekly-service="viernes">
                 <strong>Viernes</strong>
-                <small>Pendiente</small>
+                <small>Actualizado</small>
               </button>
               <button class="weekly-service-tab" id="weekly-tab-domingo" type="button" role="tab" aria-selected="false" aria-controls="weekly-panel-domingo" tabindex="-1" data-weekly-service="domingo">
                 <strong>Domingo</strong>
@@ -5230,13 +5241,116 @@
 
           <!-- WEEKLY_CURRENT_VIERNES_START -->
           <section class="weekly-service-panel" id="weekly-panel-viernes" role="tabpanel" aria-labelledby="weekly-tab-viernes" data-weekly-panel="viernes">
-            <div class="weekly-empty">
-              <div class="weekly-empty-inner">
-                <span class="weekly-service-kicker">Viernes</span>
-                <h3>Set pendiente</h3>
-                <p>El nuevo worship set del viernes aparecerá aquí cuando sea actualizado.</p>
+            <div class="weekly-service-heading">
+              <div>
+                <span class="weekly-service-kicker">Servicio · Viernes, 30 de octubre</span>
+                <h2>Worship set del viernes</h2>
+                <p>Orden del servicio, playlist, coritos y recursos de ensayo.</p>
               </div>
             </div>
+
+            <ul class="weekly-service-meta" aria-label="Detalles del servicio del viernes">
+              <li class="weekly-meta-card">
+                <span class="weekly-meta-label">Corista</span>
+                <span class="weekly-meta-value">Josselin</span>
+              </li>
+            </ul>
+
+            <section class="weekly-youtube-card" aria-labelledby="weekly-youtube-title-viernes">
+              <div class="weekly-youtube-frame">
+                <iframe
+                  src="https://www.youtube-nocookie.com/embed/videoseries?list=PLXqqjNOyFIbg"
+                  title="Playlist de worship del viernes 30 de octubre"
+                  loading="lazy"
+                  referrerpolicy="strict-origin-when-cross-origin"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowfullscreen></iframe>
+              </div>
+              <div class="weekly-youtube-info">
+                <span class="weekly-youtube-mark"><img src="youtube-music.svg" alt="" aria-hidden="true" width="22" height="22" decoding="async" />YouTube</span>
+                <h3 id="weekly-youtube-title-viernes">Playlist del viernes</h3>
+                <p>Escucha y repasa el repertorio del viernes 30 de octubre.</p>
+                <a class="weekly-action" href="https://youtube.com/playlist?list=PLXqqjNOyFIbg&amp;si=K_4ZXTb0tZJdTWsD" target="_blank" rel="noopener">Abrir playlist en YouTube</a>
+              </div>
+            </section>
+
+            <div class="weekly-resource" aria-label="Letras y coritos: disponible pronto">
+              <span class="weekly-resource-badge">PRONTO</span>
+              <span class="weekly-resource-text">
+                <strong>Letras &amp; Coritos</strong>
+                <small>Disponible pronto</small>
+              </span>
+            </div>
+
+            <section class="weekly-set-card">
+              <div class="weekly-section-head">
+                <h3>Canciones CDJ</h3>
+                <span>Compás · 4/4</span>
+              </div>
+              <ol class="weekly-song-list">
+                <li class="weekly-song">
+                  <span class="weekly-song-index">01</span>
+                  <span class="weekly-song-copy">
+                    <strong class="weekly-song-title">Libre Soy</strong>
+                    <span class="weekly-song-artist">Barak ft. Alex Campos</span>
+                    <span class="weekly-song-meta">
+                      <span>Tono · Do Mayor</span>
+                      <span>BPM · 68/135</span>
+                    </span>
+                  </span>
+                </li>
+                <li class="weekly-song">
+                  <span class="weekly-song-index">02</span>
+                  <span class="weekly-song-copy">
+                    <strong class="weekly-song-title">Tu Nombre</strong>
+                    <span class="weekly-song-artist">Miel San Marcos ft. Coalo Zamorano</span>
+                    <span class="weekly-song-meta">
+                      <span>Tono · Re Mayor</span>
+                      <span>BPM · 90/180</span>
+                    </span>
+                  </span>
+                </li>
+                <li class="weekly-song">
+                  <span class="weekly-song-index">03</span>
+                  <span class="weekly-song-copy">
+                    <strong class="weekly-song-title">No Falla</strong>
+                    <span class="weekly-song-artist">Cita Con el Padre</span>
+                    <span class="weekly-song-meta">
+                      <span>Tono · Sol Menor</span>
+                      <span>BPM · 66/132</span>
+                    </span>
+                  </span>
+                </li>
+                <li class="weekly-song">
+                  <span class="weekly-song-index">04</span>
+                  <span class="weekly-song-copy">
+                    <strong class="weekly-song-title">Si Tu Presencia Conmigo No Va</strong>
+                    <span class="weekly-song-artist">Oasis Ministry</span>
+                    <span class="weekly-song-meta">
+                      <span>Tono · Re Mayor</span>
+                      <span>BPM · 65/130</span>
+                    </span>
+                  </span>
+                </li>
+              </ol>
+            </section>
+
+            <section class="weekly-coritos-card">
+              <div class="weekly-section-head">
+                <h3>Coritos</h3>
+                <span>La Menor · 130 BPM</span>
+              </div>
+              <ol class="weekly-coritos-list">
+                <li class="weekly-corito">Alabad A Jehová Naciones Todas</li>
+                <li class="weekly-corito">Te Alabarán Oh Jehová Todos Los Reyes</li>
+              </ol>
+              <p class="weekly-flow-note">FLOW</p>
+            </section>
+
+            <section class="weekly-note-card">
+              <h3>Nota de ensayo</h3>
+              <p>Ensayen con la canción, con metrónomo y eventualmente sin letra.</p>
+            </section>
           </section>
           <!-- WEEKLY_CURRENT_VIERNES_END -->
 
