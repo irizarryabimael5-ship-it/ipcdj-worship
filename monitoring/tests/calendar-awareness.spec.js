@@ -26,7 +26,7 @@ test.describe('Intelligent Eastern-time calendar (v200)',()=>{
     expect(contexts.map(x=>x.publishedIsCurrentWeek)).toEqual([false,false,true,false]);
     expect(contexts.every(x=>x.cycle==='2026-11-01'&&x.timeZone==='America/New_York')).toBe(true);
     expect(contexts[1].phase).toBe('preparacion');
-    await expect(page.locator('#weekly-panel-viernes .weekly-song')).toHaveCount(0);
+    await expect(page.locator('#weekly-panel-viernes .weekly-song')).toHaveCount(4);
     await expect(page.locator('#weekly-panel-domingo .weekly-song')).toHaveCount(5);
   });
 
@@ -47,7 +47,7 @@ test.describe('Intelligent Eastern-time calendar (v200)',()=>{
     expect(await page.evaluate(()=>window.IPCDJ_CALENDAR.getSnapshot().serviceToday)).toBe('viernes');
     await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
     expect(await page.evaluate(()=>window.__calendarEvents.length)).toBe(1);
-    await expect(page.locator('#weekly-panel-viernes .weekly-song')).toHaveCount(0);
+    await expect(page.locator('#weekly-panel-viernes .weekly-song')).toHaveCount(4);
     await expect(page.locator('#weekly-panel-domingo .weekly-song')).toHaveCount(5);
   });
 
@@ -58,18 +58,18 @@ test.describe('Intelligent Eastern-time calendar (v200)',()=>{
     const before=await page.evaluate(()=>window.IPCDJ_CALENDAR.refresh(Date.parse('2026-11-01T14:59:59-05:00')));
     expect(before.activeState).toBe('active');
     expect(before.rolloverDue).toBe(false);
-    await expect(page.locator('#weekly-panel-viernes .weekly-song')).toHaveCount(0);
+    await expect(page.locator('#weekly-panel-viernes .weekly-song')).toHaveCount(4);
     const after=await page.evaluate(()=>window.IPCDJ_CALENDAR.refresh(Date.parse('2026-11-01T15:00:00-05:00')));
     expect(after.activeState).toBe('rolled');
     expect(after.rolloverDue).toBe(true);
     const archive=page.locator('[data-weekly-history-body][data-weekly-history-cycle="2026-11-01"]');
     await expect(archive).toBeAttached();
     await expect(archive.locator('.weekly-history-service')).toHaveCount(2);
-    // Friday remains pending; Nov 1 Sunday (5 songs) survives the rollover.
-    await expect(archive.locator('.weekly-song')).toHaveCount(5);
+    // Friday Oct 30 (4 songs) and Sunday Nov 1 (5 songs) survive the rollover.
+    await expect(archive.locator('.weekly-song')).toHaveCount(9);
     expect(await archive.locator('.weekly-history-service').evaluateAll(
       nodes=>nodes.map(node=>node.querySelectorAll('.weekly-song').length).sort((a,b)=>a-b)
-    )).toEqual([0,5]);
+    )).toEqual([4,5]);
     await expect(archive.locator('iframe')).toHaveCount(0);
     await expect(archive.locator('a[href*="youtube.com/playlist"]')).toHaveCount(0);
     await expect(page.locator('#weekly-panel-viernes .weekly-song')).toHaveCount(0);
