@@ -70,8 +70,9 @@ test.describe('First-paint Reinas art, scrolling glass, essential navigation',()
     await page.locator('#tab-worship-semanal').click();
     await expect(page.locator('#panel-worship-semanal')).toBeVisible();
     const friday=page.locator('#weekly-panel-viernes');
-    await expect(friday.locator('.weekly-song')).toHaveCount(0);
-    await expect(friday).toContainText('Set pendiente');
+    await expect(friday.locator('.weekly-song')).toHaveCount(4);
+    await expect(friday).toContainText('Viernes, 30 de octubre');
+    await expect(friday).toContainText('Disponible pronto');
     await page.locator('#weekly-tab-domingo').click();
     const sunday=page.locator('#weekly-panel-domingo');
     await expect(sunday).toBeVisible();
