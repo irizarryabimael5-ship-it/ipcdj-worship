@@ -721,8 +721,9 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(friday).toContainText('Josselin');
   await expect(friday).toContainText('La Menor · 130 BPM');
   await expect(friday.locator('.weekly-flow-note')).toHaveText('FLOW');
-  await expect(friday.locator('.weekly-resource')).toContainText('Disponible pronto');
-  await expect(friday.locator('a[href$=".pdf"]')).toHaveCount(0);
+  await expect(friday.locator('.weekly-resource')).toContainText('Letras & Coritos');
+  await expect(friday.locator('.weekly-resource')).toContainText('Abrir recurso del viernes');
+  await expect(friday.locator('a.weekly-resource[href="https://u.pone.rs/plvjogek.pdf"]')).toHaveCount(1);
   await expect(friday.locator('a[href="https://youtube.com/playlist?list=PLXqqjNOyFIbg&si=K_4ZXTb0tZJdTWsD"]')).toHaveCount(1);
   await expect(friday.locator('iframe[src="https://www.youtube-nocookie.com/embed/videoseries?list=PLXqqjNOyFIbg"]')).toHaveCount(1);
   await expect(friday.locator('.weekly-song')).toHaveCount(4);
