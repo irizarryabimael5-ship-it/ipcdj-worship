@@ -50,3 +50,13 @@ When the user asks for a new room/chat, conversation becomes too long, or a hand
 
 ## Side Lanes are recurring and parallel
 MAIN remains responsible for UI/UX/performance. [WEEKLY](SIDE_LANES/WORSHIP_SEMANAL.md) remains active for member-facing Friday/Sunday sets even while the current conversation focuses MAIN. Every new chat must resume MAIN and be ready to update WEEKLY immediately; read its file and source. Sidebars remain separate, optional and typically paused. One migration Markdown must include ALL workstream classes and their last checkpoints.
+
+## 2026-10-30 — OVERRIDING OWNER DIRECTIVE: Drive migration ZIP after every response
+The historical step 7 above (“Do not access Google Drive”) was the owner's previous policy. **It is superseded for continuity artifacts only by the explicit owner directive on October 30, 2026.** GitHub remains the source of truth for site code and working repository governance; Drive is now an additional backup and recovery workspace, not a site runtime dependency or an excuse to merge/promote Staging. Never access unrelated Drive workspaces or put project secrets in the ZIP.
+- Universal reference: https://drive.google.com/drive/folders/1Ld_FZjc8jGn0v4KNuJVd8ydc0i3fzN6V (read-only general principles; do not modify it).
+- Dedicated IPCDJ Worship website workspace: https://drive.google.com/drive/folders/1Ix4vq8MVBLBNOSbck7tHaZlPD8qSiYdN
+- Drive START HERE index: https://docs.google.com/document/d/1jxjyBaSijK_DWavWHrKMgCCbY6r5nN5T7OMvbwFRW3g/edit
+- Migration ZIP folder: https://drive.google.com/drive/folders/1CvF0R7jqBm9c3qz07Y6fpKR_gyvzPxIb
+- **Current migration ZIP stable link**: https://drive.google.com/file/d/1XSmUNWmRvfj91w1AFBvZxSdpE4DRCwR0/view
+- At the **end of every substantive response to the owner**, update the ZIP to reflect current decisions, executed-versus-pending work, current actual GitHub branch SHAs, latest exact-SHA CI status, governing links, approvals/no-go gates and next permissible step. Replace ZIP bytes **in-place at the existing Drive file ID** with the authenticated Drive update_file action and newly exported file reference; read back metadata/size. Append a small, verified Drive ZIP link at the very end of the response.
+- ZIP is a **timestamped snapshot**, not an autonomous live mirror or substitute for the actual GitHub repository. Do not promise background updating. If the Drive update cannot be executed, clearly say so and identify the last verified checkpoint; never label stale ZIP current or claim success without confirmation. Never move/remove the existing Drive file without need. Keep other IPCDJ operations and printable-sheet systems separate.
