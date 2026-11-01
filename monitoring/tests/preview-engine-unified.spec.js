@@ -14,6 +14,7 @@ async function installAudioFixture(page){
       "1873032536":["El Nombre De Jesús","Elevation Español"],
       "1873032528":["Agradecido Estoy","Elevation Español"],
       "1699411330":["Poderoso Dios (Grande y Fiel)","Gateway Worship Español & Miel San Marcos"],
+      "1857992266":["Thank God I'm Free","ELEVATION RHYTHM & Lizzie Morgan"],
       "1799832312":["Santo Es El Que Vive","Montesanto"],
       "1777898241":["Con Poder","Barak"]
     };
@@ -107,6 +108,7 @@ test("three newer and original songs share real Web Audio playback and crossfade
 
   const first=page.locator('[data-preview-song-id="request-hablame-de-cerca-grupo-grace"] .preview-button');
   const barak=page.locator('[data-preview-song-id="request-bienvenido-espiritu-santo-barak"] .preview-button');
+  const thankGod=page.locator('[data-preview-song-id="request-thank-god-im-free-elevation-rhythm"] .preview-button');
   await first.click();
   await expect.poll(()=>page.evaluate(()=>window.IPCDJ_PREVIEW_ENGINE.active().songId),
     {timeout:15000}).toBe("request-hablame-de-cerca-grupo-grace");
@@ -117,6 +119,12 @@ test("three newer and original songs share real Web Audio playback and crossfade
     {timeout:15000}).toBe("request-bienvenido-espiritu-santo-barak");
   await expect(barak).toHaveAttribute("aria-label","Pausar adelanto");
   await expect(first).toHaveAttribute("aria-label","Reproducir adelanto");
+
+  await thankGod.click();
+  await expect.poll(()=>page.evaluate(()=>window.IPCDJ_PREVIEW_ENGINE.active().songId),
+    {timeout:15000}).toBe("request-thank-god-im-free-elevation-rhythm");
+  await expect(thankGod).toHaveAttribute("aria-label","Pausar adelanto");
+  await expect(barak).toHaveAttribute("aria-label","Reproducir adelanto");
 
   await page.locator("#tab-vuelven-a-sonar").click();
   const conPoder=page.locator('[data-preview-song-id="retorno-con-poder-barak"] .preview-button');
@@ -136,6 +144,7 @@ test("three newer and original songs share real Web Audio playback and crossfade
   expect(result.playing).toBe(true);
   expect(result.fetched).toContain("1884087646");
   expect(result.fetched).toContain("9000101");
+  expect(result.fetched).toContain("1857992266");
   expect(result.fetched).toContain("1777898241");
   expect(result.lookedUp).toContain("1783806472");
 
