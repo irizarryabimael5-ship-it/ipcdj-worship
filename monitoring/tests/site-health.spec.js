@@ -477,6 +477,7 @@ test('FEATURES song request pilot is isolated, themed, accessible and preview-re
   const html=await source.text();
   expect(html).toContain('itunesTrackId:"1884087646"');
   expect(html).toContain('itunesTrackId:"1699411330"');
+  expect(html).toContain('itunesTrackId:"1857992266"');
   expect(html).toContain('https://open.spotify.com/track/7jFMPD9hQ0Tj3Zp0eNkw6Z');
   expect(html).toContain('https://open.spotify.com/track/4DYvC8ozC0SF3SoyIpkuiY');
   expect(html).toContain('REQUESTED_SONGS_SOURCE');
@@ -492,23 +493,28 @@ test('FEATURES song request pilot is isolated, themed, accessible and preview-re
   await expect(page.locator('#panel-inicio')).toBeHidden();
   await expect(page.locator('#panel-worship-semanal')).toBeHidden();
   const cards=panel.locator('[data-request-song-id]');
-  // Five owner-curated requests (none a managed estreno).
-  await expect(cards).toHaveCount(5);
+  // Six owner-curated requests (none a managed estreno).
+  await expect(cards).toHaveCount(6);
   expect(await cards.evaluateAll(nodes=>nodes.map(node=>node.dataset.requestSongId))).toEqual([
     'request-hablame-de-cerca-grupo-grace',
     'request-el-nombre-de-jesus-elevation-espanol',
     'request-agradecido-estoy-elevation-espanol',
     'request-poderoso-dios-gateway-worship-miel-san-marcos',
-    'request-bienvenido-espiritu-santo-barak'
+    'request-bienvenido-espiritu-santo-barak',
+    'request-thank-god-im-free-elevation-rhythm'
   ]);
   expect(await cards.locator('.song-top h3').allTextContents()).toEqual([
     'Háblame de Cerca','El Nombre De Jesús','Agradecido Estoy','Poderoso Dios (Grande y Fiel)',
-    'Bienvenido Espíritu Santo'
+    'Bienvenido Espíritu Santo',"Thank God I'm Free"
   ]);
-  await expect(panel.locator('[data-preview-song-id]')).toHaveCount(5);
+  await expect(panel.locator('[data-preview-song-id]')).toHaveCount(6);
   await expect(cards.nth(4).locator('.future-preview-button')).toBeVisible();
   await expect(cards.nth(4).locator('.catalog-preview-attribution')).toHaveCount(0);
   await expect(cards.nth(4)).toHaveAttribute('data-future-artwork-source','verified-spotify-barak-fuego-poder-live-2022');
+  await expect(cards.nth(5).locator('.song-top h3')).toHaveText("Thank God I'm Free");
+  await expect(cards.nth(5).locator('.song-top p')).toHaveText('ELEVATION RHYTHM & Lizzie Morgan');
+  await expect(cards.nth(5)).toHaveAttribute('data-future-artwork-source','verified-loop-community-elevation-rhythm-2026-single');
+  await expect(cards.nth(5).locator('.future-preview-button')).toBeVisible();
   const card=cards.first();
   await expect(card).toHaveAttribute('data-request-song-id','request-hablame-de-cerca-grupo-grace');
   await expect(card.locator('.song-top h3')).toHaveText('Háblame de Cerca');
@@ -2676,7 +2682,7 @@ test('artwork focus prioritizes owner-approved Poderoso text exception; other pe
   await openHealthyPage(page);
   await page.locator('#tab-solicitudes').click();
   const cards=page.locator('#requested-songs [data-request-song-id]');
-  await expect(cards).toHaveCount(4);
+  await expect(cards).toHaveCount(6);
   const metrics=await cards.evaluateAll(nodes=>nodes.map(card=>{
     const art=card.querySelector('.future-artwork-ghost');
     const blur=card.querySelector('.future-artwork-blur');
@@ -2705,13 +2711,14 @@ test('artwork focus prioritizes owner-approved Poderoso text exception; other pe
     'request-el-nombre-de-jesus-elevation-espanol',
     'request-agradecido-estoy-elevation-espanol',
     'request-poderoso-dios-gateway-worship-miel-san-marcos',
-    'request-bienvenido-espiritu-santo-barak'
+    'request-bienvenido-espiritu-santo-barak',
+    'request-thank-god-im-free-elevation-rhythm'
   ]);
   for(const [i,card] of metrics.entries()){
     expect(card.size,card.id).toBe('cover');
     expect(card.blurSize,card.id).toBe('cover');
     expect(card.overflow,card.id).toBe('hidden');
-    if(i<3||i===4){
+    if(i!==3){
       expect(card.focalSubject,card.id).toBe('people');
       expect(card.exception,card.id).toBeUndefined();
       expect(card.focalY,card.id).toBeUndefined();
@@ -2786,13 +2793,14 @@ test('every curated song uses only the owner-approved original Web Audio engine'
     'request-agradecido-estoy-elevation-espanol',
     'request-poderoso-dios-gateway-worship-miel-san-marcos',
     'request-bienvenido-espiritu-santo-barak',
+    'request-thank-god-im-free-elevation-rhythm',
     'retorno-santo-es-el-que-vive-montesanto',
     'retorno-con-poder-barak'
   ]);
   expect(contract.active.playing).toBe(false);
   expect(contract.active.outgoingVoices).toBe(0);
   await page.locator('#tab-solicitudes').click();
-  await expect(page.locator('#requested-songs [data-preview-song-id]')).toHaveCount(5);
+  await expect(page.locator('#requested-songs [data-preview-song-id]')).toHaveCount(6);
   await page.locator('#tab-vuelven-a-sonar').click();
   await expect(page.locator('#returning-songs [data-preview-song-id]')).toHaveCount(2);
   const r=await request.get('/?one-locked-audio-engine='+Date.now(),{
