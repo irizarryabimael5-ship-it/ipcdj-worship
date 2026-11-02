@@ -1220,6 +1220,55 @@ test('Ante Ti by JC Negron receives the next 3-week-spaced Feb 14 premiere with 
   const html=await response.text();
   expect(html).toContain('releaseAt:"2027-02-14T11:00:00-05:00"');
 });
+test('Encontré follows Ante Ti with full February–March 2027 preparation and original media',async({page,request})=>{
+  await openHealthyPage(page);
+  const a=await page.evaluate(()=>{
+    const api=window.IPCDJ_CATALOG,id='encontre-generacion-12';
+    return {song:api.songs.find(s=>s.id===id),health:api.health,
+      before:api.snapshot(Date.parse('2027-02-15T05:59:59-05:00')),
+      active:api.snapshot(Date.parse('2027-02-15T06:00:00-05:00')),
+      learning:api.phase(id,Date.parse('2027-02-22T12:00:00-05:00')).key,
+      final:api.phase(id,Date.parse('2027-03-01T12:00:00-05:00')).key,
+      release:api.phase(id,Date.parse('2027-03-07T11:00:00-05:00')).key,
+      preHistory:api.snapshot(Date.parse('2027-03-08T05:59:59-05:00')),
+      history:api.snapshot(Date.parse('2027-03-08T06:00:00-05:00'))};
+  });
+  expect(a.health.valid).toBe(true);
+  expect(a.health.fullVisualReady).toBe(true);
+  expect(a.song).toMatchObject({title:'Encontré',artist:'Generación 12',
+    album:'Encontré (En Vivo) - Single',
+    activeFrom:'2027-02-15T06:00:00-05:00',
+    learningStart:'2027-02-22T00:00:00-05:00',
+    learningEnd:'2027-02-28T23:59:59-05:00',
+    finalStart:'2027-03-01T00:00:00-05:00',
+    finalEnd:'2027-03-06T23:59:59-05:00',
+    releaseDayStartAt:'2027-03-07T00:00:00-05:00',
+    releaseAt:'2027-03-07T11:00:00-05:00',
+    releaseDayEndAt:'2027-03-08T00:00:00-05:00',
+    introducedAt:'2027-03-08T06:00:00-05:00',
+    rolloverAt:'2027-03-08T06:00:00-05:00',
+    itunesCollectionId:'1838982743',itunesTrackId:'1838982752',
+    artworkSource:'generacion12-encontre-2022-single-artwork-reference',
+    futurePalette:[[166,102,94],[202,133,120],[41,35,36]]});
+  expect(a.before.upcoming).toContain('encontre-generacion-12');
+  expect(a.active.current).toContain('encontre-generacion-12');
+  expect(a.active.introduced).toContain('ante-ti-jc-negron');
+  expect(a.learning).toBe('learning');
+  expect(a.final).toBe('final');
+  expect(a.release).toBe('release');
+  expect(a.preHistory.current).toContain('encontre-generacion-12');
+  expect(a.history.current).not.toContain('encontre-generacion-12');
+  expect(a.history.introduced).toContain('encontre-generacion-12');
+  const row=page.locator('#upcoming-songs [data-song-id="encontre-generacion-12"]');
+  await expect(row).toHaveCount(1);
+  await expect(row.locator('.preview-button')).toBeVisible();
+  const response=await request.get('/?encontre-march-2027='+Date.now(),{headers:{'cache-control':'no-cache'}});
+  expect(response.ok()).toBe(true);
+  const html=await response.text();
+  expect(html).toContain('itunesTrackId:"1838982752"');
+  expect(html).toContain('releaseAt:"2027-03-07T11:00:00-05:00"');
+});
+
 test('Reinas is scheduled on Jan 24 with official art, preview and automatic lifecycle',async({page})=>{
   await openHealthyPage(page);
   const audit=await page.evaluate(()=>({
@@ -1411,11 +1460,11 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
     nov16Early: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-11-16T01:00:00-05:00')),
     nov16Active: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-11-16T06:01:00-05:00'))
   }));
-  expect(orderSnapshots.sep21.upcoming).toEqual(['con-manos-vacias','glorioso-dia','no-fallaras','reinas-por-la-eternidad','ante-ti-jc-negron']);
+  expect(orderSnapshots.sep21.upcoming).toEqual(['con-manos-vacias','glorioso-dia','no-fallaras','reinas-por-la-eternidad','ante-ti-jc-negron','encontre-generacion-12']);
   expect(orderSnapshots.oct5.upcoming).not.toContain('dios-no-esta-muerto');
   expect(orderSnapshots.oct6.current).toEqual(['dios-no-esta-muerto','con-manos-vacias']);
   expect(orderSnapshots.oct6.upcoming).not.toContain('dios-no-esta-muerto');
-  expect(orderSnapshots.nov16Early.upcoming).toEqual(['glorioso-dia','no-fallaras','reinas-por-la-eternidad','ante-ti-jc-negron']);
+  expect(orderSnapshots.nov16Early.upcoming).toEqual(['glorioso-dia','no-fallaras','reinas-por-la-eternidad','ante-ti-jc-negron','encontre-generacion-12']);
   expect(orderSnapshots.nov16Active.current).toContain('glorioso-dia');
 
   const sourceResponse = await request.get('/?catalog-source-check=' + Date.now(), {
