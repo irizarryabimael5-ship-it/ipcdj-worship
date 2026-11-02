@@ -1269,6 +1269,57 @@ test('Encontré follows Ante Ti with full February–March 2027 preparation and 
   expect(html).toContain('releaseAt:"2027-03-07T11:00:00-05:00"');
 });
 
+test('Mi Gozo (Live) uses Barak 2022 live album and correct March DST lifecycle',async({page,request})=>{
+  await openHealthyPage(page);
+  const a=await page.evaluate(()=>{
+    const api=window.IPCDJ_CATALOG,id='mi-gozo-live-barak';
+    return {song:api.songs.find(s=>s.id===id),health:api.health,
+      before:api.snapshot(Date.parse('2027-03-08T05:59:59-05:00')),
+      active:api.snapshot(Date.parse('2027-03-08T06:00:00-05:00')),
+      learning:api.phase(id,Date.parse('2027-03-15T12:00:00-04:00')).key,
+      final:api.phase(id,Date.parse('2027-03-22T12:00:00-04:00')).key,
+      premiere:api.phase(id,Date.parse('2027-03-28T11:00:00-04:00')).key,
+      beforeRollover:api.snapshot(Date.parse('2027-03-29T05:59:59-04:00')),
+      afterRollover:api.snapshot(Date.parse('2027-03-29T06:00:00-04:00'))};
+  });
+  expect(a.health.valid).toBe(true);
+  expect(a.health.fullVisualReady).toBe(true);
+  expect(a.song).toMatchObject({
+    title:'Mi Gozo (Live)',artist:'Barak',album:'Fuego & Poder (Live)',
+    activeFrom:'2027-03-08T06:00:00-05:00',
+    learningStart:'2027-03-15T00:00:00-04:00',
+    learningEnd:'2027-03-21T23:59:59-04:00',
+    finalStart:'2027-03-22T00:00:00-04:00',
+    finalEnd:'2027-03-27T23:59:59-04:00',
+    releaseDayStartAt:'2027-03-28T00:00:00-04:00',
+    releaseAt:'2027-03-28T11:00:00-04:00',
+    releaseDayEndAt:'2027-03-29T00:00:00-04:00',
+    rolloverAt:'2027-03-29T06:00:00-04:00',
+    introducedAt:'2027-03-29T06:00:00-04:00',
+    itunesTrackId:'1783806482',itunesCollectionId:'1783806472',
+    artworkUrl:'https://i.scdn.co/image/ab67616d0000b2730a45cc0e99318eda67b32111',
+    artworkSource:'spotify-barak-fuego-poder-live-2022',
+    futurePalette:[[45,62,80],[137,95,97],[82,110,132]]
+  });
+  expect(a.before.upcoming).toContain('mi-gozo-live-barak');
+  expect(a.active.current).toContain('mi-gozo-live-barak');
+  expect(a.active.introduced).toContain('encontre-generacion-12');
+  expect(a.learning).toBe('learning');
+  expect(a.final).toBe('final');
+  expect(a.premiere).toBe('release');
+  expect(a.beforeRollover.current).toContain('mi-gozo-live-barak');
+  expect(a.afterRollover.current).not.toContain('mi-gozo-live-barak');
+  expect(a.afterRollover.introduced).toContain('mi-gozo-live-barak');
+  const row=page.locator('#upcoming-songs [data-song-id="mi-gozo-live-barak"]');
+  await expect(row).toHaveCount(1);
+  await expect(row.locator('.preview-button')).toBeVisible();
+  const response=await request.get('/?mi-gozo-live-2027='+Date.now(),{headers:{'cache-control':'no-cache'}});
+  expect(response.ok()).toBe(true);
+  const html=await response.text();
+  expect(html).toContain('itunesTrackId:"1783806482"');
+  expect(html).toContain('releaseAt:"2027-03-28T11:00:00-04:00"');
+});
+
 test('Reinas is scheduled on Jan 24 with official art, preview and automatic lifecycle',async({page})=>{
   await openHealthyPage(page);
   const audit=await page.evaluate(()=>({
@@ -1460,11 +1511,11 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
     nov16Early: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-11-16T01:00:00-05:00')),
     nov16Active: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-11-16T06:01:00-05:00'))
   }));
-  expect(orderSnapshots.sep21.upcoming).toEqual(['con-manos-vacias','glorioso-dia','no-fallaras','reinas-por-la-eternidad','ante-ti-jc-negron','encontre-generacion-12']);
+  expect(orderSnapshots.sep21.upcoming).toEqual(['con-manos-vacias','glorioso-dia','no-fallaras','reinas-por-la-eternidad','ante-ti-jc-negron','encontre-generacion-12','mi-gozo-live-barak']);
   expect(orderSnapshots.oct5.upcoming).not.toContain('dios-no-esta-muerto');
   expect(orderSnapshots.oct6.current).toEqual(['dios-no-esta-muerto','con-manos-vacias']);
   expect(orderSnapshots.oct6.upcoming).not.toContain('dios-no-esta-muerto');
-  expect(orderSnapshots.nov16Early.upcoming).toEqual(['glorioso-dia','no-fallaras','reinas-por-la-eternidad','ante-ti-jc-negron','encontre-generacion-12']);
+  expect(orderSnapshots.nov16Early.upcoming).toEqual(['glorioso-dia','no-fallaras','reinas-por-la-eternidad','ante-ti-jc-negron','encontre-generacion-12','mi-gozo-live-barak']);
   expect(orderSnapshots.nov16Active.current).toContain('glorioso-dia');
 
   const sourceResponse = await request.get('/?catalog-source-check=' + Date.now(), {
