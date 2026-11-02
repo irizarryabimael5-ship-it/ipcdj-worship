@@ -6627,7 +6627,8 @@
             const subtitle=document.createElement("small");
             const heading=panel.querySelector(".weekly-service-kicker");
             subtitle.textContent=(heading?.textContent||"")
-              .replace(/^Servicio\s*·\s*/i,"").trim();
+              .replace(/^Servicio\s*·\s*/i,"")
+              .replace(/^(Viernes|Sábado|Domingo)\s*,?\s*/i,"").trim();
             // Date is already included in the archived service heading.
             if(subtitle.textContent.toLowerCase()===labels[key].toLowerCase())
               subtitle.textContent="";
