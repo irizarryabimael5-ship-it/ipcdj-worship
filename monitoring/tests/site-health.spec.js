@@ -2580,3 +2580,38 @@ test('Próximas Canciones Apple Music button uses the approved library playlist 
   expect(html).not.toContain('href="'+old+'"');
   expect((html.match(/href="https:\/\/music\.apple\.com\/(?:library|us)\/playlist\/[^"]+"/g)||[])).toHaveLength(1);
 });
+
+test('live monthly worship archive opens October, weeks, and Friday/Sunday service folders',async({page})=>{
+  await page.clock.setFixedTime(new Date('2026-11-02T12:00:00-05:00'));
+  await openHealthyPage(page);
+  await page.locator('#tab-worship-semanal').click();
+  const dashboard=page.locator('#panel-worship-semanal > .weekly-dashboard');
+  const october=dashboard.locator(':scope > details.weekly-history-month[data-weekly-history-month="2026-10"]');
+  await expect(october).toHaveCount(1);
+  await expect(october.locator(':scope > summary')).toContainText('Octubre 2026');
+  await expect(october.locator(':scope > summary')).toContainText('4 semanas');
+  const weeks=october.locator(':scope > .weekly-history-month-weeks > details.weekly-history');
+  await expect(weeks).toHaveCount(4);
+  expect(await weeks.evaluateAll(nodes=>nodes.map(n=>n.dataset.weeklyArchiveCycle)))
+    .toEqual(['2026-10-25','2026-10-18','2026-10-11','2026-10-04']);
+  const latest=dashboard.locator(':scope > details.weekly-history[data-weekly-archive-cycle="2026-11-01"]');
+  await expect(latest).toHaveCount(1);
+  await expect(latest.locator('.weekly-history-service-folder')).toHaveCount(2);
+  await october.locator(':scope > summary').click();
+  await weeks.first().locator(':scope > summary').click();
+  const folders=weeks.first().locator('.weekly-history-service-folder');
+  expect(await folders.evaluateAll(nodes=>nodes.map(n=>n.dataset.weeklyServiceFolder))).toEqual(['viernes','domingo']);
+  await expect(folders.first().locator('.weekly-song-title').first()).toBeHidden();
+  await folders.first().locator(':scope > summary').click();
+  await expect(folders.first().locator('.weekly-song-title').first()).toBeVisible();
+  await expect(folders.first().locator('a[href$=".pdf"]')).toHaveCount(1);
+  await folders.nth(1).locator(':scope > summary').click();
+  await expect(folders.nth(1).locator('.weekly-song-title').first()).toBeVisible();
+  const campaign=weeks.nth(2);
+  await expect(campaign.locator('.weekly-history-service-folder')).toHaveCount(3);
+  expect(await campaign.locator('.weekly-history-service-folder').evaluateAll(nodes=>nodes.map(n=>n.dataset.weeklyServiceFolder)))
+    .toEqual(['viernes','sabado','domingo']);
+  await expect(dashboard.locator('.weekly-history .weekly-youtube-card, .weekly-history iframe[src*="youtube-nocookie.com"], .weekly-history a[href*="youtube.com/playlist"]')).toHaveCount(0);
+  await page.evaluate(()=>window.IPCDJ_CALENDAR.refresh(Date.parse('2026-12-02T12:00:00-05:00')));
+  await expect(dashboard.locator(':scope > details.weekly-history-month[data-weekly-history-month="2026-11"]')).toHaveCount(0);
+});
