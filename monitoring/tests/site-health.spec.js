@@ -2822,6 +2822,39 @@ test('every curated song uses only the owner-approved original Web Audio engine'
   expect(html).not.toContain('catalog-preview-attribution');
 });
 
+test('past months consolidate into one accessible month with distinct week and campaign archives',async({page})=>{
+  await openHealthyPage(page);
+  await page.locator('#tab-worship-semanal').click();
+  // The current week may be a historical source until the first browser rollover.
+  // Use the same public calendar API as the application's normal clock.
+  await page.evaluate(()=>window.IPCDJ_CALENDAR.refresh(Date.parse('2026-11-02T12:00:00-05:00')));
+  const month=page.locator('#panel-worship-semanal > .weekly-dashboard > details.weekly-history-month[data-weekly-history-month="2026-10"]');
+  await expect(month).toHaveCount(1);
+  await expect(month.locator(':scope > summary')).toContainText('Octubre 2026');
+  await expect(month.locator(':scope > summary')).toContainText('4 semanas');
+  const weeks=month.locator(':scope > .weekly-history-month-weeks > details.weekly-history');
+  await expect(weeks).toHaveCount(4);
+  expect(await weeks.evaluateAll(nodes=>nodes.map(node=>node.dataset.weeklyArchiveCycle)))
+    .toEqual(['2026-10-25','2026-10-18','2026-10-11','2026-10-04']);
+  await expect(page.locator('#panel-worship-semanal > .weekly-dashboard > details.weekly-history[data-weekly-archive-cycle="2026-11-01"]')).toHaveCount(1);
+  await month.locator(':scope > summary').click();
+  await expect(month).toHaveAttribute('open','');
+  const campaign=weeks.nth(2);
+  await expect(campaign.locator(':scope > summary')).toContainText('Historial · Campaña GU 2026');
+  await expect(campaign.locator('[data-weekly-history-service]')).toHaveCount(3);
+  await weeks.first().locator(':scope > summary').click();
+  await expect(weeks.first().locator('[data-weekly-history-service="viernes"] .weekly-song-title').first()).toBeVisible();
+  await expect(month.locator('a[href$=".pdf"]')).not.toHaveCount(0);
+  await expect(month.locator('.weekly-youtube-card, iframe[src*="youtube-nocookie.com"], a[href*="youtube.com/playlist"]')).toHaveCount(0);
+  // Future month transitions automatically group November, without repacking October.
+  await page.evaluate(()=>window.IPCDJ_CALENDAR.refresh(Date.parse('2026-12-02T12:00:00-05:00')));
+  const november=page.locator('#panel-worship-semanal > .weekly-dashboard > details.weekly-history-month[data-weekly-history-month="2026-11"]');
+  await expect(november).toHaveCount(1);
+  await expect(november.locator(':scope > .weekly-history-month-weeks > details.weekly-history[data-weekly-archive-cycle="2026-11-01"]')).toHaveCount(1);
+  await expect(month).toHaveAttribute('open','');
+  await expect(weeks).toHaveCount(4);
+});
+
 test('weekly history has one permanent regular title; campaign and real dates stay unique',async({page,request})=>{
   await openHealthyPage(page);
   await page.locator('#tab-worship-semanal').click();
