@@ -6834,6 +6834,7 @@
       const timestamp=Number(now);
       if(!Number.isFinite(timestamp))return null;
       const archived=applyWeeklyRolloverIfDue(timestamp);
+      groupCompletedArchiveMonths(timestamp);
       const context=weeklyContext(timestamp);
       if(!context)return null;
       const eventState=specialEventState(timestamp);
