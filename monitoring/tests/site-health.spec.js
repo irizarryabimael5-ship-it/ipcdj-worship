@@ -2846,9 +2846,21 @@ test('past months consolidate into one accessible month with distinct week and c
   await expect(weeks.first().locator('[data-weekly-history-service="viernes"] .weekly-song-title').first()).toBeVisible();
   await expect(month.locator('a[href$=".pdf"]')).not.toHaveCount(0);
   await expect(month.locator('.weekly-youtube-card, iframe[src*="youtube-nocookie.com"], a[href*="youtube.com/playlist"]')).toHaveCount(0);
-  // Future month transitions automatically group November, without repacking October.
+  // The calendar alone MUST NOT group November if December has no published set.
   await page.evaluate(()=>window.IPCDJ_CALENDAR.refresh(Date.parse('2026-12-02T12:00:00-05:00')));
   const november=page.locator('#panel-worship-semanal > .weekly-dashboard > details.weekly-history-month[data-weekly-history-month="2026-11"]');
+  await expect(november).toHaveCount(0);
+  // A newly authored Dec 4 Friday service (Sunday cycle Dec 6) triggers the
+  // handoff, even if its authored service precedes the Sunday date.
+  await page.evaluate(()=>{
+    const dash=document.querySelector('[data-weekly-dashboard]');
+    dash.dataset.weeklyCycle='2026-12-06';
+    dash.dataset.weeklyState='active';
+    dash.dataset.weeklyRolloverAt='2026-12-06T15:00:00-05:00';
+    document.querySelector('#weekly-panel-viernes').innerHTML=
+      '<strong class="weekly-song-title">December QA-only published set</strong>';
+    window.IPCDJ_CALENDAR.refresh(Date.parse('2026-12-02T12:00:00-05:00'));
+  });
   await expect(november).toHaveCount(1);
   await expect(november.locator(':scope > .weekly-history-month-weeks > details.weekly-history[data-weekly-archive-cycle="2026-11-01"]')).toHaveCount(1);
   await expect(month).toHaveAttribute('open','');
