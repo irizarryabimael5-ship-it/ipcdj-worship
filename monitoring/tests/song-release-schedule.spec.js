@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 
-// Owner-directed, STAGING-ONLY November 2026 – January 2027 calendar.
+// Owner-directed, STAGING-ONLY November 2026 – February 2027 release calendar.
 // These assertions intentionally fail if any former estreno date leaks back.
 const schedule=[
   {id:'con-manos-vacias',title:'Con Manos Vacías',artist:'Jesús Adrián Romero',
@@ -22,14 +22,19 @@ const schedule=[
     active:'2027-01-04T06:00:00-05:00',learning:'2027-01-11T00:00:00-05:00',
     lastLearning:'2027-01-17T23:59:59-05:00',final:'2027-01-18T00:00:00-05:00',
     lastFinal:'2027-01-23T23:59:59-05:00',release:'2027-01-24T11:00:00-05:00',
-    rollover:'2027-01-25T06:00:00-05:00',provider:'itunes'}
+    rollover:'2027-01-25T06:00:00-05:00',provider:'itunes'},
+  {id:'ante-ti-jc-negron',title:'Ante Ti',artist:'JC Negron',
+    active:'2027-01-25T06:00:00-05:00',learning:'2027-02-01T00:00:00-05:00',
+    lastLearning:'2027-02-07T23:59:59-05:00',final:'2027-02-08T00:00:00-05:00',
+    lastFinal:'2027-02-13T23:59:59-05:00',release:'2027-02-14T11:00:00-05:00',
+    rollover:'2027-02-15T06:00:00-05:00',provider:'itunes'}
 ];
 test.beforeEach(async({page})=>{
   await page.clock.setFixedTime(new Date('2026-10-24T19:00:00-04:00'));
   await page.goto('/',{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>!!window.IPCDJ_CATALOG&&!!window.IPCDJ_CATALOG_TEST);
 });
-test('full four-song date, media and branch-isolation contract',async({page,request})=>{
+test('full five-song date, media and branch-isolation contract',async({page,request})=>{
   const audit=await page.evaluate(()=>{
     const api=window.IPCDJ_CATALOG;
     return {health:api.health,songs:api.songs,tbd:api.tbd,
@@ -42,7 +47,7 @@ test('full four-song date, media and branch-isolation contract',async({page,requ
   expect(audit.health.fullVisualReady).toBe(true);
   expect(audit.tbd).toEqual([]);
   const upcoming=audit.songs.filter(x=>schedule.some(s=>s.id===x.id));
-  expect(upcoming).toHaveLength(4);
+  expect(upcoming).toHaveLength(5);
   expect(upcoming.map(x=>x.id)).toEqual(schedule.map(x=>x.id));
   for(const expected of schedule){
     const song=upcoming.find(x=>x.id===expected.id);
@@ -74,15 +79,16 @@ test('full four-song date, media and branch-isolation contract',async({page,requ
     expect(day).toBe('Sunday');
   }
   expect(audit.snapshot.current).toContain('con-manos-vacias');
-  expect(audit.snapshot.upcoming).toEqual(['glorioso-dia','no-fallaras','reinas-por-la-eternidad']);
-  await expect(page.locator('#upcoming-songs [data-song-id]')).toHaveCount(3);
+  expect(audit.snapshot.upcoming).toEqual(['glorioso-dia','no-fallaras','reinas-por-la-eternidad','ante-ti-jc-negron']);
+  await expect(page.locator('#upcoming-songs [data-song-id]')).toHaveCount(4);
   await expect(page.locator('#current-song-cards [data-song-id="con-manos-vacias"]')).toHaveCount(1);
-  await expect(page.locator('#requested-songs [data-request-song-id]')).toHaveCount(3);
+  await expect(page.locator('#requested-songs [data-request-song-id]')).toHaveCount(6);
   await expect(page.locator('#upcoming-songs [data-request-song-id]')).toHaveCount(0);
   const html=await (await request.get('/?new-estrenos='+Date.now(),{headers:{'cache-control':'no-cache'}})).text();
   expect(html).toContain('const SONG_TBD_SOURCE=Object.freeze([])');
   expect(html).toContain('itunesTrackId:"1603316057"');
   expect(html).toContain('itunesTrackId:"1785402419"');
+  expect(html).toContain('itunesTrackId:"1150302554"');
 });
 test('each premiere transitions into next current song and finally into history',async({page})=>{
   const state=await page.evaluate(schedule=>{
