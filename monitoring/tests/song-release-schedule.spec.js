@@ -101,8 +101,8 @@ test('full seven-song date, media and branch-isolation contract',async({page,req
   const zonedDate=(iso)=>new Intl.DateTimeFormat('en-CA',{
     timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'
   }).format(new Date(iso));
-  expect(zonedDate(miGozo.releaseAt)).toBe('03/28/2027');
-  expect(zonedDate(encontre.releaseAt)).toBe('03/07/2027');
+  expect(zonedDate(miGozo.releaseAt)).toBe('2027-03-28');
+  expect(zonedDate(encontre.releaseAt)).toBe('2027-03-07');
   expect(Date.parse(miGozo.releaseAt)-Date.parse(encontre.releaseAt)).toBe(21*24*60*60*1000-60*60*1000);
   expect(miGozo.activeFrom).toBe(encontre.rolloverAt);
   expect(miGozo.itunesTrackId).toBe('1783806482');
