@@ -6555,17 +6555,32 @@
     // <details> nodes when calendar months change. Current-month weeks stay
     // individually accessible, including the latest "Semana anterior".
     let groupedArchiveMonth="";
-    function archiveMonthKey(timestamp){
-      const parts=new Intl.DateTimeFormat("en-US",{
-        timeZone:"America/New_York",year:"numeric",month:"2-digit"
-      }).formatToParts(new Date(timestamp));
-      const year=parts.find(item=>item.type==="year")?.value||"";
-      const month=parts.find(item=>item.type==="month")?.value||"";
-      return year&&month?year+"-"+month:"";
+    // Month handoff follows the first AUTHORED next-month set, not midnight.
+    // A pending new-month placeholder does not retire the prior month's weeks.
+    function archiveHandoffMonth(){
+      const cycle=weeklyDashboard?.dataset.weeklyCycle||"";
+      const valid= /^\d{4}-\d{2}-\d{2}$/.test(cycle);
+      const archives=[...weeklyDashboard.querySelectorAll(
+        'details.weekly-history[data-weekly-archive-cycle]'
+      )];
+      const currentPublished=weeklyDashboard.dataset.weeklyState==="active"&&
+        weeklyServicePanels.some(panel=>!!panel.querySelector(".weekly-song-title"));
+      const currentArchived=archives.some(card=>
+        card.dataset.weeklyArchiveCycle===cycle&&
+        !!card.querySelector(".weekly-song-title")
+      );
+      if(valid&&(currentPublished||currentArchived))return cycle.slice(0,7);
+      // Conservative fallback: most recent REAL archived set, never a proposed
+      // or empty upcoming placeholder, determines which month remains current.
+      const latest=archives.filter(card=>card.querySelector(".weekly-song-title"))
+        .map(card=>card.dataset.weeklyArchiveCycle||"")
+        .filter(value=>/^\d{4}-\d{2}-\d{2}$/.test(value))
+        .sort().at(-1)||"";
+      return latest.slice(0,7);
     }
     function groupCompletedArchiveMonths(now=Date.now(),force=false){
       if(!weeklyDashboard||!Number.isFinite(Number(now)))return false;
-      const presentMonth=archiveMonthKey(now);
+      const presentMonth=archiveHandoffMonth();
       if(!presentMonth||(!force&&presentMonth===groupedArchiveMonth))return false;
       const cards=[...weeklyDashboard.querySelectorAll(
         'details.weekly-history[data-weekly-archive-cycle]'
