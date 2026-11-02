@@ -1444,6 +1444,64 @@
       text-align:right;
     }
 
+    /* Month-level archive: group previous calendar months without changing archived sets. */
+    .weekly-history-month{
+      border:1px solid rgba(255,255,255,.095);
+      border-radius:18px;
+      background:linear-gradient(145deg,rgba(50,75,115,.10),rgba(255,255,255,.018));
+      overflow:hidden;
+      min-width:0;
+    }
+    .weekly-history-month > summary{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      min-height:54px;
+      gap:14px;
+      padding:13px 16px;
+      list-style:none;
+      color:#e8edf7;
+      cursor:pointer;
+      font-size:.82rem;
+      line-height:1.2;
+      font-weight:780;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .weekly-history-month > summary::-webkit-details-marker{display:none}
+    .weekly-history-month > summary::after{
+      content:"+";
+      flex:0 0 auto;
+      color:#8795aa;
+      font-size:1rem;
+      font-weight:500;
+    }
+    .weekly-history-month[open] > summary::after{content:"−"}
+    .weekly-history-month > summary small{
+      color:#8e9bb0;
+      font-size:.66rem;
+      font-weight:650;
+      text-align:right;
+    }
+    .weekly-history-month-weeks{
+      display:grid;
+      gap:11px;
+      padding:0 13px 14px;
+      min-width:0;
+    }
+    .weekly-history-month-weeks > .weekly-history{
+      border-color:rgba(255,255,255,.065);
+      background:rgba(0,0,0,.09);
+      margin-top:0;
+    }
+    .weekly-dashboard > :is(.weekly-history,.weekly-history-month) ~ :is(.weekly-history,.weekly-history-month){
+      margin-top:12px;
+    }
+    .weekly-history-month > summary:focus-visible{
+      outline:2px solid #95ceff;
+      outline-offset:-3px;
+      border-radius:17px;
+    }
+
     .weekly-history-body{
       padding:0 16px 16px;
       color:#8592a5;
@@ -6493,6 +6551,79 @@
     });
     hydrateCompletedCampaignArchive();
 
+    // Preserve archive markup verbatim; regroup only the already archived
+    // <details> nodes when calendar months change. Current-month weeks stay
+    // individually accessible, including the latest "Semana anterior".
+    let groupedArchiveMonth="";
+    function archiveMonthKey(timestamp){
+      const parts=new Intl.DateTimeFormat("en-US",{
+        timeZone:"America/New_York",year:"numeric",month:"2-digit"
+      }).formatToParts(new Date(timestamp));
+      const year=parts.find(item=>item.type==="year")?.value||"";
+      const month=parts.find(item=>item.type==="month")?.value||"";
+      return year&&month?year+"-"+month:"";
+    }
+    function groupCompletedArchiveMonths(now=Date.now(),force=false){
+      if(!weeklyDashboard||!Number.isFinite(Number(now)))return false;
+      const presentMonth=archiveMonthKey(now);
+      if(!presentMonth||(!force&&presentMonth===groupedArchiveMonth))return false;
+      const cards=[...weeklyDashboard.querySelectorAll(
+        'details.weekly-history[data-weekly-archive-cycle]'
+      )];
+      if(!cards.length)return false;
+      const roots=[...weeklyDashboard.children].filter(node=>
+        node.matches?.('details.weekly-history,details.weekly-history-month')
+      );
+      if(!roots.length)return false;
+      // Stable native <details>: retain every opened week and previously
+      // expanded month even when re-grouping at the next midnight/rollover.
+      const openMonths=new Set([...weeklyDashboard.querySelectorAll(
+        'details.weekly-history-month[open]'
+      )].map(node=>node.dataset.weeklyHistoryMonth));
+      const marker=document.createComment("weekly archive month insertion");
+      weeklyDashboard.insertBefore(marker,roots[0]);
+      roots.forEach(node=>node.remove());
+
+      const months=new Map(),ordered=[];
+      cards.forEach(card=>{
+        const cycle=card.dataset.weeklyArchiveCycle||"";
+        const key=/^\d{4}-\d{2}-\d{2}$/.test(cycle)?cycle.slice(0,7):"";
+        if(!key||key>=presentMonth){
+          ordered.push(card);
+          return;
+        }
+        let group=months.get(key);
+        if(!group){
+          group=document.createElement("details");
+          group.className="weekly-history-month";
+          group.dataset.weeklyHistoryMonth=key;
+          group.open=openMonths.has(key);
+          const summary=document.createElement("summary");
+          const title=document.createElement("span");
+          title.textContent=new Intl.DateTimeFormat("es-ES",{
+            timeZone:"UTC",month:"long",year:"numeric"
+          }).format(new Date(key+"-01T12:00:00Z")).replace(/^./,ch=>ch.toUpperCase());
+          const count=document.createElement("small");
+          count.dataset.weeklyMonthCount="";
+          summary.append(title,count);
+          const content=document.createElement("div");
+          content.className="weekly-history-month-weeks";
+          group.append(summary,content);
+          months.set(key,group);
+          ordered.push(group);
+        }
+        group.querySelector(".weekly-history-month-weeks").append(card);
+      });
+      months.forEach(group=>{
+        const total=group.querySelectorAll('details.weekly-history').length;
+        group.querySelector("[data-weekly-month-count]").textContent=
+          total+" "+(total===1?"semana":"semanas");
+      });
+      marker.replaceWith(...ordered);
+      groupedArchiveMonth=presentMonth;
+      return true;
+    }
+
     const weeklyPendingMarkup=key=>`
       <div class="weekly-empty">
         <div class="weekly-empty-inner">
@@ -6581,6 +6712,7 @@
 
       weeklyDashboard.dataset.weeklyState="rolled";
       activateWeeklyService("viernes");
+      groupCompletedArchiveMonths(timestamp,true);
       return true;
     }
 
@@ -6795,6 +6927,7 @@
       if(!document.hidden)refreshLivingCalendar(weeklyClockNow(),"heartbeat");
     },30000);
     refreshLivingCalendar(Date.now(),"startup");
+    groupCompletedArchiveMonths(Date.now(),false);
     scheduleWeeklyRollover();
 
     const pullRefresh=document.querySelector(".pull-refresh");
