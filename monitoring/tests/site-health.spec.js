@@ -2783,7 +2783,7 @@ test('artwork focus prioritizes owner-approved Poderoso text exception; other pe
   await expect(page.locator('#upcoming-songs [data-request-song-id]')).toHaveCount(0);
 });
 
-test('Vuelven a Sonar tab separates two confirmed selections from real service sets',async({page})=>{
+test('Vuelven a Sonar tab separates three owner selections from real service sets',async({page})=>{
   await openHealthyPage(page);
   const tab=page.locator('#tab-vuelven-a-sonar'),panel=page.locator('#panel-vuelven-a-sonar');
   await expect(tab).toHaveCount(1);
@@ -2792,15 +2792,16 @@ test('Vuelven a Sonar tab separates two confirmed selections from real service s
   await expect(panel).toBeVisible();
   await expect(tab).toHaveAttribute('aria-selected','true');
   const rows=panel.locator('[data-return-song-id]');
-  await expect(rows).toHaveCount(2);
-  expect(await rows.locator('.song-top h3').allTextContents()).toEqual(['Santo Es El Que Vive','Con Poder']);
-  expect(await rows.locator('.song-top p').allTextContents()).toEqual(['Montesanto','Barak']);
-  await expect(rows.locator('.song-date')).toHaveText(['Por retomar','Por retomar']);
+  await expect(rows).toHaveCount(3);
+  expect(await rows.locator('.song-top h3').allTextContents()).toEqual(['Santo Es El Que Vive','Con Poder','Soy Esa Generación']);
+  expect(await rows.locator('.song-top p').allTextContents()).toEqual(['Montesanto','Barak','Oasis Ministry']);
+  await expect(rows.locator('.song-date')).toHaveText(['Por retomar','Por retomar','Por retomar']);
+  await expect(rows.nth(2)).toHaveAttribute('data-return-song-id','retorno-soy-esa-generacion-oasis-ministry');
   for(const row of await rows.all())await expect(row).toHaveAttribute('data-return-proof','pending');
-  await expect(rows.locator('.future-artwork-ghost')).toHaveCount(2);
-  await expect(rows.locator('.future-artwork-blur')).toHaveCount(2);
-  await expect(rows.locator('.future-preview-button')).toHaveCount(2);
-  await expect(rows.locator('.future-preview-ring-progress')).toHaveCount(2);
+  await expect(rows.locator('.future-artwork-ghost')).toHaveCount(3);
+  await expect(rows.locator('.future-artwork-blur')).toHaveCount(3);
+  await expect(rows.locator('.future-preview-button')).toHaveCount(3);
+  await expect(rows.locator('.future-preview-ring-progress')).toHaveCount(3);
   await expect(rows.locator('.catalog-preview-attribution')).toHaveCount(0);
   for(const row of await rows.all()){
     await expect(row).toHaveClass(/future-themed/);
@@ -2835,14 +2836,15 @@ test('every curated song uses only the owner-approved original Web Audio engine'
     'request-bienvenido-espiritu-santo-barak',
     'request-thank-god-im-free-elevation-rhythm',
     'retorno-santo-es-el-que-vive-montesanto',
-    'retorno-con-poder-barak'
+    'retorno-con-poder-barak',
+    'retorno-soy-esa-generacion-oasis-ministry'
   ]);
   expect(contract.active.playing).toBe(false);
   expect(contract.active.outgoingVoices).toBe(0);
   await page.locator('#tab-solicitudes').click();
   await expect(page.locator('#requested-songs [data-preview-song-id]')).toHaveCount(6);
   await page.locator('#tab-vuelven-a-sonar').click();
-  await expect(page.locator('#returning-songs [data-preview-song-id]')).toHaveCount(2);
+  await expect(page.locator('#returning-songs [data-preview-song-id]')).toHaveCount(3);
   const r=await request.get('/?one-locked-audio-engine='+Date.now(),{
     headers:{'cache-control':'no-cache'}
   });
@@ -2854,6 +2856,9 @@ test('every curated song uses only the owner-approved original Web Audio engine'
   expect(html).toContain('webPreviewBufferPromises.delete(key)');
   expect(html).toContain('if(song.previewSourceVerifiedCollection===true)');
   expect(html).toContain('itunesCollectionId:"1783806472"');
+  expect(html).toContain('id:"retorno-soy-esa-generacion-oasis-ministry"');
+  expect(html).toContain('itunesTrackId:"1778105447"');
+  expect(html).toContain('artworkSource:"oasis-ministry-2022-soy-esa-generacion-live-single"');
   expect(html).toContain('artworkFocalY:"47%"');
   expect(html).not.toContain('previewStreamingOnly:true');
   expect(html).not.toContain('source:"streamed-itunes"');
