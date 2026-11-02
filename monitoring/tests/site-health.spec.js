@@ -1180,6 +1180,46 @@ test('desktop Chrome tab switching cannot replay the launch intro', async ({ pag
 
 
 
+test('Ante Ti by JC Negron receives the next 3-week-spaced Feb 14 premiere with full preparation',async({page,request})=>{
+  await openHealthyPage(page);
+  const audit=await page.evaluate(()=>{
+    const a=window.IPCDJ_CATALOG,song=a.songs.find(s=>s.id==='ante-ti-jc-negron');
+    return {health:a.health,song,upcoming:a.snapshot(Date.parse('2026-11-02T12:00:00-05:00')).upcoming,
+      phaseAtLearning:a.phase('ante-ti-jc-negron',Date.parse('2027-02-01T12:00:00-05:00')).key,
+      phaseAtFinal:a.phase('ante-ti-jc-negron',Date.parse('2027-02-08T12:00:00-05:00')).key,
+      phaseAtRelease:a.phase('ante-ti-jc-negron',Date.parse('2027-02-14T11:00:00-05:00')).key,
+      before:a.snapshot(Date.parse('2027-02-15T05:59:59-05:00')),
+      after:a.snapshot(Date.parse('2027-02-15T06:00:00-05:00'))};
+  });
+  expect(audit.health.valid).toBe(true);
+  expect(audit.health.fullVisualReady).toBe(true);
+  expect(audit.song).toMatchObject({
+    title:'Ante Ti',artist:'JC Negron',album:'Él Me Salvó',
+    activeFrom:'2027-01-25T06:00:00-05:00',
+    learningStart:'2027-02-01T00:00:00-05:00',
+    learningEnd:'2027-02-07T23:59:59-05:00',
+    finalStart:'2027-02-08T00:00:00-05:00',
+    finalEnd:'2027-02-13T23:59:59-05:00',
+    releaseAt:'2027-02-14T11:00:00-05:00',
+    rolloverAt:'2027-02-15T06:00:00-05:00',
+    introducedAt:'2027-02-15T06:00:00-05:00',
+    itunesTrackId:'1150302554',
+    artworkUrl:'https://i.scdn.co/image/ab67616d0000b2733e485999ec387f27e6e9fa41'
+  });
+  expect(audit.upcoming).toContain('ante-ti-jc-negron');
+  expect(audit.phaseAtLearning).toBe('learning');
+  expect(audit.phaseAtFinal).toBe('final');
+  expect(audit.phaseAtRelease).toBe('release');
+  expect(audit.before.current).toContain('ante-ti-jc-negron');
+  expect(audit.after.current).not.toContain('ante-ti-jc-negron');
+  expect(audit.after.introduced).toContain('ante-ti-jc-negron');
+  await expect(page.locator('#upcoming-songs [data-song-id="ante-ti-jc-negron"]')).toHaveCount(1);
+  await expect(page.locator('#upcoming-songs [data-song-id="ante-ti-jc-negron"] .preview-button')).toBeVisible();
+  const response=await request.get('/?ante-ti-dated-source='+Date.now(),{headers:{'cache-control':'no-cache'}});
+  expect(response.ok()).toBe(true);
+  const html=await response.text();
+  expect(html).toContain('releaseAt:"2027-02-14T11:00:00-05:00"');
+});
 test('Reinas is scheduled on Jan 24 with official art, preview and automatic lifecycle',async({page})=>{
   await openHealthyPage(page);
   const audit=await page.evaluate(()=>({
@@ -1371,11 +1411,11 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
     nov16Early: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-11-16T01:00:00-05:00')),
     nov16Active: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-11-16T06:01:00-05:00'))
   }));
-  expect(orderSnapshots.sep21.upcoming).toEqual(['con-manos-vacias','glorioso-dia','no-fallaras','reinas-por-la-eternidad']);
+  expect(orderSnapshots.sep21.upcoming).toEqual(['con-manos-vacias','glorioso-dia','no-fallaras','reinas-por-la-eternidad','ante-ti-jc-negron']);
   expect(orderSnapshots.oct5.upcoming).not.toContain('dios-no-esta-muerto');
   expect(orderSnapshots.oct6.current).toEqual(['dios-no-esta-muerto','con-manos-vacias']);
   expect(orderSnapshots.oct6.upcoming).not.toContain('dios-no-esta-muerto');
-  expect(orderSnapshots.nov16Early.upcoming).toEqual(['glorioso-dia','no-fallaras','reinas-por-la-eternidad']);
+  expect(orderSnapshots.nov16Early.upcoming).toEqual(['glorioso-dia','no-fallaras','reinas-por-la-eternidad','ante-ti-jc-negron']);
   expect(orderSnapshots.nov16Active.current).toContain('glorioso-dia');
 
   const sourceResponse = await request.get('/?catalog-source-check=' + Date.now(), {
