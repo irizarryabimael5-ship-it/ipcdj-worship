@@ -2842,8 +2842,25 @@ test('past months consolidate into one accessible month with distinct week and c
   const campaign=weeks.nth(2);
   await expect(campaign.locator(':scope > summary')).toContainText('Historial · Campaña GU 2026');
   await expect(campaign.locator('[data-weekly-history-service]')).toHaveCount(3);
+  const campaignFolders=campaign.locator('.weekly-history-service-folder');
+  await expect(campaignFolders).toHaveCount(3);
+  expect(await campaignFolders.evaluateAll(nodes=>nodes.map(n=>n.dataset.weeklyServiceFolder)))
+    .toEqual(['viernes','sabado','domingo']);
   await weeks.first().locator(':scope > summary').click();
-  await expect(weeks.first().locator('[data-weekly-history-service="viernes"] .weekly-song-title').first()).toBeVisible();
+  const firstWeek=weeks.first();
+  const serviceFolders=firstWeek.locator('.weekly-history-service-folder');
+  await expect(serviceFolders).toHaveCount(2);
+  expect(await serviceFolders.evaluateAll(nodes=>nodes.map(n=>n.dataset.weeklyServiceFolder)))
+    .toEqual(['viernes','domingo']);
+  await expect(serviceFolders.first().locator(':scope > summary')).toBeVisible();
+  await expect(serviceFolders.first().locator('[data-weekly-history-service="viernes"] .weekly-song-title').first()).toBeHidden();
+  await serviceFolders.first().locator(':scope > summary').click();
+  await expect(serviceFolders.first()).toHaveAttribute('open','');
+  await expect(serviceFolders.first().locator('[data-weekly-history-service="viernes"] .weekly-song-title').first()).toBeVisible();
+  await serviceFolders.nth(1).locator(':scope > summary').click();
+  await expect(serviceFolders.nth(1).locator('[data-weekly-history-service="domingo"] .weekly-song-title').first()).toBeVisible();
+  const previousWeek=page.locator('#panel-worship-semanal > .weekly-dashboard > details.weekly-history[data-weekly-archive-cycle="2026-11-01"]');
+  await expect(previousWeek.locator('.weekly-history-service-folder')).toHaveCount(2);
   await expect(month.locator('a[href$=".pdf"]')).not.toHaveCount(0);
   await expect(month.locator('.weekly-youtube-card, iframe[src*="youtube-nocookie.com"], a[href*="youtube.com/playlist"]')).toHaveCount(0);
   // The calendar alone MUST NOT group November if December has no published set.
