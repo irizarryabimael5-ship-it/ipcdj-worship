@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 
-// Owner-directed, STAGING-ONLY November 2026 – March 2027 release calendar.
+// Owner-directed, STAGING-ONLY November 2026 – March 2027 release calendar, including EDT handoff.
 // These assertions intentionally fail if any former estreno date leaks back.
 const schedule=[
   {id:'con-manos-vacias',title:'Con Manos Vacías',artist:'Jesús Adrián Romero',
@@ -32,14 +32,19 @@ const schedule=[
     active:'2027-02-15T06:00:00-05:00',learning:'2027-02-22T00:00:00-05:00',
     lastLearning:'2027-02-28T23:59:59-05:00',final:'2027-03-01T00:00:00-05:00',
     lastFinal:'2027-03-06T23:59:59-05:00',release:'2027-03-07T11:00:00-05:00',
-    rollover:'2027-03-08T06:00:00-05:00',provider:'itunes'}
+    rollover:'2027-03-08T06:00:00-05:00',provider:'itunes'},
+  {id:'mi-gozo-live-barak',title:'Mi Gozo (Live)',artist:'Barak',
+    active:'2027-03-08T06:00:00-05:00',learning:'2027-03-15T00:00:00-04:00',
+    lastLearning:'2027-03-21T23:59:59-04:00',final:'2027-03-22T00:00:00-04:00',
+    lastFinal:'2027-03-27T23:59:59-04:00',release:'2027-03-28T11:00:00-04:00',
+    rollover:'2027-03-29T06:00:00-04:00',provider:'itunes'}
 ];
 test.beforeEach(async({page})=>{
   await page.clock.setFixedTime(new Date('2026-10-24T19:00:00-04:00'));
   await page.goto('/',{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>!!window.IPCDJ_CATALOG&&!!window.IPCDJ_CATALOG_TEST);
 });
-test('full six-song date, media and branch-isolation contract',async({page,request})=>{
+test('full seven-song date, media and branch-isolation contract',async({page,request})=>{
   const audit=await page.evaluate(()=>{
     const api=window.IPCDJ_CATALOG;
     return {health:api.health,songs:api.songs,tbd:api.tbd,
@@ -52,7 +57,7 @@ test('full six-song date, media and branch-isolation contract',async({page,reque
   expect(audit.health.fullVisualReady).toBe(true);
   expect(audit.tbd).toEqual([]);
   const upcoming=audit.songs.filter(x=>schedule.some(s=>s.id===x.id));
-  expect(upcoming).toHaveLength(6);
+  expect(upcoming).toHaveLength(7);
   expect(upcoming.map(x=>x.id)).toEqual(schedule.map(x=>x.id));
   for(const expected of schedule){
     const song=upcoming.find(x=>x.id===expected.id);
@@ -91,9 +96,23 @@ test('full six-song date, media and branch-isolation contract',async({page,reque
   expect(encontre.itunesCollectionId).toBe('1838982743');
   expect(encontre.artworkSource).toBe('generacion12-encontre-2022-single-artwork-reference');
   expect(encontre.futurePalette).toEqual([[166,102,94],[202,133,120],[41,35,36]]);
+  const miGozo=upcoming.find(x=>x.id==='mi-gozo-live-barak');
+  // 21 calendar days but only 20d23h in UTC because DST begins March 14.
+  const zonedDate=(iso)=>new Intl.DateTimeFormat('en-CA',{
+    timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'
+  }).format(new Date(iso));
+  expect(zonedDate(miGozo.releaseAt)).toBe('03/28/2027');
+  expect(zonedDate(encontre.releaseAt)).toBe('03/07/2027');
+  expect(Date.parse(miGozo.releaseAt)-Date.parse(encontre.releaseAt)).toBe(21*24*60*60*1000-60*60*1000);
+  expect(miGozo.activeFrom).toBe(encontre.rolloverAt);
+  expect(miGozo.itunesTrackId).toBe('1783806482');
+  expect(miGozo.itunesCollectionId).toBe('1783806472');
+  expect(miGozo.album).toBe('Fuego & Poder (Live)');
+  expect(miGozo.artworkUrl).toBe('https://i.scdn.co/image/ab67616d0000b2730a45cc0e99318eda67b32111');
+  expect(miGozo.futurePalette).toEqual([[45,62,80],[137,95,97],[82,110,132]]);
   expect(audit.snapshot.current).toContain('con-manos-vacias');
-  expect(audit.snapshot.upcoming).toEqual(['glorioso-dia','no-fallaras','reinas-por-la-eternidad','ante-ti-jc-negron','encontre-generacion-12']);
-  await expect(page.locator('#upcoming-songs [data-song-id]')).toHaveCount(5);
+  expect(audit.snapshot.upcoming).toEqual(['glorioso-dia','no-fallaras','reinas-por-la-eternidad','ante-ti-jc-negron','encontre-generacion-12','mi-gozo-live-barak']);
+  await expect(page.locator('#upcoming-songs [data-song-id]')).toHaveCount(6);
   await expect(page.locator('#current-song-cards [data-song-id="con-manos-vacias"]')).toHaveCount(1);
   await expect(page.locator('#requested-songs [data-request-song-id]')).toHaveCount(6);
   await expect(page.locator('#upcoming-songs [data-request-song-id]')).toHaveCount(0);
@@ -104,6 +123,8 @@ test('full six-song date, media and branch-isolation contract',async({page,reque
   expect(html).toContain('itunesTrackId:"1150302554"');
   expect(html).toContain('itunesTrackId:"1838982752"');
   expect(html).toContain('releaseAt:"2027-03-07T11:00:00-05:00"');
+  expect(html).toContain('itunesTrackId:"1783806482"');
+  expect(html).toContain('releaseAt:"2027-03-28T11:00:00-04:00"');
 });
 test('each premiere transitions into next current song and finally into history',async({page})=>{
   const state=await page.evaluate(schedule=>{
