@@ -6558,25 +6558,32 @@
     // Month handoff follows the first AUTHORED next-month set, not midnight.
     // A pending new-month placeholder does not retire the prior month's weeks.
     function archiveHandoffMonth(){
+      // A Friday can fall in the prior calendar month of its Sunday cycle.
+      // Count only service panels that actually contain published songs.
+      function realServiceMonths(cycle,panels,attribute){
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(cycle||""))return [];
+        const base=new Date(cycle+"T12:00:00Z");
+        if(Number.isNaN(base.getTime()))return [];
+        return ["viernes","sabado","domingo"].flatMap((day,index)=>{
+          const panel=panels.find(node=>node.dataset[attribute]===day);
+          if(!panel||!panel.querySelector(".weekly-song-title"))return [];
+          const date=new Date(base.getTime());
+          date.setUTCDate(date.getUTCDate()-(2-index));
+          return [date.toISOString().slice(0,7)];
+        });
+      }
+      const months=[];
       const cycle=weeklyDashboard?.dataset.weeklyCycle||"";
-      const valid= /^\d{4}-\d{2}-\d{2}$/.test(cycle);
-      const archives=[...weeklyDashboard.querySelectorAll(
-        'details.weekly-history[data-weekly-archive-cycle]'
-      )];
-      const currentPublished=weeklyDashboard.dataset.weeklyState==="active"&&
-        weeklyServicePanels.some(panel=>!!panel.querySelector(".weekly-song-title"));
-      const currentArchived=archives.some(card=>
-        card.dataset.weeklyArchiveCycle===cycle&&
-        !!card.querySelector(".weekly-song-title")
-      );
-      if(valid&&(currentPublished||currentArchived))return cycle.slice(0,7);
-      // Conservative fallback: most recent REAL archived set, never a proposed
-      // or empty upcoming placeholder, determines which month remains current.
-      const latest=archives.filter(card=>card.querySelector(".weekly-song-title"))
-        .map(card=>card.dataset.weeklyArchiveCycle||"")
-        .filter(value=>/^\d{4}-\d{2}-\d{2}$/.test(value))
-        .sort().at(-1)||"";
-      return latest.slice(0,7);
+      if(weeklyDashboard.dataset.weeklyState==="active"){
+        months.push(...realServiceMonths(cycle,weeklyServicePanels,"weeklyPanel"));
+      }
+      weeklyDashboard.querySelectorAll('details.weekly-history[data-weekly-archive-cycle]')
+        .forEach(card=>{
+          const panels=[...card.querySelectorAll('[data-weekly-history-service]')];
+          months.push(...realServiceMonths(card.dataset.weeklyArchiveCycle,panels,"weeklyHistoryService"));
+        });
+      // No new-month set? Nothing moves just because the calendar advances.
+      return months.sort().at(-1)||"";
     }
     function groupCompletedArchiveMonths(now=Date.now(),force=false){
       if(!weeklyDashboard||!Number.isFinite(Number(now)))return false;
