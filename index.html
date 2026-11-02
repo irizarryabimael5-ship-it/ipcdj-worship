@@ -6602,7 +6602,9 @@
           const title=document.createElement("span");
           title.textContent=new Intl.DateTimeFormat("es-ES",{
             timeZone:"UTC",month:"long",year:"numeric"
-          }).format(new Date(key+"-01T12:00:00Z")).replace(/^./,ch=>ch.toUpperCase());
+          }).format(new Date(key+"-01T12:00:00Z"))
+            .replace(/ de (?=\d{4}$)/," ")
+            .replace(/^./,ch=>ch.toUpperCase());
           const count=document.createElement("small");
           count.dataset.weeklyMonthCount="";
           summary.append(title,count);
