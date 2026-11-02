@@ -2797,11 +2797,10 @@ test('Vuelven a Sonar tab separates three owner selections from real service set
   expect(await rows.locator('.song-top p').allTextContents()).toEqual(['Montesanto','Barak','Oasis Ministry']);
   await expect(rows.locator('.song-date')).toHaveText(['Por retomar','Por retomar','Por retomar']);
   await expect(rows.nth(2)).toHaveAttribute('data-return-song-id','retorno-soy-esa-generacion-oasis-ministry');
-  // The performer and the printed album lettering must remain in the same crop.
   await expect(rows.nth(2)).toHaveAttribute('data-artwork-focal-subject','people');
-  await expect(rows.nth(2)).toHaveAttribute('data-artwork-focal-y','40%');
+  await expect(rows.nth(2)).toHaveAttribute('data-artwork-focal-y','47%');
   const returnArtworkPosition=await rows.nth(2).locator('.future-artwork-ghost').evaluate(el=>getComputedStyle(el).backgroundPosition);
-  expect(returnArtworkPosition).toMatch(/(?:100%|right) 40%/);
+  expect(returnArtworkPosition).toMatch(/(?:100%|right) 47%/);
   for(const row of await rows.all())await expect(row).toHaveAttribute('data-return-proof','pending');
   await expect(rows.locator('.future-artwork-ghost')).toHaveCount(3);
   await expect(rows.locator('.future-artwork-blur')).toHaveCount(3);
@@ -2864,7 +2863,7 @@ test('every curated song uses only the owner-approved original Web Audio engine'
   expect(html).toContain('id:"retorno-soy-esa-generacion-oasis-ministry"');
   expect(html).toContain('itunesTrackId:"1778105447"');
   expect(html).toContain('artworkSource:"oasis-ministry-2022-soy-esa-generacion-live-single"');
-  expect(html).toContain('artworkFocalY:"40%"');
+  expect(html).toContain('artworkFocalY:"47%"');
   expect(html).not.toContain('previewStreamingOnly:true');
   expect(html).not.toContain('source:"streamed-itunes"');
   expect(html).not.toContain('toggleStreamedItunesPreview');
