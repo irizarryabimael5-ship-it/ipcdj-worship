@@ -627,87 +627,84 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   const sunday=weeklyPanel.locator('#weekly-panel-domingo');
   const dashboard=weeklyPanel.locator('[data-weekly-dashboard]');
   await expect(dashboard).toHaveAttribute('data-weekly-state','active');
-  await expect(dashboard).toHaveAttribute('data-weekly-cycle','2026-11-01');
-  await expect(dashboard).toHaveAttribute('data-weekly-rollover-at','2026-11-01T15:00:00-05:00');
-  await expect(weeklyPanel.locator('#weekly-tab-viernes')).toContainText('Actualizado');
+  await expect(dashboard).toHaveAttribute('data-weekly-cycle','2026-11-08');
+  await expect(dashboard).toHaveAttribute('data-weekly-rollover-at','2026-11-08T15:00:00-05:00');
+  await expect(weeklyPanel.locator('#weekly-tab-viernes')).toContainText('Pendiente');
   await expect(weeklyPanel.locator('#weekly-tab-domingo')).toContainText('Actualizado');
   await expect(friday).toBeVisible();
-  await expect(friday).toContainText('Viernes, 30 de octubre');
-  expect(await friday.locator('.weekly-song-title').allTextContents()).toEqual(
-    ['Libre Soy','Tu Nombre','No Falla','Si Tu Presencia Conmigo No Va']);
-  expect(await friday.locator('.weekly-song-artist').allTextContents()).toEqual([
-    'Barak ft. Alex Campos','Miel San Marcos ft. Coalo Zamorano','Cita Con el Padre','Oasis Ministry']);
-  expect(await friday.locator('.weekly-song-meta span').allTextContents()).toEqual([
-    'Tono · Do Mayor','BPM · 68/135','Tono · Re Mayor','BPM · 90/180',
-    'Tono · Sol Menor','BPM · 66/132','Tono · Re Mayor','BPM · 65/130']);
-  expect(await friday.locator('.weekly-corito').allTextContents()).toEqual([
-    'Alabad A Jehová Naciones Todas','Te Alabarán Oh Jehová Todos Los Reyes']);
-  await expect(friday).toContainText('Josselin');
-  await expect(friday).toContainText('La Menor · 130 BPM');
-  await expect(friday.locator('.weekly-flow-note')).toHaveText('FLOW');
-  await expect(friday.locator('.weekly-resource')).toContainText('Letras & Coritos');
-  await expect(friday.locator('.weekly-resource')).toContainText('Abrir recurso del viernes');
-  await expect(friday.locator('a.weekly-resource[href="https://u.pone.rs/plvjogek.pdf"]')).toHaveCount(1);
-  await expect(friday.locator('a[href="https://youtube.com/playlist?list=PLXqqjNOyFIbg&si=K_4ZXTb0tZJdTWsD"]')).toHaveCount(1);
-  await expect(friday.locator('iframe[src="https://www.youtube-nocookie.com/embed/videoseries?list=PLXqqjNOyFIbg"]')).toHaveCount(1);
-  await expect(friday.locator('.weekly-song')).toHaveCount(4);
+  await expect(friday).toContainText('Set pendiente');
+  await expect(friday.locator('.weekly-song')).toHaveCount(0);
   await weeklyPanel.locator('#weekly-tab-domingo').click();
   await expect(sunday).toBeVisible();
-  await expect(sunday).toContainText('Domingo, 1 de noviembre');
+  await expect(sunday).toContainText('Domingo, 8 de noviembre');
   expect(await sunday.locator('.weekly-song-title').allTextContents()).toEqual(
-    ['Hay Libertad','Rodeado','Mi Mayor Necesidad','Digno de Adorar + Fluir','Espacio Te Haré']);
+    ['Bienvenido Espíritu Santo','Dios No Está Muerto','Sí y Amén','El Gran Yo Soy','Clamo a Cristo']);
   expect(await sunday.locator('.weekly-song-artist').allTextContents()).toEqual([
-    'Art Aguilera','Grupo Hope & TBA Worship ft. Misael J y Carolina Ponciano',
-    'Oasis Ministry','Grupo Conexión','Indiomar ft. Community Music']);
+    'Miel San Marcos ft. Marco Barrientos','Miel San Marcos','Grupo Barak',
+    'En Espíritu y En Verdad','Elevation Español']);
   expect(await sunday.locator('.weekly-song-meta span').allTextContents()).toEqual([
-    'Tono · Fa Mayor','BPM · 74/148','Tono · Re Menor','BPM · 74/148',
-    'Tono · La Mayor','BPM · 65/130','Tono · Re♭ Mayor','BPM · 68/136',
-    'Tono · Re♭ Mayor','BPM · 62/124']);
-  expect(await sunday.locator('.weekly-corito').allTextContents()).toEqual([
-    'En El Principio El Espíritu De Dios',
-    'Cuando El Pueblo Del Señor Alaba A Dios',
-    'Ven Espíritu Divino','Satúrame Señor Con Tu Espíritu',
-    'Aquel Fuego Que Cayó A 120 Una Vez']);
-  await expect(sunday).toContainText('Josselin');
-  await expect(sunday).toContainText('La Menor · 130 BPM');
-  await expect(sunday.locator('a[href="https://u.pone.rs/ulnhzvma.pdf"]')).toHaveCount(1);
-  await expect(sunday.locator('a[href="https://youtube.com/playlist?list=PLZPyN3qZEvrQ&si=ajRB3yLCxd7zotur"]')).toHaveCount(1);
-  await expect(sunday.locator('iframe[src="https://www.youtube-nocookie.com/embed/videoseries?list=PLZPyN3qZEvrQ"]')).toHaveCount(1);
+    'Tono · Do Mayor','BPM · 98/196',
+    'Tono · Mi Menor','BPM · 65/130',
+    'Tono · Mi♭ Mayor','BPM · 72/144',
+    'Tono · Fa Mayor','BPM · 80/160',
+    'Tono · Fa Mayor','BPM · 86/172']);
+  await expect(sunday).toContainText('Dayari');
+  await expect(sunday).toContainText('Compás · 4/4');
+  await expect(sunday.locator('.weekly-coritos-card')).toContainText('La Menor · 130 BPM');
+  await expect(sunday.locator('.weekly-coritos-card')).toContainText('Disponible pronto');
+  await expect(sunday.locator('.weekly-corito')).toHaveCount(0);
+  await expect(sunday.locator('.weekly-resource')).toContainText('Letras & Coritos');
+  await expect(sunday.locator('.weekly-resource')).toContainText('Disponible pronto');
+  await expect(sunday.locator('a.weekly-resource')).toHaveCount(0);
+  await expect(sunday.locator('.weekly-youtube-card iframe[src="https://www.youtube-nocookie.com/embed/videoseries?list=PLZPyN3qZEvrQ"]')).toHaveCount(1);
+  await expect(sunday.locator('a[href="https://youtube.com/playlist?list=PLZPyN3qZEvrQ&si=YStp6VPCeVg3p6LJ"]')).toHaveCount(1);
+  await expect(sunday.locator('.weekly-song')).toHaveCount(5);
+  await expect(sunday.locator('.weekly-note-card')).toContainText('Ensayen con la canción, con metrónomo y eventualmente sin letra.');
+  for(const hidden of ['Yo Tengo Un Amigo Que Me Ama','Aquel Que Caminó Sobre Las Aguas',
+    'Yo Soy Testigo Del Poder De Dios','El Cristo De Galilea','El Señor Me Llenó De Gozo'])
+    await expect(sunday).not.toContainText(hidden);
   await weeklyPanel.locator('#weekly-tab-viernes').click();
+
+  const nov1=weeklyPanel.locator('.weekly-history[data-weekly-archive-cycle="2026-11-01"]');
   const oct25=weeklyPanel.locator('.weekly-history[data-weekly-archive-cycle="2026-10-25"]');
   const oct18=weeklyPanel.locator('.weekly-history[data-weekly-archive-cycle="2026-10-18"]');
   const oct11=weeklyPanel.locator('.weekly-history[data-weekly-archive-cycle="2026-10-11"]');
   const oct04=weeklyPanel.locator('.weekly-history[data-weekly-archive-cycle="2026-10-04"]');
+  await expect(nov1.locator('.weekly-song')).toHaveCount(9);
+  await expect(nov1).toContainText('Domingo, 1 de noviembre');
+  await expect(nov1).toContainText('Viernes, 30 de octubre');
   await expect(oct25.locator('.weekly-song')).toHaveCount(9);
   await expect(oct18.locator('.weekly-song')).toHaveCount(9);
   await expect(oct11.locator('[data-weekly-history-service]')).toHaveCount(3);
   await expect(oct04.locator('[data-weekly-history-service]')).toHaveCount(2);
-  for(const archive of [oct25,oct18,oct11,oct04])
+  for(const archive of [nov1,oct25,oct18,oct11,oct04])
     await expect(archive.locator('.weekly-youtube-card, iframe[src*="youtube-nocookie.com"], a[href*="youtube.com/playlist"]')).toHaveCount(0);
   const result=await page.evaluate(()=>{
-    const before=window.IPCDJ_WEEKLY_TEST.rollover(Date.parse('2026-11-01T14:59:59-05:00'));
+    const before=window.IPCDJ_WEEKLY_TEST.rollover(Date.parse('2026-11-08T14:59:59-05:00'));
     const pre=window.IPCDJ_WEEKLY_TEST.snapshot();
-    const at=window.IPCDJ_WEEKLY_TEST.rollover(Date.parse('2026-11-01T15:00:00-05:00'));
+    const at=window.IPCDJ_WEEKLY_TEST.rollover(Date.parse('2026-11-08T15:00:00-05:00'));
     const post=window.IPCDJ_WEEKLY_TEST.snapshot();
-    const again=window.IPCDJ_WEEKLY_TEST.rollover(Date.parse('2026-11-01T15:00:01-05:00'));
+    const again=window.IPCDJ_WEEKLY_TEST.rollover(Date.parse('2026-11-08T15:00:01-05:00'));
     return {before,pre,at,post,again,archivedYouTube:document.querySelectorAll('.weekly-history .weekly-youtube-card, .weekly-history iframe[src*="youtube-nocookie.com"], .weekly-history a[href*="youtube.com/playlist"]').length};
   });
   expect(result.before).toBe(false);
   expect(result.pre.state).toBe('active');
-  expect(result.pre.fridayCurrent).toEqual(['Libre Soy','Tu Nombre','No Falla','Si Tu Presencia Conmigo No Va']);
-  expect(result.pre.sundayCurrent).toEqual(['Hay Libertad','Rodeado','Mi Mayor Necesidad','Digno de Adorar + Fluir','Espacio Te Haré']);
+  expect(result.pre.fridayCurrent).toEqual([]);
+  expect(result.pre.sundayCurrent).toEqual(
+    ['Bienvenido Espíritu Santo','Dios No Está Muerto','Sí y Amén','El Gran Yo Soy','Clamo a Cristo']);
   expect(result.at).toBe(true);
   expect(result.post.state).toBe('rolled');
-  expect(result.post.historyCycle).toBe('2026-11-01');
-  expect(result.post.history[0].songs).toEqual(['Libre Soy','Tu Nombre','No Falla','Si Tu Presencia Conmigo No Va']);
-  expect(result.post.history[1].songs).toEqual(['Hay Libertad','Rodeado','Mi Mayor Necesidad','Digno de Adorar + Fluir','Espacio Te Haré']);
+  expect(result.post.historyCycle).toBe('2026-11-08');
+  expect(result.post.history[0].songs).toEqual([]);
+  expect(result.post.history[1].songs).toEqual(
+    ['Bienvenido Espíritu Santo','Dios No Está Muerto','Sí y Amén','El Gran Yo Soy','Clamo a Cristo']);
   expect(result.again).toBe(false);
   expect(result.archivedYouTube).toBe(0);
   await expect(weeklyPanel).not.toHaveClass(/site-tab-panel-enter/);
   expect(await launch.getAttribute('class')).toBe(launchClassBeforeSwitch);
   const weeklySource=await weeklyPanel.evaluate(n=>n.outerHTML);
   expect(weeklySource).toContain('data-weekly-state="rolled"');
-  expect(weeklySource).toContain('data-weekly-archive-cycle="2026-10-25"');
+  expect(weeklySource).toContain('data-weekly-archive-cycle="2026-11-01"');
   expect(weeklySource).toContain('data-weekly-special-archive-grid="campana-gu-2026"');
 
   await weeklyTab.focus();
