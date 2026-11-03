@@ -1098,6 +1098,51 @@ test('desktop Chrome tab switching cannot replay the launch intro', async ({ pag
 
 
 
+test('Live only gains the three approved future releases; staging-only tabs stay absent',async({page,request})=>{
+  await openHealthyPage(page);
+  const ids=['ante-ti-jc-negron','encontre-generacion-12','mi-gozo-live-barak'];
+  const audit=await page.evaluate(()=>({
+    songs:window.IPCDJ_CATALOG.songs,
+    health:window.IPCDJ_CATALOG.health,
+    snapshot:window.IPCDJ_CATALOG.snapshot(Date.parse('2026-11-02T20:00:00-05:00'))
+  }));
+  expect(audit.health.valid).toBe(true);
+  expect(audit.health.fullVisualReady).toBe(true);
+  const expected=[
+    {id:ids[0],title:'Ante Ti',artist:'JC Negron',releaseAt:'2027-02-14T11:00:00-05:00',
+      itunesTrackId:'1150302554',introducedAt:'2027-02-15T06:00:00-05:00'},
+    {id:ids[1],title:'Encontré',artist:'Generación 12',releaseAt:'2027-03-07T11:00:00-05:00',
+      itunesTrackId:'1838982752',introducedAt:'2027-03-08T06:00:00-05:00'},
+    {id:ids[2],title:'Mi Gozo (Live)',artist:'Barak',releaseAt:'2027-03-28T11:00:00-04:00',
+      itunesTrackId:'1783806482',introducedAt:'2027-03-29T06:00:00-04:00'}
+  ];
+  for(const entry of expected){
+    const song=audit.songs.filter(x=>x.id===entry.id);
+    expect(song).toHaveLength(1);
+    expect(song[0]).toMatchObject(entry);
+    expect(song[0].hasPreview).toBe(true);
+    expect(song[0].fullVisualReady).toBe(true);
+    expect(audit.snapshot.upcoming).toContain(entry.id);
+    const row=page.locator('#upcoming-songs [data-song-id="'+entry.id+'"]');
+    await expect(row).toHaveCount(1);
+    await expect(row.locator('.preview-button')).toBeVisible();
+  }
+  expect(audit.snapshot.upcoming).toEqual([
+    'glorioso-dia','no-fallaras','reinas-por-la-eternidad',...ids
+  ]);
+  await expect(page.locator('#tab-solicitudes')).toHaveCount(0);
+  await expect(page.locator('#tab-vuelven-a-sonar')).toHaveCount(0);
+  await expect(page.locator('#panel-solicitudes')).toHaveCount(0);
+  await expect(page.locator('#panel-vuelven-a-sonar')).toHaveCount(0);
+  const result=await request.get('/?live-only-3-estrenos='+Date.now(),{headers:{'cache-control':'no-cache'}});
+  expect(result.ok()).toBe(true);
+  const html=await result.text();
+  for(const id of ids)expect(html).toContain('id:"'+id+'"');
+  for(const prohibited of ['const REQUESTED_SONGS_SOURCE','const RETURNING_SONGS_SOURCE',
+    'id="tab-solicitudes"','id="tab-vuelven-a-sonar"',
+    'id="panel-solicitudes"','id="panel-vuelven-a-sonar"'])expect(html).not.toContain(prohibited);
+});
+
 test('Reinas is scheduled on Jan 24 with official art, preview and automatic lifecycle',async({page})=>{
   await openHealthyPage(page);
   const audit=await page.evaluate(()=>({
@@ -1289,11 +1334,11 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
     nov16Early: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-11-16T01:00:00-05:00')),
     nov16Active: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-11-16T06:01:00-05:00'))
   }));
-  expect(orderSnapshots.sep21.upcoming).toEqual(['con-manos-vacias','glorioso-dia','no-fallaras','reinas-por-la-eternidad']);
+  expect(orderSnapshots.sep21.upcoming).toEqual(['con-manos-vacias','glorioso-dia','no-fallaras','reinas-por-la-eternidad','ante-ti-jc-negron','encontre-generacion-12','mi-gozo-live-barak']);
   expect(orderSnapshots.oct5.upcoming).not.toContain('dios-no-esta-muerto');
   expect(orderSnapshots.oct6.current).toEqual(['dios-no-esta-muerto','con-manos-vacias']);
   expect(orderSnapshots.oct6.upcoming).not.toContain('dios-no-esta-muerto');
-  expect(orderSnapshots.nov16Early.upcoming).toEqual(['glorioso-dia','no-fallaras','reinas-por-la-eternidad']);
+  expect(orderSnapshots.nov16Early.upcoming).toEqual(['glorioso-dia','no-fallaras','reinas-por-la-eternidad','ante-ti-jc-negron','encontre-generacion-12','mi-gozo-live-barak']);
   expect(orderSnapshots.nov16Active.current).toContain('glorioso-dia');
 
   const sourceResponse = await request.get('/?catalog-source-check=' + Date.now(), {
