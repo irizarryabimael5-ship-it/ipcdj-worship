@@ -466,3 +466,27 @@ Staging-only source commit `f933609053f508fcce9e21775c766174fb89ffe6` (single ne
 - Authorized selective Live source commit `bee01ae50cc7080b0de2705e0fa9c998fc19d088`, **only** three `SONG_CATALOG_SOURCE` entries added to pre-existing main `index.html` (other source bytes same, 6/6 Live inline scripts syntax parsed). Live seven-song schedule regression commit `dead048ad4535437c8fa532921051155b447e90c`; Live site-health assertions for song identities/three media entries and staging-feature exclusions commit `9180c599e37627578965c2c01fc4ba107baf498a`. Latest verified Live HEAD `9180c599e37627578965c2c01fc4ba107baf498a`. GitHub Pages deployment run `41550289176` **SUCCESS** at this exact HEAD; backend health run `41550290016` **SUCCESS**. Seven-profile Live website-health run `41550289943` was **IN PROGRESS** on last check; do not claim final PASS until verified.
 - Verified Live source contains all three IDs exactly once and **none** of `id="tab-vuelven-a-sonar"`, `id="tab-solicitudes"`, `RETURNING_SONGS_SOURCE`, `REQUESTED_SONGS_SOURCE`. **Do not merge/cherry-pick complete Staging index.html**, as it contains unapproved Solicitudes, Vuelven a Sonar and other staging-only changes. No notifications/VAPID/Worker/D1/mail gating activated, no audio engine changed, no release timeline moved.
 - Staging application was not changed by this promotion; Staging HEAD before this documentation-only note `6443c7b28bde03f3ed13f278aa17a027de8b615d`. Existing staging browser CI `41549636133` was IN PROGRESS before docs. New docs commit changes only documentation and may trigger newer Staging checks. Confirm both environments' exact HEADs and final deployed browser CI before any future promotion. Refresh stable Google Drive ZIP in place: `1XSmUNWmRvfj91w1AFBvZxSdpE4DRCwR0`.
+
+## 2026-11-03 12:07 EST — PUBLISHED: Domingo 8 de noviembre worship set (Live + Staging)
+
+Owner supplied source `Domingo, 8 de Noviembre.md` and authorized posting the complete five-song Sunday Nov 8, 2026 worship set to Live (and Staging), **except** the Letras & Coritos PDF/link and the five-song coritos *list* must both say **"Disponible pronto"** until ready. This is an intentional placeholder, not a broken link; never invent a PDF URL or publish the five corito titles early. Coritos musical settings **La Menor · 130 BPM** and Compás **4/4** remain published.
+
+Exact published resources and personnel:
+- Playlist https://youtube.com/playlist?list=PLZPyN3qZEvrQ&si=YStp6VPCeVg3p6LJ (original user-provided link, current Sunday embeds same playlist ID).
+- Corista **Dayari**.
+- Standard rehearsal note: `Ensayen con la canción, con metrónomo y eventualmente sin letra.`
+- 1. Bienvenido Espíritu Santo — Miel San Marcos ft. Marco Barrientos; **Do Mayor**, **98/196 BPM**.
+- 2. Dios No Está Muerto — Miel San Marcos; **Mi Menor**, **65/130 BPM**.
+- 3. Sí y Amén — Grupo Barak; **Mi♭ Mayor**, **72/144 BPM**.
+- 4. El Gran Yo Soy — En Espíritu y En Verdad; **Fa Mayor**, **80/160 BPM**.
+- 5. Clamo a Cristo — Elevation Español; **Fa Mayor**, **86/172 BPM**.
+- Both Letras & Coritos resource and coritos list show **Disponible pronto**. Current Sunday uses an accessible non-link placeholder (no clickable false PDF) and a status paragraph instead of listing any coritos. User's source *contains five corito titles*, but those must not be visible in the published current tab at this checkpoint.
+
+Weekly rollover:
+- Weekly current cycle **2026-11-08**, active through Sunday November 8 at **15:00 EST (2026-11-08T15:00:00-05:00)**; historical rollover after this time. Friday November 6 **Set pendiente** (not supplied; do not invent Friday worship set). Weekly summary **Domingo actualizado · Viernes pendiente**, Sunday tab Actualizado, Friday Pendiente.
+- Live had already archived Oct 30 + Nov 1 under Nov 1; retained without changes. Staging still showed Oct 30 and Nov 1 as "current": archive copy of this original week was added to Staging November 1 before replacing current Friday/Sunday. The Nov 1 original songs, coritos, PDF links, rehearsal note and history were preserved. October histories preserved, no archived YouTube playback links. Existing month nesting/archival behavior preserved.
+- Source commits **Staging** `4cac538e960f645da4a9e0d326b91e0f3111f29f`, **Live** `4fbb1531d3271f72dd6ae0bc54f57efde96d24d1`. Inline scripts syntax parsed (Staging 8, Live 6); only target weekly data and historical preservation modified, not new Staging-only tabs/media players.
+- Week-specific Staging/Live regression test updates `cc2c793bd6f6dd8cbdfa7dee5f13da9e9811d5ea` / `d8ddf50022049593f8e8787d2f39fc29d216459a`: verify titles, order, artists, tonos, BPM, playlist, Dayari, exact two "Disponible pronto" sections, zero prematurely revealed coritos, Nov 1 history preserved, correct Nov 8 rollover. All test source parsed.
+- Observed Live Pages initial source deployment run `41681498557` SUCCESS; latest exact-head Live Pages run `41681637221`, Website Health run `41681639587`, Staging Health run `41681628334` were in progress/pending at earlier inspection. Verify exact latest runs before declaring full certification. Do not claim actual browser or audio pass prematurely.
+- Existing three Live managed future songs (Ante Ti, Encontré, Mi Gozo Live) and previous release calendar remain untouched. Solicitudes, Vuelven a Sonar, unrelated features remain STAGING ONLY.
+- Current Drive migration ZIP ID `1XSmUNWmRvfj91w1AFBvZxSdpE4DRCwR0` must be updated IN PLACE with this record and verify hashes.
