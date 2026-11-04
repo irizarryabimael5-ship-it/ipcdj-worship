@@ -732,7 +732,7 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
     'Tono · Fa Mayor','BPM · 86/172']);
   await expect(sunday).toContainText('Dayari');
   await expect(sunday).toContainText('Compás · 4/4');
-  await expect(sunday.locator('.weekly-coritos-card')).toContainText('La Menor · 130 BPM');
+  await expect(sunday.locator('.weekly-coritos-card')).toContainText('Re Mayor · 130 BPM');
   expect(await sunday.locator('.weekly-corito').allTextContents()).toEqual([
     'Conozco A Un Hombre De Poder',
     'Aquel Que Caminó Sobre Las Aguas',
