@@ -651,18 +651,29 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(sunday).toContainText('Dayari');
   await expect(sunday).toContainText('Compás · 4/4');
   await expect(sunday.locator('.weekly-coritos-card')).toContainText('La Menor · 130 BPM');
-  await expect(sunday.locator('.weekly-coritos-card')).toContainText('Disponible pronto');
-  await expect(sunday.locator('.weekly-corito')).toHaveCount(0);
+  expect(await sunday.locator('.weekly-corito').allTextContents()).toEqual([
+    'Conozco A Un Hombre De Poder',
+    'Aquel Que Caminó Sobre Las Aguas',
+    'Yo Tengo Un Amigo Que Me Ama',
+    'No Hay Dios Tan Grande Como Tú',
+    'Alabaré',
+    'Mirad, Bendecid A Jehová',
+    'No Es Con Espada, Ni Con Ejército'
+  ]);
+  await expect(sunday.locator('.weekly-corito')).toHaveCount(7);
   await expect(sunday.locator('.weekly-resource')).toContainText('Letras & Coritos');
-  await expect(sunday.locator('.weekly-resource')).toContainText('Disponible pronto');
-  await expect(sunday.locator('a.weekly-resource')).toHaveCount(0);
+  await expect(sunday.locator('.weekly-resource')).toContainText('Abrir recurso del domingo');
+  await expect(sunday.locator('a.weekly-resource[href="https://u.pone.rs/bomuogik.pdf"]')).toHaveCount(1);
+  await expect(sunday.locator('.weekly-resource-pending, .weekly-coritos-pending')).toHaveCount(0);
+  await expect(sunday).not.toContainText('Disponible pronto');
   await expect(sunday.locator('.weekly-youtube-card iframe[src="https://www.youtube-nocookie.com/embed/videoseries?list=PLZPyN3qZEvrQ"]')).toHaveCount(1);
   await expect(sunday.locator('a[href="https://youtube.com/playlist?list=PLZPyN3qZEvrQ&si=YStp6VPCeVg3p6LJ"]')).toHaveCount(1);
   await expect(sunday.locator('.weekly-song')).toHaveCount(5);
   await expect(sunday.locator('.weekly-note-card')).toContainText('Ensayen con la canción, con metrónomo y eventualmente sin letra.');
-  for(const hidden of ['Yo Tengo Un Amigo Que Me Ama','Aquel Que Caminó Sobre Las Aguas',
-    'Yo Soy Testigo Del Poder De Dios','El Cristo De Galilea','El Señor Me Llenó De Gozo'])
-    await expect(sunday).not.toContainText(hidden);
+  // Replaced superseded corito placeholders with the complete, owner-provided seven.
+  for(const superseded of ['Yo Soy Testigo Del Poder De Dios','El Cristo De Galilea',
+    'El Señor Me Llenó De Gozo'])
+    await expect(sunday).not.toContainText(superseded);
   await weeklyPanel.locator('#weekly-tab-viernes').click();
 
   const nov1=weeklyPanel.locator('.weekly-history[data-weekly-archive-cycle="2026-11-01"]');
