@@ -490,3 +490,22 @@ Weekly rollover:
 - Observed Live Pages initial source deployment run `41681498557` SUCCESS; latest exact-head Live Pages run `41681637221`, Website Health run `41681639587`, Staging Health run `41681628334` were in progress/pending at earlier inspection. Verify exact latest runs before declaring full certification. Do not claim actual browser or audio pass prematurely.
 - Existing three Live managed future songs (Ante Ti, Encontré, Mi Gozo Live) and previous release calendar remain untouched. Solicitudes, Vuelven a Sonar, unrelated features remain STAGING ONLY.
 - Current Drive migration ZIP ID `1XSmUNWmRvfj91w1AFBvZxSdpE4DRCwR0` must be updated IN PLACE with this record and verify hashes.
+
+## 2026-11-03 20:32 EST — Nov 8 Sunday LETRAS/CORITOS RELEASED: Live and Staging
+
+Owner supplied the revised `Domingo, 8 de Noviembre(1).md`, replacing earlier pending placeholders, and EXPLICITLY authorized both the exact PDF link and all 7 corito titles for the CURRENT Sunday 2026-11-08 weekly set. No changes to songs, BPMs, keys, rehearsal notes, Dayari, playlist, Friday pending, archive, previously scheduled future releases, visual design, or original Web Audio system.
+
+New exact `Letras & Coritos` PDF link: `https://u.pone.rs/bomuogik.pdf`. Existing inert `weekly-resource-pending` div replaced with the standard clickable `<a class="weekly-resource" target="_blank" rel="noopener">` PDF card. No invented URL. Coritos section now has the standard numbered `ol.weekly-coritos-list` instead of pending text, still `La Menor · 130 BPM`. Exact published order / spelling:
+1. Conozco A Un Hombre De Poder
+2. Aquel Que Caminó Sobre Las Aguas
+3. Yo Tengo Un Amigo Que Me Ama
+4. No Hay Dios Tan Grande Como Tú
+5. Alabaré
+6. Mirad, Bendecid A Jehová
+7. No Es Con Espada, Ni Con Ejército
+
+NOTE: The earlier initial source listed a different five-corito provisional list, which was not published because the owner withheld it. The revised seven-corito list supersedes those titles and is the ONLY approved Nov 8 list. Five main songs untouched: Bienvenido Espíritu Santo; Dios No Está Muerto; Sí y Amén; El Gran Yo Soy; Clamo a Cristo. Current Sunday YouTube playlist `PLZPyN3qZEvrQ`, corista Dayari, Compás 4/4 preserved.
+
+Staging source-only Sunday block commit `a4fe085c438dd30e2285fd742ed78eeff5546c8b`; Live source-only Sunday block commit `37b21215ab6b15cdffcf7c9d4f92e93ad07a6d1f`. Staging health test `e1792ad8d90d28c93179b03644b41b3952206990`, Live health test `6cd0416a267c756486e4d2ca23cae15412fa5aa8`. Checked both index HTML: exactly 7 current-week corito LI and 5 main song cards, no `Disponible pronto` in current Sunday, exact link once, and script parse passed (8/8 staging, 6/6 Live). Tested exact scope: the other page bytes identical and Live continues without staging-only Solicitudes/Vuelven a Sonar source/tabs. Previous Nov 1 historical archives untouched. Latest checked Live HEAD `6cd0416a267c756486e4d2ca23cae15412fa5aa8`, Staging HEAD `e1792ad8d90d28c93179b03644b41b3952206990`, before this docs commit.
+
+Latest exact-HEAD Live Pages run `41754994695` in progress; earlier content commit Live Pages `41754908697` SUCCESS and associated Social Preview Verify `41754908861` SUCCESS. Exact-HEAD Live Website Health `41754995182` PENDING, Staging Health `41754985743` PENDING. Never state full browser pass until CI finished. To preserve continuity, refresh stable `IPCDJ_WORSHIP_CURRENT_MIGRATION.zip` *in place* at Google Drive ID `1XSmUNWmRvfj91w1AFBvZxSdpE4DRCwR0` with added file and updated SHA256 manifest; DO NOT make another Drive file ID.
