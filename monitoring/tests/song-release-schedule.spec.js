@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 
-// Owner-approved LIVE November 2026 – March 2027 song calendar.
+// Owner-approved LIVE November 2026 – April 2027 song calendar.
 // These assertions intentionally fail if any former estreno date leaks back.
 const schedule=[
   {id:'con-manos-vacias',title:'Con Manos Vacías',artist:'Jesús Adrián Romero',
@@ -37,14 +37,19 @@ const schedule=[
     active:'2027-03-08T06:00:00-05:00',learning:'2027-03-15T00:00:00-04:00',
     lastLearning:'2027-03-21T23:59:59-04:00',final:'2027-03-22T00:00:00-04:00',
     lastFinal:'2027-03-27T23:59:59-04:00',release:'2027-03-28T11:00:00-04:00',
-    rollover:'2027-03-29T06:00:00-04:00',provider:'itunes'}
+    rollover:'2027-03-29T06:00:00-04:00',provider:'itunes'},
+  {id:'asi-sera-it-is-so-elevation-ep',title:'Así Será (It Is So)',artist:'Elevation Worship & Elevation Español',
+    active:'2027-03-29T06:00:00-04:00',learning:'2027-04-05T00:00:00-04:00',
+    lastLearning:'2027-04-11T23:59:59-04:00',final:'2027-04-12T00:00:00-04:00',
+    lastFinal:'2027-04-17T23:59:59-04:00',release:'2027-04-18T11:00:00-04:00',
+    rollover:'2027-04-19T06:00:00-04:00',provider:'itunes'}
 ];
 test.beforeEach(async({page})=>{
   await page.clock.setFixedTime(new Date('2026-10-24T19:00:00-04:00'));
   await page.goto('/',{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>!!window.IPCDJ_CATALOG&&!!window.IPCDJ_CATALOG_TEST);
 });
-test('full seven-song date, media and branch-isolation contract',async({page,request})=>{
+test('full eight-song date, media and branch-isolation contract',async({page,request})=>{
   const audit=await page.evaluate(()=>{
     const api=window.IPCDJ_CATALOG;
     return {health:api.health,songs:api.songs,tbd:api.tbd,
@@ -57,7 +62,7 @@ test('full seven-song date, media and branch-isolation contract',async({page,req
   expect(audit.health.fullVisualReady).toBe(true);
   expect(audit.tbd).toEqual([]);
   const upcoming=audit.songs.filter(x=>schedule.some(s=>s.id===x.id));
-  expect(upcoming).toHaveLength(7);
+  expect(upcoming).toHaveLength(8);
   expect(upcoming.map(x=>x.id)).toEqual(schedule.map(x=>x.id));
   for(const expected of schedule){
     const song=upcoming.find(x=>x.id===expected.id);
@@ -102,9 +107,20 @@ test('full seven-song date, media and branch-isolation contract',async({page,req
   expect(miGozo.itunesCollectionId).toBe('1783806472');
   expect(miGozo.album).toBe('Fuego & Poder (Live)');
   expect(miGozo.artworkUrl).toBe('https://i.scdn.co/image/ab67616d0000b2730a45cc0e99318eda67b32111');
+  const asiSera=upcoming.find(x=>x.id==='asi-sera-it-is-so-elevation-ep');
+  expect(asiSera.activeFrom).toBe(miGozo.rolloverAt);
+  expect(Date.parse(asiSera.releaseAt)-Date.parse(miGozo.releaseAt)).toBe(21*24*60*60*1000);
+  expect(asiSera.title).toBe('Así Será (It Is So)');
+  expect(asiSera.artist).toBe('Elevation Worship & Elevation Español');
+  expect(asiSera.album).toBe('A La Medianoche - EP');
+  expect(asiSera.itunesCollectionId).toBe('1494360193');
+  expect(asiSera.itunesTrackId).toBe('1494360203');
+  expect(asiSera.artworkUrl).toBe('https://i.scdn.co/image/ab67616d0000b273eb0c5a6a1f6931c64055a63e');
+  expect(asiSera.artworkSource).toBe('spotify-elevation-worship-a-la-medianoche-ep-2020');
+  expect(asiSera.futurePalette).toEqual([[19,69,94],[68,163,207],[212,232,53]]);
   expect(audit.snapshot.current).toContain('con-manos-vacias');
-  expect(audit.snapshot.upcoming).toEqual(['glorioso-dia','no-fallaras','reinas-por-la-eternidad','ante-ti-jc-negron','encontre-generacion-12','mi-gozo-live-barak']);
-  await expect(page.locator('#upcoming-songs [data-song-id]')).toHaveCount(6);
+  expect(audit.snapshot.upcoming).toEqual(['glorioso-dia','no-fallaras','reinas-por-la-eternidad','ante-ti-jc-negron','encontre-generacion-12','mi-gozo-live-barak','asi-sera-it-is-so-elevation-ep']);
+  await expect(page.locator('#upcoming-songs [data-song-id]')).toHaveCount(7);
   await expect(page.locator('#current-song-cards [data-song-id="con-manos-vacias"]')).toHaveCount(1);
   await expect(page.locator('#upcoming-songs [data-request-song-id]')).toHaveCount(0);
   const html=await (await request.get('/?new-estrenos='+Date.now(),{headers:{'cache-control':'no-cache'}})).text();
@@ -115,6 +131,8 @@ test('full seven-song date, media and branch-isolation contract',async({page,req
   expect(html).toContain('itunesTrackId:"1838982752"');
   expect(html).toContain('itunesTrackId:"1783806482"');
   expect(html).toContain('releaseAt:"2027-03-28T11:00:00-04:00"');
+  expect(html).toContain('itunesTrackId:"1494360203"');
+  expect(html).toContain('releaseAt:"2027-04-18T11:00:00-04:00"');
 });
 test('each premiere transitions into next current song and finally into history',async({page})=>{
   const state=await page.evaluate(schedule=>{
