@@ -1347,6 +1347,60 @@ test('Mi Gozo (Live) uses Barak 2022 live album and correct March DST lifecycle'
   expect(html).toContain('releaseAt:"2027-03-28T11:00:00-04:00"');
 });
 
+test('Así Será 2020 EP enters after Mi Gozo with full April 2027 preparation and exact Apple track',async({page,request})=>{
+  await openHealthyPage(page);
+  const audit=await page.evaluate(()=>{
+    const api=window.IPCDJ_CATALOG,id='asi-sera-it-is-so-elevation-ep';
+    return {song:api.songs.find(s=>s.id===id),health:api.health,
+      prior:api.snapshot(Date.parse('2027-03-29T05:59:59-04:00')),
+      active:api.snapshot(Date.parse('2027-03-29T06:00:00-04:00')),
+      learning:api.phase(id,Date.parse('2027-04-05T12:00:00-04:00')).key,
+      final:api.phase(id,Date.parse('2027-04-12T12:00:00-04:00')).key,
+      premiere:api.phase(id,Date.parse('2027-04-18T11:00:00-04:00')).key,
+      beforeRollover:api.snapshot(Date.parse('2027-04-19T05:59:59-04:00')),
+      afterRollover:api.snapshot(Date.parse('2027-04-19T06:00:00-04:00'))};
+  });
+  expect(audit.health.valid).toBe(true);
+  expect(audit.health.fullVisualReady).toBe(true);
+  expect(audit.song).toMatchObject({
+    title:'Así Será (It Is So)',artist:'Elevation Worship & Elevation Español',
+    album:'A La Medianoche - EP',
+    activeFrom:'2027-03-29T06:00:00-04:00',
+    learningStart:'2027-04-05T00:00:00-04:00',
+    learningEnd:'2027-04-11T23:59:59-04:00',
+    finalStart:'2027-04-12T00:00:00-04:00',
+    finalEnd:'2027-04-17T23:59:59-04:00',
+    releaseDayStartAt:'2027-04-18T00:00:00-04:00',
+    releaseAt:'2027-04-18T11:00:00-04:00',
+    releaseDayEndAt:'2027-04-19T00:00:00-04:00',
+    introducedAt:'2027-04-19T06:00:00-04:00',
+    rolloverAt:'2027-04-19T06:00:00-04:00',
+    itunesTrackId:'1494360203',itunesCollectionId:'1494360193',
+    artworkUrl:'https://i.scdn.co/image/ab67616d0000b273eb0c5a6a1f6931c64055a63e',
+    artworkSource:'spotify-elevation-worship-a-la-medianoche-ep-2020',
+    futurePalette:[[19,69,94],[68,163,207],[212,232,53]]
+  });
+  expect(audit.prior.upcoming).toContain('asi-sera-it-is-so-elevation-ep');
+  expect(audit.active.current).toContain('asi-sera-it-is-so-elevation-ep');
+  expect(audit.active.introduced).toContain('mi-gozo-live-barak');
+  expect(audit.learning).toBe('learning');
+  expect(audit.final).toBe('final');
+  expect(audit.premiere).toBe('release');
+  expect(audit.beforeRollover.current).toContain('asi-sera-it-is-so-elevation-ep');
+  expect(audit.afterRollover.current).not.toContain('asi-sera-it-is-so-elevation-ep');
+  expect(audit.afterRollover.introduced).toContain('asi-sera-it-is-so-elevation-ep');
+  const row=page.locator('#upcoming-songs [data-song-id="asi-sera-it-is-so-elevation-ep"]');
+  await expect(row).toHaveCount(1);
+  await expect(row.locator('.preview-button')).toBeVisible();
+  const response=await request.get('/?asi-sera-ep-schedule='+Date.now(),{headers:{'cache-control':'no-cache'}});
+  expect(response.ok()).toBe(true);
+  const html=await response.text();
+  expect(html).toContain('itunesTrackId:"1494360203"');
+  expect(html).toContain('itunesCollectionId:"1494360193"');
+  expect(html).toContain('releaseAt:"2027-04-18T11:00:00-04:00"');
+  expect(html).not.toContain('itunesTrackId:"1876354021"');
+});
+
 test('Reinas is scheduled on Jan 24 with official art, preview and automatic lifecycle',async({page})=>{
   await openHealthyPage(page);
   const audit=await page.evaluate(()=>({
@@ -1538,11 +1592,11 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
     nov16Early: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-11-16T01:00:00-05:00')),
     nov16Active: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-11-16T06:01:00-05:00'))
   }));
-  expect(orderSnapshots.sep21.upcoming).toEqual(['con-manos-vacias','glorioso-dia','no-fallaras','reinas-por-la-eternidad','ante-ti-jc-negron','encontre-generacion-12','mi-gozo-live-barak']);
+  expect(orderSnapshots.sep21.upcoming).toEqual(['con-manos-vacias','glorioso-dia','no-fallaras','reinas-por-la-eternidad','ante-ti-jc-negron','encontre-generacion-12','mi-gozo-live-barak','asi-sera-it-is-so-elevation-ep']);
   expect(orderSnapshots.oct5.upcoming).not.toContain('dios-no-esta-muerto');
   expect(orderSnapshots.oct6.current).toEqual(['dios-no-esta-muerto','con-manos-vacias']);
   expect(orderSnapshots.oct6.upcoming).not.toContain('dios-no-esta-muerto');
-  expect(orderSnapshots.nov16Early.upcoming).toEqual(['glorioso-dia','no-fallaras','reinas-por-la-eternidad','ante-ti-jc-negron','encontre-generacion-12','mi-gozo-live-barak']);
+  expect(orderSnapshots.nov16Early.upcoming).toEqual(['glorioso-dia','no-fallaras','reinas-por-la-eternidad','ante-ti-jc-negron','encontre-generacion-12','mi-gozo-live-barak','asi-sera-it-is-so-elevation-ep']);
   expect(orderSnapshots.nov16Active.current).toContain('glorioso-dia');
 
   const sourceResponse = await request.get('/?catalog-source-check=' + Date.now(), {
