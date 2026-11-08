@@ -1125,7 +1125,7 @@ test('desktop Chrome tab switching cannot replay the launch intro', async ({ pag
 
 
 
-test('Live only gains the three approved future releases; staging-only tabs stay absent',async({page,request})=>{
+test('Live preserves approved future releases, including the EP, without staging-only tabs',async({page,request})=>{
   await openHealthyPage(page);
   const ids=['ante-ti-jc-negron','encontre-generacion-12','mi-gozo-live-barak'];
   const audit=await page.evaluate(()=>({
@@ -1137,11 +1137,11 @@ test('Live only gains the three approved future releases; staging-only tabs stay
   expect(audit.health.fullVisualReady).toBe(true);
   const expected=[
     {id:ids[0],title:'Ante Ti',artist:'JC Negron',releaseAt:'2027-02-14T11:00:00-05:00',
-      itunesTrackId:'1150302554',introducedAt:'2027-02-15T06:00:00-05:00'},
+      introducedAt:'2027-02-15T06:00:00-05:00'},
     {id:ids[1],title:'Encontré',artist:'Generación 12',releaseAt:'2027-03-07T11:00:00-05:00',
-      itunesTrackId:'1838982752',introducedAt:'2027-03-08T06:00:00-05:00'},
+      introducedAt:'2027-03-08T06:00:00-05:00'},
     {id:ids[2],title:'Mi Gozo (Live)',artist:'Barak',releaseAt:'2027-03-28T11:00:00-04:00',
-      itunesTrackId:'1783806482',introducedAt:'2027-03-29T06:00:00-04:00'}
+      introducedAt:'2027-03-29T06:00:00-04:00'}
   ];
   for(const entry of expected){
     const song=audit.songs.filter(x=>x.id===entry.id);
@@ -1155,7 +1155,8 @@ test('Live only gains the three approved future releases; staging-only tabs stay
     await expect(row.locator('.preview-button')).toBeVisible();
   }
   expect(audit.snapshot.upcoming).toEqual([
-    'glorioso-dia','no-fallaras','reinas-por-la-eternidad',...ids
+    'glorioso-dia','no-fallaras','reinas-por-la-eternidad',...ids,
+    'asi-sera-it-is-so-elevation-ep'
   ]);
   await expect(page.locator('#tab-solicitudes')).toHaveCount(0);
   await expect(page.locator('#tab-vuelven-a-sonar')).toHaveCount(0);
@@ -1187,7 +1188,7 @@ test('Así Será 2020 EP enters after Mi Gozo with full April 2027 preparation a
   expect(audit.health.fullVisualReady).toBe(true);
   expect(audit.song).toMatchObject({
     title:'Así Será (It Is So)',artist:'Elevation Worship & Elevation Español',
-    album:'A La Medianoche - EP',
+    // The public read-only catalog projection omits album; source metadata is tested below.
     activeFrom:'2027-03-29T06:00:00-04:00',
     learningStart:'2027-04-05T00:00:00-04:00',
     learningEnd:'2027-04-11T23:59:59-04:00',
@@ -1198,7 +1199,7 @@ test('Así Será 2020 EP enters after Mi Gozo with full April 2027 preparation a
     releaseDayEndAt:'2027-04-19T00:00:00-04:00',
     introducedAt:'2027-04-19T06:00:00-04:00',
     rolloverAt:'2027-04-19T06:00:00-04:00',
-    itunesTrackId:'1494360203',itunesCollectionId:'1494360193',
+    // Apple track and collection IDs are guarded against the authored HTML source below.
     artworkUrl:'https://i.scdn.co/image/ab67616d0000b273eb0c5a6a1f6931c64055a63e',
     artworkSource:'spotify-elevation-worship-a-la-medianoche-ep-2020',
     futurePalette:[[19,69,94],[68,163,207],[212,232,53]]
@@ -1215,9 +1216,15 @@ test('Así Será 2020 EP enters after Mi Gozo with full April 2027 preparation a
   const row=page.locator('#upcoming-songs [data-song-id="asi-sera-it-is-so-elevation-ep"]');
   await expect(row).toHaveCount(1);
   await expect(row.locator('.preview-button')).toBeVisible();
+  await expect(row).toContainText('Así Será (It Is So)');
+  await expect(row).toContainText('Elevation Worship & Elevation Español');
+  await expect(row).toContainText('18 de abril');
+  const build=await page.locator('meta[name="ipcdj-build"]').getAttribute('content');
+  expect(build).toBe('campana-weekend-v202');
   const response=await request.get('/?asi-sera-ep-schedule='+Date.now(),{headers:{'cache-control':'no-cache'}});
   expect(response.ok()).toBe(true);
   const html=await response.text();
+  expect(html).toContain('album:"A La Medianoche - EP"');
   expect(html).toContain('itunesTrackId:"1494360203"');
   expect(html).toContain('itunesCollectionId:"1494360193"');
   expect(html).toContain('releaseAt:"2027-04-18T11:00:00-04:00"');
