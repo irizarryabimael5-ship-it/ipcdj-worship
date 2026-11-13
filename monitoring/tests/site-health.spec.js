@@ -740,9 +740,10 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(sunday.locator('.weekly-coritos-card')).toContainText('Re Mayor · 130 BPM');
   expect(await sunday.locator('.weekly-corito').allTextContents()).toEqual(["Yo tengo un amigo que me ama","Alabaré, Alabaré, Alabaré a mi Señor","Mirad, Bendecid a Jehová","No hay Dios tan grande como tú","No es con espada, ni con ejército","Conozco a un hombre de poder","Viva la Fe, Viva la esperanza, Viva el amor"]);
   await expect(sunday.locator('.weekly-corito')).toHaveCount(7);
-  await expect(sunday.locator('.weekly-resource-pending')).toContainText('Letras & Coritos');
-  await expect(sunday.locator('.weekly-resource-pending')).toContainText('Disponible pronto');
-  await expect(sunday.locator('a.weekly-resource')).toHaveCount(0);
+  await expect(sunday.locator('a.weekly-resource[href="https://u.pone.rs/bvcndgbd.pdf"]')).toHaveCount(1);
+  await expect(sunday.locator('.weekly-resource')).toContainText('Letras & Coritos');
+  await expect(sunday.locator('.weekly-resource')).toContainText('Abrir recurso del domingo');
+  await expect(sunday.locator('.weekly-resource-pending')).toHaveCount(0);
   await expect(sunday.locator('a[href="https://youtube.com/playlist?list=PLZPyN3qZEvrQ&si=CNHGDXoI4VkujtlW"]')).toHaveCount(1);
   await expect(sunday.locator('iframe[src="https://www.youtube-nocookie.com/embed/videoseries?list=PLZPyN3qZEvrQ"]')).toHaveCount(1);
   await expect(sunday.locator('.weekly-note-card')).toContainText('Ensayen con la canción, con metrónomo y eventualmente sin letra.');
