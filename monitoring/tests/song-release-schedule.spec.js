@@ -1,48 +1,48 @@
 import {test,expect} from '@playwright/test';
 
-// Owner-directed, STAGING-ONLY November 2026 – April 2027 release calendar, including EDT handoff.
+// Owner-directed, STAGING-ONLY November 2026 – May 2027 release calendar, including EDT handoff.
 // These assertions intentionally fail if any former estreno date leaks back.
 const schedule=[
   {id:'con-manos-vacias',title:'Con Manos Vacías',artist:'Jesús Adrián Romero',
     active:'2026-09-28T06:00:00-04:00',learning:'2026-11-02T00:00:00-05:00',
     lastLearning:'2026-11-08T23:59:59-05:00',final:'2026-11-09T00:00:00-05:00',
-    lastFinal:'2026-11-14T23:59:59-05:00',release:'2026-11-15T11:00:00-05:00',
-    rollover:'2026-11-16T06:00:00-05:00',provider:'itunes'},
+    lastFinal:'2026-11-27T23:59:59-05:00',release:'2026-11-28T11:00:00-05:00',
+    rollover:'2026-11-29T06:00:00-05:00',provider:'itunes'},
   {id:'glorioso-dia',title:'Glorioso Día',artist:'Passion Music',
-    active:'2026-11-16T06:00:00-05:00',learning:'2026-11-23T00:00:00-05:00',
-    lastLearning:'2026-11-29T23:59:59-05:00',final:'2026-11-30T00:00:00-05:00',
-    lastFinal:'2026-12-05T23:59:59-05:00',release:'2026-12-06T11:00:00-05:00',
-    rollover:'2026-12-07T06:00:00-05:00',provider:'spotify'},
+    active:'2026-11-29T06:00:00-05:00',learning:'2026-12-07T00:00:00-05:00',
+    lastLearning:'2026-12-13T23:59:59-05:00',final:'2026-12-14T00:00:00-05:00',
+    lastFinal:'2026-12-19T23:59:59-05:00',release:'2026-12-20T11:00:00-05:00',
+    rollover:'2026-12-21T06:00:00-05:00',provider:'spotify'},
   {id:'no-fallaras',title:'No Fallarás',artist:'Saddleback Worship',
-    active:'2026-12-07T06:00:00-05:00',learning:'2026-12-21T00:00:00-05:00',
-    lastLearning:'2026-12-27T23:59:59-05:00',final:'2026-12-28T00:00:00-05:00',
-    lastFinal:'2027-01-02T23:59:59-05:00',release:'2027-01-03T11:00:00-05:00',
-    rollover:'2027-01-04T06:00:00-05:00',provider:'spotify'},
+    active:'2026-12-21T06:00:00-05:00',learning:'2027-01-04T00:00:00-05:00',
+    lastLearning:'2027-01-10T23:59:59-05:00',final:'2027-01-11T00:00:00-05:00',
+    lastFinal:'2027-01-16T23:59:59-05:00',release:'2027-01-17T11:00:00-05:00',
+    rollover:'2027-01-18T06:00:00-05:00',provider:'spotify'},
   {id:'reinas-por-la-eternidad',title:'Reinas Por La Eternidad',artist:'Hillsong en Español',
-    active:'2027-01-04T06:00:00-05:00',learning:'2027-01-11T00:00:00-05:00',
-    lastLearning:'2027-01-17T23:59:59-05:00',final:'2027-01-18T00:00:00-05:00',
-    lastFinal:'2027-01-23T23:59:59-05:00',release:'2027-01-24T11:00:00-05:00',
-    rollover:'2027-01-25T06:00:00-05:00',provider:'itunes'},
+    active:'2027-01-18T06:00:00-05:00',learning:'2027-01-25T00:00:00-05:00',
+    lastLearning:'2027-01-31T23:59:59-05:00',final:'2027-02-01T00:00:00-05:00',
+    lastFinal:'2027-02-06T23:59:59-05:00',release:'2027-02-07T11:00:00-05:00',
+    rollover:'2027-02-08T06:00:00-05:00',provider:'itunes'},
   {id:'ante-ti-jc-negron',title:'Ante Ti',artist:'JC Negron',
-    active:'2027-01-25T06:00:00-05:00',learning:'2027-02-01T00:00:00-05:00',
-    lastLearning:'2027-02-07T23:59:59-05:00',final:'2027-02-08T00:00:00-05:00',
-    lastFinal:'2027-02-13T23:59:59-05:00',release:'2027-02-14T11:00:00-05:00',
-    rollover:'2027-02-15T06:00:00-05:00',provider:'itunes'},
+    active:'2027-02-08T06:00:00-05:00',learning:'2027-02-15T00:00:00-05:00',
+    lastLearning:'2027-02-21T23:59:59-05:00',final:'2027-02-22T00:00:00-05:00',
+    lastFinal:'2027-02-27T23:59:59-05:00',release:'2027-02-28T11:00:00-05:00',
+    rollover:'2027-03-01T06:00:00-05:00',provider:'itunes'},
   {id:'encontre-generacion-12',title:'Encontré',artist:'Generación 12',
-    active:'2027-02-15T06:00:00-05:00',learning:'2027-02-22T00:00:00-05:00',
-    lastLearning:'2027-02-28T23:59:59-05:00',final:'2027-03-01T00:00:00-05:00',
-    lastFinal:'2027-03-06T23:59:59-05:00',release:'2027-03-07T11:00:00-05:00',
-    rollover:'2027-03-08T06:00:00-05:00',provider:'itunes'},
+    active:'2027-03-01T06:00:00-05:00',learning:'2027-03-08T00:00:00-05:00',
+    lastLearning:'2027-03-14T23:59:59-04:00',final:'2027-03-15T00:00:00-04:00',
+    lastFinal:'2027-03-20T23:59:59-04:00',release:'2027-03-21T11:00:00-04:00',
+    rollover:'2027-03-22T06:00:00-04:00',provider:'itunes'},
   {id:'mi-gozo-live-barak',title:'Mi Gozo (Live)',artist:'Barak',
-    active:'2027-03-08T06:00:00-05:00',learning:'2027-03-15T00:00:00-04:00',
-    lastLearning:'2027-03-21T23:59:59-04:00',final:'2027-03-22T00:00:00-04:00',
-    lastFinal:'2027-03-27T23:59:59-04:00',release:'2027-03-28T11:00:00-04:00',
-    rollover:'2027-03-29T06:00:00-04:00',provider:'itunes'},
+    active:'2027-03-22T06:00:00-04:00',learning:'2027-03-29T00:00:00-04:00',
+    lastLearning:'2027-04-04T23:59:59-04:00',final:'2027-04-05T00:00:00-04:00',
+    lastFinal:'2027-04-10T23:59:59-04:00',release:'2027-04-11T11:00:00-04:00',
+    rollover:'2027-04-12T06:00:00-04:00',provider:'itunes'},
   {id:'asi-sera-it-is-so-elevation-ep',title:'Así Será (It Is So)',artist:'Elevation Worship & Elevation Español',
-    active:'2027-03-29T06:00:00-04:00',learning:'2027-04-05T00:00:00-04:00',
-    lastLearning:'2027-04-11T23:59:59-04:00',final:'2027-04-12T00:00:00-04:00',
-    lastFinal:'2027-04-17T23:59:59-04:00',release:'2027-04-18T11:00:00-04:00',
-    rollover:'2027-04-19T06:00:00-04:00',provider:'itunes'}
+    active:'2027-04-12T06:00:00-04:00',learning:'2027-04-19T00:00:00-04:00',
+    lastLearning:'2027-04-25T23:59:59-04:00',final:'2027-04-26T00:00:00-04:00',
+    lastFinal:'2027-05-01T23:59:59-04:00',release:'2027-05-02T11:00:00-04:00',
+    rollover:'2027-05-03T06:00:00-04:00',provider:'itunes'}
 ];
 test.beforeEach(async({page})=>{
   await page.clock.setFixedTime(new Date('2026-10-24T19:00:00-04:00'));
@@ -64,6 +64,14 @@ test('full eight-song date, media and branch-isolation contract',async({page,req
   const upcoming=audit.songs.filter(x=>schedule.some(s=>s.id===x.id));
   expect(upcoming).toHaveLength(8);
   expect(upcoming.map(x=>x.id)).toEqual(schedule.map(x=>x.id));
+  expect(schedule[0].learning).toBe('2026-11-02T00:00:00-05:00');
+  expect(schedule[0].lastLearning).toBe('2026-11-08T23:59:59-05:00');
+  expect(schedule[0].final).toBe('2026-11-09T00:00:00-05:00');
+  expect(schedule[0].lastFinal).toBe('2026-11-27T23:59:59-05:00');
+  for(let i=1;i<schedule.length;i++){
+    expect(schedule[i].active).toBe(schedule[i-1].rollover);
+    expect(Date.parse(schedule[i].learning)-Date.parse(schedule[i-1].release)).toBeGreaterThanOrEqual(7*24*60*60*1000);
+  }
   for(const expected of schedule){
     const song=upcoming.find(x=>x.id===expected.id);
     expect(song.title).toBe(expected.title);
@@ -91,7 +99,7 @@ test('full eight-song date, media and branch-isolation contract',async({page,req
     const day=await page.evaluate(timestamp=>new Intl.DateTimeFormat('en-US',{
       timeZone:'America/New_York',weekday:'long'
     }).format(new Date(timestamp)),expected.release);
-    expect(day).toBe('Sunday');
+    expect(day).toBe(expected.id==='con-manos-vacias'?'Saturday':'Sunday');
   }
   const ante=upcoming.find(x=>x.id==='ante-ti-jc-negron');
   const encontre=upcoming.find(x=>x.id==='encontre-generacion-12');
@@ -106,9 +114,9 @@ test('full eight-song date, media and branch-isolation contract',async({page,req
   const zonedDate=(iso)=>new Intl.DateTimeFormat('en-CA',{
     timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'
   }).format(new Date(iso));
-  expect(zonedDate(miGozo.releaseAt)).toBe('2027-03-28');
-  expect(zonedDate(encontre.releaseAt)).toBe('2027-03-07');
-  expect(Date.parse(miGozo.releaseAt)-Date.parse(encontre.releaseAt)).toBe(21*24*60*60*1000-60*60*1000);
+  expect(zonedDate(miGozo.releaseAt)).toBe('2027-04-11');
+  expect(zonedDate(encontre.releaseAt)).toBe('2027-03-21');
+  expect(Date.parse(miGozo.releaseAt)-Date.parse(encontre.releaseAt)).toBe(21*24*60*60*1000);
   expect(miGozo.activeFrom).toBe(encontre.rolloverAt);
   expect(miGozo.itunesTrackId).toBe('1783806482');
   expect(miGozo.itunesCollectionId).toBe('1783806472');
@@ -138,11 +146,11 @@ test('full eight-song date, media and branch-isolation contract',async({page,req
   expect(html).toContain('itunesTrackId:"1785402419"');
   expect(html).toContain('itunesTrackId:"1150302554"');
   expect(html).toContain('itunesTrackId:"1838982752"');
-  expect(html).toContain('releaseAt:"2027-03-07T11:00:00-05:00"');
+  expect(html).toContain('releaseAt:"2027-03-21T11:00:00-04:00"');
   expect(html).toContain('itunesTrackId:"1783806482"');
-  expect(html).toContain('releaseAt:"2027-03-28T11:00:00-04:00"');
+  expect(html).toContain('releaseAt:"2027-04-11T11:00:00-04:00"');
   expect(html).toContain('itunesTrackId:"1494360203"');
-  expect(html).toContain('releaseAt:"2027-04-18T11:00:00-04:00"');
+  expect(html).toContain('releaseAt:"2027-05-02T11:00:00-04:00"');
 });
 test('each premiere transitions into next current song and finally into history',async({page})=>{
   const state=await page.evaluate(schedule=>{
@@ -217,6 +225,28 @@ test('Colección Adoración artwork wins over a stale saved cover and theme',asy
   const theme=await card.evaluate(node=>getComputedStyle(node).getPropertyValue('--cover-c1').trim());
   expect(theme).not.toBe('250,4,4');
   const song=await page.evaluate(()=>window.IPCDJ_CATALOG.songs.find(x=>x.id==='con-manos-vacias'));
-  expect(song.releaseAt).toBe('2026-11-15T11:00:00-05:00');
+  expect(song.releaseAt).toBe('2026-11-28T11:00:00-05:00');
   expect(song.hasPreview).toBe(true);
+});
+
+test('Nov 28 final preparation and live countdown/progress stay synchronized',async({page})=>{
+ const check=await page.evaluate(()=>{
+  try{return ['2026-11-14T12:00:00-05:00','2026-11-27T23:59:59-05:00','2026-11-28T00:00:00-05:00','2026-11-28T11:00:00-05:00','2026-11-28T11:30:00-05:00','2026-11-29T06:00:00-05:00'].map(at=>{
+   const now=Date.parse(at);window.IPCDJ_CATALOG_TEST.renderAt(now);
+   const el=document.querySelector('[data-current-song-card][data-song-id="con-manos-vacias"]');
+   return {phase:window.IPCDJ_CATALOG.phase('con-manos-vacias',now).key,
+    pct:el?parseFloat(el.querySelector('[data-role="progress-fill"]')?.style.width||'NaN'):null,
+    aria:el?Number(el.querySelector('[data-role="progress-track"]')?.getAttribute('aria-valuenow')):null,
+    target:el?.querySelector('[data-role="countdown-target"]')?.textContent?.trim()||'',
+    next:!!document.querySelector('[data-current-song-card][data-song-id="glorioso-dia"]')};
+  })}finally{window.IPCDJ_CATALOG_TEST.resume()}
+ });
+ expect(check.map(x=>x.phase)).toEqual(['final','final','release','release','released','complete']);
+ expect(check[0].pct).toBeGreaterThan(0);
+ expect(check[0].pct).toBeLessThan(check[1].pct);
+ expect(check[1].pct).toBeLessThan(100);
+ expect(check[0].target).toContain('28 de noviembre');
+ expect(check[3].pct).toBe(100);
+ expect(check[3].aria).toBe(100);
+ expect(check[5].next).toBe(true);
 });

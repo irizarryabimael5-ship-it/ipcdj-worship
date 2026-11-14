@@ -733,10 +733,10 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(sunday).toContainText('Domingo, 15 de noviembre');
   await expect(sunday).toContainText('Ashley & Josselin');
   await expect(sunday).toContainText('Compás · 4/4');
-  expect(await sunday.locator('.weekly-song-title').allTextContents()).toEqual(["Eres Todopoderoso","Sí y Amén","Dios de Milagros","Con Manos Vacías","Mi Mayor Necesidad"]);
-  expect(await sunday.locator('.weekly-song-artist').allTextContents()).toEqual(["Danilo Montero","Grupo Barak","Miel San Marcos ft. Kim Richards","Jesús Adrián Romero","Oasis Ministry"]);
-  expect(await sunday.locator('.weekly-song-meta span').allTextContents()).toEqual(["Tono · Si Menor","BPM · 63/125","Tono · La♯ Mayor","BPM · 72/144","Tono · Re Mayor","BPM · 70/140","Tono · Fa Mayor","BPM · 51/102","Tono · Fa♯ Menor","BPM · 65/130"]);
-  await expect(sunday.locator('.weekly-song')).toHaveCount(5);
+  expect(await sunday.locator('.weekly-song-title').allTextContents()).toEqual(["Eres Todopoderoso","Sí y Amén","Dios de Milagros","Mi Mayor Necesidad"]);
+  expect(await sunday.locator('.weekly-song-artist').allTextContents()).toEqual(["Danilo Montero","Grupo Barak","Miel San Marcos ft. Kim Richards","Oasis Ministry"]);
+  expect(await sunday.locator('.weekly-song-meta span').allTextContents()).toEqual(["Tono · Si Menor","BPM · 63/125","Tono · La♯ Mayor","BPM · 72/144","Tono · Re Mayor","BPM · 70/140","Tono · Fa♯ Menor","BPM · 65/130"]);
+  await expect(sunday.locator('.weekly-song')).toHaveCount(4);
   await expect(sunday.locator('.weekly-coritos-card')).toContainText('Re Mayor · 130 BPM');
   expect(await sunday.locator('.weekly-corito').allTextContents()).toEqual(["Yo tengo un amigo que me ama","Alabaré, Alabaré, Alabaré a mi Señor","Mirad, Bendecid a Jehová","No hay Dios tan grande como tú","No es con espada, ni con ejército","Conozco a un hombre de poder","Viva la Fe, Viva la esperanza, Viva el amor"]);
   await expect(sunday.locator('.weekly-corito')).toHaveCount(7);
@@ -747,6 +747,7 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(sunday.locator('a[href="https://youtube.com/playlist?list=PLZPyN3qZEvrQ&si=CNHGDXoI4VkujtlW"]')).toHaveCount(1);
   await expect(sunday.locator('iframe[src="https://www.youtube-nocookie.com/embed/videoseries?list=PLZPyN3qZEvrQ"]')).toHaveCount(1);
   await expect(sunday.locator('.weekly-note-card')).toContainText('Ensayen con la canción, con metrónomo y eventualmente sin letra.');
+  await expect(sunday.locator('.weekly-note-card')).toContainText('Con Manos Vacías se pospone al sábado 28 de noviembre.');
   await weeklyPanel.locator('#weekly-tab-viernes').click();
   const nov8=weeklyPanel.locator('.weekly-history[data-weekly-archive-cycle="2026-11-08"]');
   const nov1=weeklyPanel.locator('.weekly-history[data-weekly-archive-cycle="2026-11-01"]');
@@ -766,7 +767,7 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   expect(result.before).toBe(false);
   expect(result.pre.state).toBe('active');
   expect(result.pre.fridayCurrent).toEqual(["Yahweh Se Manifestará","Ven Espíritu Santo","Yo Te Busco","La Bondad de Dios"]);
-  expect(result.pre.sundayCurrent).toEqual(["Eres Todopoderoso","Sí y Amén","Dios de Milagros","Con Manos Vacías","Mi Mayor Necesidad"]);
+  expect(result.pre.sundayCurrent).toEqual(["Eres Todopoderoso","Sí y Amén","Dios de Milagros","Mi Mayor Necesidad"]);
   expect(result.at).toBe(true);
   expect(result.post.state).toBe('rolled');
   expect(result.post.historyCycle).toBe('2026-11-15');
@@ -1172,24 +1173,24 @@ test('Ante Ti by JC Negron receives the next 3-week-spaced Feb 14 premiere with 
   const audit=await page.evaluate(()=>{
     const a=window.IPCDJ_CATALOG,song=a.songs.find(s=>s.id==='ante-ti-jc-negron');
     return {health:a.health,song,upcoming:a.snapshot(Date.parse('2026-11-02T12:00:00-05:00')).upcoming,
-      phaseAtLearning:a.phase('ante-ti-jc-negron',Date.parse('2027-02-01T12:00:00-05:00')).key,
-      phaseAtFinal:a.phase('ante-ti-jc-negron',Date.parse('2027-02-08T12:00:00-05:00')).key,
-      phaseAtRelease:a.phase('ante-ti-jc-negron',Date.parse('2027-02-14T11:00:00-05:00')).key,
-      before:a.snapshot(Date.parse('2027-02-15T05:59:59-05:00')),
-      after:a.snapshot(Date.parse('2027-02-15T06:00:00-05:00'))};
+      phaseAtLearning:a.phase('ante-ti-jc-negron',Date.parse('2027-02-15T12:00:00-05:00')).key,
+      phaseAtFinal:a.phase('ante-ti-jc-negron',Date.parse('2027-02-22T12:00:00-05:00')).key,
+      phaseAtRelease:a.phase('ante-ti-jc-negron',Date.parse('2027-02-28T11:00:00-05:00')).key,
+      before:a.snapshot(Date.parse('2027-03-01T05:59:59-05:00')),
+      after:a.snapshot(Date.parse('2027-03-01T06:00:00-05:00'))};
   });
   expect(audit.health.valid).toBe(true);
   expect(audit.health.fullVisualReady).toBe(true);
   expect(audit.song).toMatchObject({
     title:'Ante Ti',artist:'JC Negron',album:'Él Me Salvó',
-    activeFrom:'2027-01-25T06:00:00-05:00',
-    learningStart:'2027-02-01T00:00:00-05:00',
-    learningEnd:'2027-02-07T23:59:59-05:00',
-    finalStart:'2027-02-08T00:00:00-05:00',
-    finalEnd:'2027-02-13T23:59:59-05:00',
-    releaseAt:'2027-02-14T11:00:00-05:00',
-    rolloverAt:'2027-02-15T06:00:00-05:00',
-    introducedAt:'2027-02-15T06:00:00-05:00',
+    activeFrom:'2027-02-08T06:00:00-05:00',
+    learningStart:'2027-02-15T00:00:00-05:00',
+    learningEnd:'2027-02-21T23:59:59-05:00',
+    finalStart:'2027-02-22T00:00:00-05:00',
+    finalEnd:'2027-02-27T23:59:59-05:00',
+    releaseAt:'2027-02-28T11:00:00-05:00',
+    rolloverAt:'2027-03-01T06:00:00-05:00',
+    introducedAt:'2027-03-01T06:00:00-05:00',
     itunesTrackId:'1150302554',
     artworkUrl:'https://i.scdn.co/image/ab67616d0000b2733e485999ec387f27e6e9fa41'
   });
@@ -1205,35 +1206,35 @@ test('Ante Ti by JC Negron receives the next 3-week-spaced Feb 14 premiere with 
   const response=await request.get('/?ante-ti-dated-source='+Date.now(),{headers:{'cache-control':'no-cache'}});
   expect(response.ok()).toBe(true);
   const html=await response.text();
-  expect(html).toContain('releaseAt:"2027-02-14T11:00:00-05:00"');
+  expect(html).toContain('releaseAt:"2027-02-28T11:00:00-05:00"');
 });
 test('Encontré follows Ante Ti with full February–March 2027 preparation and original media',async({page,request})=>{
   await openHealthyPage(page);
   const a=await page.evaluate(()=>{
     const api=window.IPCDJ_CATALOG,id='encontre-generacion-12';
     return {song:api.songs.find(s=>s.id===id),health:api.health,
-      before:api.snapshot(Date.parse('2027-02-15T05:59:59-05:00')),
-      active:api.snapshot(Date.parse('2027-02-15T06:00:00-05:00')),
-      learning:api.phase(id,Date.parse('2027-02-22T12:00:00-05:00')).key,
-      final:api.phase(id,Date.parse('2027-03-01T12:00:00-05:00')).key,
-      release:api.phase(id,Date.parse('2027-03-07T11:00:00-05:00')).key,
-      preHistory:api.snapshot(Date.parse('2027-03-08T05:59:59-05:00')),
-      history:api.snapshot(Date.parse('2027-03-08T06:00:00-05:00'))};
+      before:api.snapshot(Date.parse('2027-03-01T05:59:59-05:00')),
+      active:api.snapshot(Date.parse('2027-03-01T06:00:00-05:00')),
+      learning:api.phase(id,Date.parse('2027-03-08T12:00:00-05:00')).key,
+      final:api.phase(id,Date.parse('2027-03-15T12:00:00-04:00')).key,
+      release:api.phase(id,Date.parse('2027-03-21T11:00:00-04:00')).key,
+      preHistory:api.snapshot(Date.parse('2027-03-22T05:59:59-04:00')),
+      history:api.snapshot(Date.parse('2027-03-22T06:00:00-04:00'))};
   });
   expect(a.health.valid).toBe(true);
   expect(a.health.fullVisualReady).toBe(true);
   expect(a.song).toMatchObject({title:'Encontré',artist:'Generación 12',
     album:'Encontré (En Vivo) - Single',
-    activeFrom:'2027-02-15T06:00:00-05:00',
-    learningStart:'2027-02-22T00:00:00-05:00',
-    learningEnd:'2027-02-28T23:59:59-05:00',
-    finalStart:'2027-03-01T00:00:00-05:00',
-    finalEnd:'2027-03-06T23:59:59-05:00',
-    releaseDayStartAt:'2027-03-07T00:00:00-05:00',
-    releaseAt:'2027-03-07T11:00:00-05:00',
-    releaseDayEndAt:'2027-03-08T00:00:00-05:00',
-    introducedAt:'2027-03-08T06:00:00-05:00',
-    rolloverAt:'2027-03-08T06:00:00-05:00',
+    activeFrom:'2027-03-01T06:00:00-05:00',
+    learningStart:'2027-03-08T00:00:00-05:00',
+    learningEnd:'2027-03-14T23:59:59-04:00',
+    finalStart:'2027-03-15T00:00:00-04:00',
+    finalEnd:'2027-03-20T23:59:59-04:00',
+    releaseDayStartAt:'2027-03-21T00:00:00-04:00',
+    releaseAt:'2027-03-21T11:00:00-04:00',
+    releaseDayEndAt:'2027-03-22T00:00:00-04:00',
+    introducedAt:'2027-03-22T06:00:00-04:00',
+    rolloverAt:'2027-03-22T06:00:00-04:00',
     itunesCollectionId:'1838982743',itunesTrackId:'1838982752',
     artworkSource:'generacion12-encontre-2022-single-artwork-reference',
     futurePalette:[[166,102,94],[202,133,120],[41,35,36]]});
@@ -1253,7 +1254,7 @@ test('Encontré follows Ante Ti with full February–March 2027 preparation and 
   expect(response.ok()).toBe(true);
   const html=await response.text();
   expect(html).toContain('itunesTrackId:"1838982752"');
-  expect(html).toContain('releaseAt:"2027-03-07T11:00:00-05:00"');
+  expect(html).toContain('releaseAt:"2027-03-21T11:00:00-04:00"');
 });
 
 test('Mi Gozo (Live) uses Barak 2022 live album and correct March DST lifecycle',async({page,request})=>{
@@ -1261,28 +1262,28 @@ test('Mi Gozo (Live) uses Barak 2022 live album and correct March DST lifecycle'
   const a=await page.evaluate(()=>{
     const api=window.IPCDJ_CATALOG,id='mi-gozo-live-barak';
     return {song:api.songs.find(s=>s.id===id),health:api.health,
-      before:api.snapshot(Date.parse('2027-03-08T05:59:59-05:00')),
-      active:api.snapshot(Date.parse('2027-03-08T06:00:00-05:00')),
-      learning:api.phase(id,Date.parse('2027-03-15T12:00:00-04:00')).key,
-      final:api.phase(id,Date.parse('2027-03-22T12:00:00-04:00')).key,
-      premiere:api.phase(id,Date.parse('2027-03-28T11:00:00-04:00')).key,
-      beforeRollover:api.snapshot(Date.parse('2027-03-29T05:59:59-04:00')),
-      afterRollover:api.snapshot(Date.parse('2027-03-29T06:00:00-04:00'))};
+      before:api.snapshot(Date.parse('2027-03-22T05:59:59-04:00')),
+      active:api.snapshot(Date.parse('2027-03-22T06:00:00-04:00')),
+      learning:api.phase(id,Date.parse('2027-03-29T12:00:00-04:00')).key,
+      final:api.phase(id,Date.parse('2027-04-05T12:00:00-04:00')).key,
+      premiere:api.phase(id,Date.parse('2027-04-11T11:00:00-04:00')).key,
+      beforeRollover:api.snapshot(Date.parse('2027-04-12T05:59:59-04:00')),
+      afterRollover:api.snapshot(Date.parse('2027-04-12T06:00:00-04:00'))};
   });
   expect(a.health.valid).toBe(true);
   expect(a.health.fullVisualReady).toBe(true);
   expect(a.song).toMatchObject({
     title:'Mi Gozo (Live)',artist:'Barak',album:'Fuego & Poder (Live)',
-    activeFrom:'2027-03-08T06:00:00-05:00',
-    learningStart:'2027-03-15T00:00:00-04:00',
-    learningEnd:'2027-03-21T23:59:59-04:00',
-    finalStart:'2027-03-22T00:00:00-04:00',
-    finalEnd:'2027-03-27T23:59:59-04:00',
-    releaseDayStartAt:'2027-03-28T00:00:00-04:00',
-    releaseAt:'2027-03-28T11:00:00-04:00',
-    releaseDayEndAt:'2027-03-29T00:00:00-04:00',
-    rolloverAt:'2027-03-29T06:00:00-04:00',
-    introducedAt:'2027-03-29T06:00:00-04:00',
+    activeFrom:'2027-03-22T06:00:00-04:00',
+    learningStart:'2027-03-29T00:00:00-04:00',
+    learningEnd:'2027-04-04T23:59:59-04:00',
+    finalStart:'2027-04-05T00:00:00-04:00',
+    finalEnd:'2027-04-10T23:59:59-04:00',
+    releaseDayStartAt:'2027-04-11T00:00:00-04:00',
+    releaseAt:'2027-04-11T11:00:00-04:00',
+    releaseDayEndAt:'2027-04-12T00:00:00-04:00',
+    rolloverAt:'2027-04-12T06:00:00-04:00',
+    introducedAt:'2027-04-12T06:00:00-04:00',
     itunesTrackId:'1783806482',itunesCollectionId:'1783806472',
     artworkUrl:'https://i.scdn.co/image/ab67616d0000b2730a45cc0e99318eda67b32111',
     artworkSource:'spotify-barak-fuego-poder-live-2022',
@@ -1304,7 +1305,7 @@ test('Mi Gozo (Live) uses Barak 2022 live album and correct March DST lifecycle'
   expect(response.ok()).toBe(true);
   const html=await response.text();
   expect(html).toContain('itunesTrackId:"1783806482"');
-  expect(html).toContain('releaseAt:"2027-03-28T11:00:00-04:00"');
+  expect(html).toContain('releaseAt:"2027-04-11T11:00:00-04:00"');
 });
 
 test('Así Será 2020 EP enters after Mi Gozo with full April 2027 preparation and exact Apple track',async({page,request})=>{
@@ -1312,29 +1313,29 @@ test('Así Será 2020 EP enters after Mi Gozo with full April 2027 preparation a
   const audit=await page.evaluate(()=>{
     const api=window.IPCDJ_CATALOG,id='asi-sera-it-is-so-elevation-ep';
     return {song:api.songs.find(s=>s.id===id),health:api.health,
-      prior:api.snapshot(Date.parse('2027-03-29T05:59:59-04:00')),
-      active:api.snapshot(Date.parse('2027-03-29T06:00:00-04:00')),
-      learning:api.phase(id,Date.parse('2027-04-05T12:00:00-04:00')).key,
-      final:api.phase(id,Date.parse('2027-04-12T12:00:00-04:00')).key,
-      premiere:api.phase(id,Date.parse('2027-04-18T11:00:00-04:00')).key,
-      beforeRollover:api.snapshot(Date.parse('2027-04-19T05:59:59-04:00')),
-      afterRollover:api.snapshot(Date.parse('2027-04-19T06:00:00-04:00'))};
+      prior:api.snapshot(Date.parse('2027-04-12T05:59:59-04:00')),
+      active:api.snapshot(Date.parse('2027-04-12T06:00:00-04:00')),
+      learning:api.phase(id,Date.parse('2027-04-19T12:00:00-04:00')).key,
+      final:api.phase(id,Date.parse('2027-04-26T12:00:00-04:00')).key,
+      premiere:api.phase(id,Date.parse('2027-05-02T11:00:00-04:00')).key,
+      beforeRollover:api.snapshot(Date.parse('2027-05-03T05:59:59-04:00')),
+      afterRollover:api.snapshot(Date.parse('2027-05-03T06:00:00-04:00'))};
   });
   expect(audit.health.valid).toBe(true);
   expect(audit.health.fullVisualReady).toBe(true);
   expect(audit.song).toMatchObject({
     title:'Así Será (It Is So)',artist:'Elevation Worship & Elevation Español',
     album:'A La Medianoche - EP',
-    activeFrom:'2027-03-29T06:00:00-04:00',
-    learningStart:'2027-04-05T00:00:00-04:00',
-    learningEnd:'2027-04-11T23:59:59-04:00',
-    finalStart:'2027-04-12T00:00:00-04:00',
-    finalEnd:'2027-04-17T23:59:59-04:00',
-    releaseDayStartAt:'2027-04-18T00:00:00-04:00',
-    releaseAt:'2027-04-18T11:00:00-04:00',
-    releaseDayEndAt:'2027-04-19T00:00:00-04:00',
-    introducedAt:'2027-04-19T06:00:00-04:00',
-    rolloverAt:'2027-04-19T06:00:00-04:00',
+    activeFrom:'2027-04-12T06:00:00-04:00',
+    learningStart:'2027-04-19T00:00:00-04:00',
+    learningEnd:'2027-04-25T23:59:59-04:00',
+    finalStart:'2027-04-26T00:00:00-04:00',
+    finalEnd:'2027-05-01T23:59:59-04:00',
+    releaseDayStartAt:'2027-05-02T00:00:00-04:00',
+    releaseAt:'2027-05-02T11:00:00-04:00',
+    releaseDayEndAt:'2027-05-03T00:00:00-04:00',
+    introducedAt:'2027-05-03T06:00:00-04:00',
+    rolloverAt:'2027-05-03T06:00:00-04:00',
     itunesTrackId:'1494360203',itunesCollectionId:'1494360193',
     artworkUrl:'https://i.scdn.co/image/ab67616d0000b273eb0c5a6a1f6931c64055a63e',
     artworkSource:'spotify-elevation-worship-a-la-medianoche-ep-2020',
@@ -1357,11 +1358,11 @@ test('Así Será 2020 EP enters after Mi Gozo with full April 2027 preparation a
   const html=await response.text();
   expect(html).toContain('itunesTrackId:"1494360203"');
   expect(html).toContain('itunesCollectionId:"1494360193"');
-  expect(html).toContain('releaseAt:"2027-04-18T11:00:00-04:00"');
+  expect(html).toContain('releaseAt:"2027-05-02T11:00:00-04:00"');
   expect(html).not.toContain('itunesTrackId:"1876354021"');
 });
 
-test('Reinas is scheduled on Jan 24 with official art, preview and automatic lifecycle',async({page})=>{
+test('Reinas is scheduled on Feb 7 with official art, preview and automatic lifecycle',async({page})=>{
   await openHealthyPage(page);
   const audit=await page.evaluate(()=>({
     tbd:window.IPCDJ_CATALOG.tbd,songs:window.IPCDJ_CATALOG.songs,health:window.IPCDJ_CATALOG.health,
@@ -1372,28 +1373,28 @@ test('Reinas is scheduled on Jan 24 with official art, preview and automatic lif
   expect(audit.songs.filter(song=>song.id==='reinas-por-la-eternidad')).toHaveLength(1);
   expect(audit.songs.find(song=>song.id==='reinas-por-la-eternidad')).toMatchObject({
     title:'Reinas Por La Eternidad',artist:'Hillsong en Español',
-    learningStart:'2027-01-11T00:00:00-05:00',
-    finalStart:'2027-01-18T00:00:00-05:00',
-    releaseAt:'2027-01-24T11:00:00-05:00',rolloverAt:'2027-01-25T06:00:00-05:00'
+    learningStart:'2027-01-25T00:00:00-05:00',
+    finalStart:'2027-02-01T00:00:00-05:00',
+    releaseAt:'2027-02-07T11:00:00-05:00',rolloverAt:'2027-02-08T06:00:00-05:00'
   });
   expect(audit.upcoming).toContain('reinas-por-la-eternidad');
   const row=page.locator('#upcoming-songs [data-song-id="reinas-por-la-eternidad"]');
   await expect(row).toHaveCount(1);
   await expect(row).toHaveAttribute('data-schedule-status','scheduled');
   await expect(row.locator('h3')).toHaveText('Reinas Por La Eternidad');
-  await expect(row.locator('.song-date')).toHaveText('Estreno: 24 Ene');
+  await expect(row.locator('.song-date')).toHaveText('Estreno: 7 Feb');
   await expect(row.locator('.song-meta')).not.toContainText('Por definir');
   await expect(row.locator('.preview-button')).toBeEnabled();
   try{
     for(const [date,phase] of [
-      ['2027-01-11T12:00:00-05:00','learning'],
-      ['2027-01-18T12:00:00-05:00','final'],
-      ['2027-01-24T11:00:00-05:00','release']
+      ['2027-01-25T12:00:00-05:00','learning'],
+      ['2027-02-01T12:00:00-05:00','final'],
+      ['2027-02-07T11:00:00-05:00','release']
     ]){
       const snap=await page.evaluate(date=>window.IPCDJ_CATALOG_TEST.renderAt(Date.parse(date)),date);
       expect(snap.phases['reinas-por-la-eternidad']).toBe(phase);
     }
-    const snap=await page.evaluate(()=>window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2027-01-25T06:00:00-05:00')));
+    const snap=await page.evaluate(()=>window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2027-02-08T06:00:00-05:00')));
     expect(snap.introduced).toContain('reinas-por-la-eternidad');
     expect(snap.current).not.toContain('reinas-por-la-eternidad');
   }finally{await page.evaluate(()=>window.IPCDJ_CATALOG_TEST.resume())}
@@ -1549,15 +1550,15 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
     sep21: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-09-21T12:00:00-04:00')),
     oct5: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-10-05T12:00:00-04:00')),
     oct6: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-10-06T12:00:00-04:00')),
-    nov16Early: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-11-16T01:00:00-05:00')),
-    nov16Active: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-11-16T06:01:00-05:00'))
+    nov29Early: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-11-29T01:00:00-05:00')),
+    nov29Active: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-11-29T06:01:00-05:00'))
   }));
   expect(orderSnapshots.sep21.upcoming).toEqual(['con-manos-vacias','glorioso-dia','no-fallaras','reinas-por-la-eternidad','ante-ti-jc-negron','encontre-generacion-12','mi-gozo-live-barak','asi-sera-it-is-so-elevation-ep']);
   expect(orderSnapshots.oct5.upcoming).not.toContain('dios-no-esta-muerto');
   expect(orderSnapshots.oct6.current).toEqual(['dios-no-esta-muerto','con-manos-vacias']);
   expect(orderSnapshots.oct6.upcoming).not.toContain('dios-no-esta-muerto');
-  expect(orderSnapshots.nov16Early.upcoming).toEqual(['glorioso-dia','no-fallaras','reinas-por-la-eternidad','ante-ti-jc-negron','encontre-generacion-12','mi-gozo-live-barak','asi-sera-it-is-so-elevation-ep']);
-  expect(orderSnapshots.nov16Active.current).toContain('glorioso-dia');
+  expect(orderSnapshots.nov29Early.upcoming).toEqual(['glorioso-dia','no-fallaras','reinas-por-la-eternidad','ante-ti-jc-negron','encontre-generacion-12','mi-gozo-live-barak','asi-sera-it-is-so-elevation-ep']);
+  expect(orderSnapshots.nov29Active.current).toContain('glorioso-dia');
 
   const sourceResponse = await request.get('/?catalog-source-check=' + Date.now(), {
     headers: { 'cache-control': 'no-cache' }
@@ -1864,7 +1865,7 @@ test('rotation preserves the verified Glorioso Día cover from Después into Cur
   const expected='https://i.scdn.co/image/ab67616d0000b27372bba4048e09a242595e4a2c';
 
   try{
-    await page.evaluate(() => window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-11-16T05:59:59-05:00')));
+    await page.evaluate(() => window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-11-29T05:59:59-05:00')));
 
     const future=page.locator('#upcoming-songs [data-song-id="glorioso-dia"]');
     await expect(future).toHaveCount(1);
@@ -1879,7 +1880,7 @@ test('rotation preserves the verified Glorioso Día cover from Después into Cur
       source:node.dataset.futureArtworkSource||''
     }));
 
-    await page.evaluate(() => window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-11-16T06:00:00-05:00')));
+    await page.evaluate(() => window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-11-29T06:00:00-05:00')));
 
     const current=page.locator('[data-current-song-card][data-song-id="glorioso-dia"]');
     await expect(current).toHaveCount(1);
@@ -2316,7 +2317,7 @@ test('release day amplifies the page ambient field from the song palette', async
     try{
       // Lock the real runtime into an actual release-day phase so the one-second
       // live clock cannot race this visual assertion back to today's released state.
-      window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-11-15T00:00:01-05:00'));
+      window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-11-28T00:00:01-05:00'));
       await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
 
       const field=document.querySelector('.ambient-field-active')||document.querySelector('.ambient-field');
@@ -2403,7 +2404,7 @@ test('v174 dominant artwork color drives release ambience', async ({ page, reque
     settle.textContent='.ambient-field,.ambient-field::before,.ambient-blob{transition:none!important;animation:none!important}';
     document.head.appendChild(settle);
     try{
-      window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-11-15T00:00:01-05:00'));
+      window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-11-28T00:00:01-05:00'));
       await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
 
       const field=document.querySelector('.ambient-field-active')||document.querySelector('.ambient-field');
@@ -2595,24 +2596,24 @@ test('v176 lifecycle UI transitions cleanly through Después, prep, release, Est
         diosIntroduced:await renderAt('2026-09-29T00:00:01-04:00'),
         learning:await renderAt('2026-11-02T12:00:00-05:00'),
         finalPrep:await renderAt('2026-11-10T12:00:00-05:00'),
-        releaseStart:await renderAt('2026-11-15T00:00:01-05:00'),
-        justBeforeSettled:await renderAt('2026-11-15T11:29:59-05:00'),
-        settled:await renderAt('2026-11-15T11:30:00-05:00'),
-        conManosBeforeRollover:await renderAt('2026-11-16T05:59:59-05:00'),
-        conManosRollover:await renderAt('2026-11-16T06:00:00-05:00'),
-        introduced:await renderAt('2026-11-17T00:00:01-05:00'),
-        gloriosoReleased:await renderAt('2026-12-06T11:30:00-05:00'),
-        noFallarasReleased:await renderAt('2027-01-03T11:30:00-05:00'),
-        reinasReleased:await renderAt('2027-01-24T11:30:00-05:00'),
-        reinasRollover:await renderAt('2027-01-25T06:00:00-05:00')
+        releaseStart:await renderAt('2026-11-28T00:00:01-05:00'),
+        justBeforeSettled:await renderAt('2026-11-28T11:29:59-05:00'),
+        settled:await renderAt('2026-11-28T11:30:00-05:00'),
+        conManosBeforeRollover:await renderAt('2026-11-29T05:59:59-05:00'),
+        conManosRollover:await renderAt('2026-11-29T06:00:00-05:00'),
+        introduced:await renderAt('2026-11-30T00:00:01-05:00'),
+        gloriosoReleased:await renderAt('2026-12-20T11:30:00-05:00'),
+        noFallarasReleased:await renderAt('2027-01-17T11:30:00-05:00'),
+        reinasReleased:await renderAt('2027-02-07T11:30:00-05:00'),
+        reinasRollover:await renderAt('2027-02-08T06:00:00-05:00')
       };
 
       const stressTimes=[
         '2026-09-28T05:59:59-04:00','2026-09-28T06:00:01-04:00',
         '2026-11-02T12:00:00-05:00','2026-11-10T12:00:00-05:00',
-        '2026-11-15T00:00:01-05:00','2026-11-15T11:29:59-05:00',
-        '2026-11-15T11:30:00-05:00','2026-11-16T05:59:59-05:00',
-        '2026-11-16T06:00:00-05:00','2026-11-17T00:00:01-05:00'
+        '2026-11-28T00:00:01-05:00','2026-11-28T11:29:59-05:00',
+        '2026-11-28T11:30:00-05:00','2026-11-29T05:59:59-05:00',
+        '2026-11-29T06:00:00-05:00','2026-11-30T00:00:01-05:00'
       ];
 
       const transitionStart=performance.now();
@@ -2675,7 +2676,7 @@ test('v176 lifecycle UI transitions cleanly through Después, prep, release, Est
   expect(result.checkpoints.conManosRollover.introduced).toContain('Con Manos Vacías');
   expect(result.checkpoints.conManosRollover.snapshot.introduced).toContain('con-manos-vacias');
   const firstHistoryRow=result.checkpoints.conManosRollover.introducedRows.find(x=>x.title==='Con Manos Vacías');
-  expect(firstHistoryRow?.date).toBe('Estrenada · 15 de noviembre');
+  expect(firstHistoryRow?.date).toBe('Estrenada · 28 de noviembre');
   expect(result.checkpoints.introduced.snapshot.current).toContain('glorioso-dia');
   for(const [checkpoint,id] of [
     ['gloriosoReleased','glorioso-dia'],
@@ -2798,7 +2799,7 @@ test('v180 social preview is the approved WhatsApp screenshot', async ({ request
 });
 
 
-test('Con Manos Vacías Nov 15 progress and Glorioso Día Dec 6 preparation',async({page})=>{
+test('Con Manos Vacías Nov 28 progress and Glorioso Día Dec 20 preparation',async({page})=>{
   await page.clock.setFixedTime(new Date('2026-10-22T22:29:00-04:00'));
   await page.goto('/',{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>!!window.IPCDJ_CATALOG_TEST);
@@ -2814,34 +2815,34 @@ test('Con Manos Vacías Nov 15 progress and Glorioso Día Dec 6 preparation',asy
     };
   },{id,time});
   const early=await inspect('con-manos-vacias','2026-10-22T22:29:00-04:00');
-  expect(early).toMatchObject({percentage:0,aria:0,days:'23',phase:'upcoming'});
+  expect(early).toMatchObject({percentage:0,aria:0,days:'36',phase:'upcoming'});
   const learning=await inspect('con-manos-vacias','2026-11-02T00:00:00-05:00');
   expect(learning.percentage).toBe(0);
   expect(learning.phase).toBe('learning');
   const mid=await inspect('con-manos-vacias','2026-11-05T12:00:00-05:00');
-  expect(mid.percentage).toBeGreaterThan(20);
-  expect(mid.percentage).toBeLessThan(35);
+  expect(mid.percentage).toBeGreaterThan(10);
+  expect(mid.percentage).toBeLessThan(20);
   const final=await inspect('con-manos-vacias','2026-11-09T12:00:00-05:00');
   expect(final.phase).toBe('final');
   expect(final.percentage).toBeGreaterThan(mid.percentage);
   expect(final.percentage).toBeLessThan(60);
-  const near=await inspect('con-manos-vacias','2026-11-15T10:59:59-05:00');
+  const near=await inspect('con-manos-vacias','2026-11-28T10:59:59-05:00');
   expect(near.percentage).toBeGreaterThan(99);
   // CSS rounds to three decimals; ARIA rounds to an integer. Both can
   // DISPLAY 100 when the exact preparation percentage is still below 100.
   const formalStart=Date.parse('2026-11-02T00:00:00-05:00');
-  const estrenoAt=Date.parse('2026-11-15T11:00:00-05:00');
+  const estrenoAt=Date.parse('2026-11-28T11:00:00-05:00');
   const unroundedNear=((estrenoAt-1000-formalStart)/(estrenoAt-formalStart))*100;
   expect(unroundedNear).toBeLessThan(100);
   expect(near.percentage).toBe(Number(unroundedNear.toFixed(3)));
   expect(near.aria).toBe(Math.round(unroundedNear));
-  const release=await inspect('con-manos-vacias','2026-11-15T11:00:00-05:00');
+  const release=await inspect('con-manos-vacias','2026-11-28T11:00:00-05:00');
   expect(release.percentage).toBe(100);
   expect(release.aria).toBe(100);
-  const future=await inspect('glorioso-dia','2026-11-18T12:00:00-05:00');
+  const future=await inspect('glorioso-dia','2026-12-01T12:00:00-05:00');
   expect(future.phase).toBe('upcoming');
   expect(future.percentage).toBe(0);
-  const futureLearning=await inspect('glorioso-dia','2026-11-26T12:00:00-05:00');
+  const futureLearning=await inspect('glorioso-dia','2026-12-10T12:00:00-05:00');
   expect(futureLearning.percentage).toBeGreaterThan(20);
   expect(futureLearning.percentage).toBeLessThan(35);
 });
