@@ -103,14 +103,14 @@ test('full eight-song date, media and branch-isolation contract',async({page,req
   }
   const ante=upcoming.find(x=>x.id==='ante-ti-jc-negron');
   const encontre=upcoming.find(x=>x.id==='encontre-generacion-12');
-  expect(Date.parse(encontre.releaseAt)-Date.parse(ante.releaseAt)).toBe(21*24*60*60*1000);
+  expect(Date.parse(encontre.releaseAt)-Date.parse(ante.releaseAt)).toBe(21*24*60*60*1000-60*60*1000);
   expect(encontre.activeFrom).toBe(ante.rolloverAt);
   expect(encontre.itunesTrackId).toBe('1838982752');
   expect(encontre.itunesCollectionId).toBe('1838982743');
   expect(encontre.artworkSource).toBe('generacion12-encontre-2022-single-artwork-reference');
   expect(encontre.futurePalette).toEqual([[166,102,94],[202,133,120],[41,35,36]]);
   const miGozo=upcoming.find(x=>x.id==='mi-gozo-live-barak');
-  // 21 calendar days but only 20d23h in UTC because DST begins March 14.
+  // Ante Ti Feb 28 to Encontré Mar 21 spans 20d23h in UTC due to March 14 DST.
   const zonedDate=(iso)=>new Intl.DateTimeFormat('en-CA',{
     timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'
   }).format(new Date(iso));
@@ -245,7 +245,7 @@ test('Nov 28 final preparation and live countdown/progress stay synchronized',as
  expect(check[0].pct).toBeGreaterThan(0);
  expect(check[0].pct).toBeLessThan(check[1].pct);
  expect(check[1].pct).toBeLessThan(100);
- expect(check[0].target).toContain('28 de noviembre');
+ expect(check[0].target).toContain('28 Nov');
  expect(check[3].pct).toBe(100);
  expect(check[3].aria).toBe(100);
  expect(check[5].next).toBe(true);
