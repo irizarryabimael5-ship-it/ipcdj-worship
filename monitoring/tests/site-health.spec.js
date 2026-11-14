@@ -1179,7 +1179,7 @@ test('Así Será 2020 EP enters after Mi Gozo with full April 2027 preparation a
   await expect(row.locator('.preview-button')).toBeVisible();
   await expect(row).toContainText('Así Será (It Is So)');
   await expect(row).toContainText('Elevation Worship & Elevation Español');
-  await expect(row).toContainText('2 de mayo');
+  await expect(row).toContainText('2 May');
   const build=await page.locator('meta[name="ipcdj-build"]').getAttribute('content');
   expect(build).toBe('campana-weekend-v206');
   const response=await request.get('/?asi-sera-ep-schedule='+Date.now(),{headers:{'cache-control':'no-cache'}});
