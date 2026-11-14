@@ -106,8 +106,8 @@ test('full eight-song date, media and branch-isolation contract',async({page,req
   const miGozo=upcoming.find(x=>x.id==='mi-gozo-live-barak');
   expect(encontre.activeFrom).toBe(ante.rolloverAt);
   expect(miGozo.activeFrom).toBe(encontre.rolloverAt);
-  expect(Date.parse(encontre.releaseAt)-Date.parse(ante.releaseAt)).toBe(21*24*60*60*1000);
-  // The Mar 14 DST spring-forward subtracts one absolute hour from the Mar 7–28 calendar gap.
+  expect(Date.parse(encontre.releaseAt)-Date.parse(ante.releaseAt)).toBe(21*24*60*60*1000-60*60*1000);
+  // March DST reduces the absolute Feb 28–Mar 21 interval by one hour; Mar 21–Apr 11 stays 21 full days.
   expect(Date.parse(miGozo.releaseAt)-Date.parse(encontre.releaseAt)).toBe(21*24*60*60*1000);
   // Exact original track identity is verified in the published HTML source below.
   // Exact original track identity is verified in the published HTML source below.
@@ -241,7 +241,7 @@ test('November 28 postponement keeps countdown, progress and phases synchronized
   expect(samples[0].width).toBeGreaterThan(0);
   expect(samples[0].width).toBeLessThan(samples[1].width);
   expect(samples[1].width).toBeLessThan(100);
-  expect(samples[0].target).toContain('28 de noviembre');
+  expect(samples[0].target).toContain('28 Nov');
   expect(samples[3].width).toBe(100);
   expect(samples[3].aria).toBe(100);
   expect(samples[5].next).toBe(true);
