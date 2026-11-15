@@ -6,7 +6,7 @@
   <meta name="ipcdj-environment" content="staging" />
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="campana-weekend-v217" />
+  <meta name="ipcdj-build" content="campana-weekend-v218" />
   <script id="ipcdj-original-visual-preview-init">
     // Explicit staging-only opt-in; default users keep accessibility preferences.
     (()=>{try{
@@ -76,8 +76,7 @@
   <link rel="dns-prefetch" href="//p.scdn.co" />
   <link rel="dns-prefetch" href="//itunes.apple.com" />
   <link rel="dns-prefetch" href="//i.scdn.co" />
-  <link rel="preload" as="image" href="https://i.scdn.co/image/ab67616d0000b27341b7ffdb9e0bde66a24425c4" fetchpriority="high" />
-  <script id="ipcdj-ios-light-launch-detector">
+    <script id="ipcdj-ios-light-launch-detector">
     (() => {
       try{
         const standalone=(
@@ -12004,28 +12003,44 @@
       };
     }
 
+    // Avoid invalidating style and accessibility attributes when their authored
+    // values are already correct. The countdown still updates on every second,
+    // and colors still change whenever the timeline's RGB actually changes.
+    function setInlineStyleIfChanged(element,property,value){
+      if(element.style.getPropertyValue(property)!==String(value)){
+        element.style.setProperty(property,String(value));
+      }
+    }
+
+    function setAttributeIfChanged(element,name,value){
+      if(element.getAttribute(name)!==String(value)){
+        element.setAttribute(name,String(value));
+      }
+    }
+
     function applyProgressPalette(song,now,card){
       if(!card)return;
       const wrap=cardRole(card,"progress-wrap");
       if(!wrap)return;
       const palette=getProgressPalette(song,now);
-      wrap.style.setProperty("--progress-c1",palette.start);
-      wrap.style.setProperty("--progress-c2",palette.end);
-      wrap.style.setProperty("--progress-glow",palette.glow);
-      wrap.style.setProperty("--progress-soft",palette.soft);
-      wrap.style.setProperty("--progress-border",palette.border);
-      wrap.dataset.progressPhase=palette.phaseText;
+      setInlineStyleIfChanged(wrap,"--progress-c1",palette.start);
+      setInlineStyleIfChanged(wrap,"--progress-c2",palette.end);
+      setInlineStyleIfChanged(wrap,"--progress-glow",palette.glow);
+      setInlineStyleIfChanged(wrap,"--progress-soft",palette.soft);
+      setInlineStyleIfChanged(wrap,"--progress-border",palette.border);
+      if(wrap.dataset.progressPhase!==palette.phaseText){
+        wrap.dataset.progressPhase=palette.phaseText;
+      }
 
-      card.style.setProperty("--stage-accent",palette.accent);
-      card.style.setProperty("--stage-soft",palette.soft);
-      card.style.setProperty("--stage-border",palette.border);
-      card.style.setProperty("--stage-glow",palette.stageGlow);
-      card.style.setProperty("--stage-text",palette.stageText);
+      setInlineStyleIfChanged(card,"--stage-accent",palette.accent);
+      setInlineStyleIfChanged(card,"--stage-soft",palette.soft);
+      setInlineStyleIfChanged(card,"--stage-border",palette.border);
+      setInlineStyleIfChanged(card,"--stage-glow",palette.stageGlow);
+      setInlineStyleIfChanged(card,"--stage-text",palette.stageText);
 
       const track=cardRole(card,"progress-track");
-      if(track)track.setAttribute("aria-valuetext",palette.phaseText);
+      if(track)setAttributeIfChanged(track,"aria-valuetext",palette.phaseText);
     }
-
     function getPhase(song, now){
       const learningStart=new Date(song.learningStart).getTime();
       const learningEnd=new Date(song.learningEnd).getTime();
@@ -12098,7 +12113,9 @@
       const {song,phase}=driver;
       document.documentElement.classList.toggle("ipcdj-ambient-release",!!phase&&phase.key==="release");
       ambientDriverSongId=song.id;
-      document.documentElement.dataset.ambientDriverSongId=song.id;
+      if(document.documentElement.dataset.ambientDriverSongId!==song.id){
+        document.documentElement.dataset.ambientDriverSongId=song.id;
+      }
       const palette=ambientSongPalettes.get(song.id)||COVER_THEME_FALLBACKS[song.id]||AMBIENT_FALLBACK;
       setAmbientPalette(palette,"driver:"+song.id+"|phase:"+(phase?.key||"unknown"));
     }
@@ -12319,7 +12336,7 @@
 
       card.classList.toggle("phase-release",phase.key==="release");
       card.classList.toggle("phase-released",phase.key==="released");
-      card.dataset.phase=phase.key;
+      if(previousPhase!==phase.key)card.dataset.phase=phase.key;
       if(previousPhase!==phase.key||!card.dataset.coverFrameHeight){
         scheduleLifecycleStableCoverFrame(card);
       }
@@ -12327,7 +12344,7 @@
       const prepControlsHidden=phase.key==="release"||phase.key==="released";
       ["rehearsal-info","countdown-wrap","progress-wrap"].forEach(role=>{
         const el=cardRole(card,role);
-        if(el)el.setAttribute("aria-hidden",prepControlsHidden?"true":"false");
+        if(el)setAttributeIfChanged(el,"aria-hidden",prepControlsHidden?"true":"false");
       });
 
       const statusText=
@@ -12373,16 +12390,13 @@
         setCardText(card,"post-release-note","La canción ya fue presentada en el servicio de hoy.");
       }
 
-      if(song.previewAccent1){
-        card.style.setProperty("--preview-accent-1",song.previewAccent1);
-      }else{
-        card.style.removeProperty("--preview-accent-1");
-      }
-      if(song.previewAccent2){
-        card.style.setProperty("--preview-accent-2",song.previewAccent2);
-      }else{
-        card.style.removeProperty("--preview-accent-2");
-      }
+      [["--preview-accent-1",song.previewAccent1],["--preview-accent-2",song.previewAccent2]].forEach(([property,value])=>{
+        if(value){
+          setInlineStyleIfChanged(card,property,value);
+        }else if(card.style.getPropertyValue(property)){
+          card.style.removeProperty(property);
+        }
+      });
 
       if(song.artworkUrl&&card.classList.contains("has-native-cover")&&!card.classList.contains("cover-ready")){
         if(document.documentElement.classList.contains("ipcdj-launch-site-hidden")){
@@ -12409,15 +12423,11 @@
       setCardText(card,"progress-phase",phase.label);
       setCardText(card,"progress-note",phase.note);
 
+      const activeTimeline=phase.key==="learning"?"timeline-learning":phase.key==="final"?"timeline-final":phase.key==="release"?"timeline-release":"";
       ["timeline-learning","timeline-final","timeline-release"].forEach(role=>{
         const el=cardRole(card,role);
-        if(el)el.classList.remove("active-phase");
+        if(el)el.classList.toggle("active-phase",role===activeTimeline);
       });
-      const activeTimeline=phase.key==="learning"?"timeline-learning":phase.key==="final"?"timeline-final":phase.key==="release"?"timeline-release":"";
-      if(activeTimeline){
-        const el=cardRole(card,activeTimeline);
-        if(el)el.classList.add("active-phase");
-      }
 
       // Preparation progress begins when formal learning starts, not when
       // the song was announced. Countdown and premiere timestamps are unchanged.
@@ -12426,9 +12436,14 @@
       const elapsed=Math.max(0,Math.min(total,now-preparationStart));
       const progress=Math.max(0,Math.min(100,(elapsed/total)*100));
       const fill=cardRole(card,"progress-fill");
-      if(fill)fill.style.width=progress.toFixed(3)+"%";
+      if(fill){
+        const roundedProgress=Number(progress.toFixed(3));
+        if(!fill.style.width||Number.parseFloat(fill.style.width)!==roundedProgress){
+          fill.style.width=roundedProgress.toFixed(3)+"%";
+        }
+      }
       const track=cardRole(card,"progress-track");
-      if(track)track.setAttribute("aria-valuenow",String(Math.round(progress)));
+      if(track)setAttributeIfChanged(track,"aria-valuenow",Math.round(progress));
       applyProgressPalette(song,now,card);
 
       const remaining=Math.max(0,release-now);
