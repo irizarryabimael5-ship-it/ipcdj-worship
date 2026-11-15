@@ -52,7 +52,7 @@ function setDashboardAttribute(source,name,value){
 // The live weekly set and the original event template retain their playlists.
 function stripArchivedPlaylistsMarkup(markup){
   return markup
-    .replace(/\s*<section class="weekly-youtube-card">[\s\S]*?<\/section>\s*/g,'\n')
+    .replace(/\s*<section\b[^>]*class="weekly-youtube-card"[^>]*>[\s\S]*?<\/section>\s*/gi,'\n')
     .replace(/<a\b[^>]*href="[^"]*youtube\.com\/playlist[^"]*"[^>]*>[\s\S]*?<\/a>/gi,'')
     .replace(/Orden del servicio, playlist, recursos y detalles de ensayo\./g,
       'Orden del servicio, repertorio y recursos de ensayo.');
@@ -173,7 +173,7 @@ function selfTest(){
 <button class="weekly-service-tab" data-weekly-service="viernes"><small>Actualizado</small></button>
 <button class="weekly-service-tab" data-weekly-service="domingo"><small>Actualizado</small></button>
 ${START.viernes}
-<section class="weekly-service-panel" id="weekly-panel-viernes" role="tabpanel" aria-labelledby="weekly-tab-viernes" data-weekly-panel="viernes"><strong class="weekly-song-title" id="song-a">A</strong><section class="weekly-youtube-card"><div class="weekly-youtube-frame"><iframe src="https://www.youtube-nocookie.com/embed/videoseries?list=active-test"></iframe></div><a href="https://youtube.com/playlist?list=active-test">Abrir playlist en YouTube</a></section></section>
+<section class="weekly-service-panel" id="weekly-panel-viernes" role="tabpanel" aria-labelledby="weekly-tab-viernes" data-weekly-panel="viernes"><strong class="weekly-song-title" id="song-a">A</strong><section class="weekly-youtube-card" aria-labelledby="fixture-playlist"><div class="weekly-youtube-frame"><iframe src="https://www.youtube-nocookie.com/embed/videoseries?list=active-test"></iframe></div><a href="https://youtube.com/playlist?list=active-test">Abrir playlist en YouTube</a></section></section>
           ${END.viernes}
 ${START.domingo}
 <section class="weekly-service-panel" id="weekly-panel-domingo" role="tabpanel" aria-labelledby="weekly-tab-domingo" data-weekly-panel="domingo" hidden><strong class="weekly-song-title" id="song-b">B</strong></section>
