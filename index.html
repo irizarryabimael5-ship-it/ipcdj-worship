@@ -6,7 +6,7 @@
   <meta name="ipcdj-environment" content="staging" />
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
   <meta name="theme-color" content="#000000" />
-  <meta name="ipcdj-build" content="campana-weekend-v220" />
+  <meta name="ipcdj-build" content="campana-weekend-v221" />
   <script id="ipcdj-original-visual-preview-init">
     // Explicit staging-only opt-in; default users keep accessibility preferences.
     (()=>{try{
@@ -372,20 +372,13 @@
         const match=text.match(/<meta\s+name=["']ipcdj-build["']\s+content=["']([^"']+)["']/i);
         const deployedBuild=match ? match[1] : "";
         if(deployedBuild && deployedBuild!==CURRENT_BUILD){
-          // Do not visibly reload an already-painted PWA. The service worker
-          // update path refreshes the cached shell silently; the next navigation
-          // receives the new build without a startup double-paint/flash.
+          // A confirmed newer network build must update the VISIBLE page.
+          // A one-shot "fresh" flag ensures there is no redirect loop; the
+          // service worker treats this navigation as network-first.
           window.__ipcdjFreshBuildAvailable=deployedBuild;
-          if("serviceWorker" in navigator){
-            navigator.serviceWorker.getRegistration().then(registration=>{
-              if(!registration)return;
-              registration.update().then(()=>{
-                if(registration.waiting){
-                  registration.waiting.postMessage({type:"SKIP_WAITING"});
-                }
-              }).catch(()=>{});
-            }).catch(()=>{});
-          }
+          const freshNavigation=new URL(location.href);
+          freshNavigation.searchParams.set("fresh",Date.now().toString());
+          location.replace(freshNavigation.toString());
         }
       })
       .catch(()=>{});
