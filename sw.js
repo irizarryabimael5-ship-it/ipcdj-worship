@@ -1,6 +1,6 @@
 importScripts("./notifications/sw-foundation.js");
 
-const CACHE_NAME = "ipcdj-worship-v220";
+const CACHE_NAME = "ipcdj-worship-v221";
 const OFFLINE_PAGE = "./__offline_index__";
 const STATIC_ASSETS = [
   "./favicon.svg",
@@ -177,22 +177,9 @@ self.addEventListener("fetch", event => {
         return response;
       };
 
-      // On a healthy connection prefer the currently deployed shell, which avoids
-      // showing one stale app version first and correcting it only after launch.
-      // The wait is short and bounded; slow/offline launches still get the cached shell.
-      if(!isExplicitFreshNavigation&&cached){
-        const networkPromise=networkAndCache().catch(()=>null);
-        const fastNetwork=await Promise.race([
-          networkPromise,
-          new Promise(resolve=>setTimeout(()=>resolve(null),1400))
-        ]);
-
-        if(fastNetwork&&fastNetwork.ok)return fastNetwork;
-
-        event.waitUntil(networkPromise.catch(()=>{}));
-        return cached;
-      }
-
+      // Always wait for the bounded network fetch before falling back to
+      // a cached app shell. Returning a cached shell after only 1.4s can
+      // display an old worship set on otherwise healthy mobile connections.
       try{
         const response=await networkAndCache();
         if(response&&response.ok)return response;
