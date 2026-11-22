@@ -1385,15 +1385,15 @@ test('managed song catalog is single-source and lifecycle-safe', async ({ page, 
     sep21: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-09-21T12:00:00-04:00')),
     oct5: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-10-05T12:00:00-04:00')),
     oct6: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-10-06T12:00:00-04:00')),
-    dec27Early: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-12-27T01:00:00-05:00')),
-    dec27Active: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-12-27T06:01:00-05:00'))
+    dec28Early: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-12-28T01:00:00-05:00')),
+    dec28Active: window.IPCDJ_CATALOG.snapshot(Date.parse('2026-12-28T06:01:00-05:00'))
   }));
   expect(orderSnapshots.sep21.upcoming).toEqual(['con-manos-vacias','glorioso-dia','no-fallaras','reinas-por-la-eternidad','ante-ti-jc-negron','encontre-generacion-12','mi-gozo-live-barak','asi-sera-it-is-so-elevation-ep']);
   expect(orderSnapshots.oct5.upcoming).not.toContain('dios-no-esta-muerto');
   expect(orderSnapshots.oct6.current).toEqual(['dios-no-esta-muerto','con-manos-vacias']);
   expect(orderSnapshots.oct6.upcoming).not.toContain('dios-no-esta-muerto');
-  expect(orderSnapshots.dec27Early.upcoming).toEqual(['glorioso-dia','no-fallaras','reinas-por-la-eternidad','ante-ti-jc-negron','encontre-generacion-12','mi-gozo-live-barak','asi-sera-it-is-so-elevation-ep']);
-  expect(orderSnapshots.dec27Active.current).toContain('glorioso-dia');
+  expect(orderSnapshots.dec28Early.upcoming).toEqual(['glorioso-dia','no-fallaras','reinas-por-la-eternidad','ante-ti-jc-negron','encontre-generacion-12','mi-gozo-live-barak','asi-sera-it-is-so-elevation-ep']);
+  expect(orderSnapshots.dec28Active.current).toContain('glorioso-dia');
 
   const sourceResponse = await request.get('/?catalog-source-check=' + Date.now(), {
     headers: { 'cache-control': 'no-cache' }
@@ -1700,7 +1700,7 @@ test('rotation preserves the verified Glorioso Día cover from Después into Cur
   const expected='https://i.scdn.co/image/ab67616d0000b27372bba4048e09a242595e4a2c';
 
   try{
-    await page.evaluate(() => window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-12-27T05:59:59-05:00')));
+    await page.evaluate(() => window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-12-28T05:59:59-05:00')));
 
     const future=page.locator('#upcoming-songs [data-song-id="glorioso-dia"]');
     await expect(future).toHaveCount(1);
@@ -1715,7 +1715,7 @@ test('rotation preserves the verified Glorioso Día cover from Después into Cur
       source:node.dataset.futureArtworkSource||''
     }));
 
-    await page.evaluate(() => window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-12-27T06:00:00-05:00')));
+    await page.evaluate(() => window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-12-28T06:00:00-05:00')));
 
     const current=page.locator('[data-current-song-card][data-song-id="glorioso-dia"]');
     await expect(current).toHaveCount(1);
@@ -2160,7 +2160,7 @@ test('release day amplifies the page ambient field from the song palette', async
     try{
       // Lock the real runtime into an actual release-day phase so the one-second
       // live clock cannot race this visual assertion back to today's released state.
-      window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-12-26T00:00:01-05:00'));
+      window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-12-27T00:00:01-05:00'));
       await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
 
       const field=document.querySelector('.ambient-field-active')||document.querySelector('.ambient-field');
@@ -2247,7 +2247,7 @@ test('v174 dominant artwork color drives release ambience', async ({ page, reque
     settle.textContent='.ambient-field,.ambient-field::before,.ambient-blob{transition:none!important;animation:none!important}';
     document.head.appendChild(settle);
     try{
-      window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-12-26T00:00:01-05:00'));
+      window.IPCDJ_CATALOG_TEST.renderAt(Date.parse('2026-12-27T00:00:01-05:00'));
       await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
 
       const field=document.querySelector('.ambient-field-active')||document.querySelector('.ambient-field');
@@ -2439,12 +2439,12 @@ test('v176 lifecycle UI transitions cleanly through Después, prep, release, Est
         diosIntroduced:await renderAt('2026-09-29T00:00:01-04:00'),
         learning:await renderAt('2026-11-02T12:00:00-05:00'),
         finalPrep:await renderAt('2026-11-10T12:00:00-05:00'),
-        releaseStart:await renderAt('2026-12-26T00:00:01-05:00'),
-        justBeforeSettled:await renderAt('2026-12-26T11:29:59-05:00'),
-        settled:await renderAt('2026-12-26T11:30:00-05:00'),
-        conManosBeforeRollover:await renderAt('2026-12-27T05:59:59-05:00'),
-        conManosRollover:await renderAt('2026-12-27T06:00:00-05:00'),
-        introduced:await renderAt('2026-12-28T00:00:01-05:00'),
+        releaseStart:await renderAt('2026-12-27T00:00:01-05:00'),
+        justBeforeSettled:await renderAt('2026-12-27T11:29:59-05:00'),
+        settled:await renderAt('2026-12-27T11:30:00-05:00'),
+        conManosBeforeRollover:await renderAt('2026-12-28T05:59:59-05:00'),
+        conManosRollover:await renderAt('2026-12-28T06:00:00-05:00'),
+        introduced:await renderAt('2026-12-29T00:00:01-05:00'),
         gloriosoReleased:await renderAt('2027-01-17T11:30:00-05:00'),
         noFallarasReleased:await renderAt('2027-02-14T11:30:00-05:00'),
         reinasReleased:await renderAt('2027-03-07T11:30:00-05:00'),
@@ -2454,9 +2454,9 @@ test('v176 lifecycle UI transitions cleanly through Después, prep, release, Est
       const stressTimes=[
         '2026-09-28T05:59:59-04:00','2026-09-28T06:00:01-04:00',
         '2026-11-02T12:00:00-05:00','2026-11-10T12:00:00-05:00',
-        '2026-12-26T00:00:01-05:00','2026-12-26T11:29:59-05:00',
-        '2026-12-26T11:30:00-05:00','2026-12-27T05:59:59-05:00',
-        '2026-12-27T06:00:00-05:00','2026-12-28T00:00:01-05:00'
+        '2026-12-27T00:00:01-05:00','2026-12-27T11:29:59-05:00',
+        '2026-12-27T11:30:00-05:00','2026-12-28T05:59:59-05:00',
+        '2026-12-28T06:00:00-05:00','2026-12-29T00:00:01-05:00'
       ];
 
       const transitionStart=performance.now();
@@ -2519,7 +2519,7 @@ test('v176 lifecycle UI transitions cleanly through Después, prep, release, Est
   expect(result.checkpoints.conManosRollover.introduced).toContain('Con Manos Vacías');
   expect(result.checkpoints.conManosRollover.snapshot.introduced).toContain('con-manos-vacias');
   const firstHistoryRow=result.checkpoints.conManosRollover.introducedRows.find(x=>x.title==='Con Manos Vacías');
-  expect(firstHistoryRow?.date).toBe('Estrenada · 26 de diciembre');
+  expect(firstHistoryRow?.date).toBe('Estrenada · 27 de diciembre');
   expect(result.checkpoints.introduced.snapshot.current).toContain('glorioso-dia');
   for(const [checkpoint,id] of [
     ['gloriosoReleased','glorioso-dia'],
@@ -2619,7 +2619,7 @@ test('v176 rendering stays sRGB-authored and resilient across browser/device pro
   expect(['chromium-desktop','firefox-desktop','webkit-desktop','chromium-mobile','webkit-mobile','webkit-compact-mobile','webkit-tablet']).toContain(testInfo.project.name);
 });
 
-test('Con Manos Vacías Dec 26 progress and Glorioso Día Jan 17 preparation',async({page})=>{
+test('Con Manos Vacías Dec 27 progress and Glorioso Día Jan 17 preparation',async({page})=>{
   await page.clock.setFixedTime(new Date('2026-10-22T22:29:00-04:00'));
   await page.goto('/',{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>!!window.IPCDJ_CATALOG_TEST);
@@ -2635,7 +2635,7 @@ test('Con Manos Vacías Dec 26 progress and Glorioso Día Jan 17 preparation',as
     };
   },{id,time});
   const early=await inspect('con-manos-vacias','2026-10-22T22:29:00-04:00');
-  expect(early).toMatchObject({percentage:0,aria:0,days:'64',phase:'upcoming'});
+  expect(early).toMatchObject({percentage:0,aria:0,days:'65',phase:'upcoming'});
   const learning=await inspect('con-manos-vacias','2026-11-02T00:00:00-05:00');
   expect(learning.percentage).toBe(0);
   expect(learning.phase).toBe('learning');
@@ -2646,17 +2646,17 @@ test('Con Manos Vacías Dec 26 progress and Glorioso Día Jan 17 preparation',as
   expect(final.phase).toBe('final');
   expect(final.percentage).toBeGreaterThan(mid.percentage);
   expect(final.percentage).toBeLessThan(60);
-  const near=await inspect('con-manos-vacias','2026-12-26T10:59:59-05:00');
+  const near=await inspect('con-manos-vacias','2026-12-27T10:59:59-05:00');
   expect(near.percentage).toBeGreaterThan(99);
   // CSS rounds to three decimals; ARIA rounds to an integer. Both can
   // DISPLAY 100 when the exact preparation percentage is still below 100.
   const formalStart=Date.parse('2026-11-02T00:00:00-05:00');
-  const estrenoAt=Date.parse('2026-12-26T11:00:00-05:00');
+  const estrenoAt=Date.parse('2026-12-27T11:00:00-05:00');
   const unroundedNear=((estrenoAt-1000-formalStart)/(estrenoAt-formalStart))*100;
   expect(unroundedNear).toBeLessThan(100);
   expect(near.percentage).toBe(Number(unroundedNear.toFixed(3)));
   expect(near.aria).toBe(Math.round(unroundedNear));
-  const release=await inspect('con-manos-vacias','2026-12-26T11:00:00-05:00');
+  const release=await inspect('con-manos-vacias','2026-12-27T11:00:00-05:00');
   expect(release.percentage).toBe(100);
   expect(release.aria).toBe(100);
   const future=await inspect('glorioso-dia','2026-12-29T12:00:00-05:00');
