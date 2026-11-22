@@ -1,15 +1,15 @@
 import {test,expect} from '@playwright/test';
 
-// Owner-approved LIVE December 2026 – May 2027 song calendar; four-week postponement preserves intervals.
+// Owner-approved LIVE December 2026 – May 2027 song calendar; four-week postponement plus Sunday-only correction preserves later release intervals.
 // These assertions intentionally fail if any former estreno date leaks back.
 const schedule=[
   {id:'con-manos-vacias',title:'Con Manos Vacías',artist:'Jesús Adrián Romero',
     active:'2026-09-28T06:00:00-04:00',learning:'2026-11-02T00:00:00-05:00',
     lastLearning:'2026-11-08T23:59:59-05:00',final:'2026-11-09T00:00:00-05:00',
-    lastFinal:'2026-12-25T23:59:59-05:00',release:'2026-12-26T11:00:00-05:00',
-    rollover:'2026-12-27T06:00:00-05:00',provider:'itunes'},
+    lastFinal:'2026-12-26T23:59:59-05:00',release:'2026-12-27T11:00:00-05:00',
+    rollover:'2026-12-28T06:00:00-05:00',provider:'itunes'},
   {id:'glorioso-dia',title:'Glorioso Día',artist:'Passion Music',
-    active:'2026-12-27T06:00:00-05:00',learning:'2027-01-04T00:00:00-05:00',
+    active:'2026-12-28T06:00:00-05:00',learning:'2027-01-04T00:00:00-05:00',
     lastLearning:'2027-01-10T23:59:59-05:00',final:'2027-01-11T00:00:00-05:00',
     lastFinal:'2027-01-16T23:59:59-05:00',release:'2027-01-17T11:00:00-05:00',
     rollover:'2027-01-18T06:00:00-05:00',provider:'spotify'},
@@ -67,7 +67,10 @@ test('full eight-song date, media and branch-isolation contract',async({page,req
   expect(schedule[0].learning).toBe('2026-11-02T00:00:00-05:00');
   expect(schedule[0].lastLearning).toBe('2026-11-08T23:59:59-05:00');
   expect(schedule[0].final).toBe('2026-11-09T00:00:00-05:00');
-  expect(schedule[0].lastFinal).toBe('2026-12-25T23:59:59-05:00');
+  expect(schedule[0].lastFinal).toBe('2026-12-26T23:59:59-05:00');
+  // Enforce Sunday-only premieres and exact revised calendar spacing.
+  const days=schedule.map(s=>Date.parse(s.release.slice(0,10)+'T00:00:00Z'));
+  expect(days.slice(1).map((d,i)=>(d-days[i])/86400000)).toEqual([21,28,21,21,21,21,21]);
   for(let i=1;i<schedule.length;i++){
     expect(schedule[i].active).toBe(schedule[i-1].rollover);
     expect(Date.parse(schedule[i].learning)-Date.parse(schedule[i-1].release)).toBeGreaterThanOrEqual(7*24*60*60*1000);
@@ -99,7 +102,7 @@ test('full eight-song date, media and branch-isolation contract',async({page,req
     const day=await page.evaluate(timestamp=>new Intl.DateTimeFormat('en-US',{
       timeZone:'America/New_York',weekday:'long'
     }).format(new Date(timestamp)),expected.release);
-    expect(day).toBe(expected.id==='con-manos-vacias'?'Saturday':'Sunday');
+    expect(day).toBe('Sunday');
   }
   const ante=upcoming.find(x=>x.id==='ante-ti-jc-negron');
   const encontre=upcoming.find(x=>x.id==='encontre-generacion-12');
@@ -219,14 +222,14 @@ test('Colección Adoración artwork wins over a stale saved cover and theme',asy
   const theme=await card.evaluate(node=>getComputedStyle(node).getPropertyValue('--cover-c1').trim());
   expect(theme).not.toBe('250,4,4');
   const song=await page.evaluate(()=>window.IPCDJ_CATALOG.songs.find(x=>x.id==='con-manos-vacias'));
-  expect(song.releaseAt).toBe('2026-12-26T11:00:00-05:00');
+  expect(song.releaseAt).toBe('2026-12-27T11:00:00-05:00');
   expect(song.hasPreview).toBe(true);
 });
 
-test('December 26 postponement keeps countdown, progress and phases synchronized',async({page})=>{
+test('December 27 postponement keeps countdown, progress and phases synchronized',async({page})=>{
   const samples=await page.evaluate(()=>{
-    try{return ['2026-11-14T12:00:00-05:00','2026-12-25T23:59:59-05:00','2026-12-26T00:00:00-05:00',
-      '2026-12-26T11:00:00-05:00','2026-12-26T11:30:00-05:00','2026-12-27T06:00:00-05:00'].map(iso=>{
+    try{return ['2026-11-14T12:00:00-05:00','2026-12-26T23:59:59-05:00','2026-12-27T00:00:00-05:00',
+      '2026-12-27T11:00:00-05:00','2026-12-27T11:30:00-05:00','2026-12-28T06:00:00-05:00'].map(iso=>{
       const now=Date.parse(iso);
       window.IPCDJ_CATALOG_TEST.renderAt(now);
       const node=document.querySelector('[data-current-song-card][data-song-id="con-manos-vacias"]');
@@ -241,7 +244,7 @@ test('December 26 postponement keeps countdown, progress and phases synchronized
   expect(samples[0].width).toBeGreaterThan(0);
   expect(samples[0].width).toBeLessThan(samples[1].width);
   expect(samples[1].width).toBeLessThan(100);
-  expect(samples[0].target).toContain('26 Dic');
+  expect(samples[0].target).toContain('27 Dic');
   expect(samples[3].width).toBe(100);
   expect(samples[3].aria).toBe(100);
   expect(samples[5].next).toBe(true);
@@ -268,7 +271,7 @@ test('owner-approved Nov 21 Live preparation remains active with revised countdo
   expect(check).toBeTruthy();
   expect(check.phase).toBe('final');
   expect(check.status).toBe('AHORA EN PREPARACIÓN');
-  expect(check.target).toContain('26 Dic');
+  expect(check.target).toContain('27 Dic');
   expect(check.progress).toBeGreaterThan(30);
   expect(check.progress).toBeLessThan(40);
   expect(Math.abs(check.progress-check.expected)).toBeLessThan(.001);
