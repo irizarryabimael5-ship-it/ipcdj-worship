@@ -720,8 +720,9 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(friday.locator('.weekly-song-index')).toHaveText(['01','02','03','04']);
   await expect(friday.locator('.weekly-song')).toHaveCount(4);
   await expect(friday.locator('.weekly-coritos-card')).toContainText('A discreción de Elmer');
-  await expect(friday.locator('.weekly-resource-pending')).toContainText('Disponible pronto');
-  await expect(friday.locator('a.weekly-resource')).toHaveCount(0);
+  await expect(friday.locator('.weekly-resource-pending')).toHaveCount(0);
+  await expect(friday.locator('a.weekly-resource[href="https://u.pone.rs/apfoqtar.pdf"]')).toHaveCount(1);
+  await expect(friday.locator('a.weekly-resource')).toContainText('Abrir recurso del viernes 27 de noviembre');
   await expect(friday.locator('a[href="https://youtube.com/playlist?list=PLXqqjNOyFIbg&si=hHLsvd3hYl4krApL"]')).toHaveCount(1);
   await expect(friday.locator('iframe[src="https://www.youtube-nocookie.com/embed/videoseries?list=PLXqqjNOyFIbg"]')).toHaveCount(1);
   await weeklyPanel.locator('#weekly-tab-domingo').click();
@@ -733,8 +734,9 @@ test('primary tabs, weekly panel and special-event lifecycle remain healthy', as
   await expect(sunday.locator('.weekly-song-index')).toHaveText(['01','02','03','04']);
   await expect(sunday.locator('.weekly-song')).toHaveCount(4);
   await expect(sunday.locator('.weekly-coritos-card')).toContainText('A discreción de Elmer');
-  await expect(sunday.locator('.weekly-resource-pending')).toContainText('Disponible pronto');
-  await expect(sunday.locator('a.weekly-resource')).toHaveCount(0);
+  await expect(sunday.locator('.weekly-resource-pending')).toHaveCount(0);
+  await expect(sunday.locator('a.weekly-resource[href="https://u.pone.rs/rlfjgmub.pdf"]')).toHaveCount(1);
+  await expect(sunday.locator('a.weekly-resource')).toContainText('Abrir recurso del domingo 29 de noviembre');
   await expect(sunday.locator('a[href="https://youtube.com/playlist?list=PLZPyN3qZEvrQ&si=WBaBeZ4v1JM9LluC"]')).toHaveCount(1);
   await expect(sunday.locator('iframe[src="https://www.youtube-nocookie.com/embed/videoseries?list=PLZPyN3qZEvrQ"]')).toHaveCount(1);
   await weeklyPanel.locator('#weekly-tab-viernes').click();
